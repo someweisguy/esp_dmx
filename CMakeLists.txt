@@ -1,0 +1,1 @@
+idf_component_register(SRCS "esp_dmx.c" INCLUDE_DIRS "." "dmx/")   
