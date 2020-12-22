@@ -80,6 +80,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   // install interrupt
   uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
+  // TODO: replace NULL with interrupt handler
   esp_err_t err = dmx_isr_register(dmx_num, NULL, p_dmx_obj[dmx_num],
       intr_alloc_flags, &p_dmx_obj[dmx_num]->intr_handle);
   if (err) {
