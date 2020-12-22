@@ -12,6 +12,11 @@
 
 typedef struct {
   dmx_port_t dmx_num;
+  uint16_t buffer_size;
+  uint8_t *buffer;
+  QueueHandle_t queue;
+  dmx_isr_handle_t intr_handle;
+
 } dmx_obj_t;
 
 typedef struct {
