@@ -99,6 +99,17 @@ esp_err_t dmx_intr_config(
     dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf);
 
 /**
+ * @brief Set DMX configuration parameters.
+ * 
+ * @param dmx_num 
+ * @param dmx_config 
+ * @return 
+ *  - ESP_OK:                Success
+ *  - ESP_ERR_INVALID_ARG:   Parameter error 
+ */
+esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);
+
+/**
  * @brief Set DMX pin number.
  *
  * @param dmx_num
@@ -109,14 +120,3 @@ esp_err_t dmx_intr_config(
  *  - ESP_ERR_INVALID_ARG   Parameter error
  * */
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num);
-
-/**
- * @brief Set DMX configuration parameters.
- * 
- * @param dmx_num 
- * @param dmx_config 
- * @return 
- *  - ESP_OK:                Success
- *  - ESP_ERR_INVALID_ARG:   Parameter error 
- */
-esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);

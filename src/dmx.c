@@ -2,11 +2,13 @@
 
 #include "dmx_types.h"
 #include "driver.h"
+#include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "hal/uart_hal.h"
 #include "hal/uart_ll.h"
+#include "soc/io_mux_reg.h"
 
 #define DMX_EMPTY_THRESH_DEFAULT     8
 #define DMX_FULL_THRESH_DEFAULT      120
@@ -226,6 +228,27 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   // flush both fifos
   uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
   uart_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
+
+  return ESP_OK;
+}
+
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK((tx_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num))), "tx_io_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK((rx_io_num < 0 || (GPIO_IS_VALID_GPIO(rx_io_num))), "rx_io_num error", ESP_ERR_INVALID_ARG);
+
+  // assign hardware pinouts
+  if (tx_io_num >= 0) {
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[tx_io_num], PIN_FUNC_GPIO);
+    gpio_set_level(tx_io_num, 1);
+    gpio_matrix_out(tx_io_num, uart_periph_signal[dmx_num].tx_sig, 0, 0);
+  }
+  if (rx_io_num >= 0) {
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[rx_io_num], PIN_FUNC_GPIO);
+    gpio_set_pull_mode(rx_io_num, GPIO_PULLUP_ONLY);
+    gpio_set_direction(rx_io_num, GPIO_MODE_INPUT);
+    gpio_matrix_in(rx_io_num, uart_periph_signal[dmx_num].rx_sig, 0);
+  }
 
   return ESP_OK;
 }
