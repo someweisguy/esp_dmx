@@ -38,7 +38,7 @@ esp_err_t uart_enable_tx_intr(uart_port_t uart_num, int enable, int thresh);
 esp_err_t uart_wait_tx_done(uart_port_t uart_num, TickType_t ticks_to_wait);
 int uart_write_bytes(uart_port_t uart_num, const char* src, size_t size);
 int uart_read_bytes(uart_port_t uart_num, uint8_t* buf, uint32_t length, TickType_t ticks_to_wait);
--> is_healthy(dmx_port_t dmx_num);
+-> dmx_get_valid_frame_length(dmx_port_t dmx_num, dmx_error_t *error);
 
 esp_err_t uart_get_collision_flag(uart_port_t uart_num, bool* collision_flag);
 

@@ -193,10 +193,10 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   DMX_CHECK(dmx_config->baudrate >= 245000 && dmx_config->baudrate <= 255000,
       "baudrate error", ESP_ERR_INVALID_ARG);
   const float bit_speed = 1000000.0 / dmx_config->baudrate;
-  DMX_CHECK(dmx_config->break_num * bit_speed >= 92, "break_num error",
-      ESP_ERR_INVALID_ARG);
-  DMX_CHECK(dmx_config->idle_num * bit_speed >= 12 && dmx_config->idle_num * bit_speed < 1000000,
+  DMX_CHECK(dmx_config->break_num * bit_speed >= 92 && dmx_config->break_num < 1024, 
       "break_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(dmx_config->idle_num * bit_speed >= 12 && dmx_config->idle_num * bit_speed < 1000000,
+      "idle_num error", ESP_ERR_INVALID_ARG);
 
   // enable uart peripheral module
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
