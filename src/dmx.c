@@ -98,6 +98,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     dmx_driver_delete(dmx_num);
     return err;
   }
+
   return ESP_OK;
 }
 
@@ -146,8 +147,7 @@ esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void *), void *arg,
   return ret;
 }
 
-esp_err_t dmx_intr_config(
-    dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf) {
+esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(intr_conf, "intr_conf is null", ESP_ERR_INVALID_ARG);
 
