@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dmx_types.h"
 #include "esp_intr_alloc.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
@@ -27,10 +28,6 @@ typedef struct {
   uint8_t txfifo_empty_intr_thresh;  // UART TX empty interrupt threshold.
   uint8_t rxfifo_full_thresh;  // UART RX full interrupt threshold.
 } dmx_intr_config_t;
-
-typedef struct {
-
-} dmx_config_t;
 
 /**
  * @brief Install DMX driver and set the DMX to the default configuration.
@@ -122,4 +119,4 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num);
  *  - ESP_OK:                Success
  *  - ESP_ERR_INVALID_ARG:   Parameter error 
  */
-esp_err_t dmx_param_config(dmx_port_t dmx_num, dmx_config_t *dmx_config);
+esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);
