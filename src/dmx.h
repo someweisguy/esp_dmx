@@ -35,8 +35,9 @@ typedef struct {
  * running on.
  *
  * @return
- *  - ESP_OK    Success
- *  - ESP_FAIL  Parameter error
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ *  - ESP_ERR_NO_MEM        Not enough memory
  * */
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags);
@@ -45,8 +46,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
  * @brief Uninstall DMX driver.
  *
  * @return
- *  - ESP_OK    Success
- *  - ESP_FAIL  Parameter error
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
  * */
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
 
@@ -71,8 +72,8 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num);
  * @param intr_alloc_flags
  * @param handle
  * @return
- *  - ESP_OK    Success
- *  - ESP_FAIL  Parameter error
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
  */
 esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void *), void *arg,
     int intr_alloc_flags, dmx_isr_handle_t *handle);
@@ -83,8 +84,8 @@ esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void *), void *arg,
  * @param dmx_num
  * @param intr_conf
  * @return
- *  - ESP_OK    Success
- *  - ESP_FAIL  Parameter error
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
  */
 esp_err_t dmx_intr_config(
     dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf);
@@ -93,7 +94,7 @@ esp_err_t dmx_intr_config(
  * @brief Set DMX pin number.
  *
  * @return
- *  - ESP_OK    Success
- *  - ESP_FAIL  Parameter error
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
  * */
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num);

@@ -12,12 +12,27 @@
 #define DMX_EXIT_CRITICAL(mux)      portEXIT_CRITICAL(mux)
 
 static const char *TAG = "dmx";
+#define DMX_CHECK(a, str, ret_val)                            \
+  if (!(a)) {                                                 \
+    ESP_LOGE(TAG, "%s(%d): %s", __FUNCTION__, __LINE__, str); \
+    return (ret_val);                                         \
+  }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags) {
-  // TODO: check args
-
-  // TODO: check intr_alloc_flags against IRAM compiler option
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(buffer_size < 513, "buffer_size error", ESP_ERR_INVALID_ARG);
+#if CONFIG_UART_ISR_IN_IRAM  // clang-format off
+    if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
+        ESP_LOGI(UART_TAG, "ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated");
+        intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
+    }
+#else
+    if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) != 0) {
+        ESP_LOGW(TAG, "ESP_INTR_FLAG_IRAM flag is set while CONFIG_UART_ISR_IN_IRAM is not enabled, flag updated");
+        intr_alloc_flags &= ~ESP_INTR_FLAG_IRAM;
+    }
+#endif  // clang-format on
 
   if (p_dmx_obj[dmx_num] == NULL) {
     // allocate the dmx driver
@@ -25,7 +40,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
         1, sizeof(dmx_obj_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     if (p_dmx_obj[dmx_num] == NULL) {
       ESP_LOGE(TAG, "DMX driver malloc error");
-      return ESP_FAIL;
+      return ESP_ERR_NO_MEM;
     }
 
     // initialize the driver to default values
@@ -35,7 +50,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     if (p_dmx_obj[dmx_num]->buffer == NULL) {
       ESP_LOGE(TAG, "DMX driver buffer malloc error");
       dmx_driver_delete(dmx_num);
-      return ESP_FAIL;
+      return ESP_ERR_NO_MEM;
     }
     if (dmx_queue) {
       p_dmx_obj[dmx_num]->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
@@ -72,7 +87,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     return err;
   }
   const dmx_intr_config_t dmx_intr = {
-      .intr_enable_mask = 0, // interrupts off
+      .intr_enable_mask = 0,  // interrupts off
       .rxfifo_full_thresh = 120,
       .rx_timeout_thresh = 10,
       .txfifo_empty_intr_thresh = 8,
@@ -86,7 +101,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
 }
 
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
-  // TODO: check dmx_num
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   if (p_dmx_obj[dmx_num] == NULL) {
     ESP_LOGI(TAG, "DMX driver already null");
@@ -96,7 +111,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // free driver resources
   if (p_dmx_obj[dmx_num]->buffer) free(p_dmx_obj[dmx_num]->buffer);
   if (p_dmx_obj[dmx_num]->queue) vQueueDelete(p_dmx_obj[dmx_num]->queue);
-  
+
   // free driver
   heap_caps_free(p_dmx_obj[dmx_num]);
   p_dmx_obj[dmx_num] = NULL;
@@ -120,7 +135,8 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num) {
 
 esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void *), void *arg,
     int intr_alloc_flags, dmx_isr_handle_t *handle) {
-  // TODO: check dmx_num
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+
   esp_err_t ret;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   ret = esp_intr_alloc(
@@ -131,8 +147,8 @@ esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void *), void *arg,
 
 esp_err_t dmx_intr_config(
     dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf) {
-  // TODO: check dmx_num
-  // TODO: check intr_conf != NULL
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(intr_conf, "intr_conf is null", ESP_ERR_INVALID_ARG);
 
   // TODO: determine which interrupts are necessary for DMX driver
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
