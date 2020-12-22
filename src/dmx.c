@@ -93,10 +93,23 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
     return ESP_OK;
   }
 
+  // free driver resources
   if (p_dmx_obj[dmx_num]->buffer) free(p_dmx_obj[dmx_num]->buffer);
   if (p_dmx_obj[dmx_num]->queue) vQueueDelete(p_dmx_obj[dmx_num]->queue);
+  
+  // free driver
+  heap_caps_free(p_dmx_obj[dmx_num]);
+  p_dmx_obj[dmx_num] = NULL;
 
-  free(p_dmx_obj[dmx_num]);
+  // disable uart peripheral module
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  if (dmx_context[dmx_num].hw_enabled != false) {
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+      periph_module_disable(uart_periph_signal[dmx_num].module);
+    }
+    dmx_context[dmx_num].hw_enabled = false;
+  }
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
