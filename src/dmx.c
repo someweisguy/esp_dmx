@@ -6,6 +6,7 @@
 #include "driver/periph_ctrl.h"
 #include "driver/uart.h"
 #include "esp_log.h"
+#include "hal/dmx_hal.h"
 #include "hal/dmx_types.h"
 #include "hal/uart_hal.h"
 #include "hal/uart_ll.h"
