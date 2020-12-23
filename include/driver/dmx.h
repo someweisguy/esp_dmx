@@ -29,7 +29,7 @@ typedef struct {
   uint8_t rxfifo_full_thresh;  // UART RX full interrupt threshold.
 } dmx_intr_config_t;
 
-#pragma region Driver_Functions /// ###########################################
+
 /**
  * @brief Install DMX driver and set the DMX to the default configuration.
  *
@@ -68,10 +68,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
  *  - false Driver is not installed
  * */
 bool dmx_is_driver_installed(dmx_port_t dmx_num);
-#pragma endregion Driver_Functions
 
 
-#pragma region Hardware_Configuration /// #####################################
 /**
  * @brief Set DMX pin number.
  *
@@ -160,10 +158,8 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
  *  - ESP_ERR_INVALID_ARG   Parameter error 
  */
 esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
-#pragma endregion Hardware_Configuration
 
 
-#pragma region Interrupt_Configuration /// ####################################
 /**
  * @brief Configure DMX interrupts.
  *
@@ -192,14 +188,3 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf
  */
 esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void*), void* arg,
     int intr_alloc_flags, dmx_isr_handle_t* handle);
-#pragma endregion Interrupt_Configuration
-
-
-#pragma region Interrupt_Handling /// #########################################
-
-#pragma endregion Interrupt_Handling
-
-
-#pragma region Read_Write /// #################################################
-
-#pragma endregion Read_Write

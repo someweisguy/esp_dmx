@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dmx.h"
+#include "driver/dmx.h"
 #include "hal/uart_hal.h"
 #include "soc/uart_caps.h"
 

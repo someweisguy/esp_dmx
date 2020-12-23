@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dmx_ctrl.h"
+#include "driver/dmx_ctrl.h"
 #include "esp_system.h"
 #include "hal/uart_hal.h"
 
