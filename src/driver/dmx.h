@@ -1,10 +1,10 @@
 #pragma once
 
-#include "dmx_types.h"
 #include "esp_intr_alloc.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "hal/dmx_types.h"
 #include "soc/uart_caps.h"
 
 // Valid DMX port number

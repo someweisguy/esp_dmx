@@ -1,14 +1,13 @@
 #pragma once
 
-#include "driver.h"
+#include "dmx_ctrl.h"
 #include "driver/uart.h"
+#include "esp_log.h"
 #include "esp_system.h"
 #include "hal/uart_hal.h"
 #include "hal/uart_ll.h"
 #include "soc/uart_reg.h"
 #include "soc/uart_struct.h"
-
-#include "esp_log.h"
 
 #define DMX_ENTER_CRITICAL_ISR(mux) portENTER_CRITICAL_ISR(mux)
 #define DMX_EXIT_CRITICAL_ISR(mux)  portEXIT_CRITICAL_ISR(mux)
@@ -17,6 +16,8 @@
  * TXing: user inputs into user buffer. driver outputs data on work buffer.
  *   When it is time to sync, the driver will copy the contents of the user
  *   buffer into the work buffer
+ * TX Interrrupts: UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_BRK_DONE
+ *  | UART_INTR_TX_DONE
  *
  * RXing: driver copies the contents of the uart fifo into one buffer. When
  *   it is time to sync, the driver will swap the frame pointer so that the

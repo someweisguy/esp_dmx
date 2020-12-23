@@ -1,1 +1,1 @@
-idf_component_register(SRCS "src/dmx.c" INCLUDE_DIRS "." "src/")   
+idf_component_register(SRCS "src/driver/dmx.c" INCLUDE_DIRS "." "src/")   
