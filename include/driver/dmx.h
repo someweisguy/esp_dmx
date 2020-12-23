@@ -231,3 +231,79 @@ esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void*), void* arg,
  * @return esp_err_t 
  */
 esp_err_t dmx_isr_free(dmx_port_t dmx_num);
+
+
+/// Interrupt Handling  #######################################################
+
+/**
+ * @brief Clears interrupt status bit of the specified interrupt mask.
+ * 
+ * @param dmx_num 
+ * @param clr_mask 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_clear_intr_status(dmx_port_t dmx_num, uint32_t clr_mask);
+
+/**
+ * @brief Enables interrupt status bit of the specified interrupt mask.
+ * 
+ * @param dmx_num 
+ * @param enable_mask 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_enable_intr_mask(dmx_port_t dmx_num, uint32_t enable_mask);
+
+/**
+ * @brief Disables interrupt status bit of the specified interrupt mask.
+ * 
+ * @param dmx_num 
+ * @param disable_mask 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_disable_intr_mask(dmx_port_t dmx_num, uint32_t disable_mask);
+
+/**
+ * @brief Enables DMX rx interrupts.
+ * 
+ * @param dmx_num 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_enable_rx_intr(dmx_port_t dmx_num);
+
+/**
+ * @brief Disables DMX RX interrupts.
+ * 
+ * @param dmx_num 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_disable_rx_intr(dmx_port_t dmx_num);
+
+/**
+ * @brief Enables DMX tx interrupts.
+ * 
+ * @param dmx_num 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_enable_tx_intr(dmx_port_t dmx_num);
+
+/**
+ * @brief Disables DMX tx interrupts.
+ * 
+ * @param dmx_num 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_disable_tx_intr(dmx_port_t dmx_num);

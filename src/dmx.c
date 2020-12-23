@@ -358,5 +358,27 @@ esp_err_t dmx_isr_free(dmx_port_t dmx_num) {
 }
 
 /// Interrupt Handling  #######################################################
+esp_err_t dmx_clear_intr_status(dmx_port_t dmx_num, uint32_t clr_mask) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), clr_mask);
+  return ESP_OK;
+}
+
+esp_err_t dmx_enable_intr_mask(dmx_port_t dmx_num, uint32_t enable_mask) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), enable_mask);
+  uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), enable_mask);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
+
+esp_err_t dmx_disable_intr_mask(dmx_port_t dmx_num, uint32_t disable_mask) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), disable_mask);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
 
 /// Read/Write  ###############################################################
