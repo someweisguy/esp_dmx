@@ -5,6 +5,7 @@
 
 
 // Hardware config
+# esp_err_t uart_set_pin(uart_port_t uart_num, int tx_io_num, int rx_io_num, int rts_io_num, int cts_io_num);
 # esp_err_t uart_param_config(uart_port_t uart_num, const uart_config_t *uart_config);
 esp_err_t uart_set_baudrate(uart_port_t uart_num, uint32_t baud);
 esp_err_t uart_get_baudrate(uart_port_t uart_num, uint32_t* baud);
@@ -12,7 +13,6 @@ esp_err_t uart_get_baudrate(uart_port_t uart_num, uint32_t* baud);
 -> esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *brk);
 -> esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t mab);
 -> esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *mab);
-esp_err_t uart_set_pin(uart_port_t uart_num, int tx_io_num, int rx_io_num, int rts_io_num, int cts_io_num);
 
 
 // Interrupt config
@@ -34,15 +34,14 @@ esp_err_t uart_disable_tx_intr(uart_port_t uart_num);
 esp_err_t uart_enable_tx_intr(uart_port_t uart_num, int enable, int thresh);
 
 
-// Read/write
+// Read/write -> these will need to be edited slightly...
 esp_err_t uart_wait_tx_done(uart_port_t uart_num, TickType_t ticks_to_wait);
 int uart_write_bytes(uart_port_t uart_num, const char* src, size_t size);
 int uart_read_bytes(uart_port_t uart_num, uint8_t* buf, uint32_t length, TickType_t ticks_to_wait);
 -> dmx_get_valid_frame_length(dmx_port_t dmx_num, dmx_error_t *error);
 
-esp_err_t uart_get_collision_flag(uart_port_t uart_num, bool* collision_flag);
 
-
+// TODO Later....
 // Pattern detection
 esp_err_t uart_disable_pattern_det_intr(uart_port_t uart_num);
 esp_err_t uart_enable_pattern_det_intr(uart_port_t uart_num, char pattern_chr, uint8_t chr_num, int chr_tout, int post_idle, int pre_idle) __attribute__((deprecated));
