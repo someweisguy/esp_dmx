@@ -30,6 +30,7 @@ typedef struct {
 } dmx_intr_config_t;
 
 
+/// Driver Functions  #########################################################
 /**
  * @brief Install DMX driver and set the DMX to the default configuration.
  *
@@ -69,7 +70,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
  * */
 bool dmx_is_driver_installed(dmx_port_t dmx_num);
 
-
+/// Hardware Configuration  ###################################################
 /**
  * @brief Set DMX pin number.
  *
@@ -160,6 +161,7 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
 esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
 
 
+/// Interrupt Configuration  ##################################################
 /**
  * @brief Configure DMX interrupts.
  *
@@ -170,6 +172,39 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
  *  - ESP_ERR_INVALID_ARG   Parameter error
  */
 esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf);
+
+/**
+ * @brief Configure DMX rx full interrupt threshold.
+ * 
+ * @param dmx_num 
+ * @param threshold 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ */
+esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold);
+
+/**
+ * @brief Configure DMX tx empty interrupt threshold.
+ * 
+ * @param dmx_num 
+ * @param threshold 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ */
+esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold);
+
+/**
+ * @brief Configure DMX rx timeout interrupt threshold.
+ * 
+ * @param dmx_num 
+ * @param tout_thresh 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ */
+esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh);
 
 /**
  * @brief Register DMX interrupt handler (ISR).
@@ -188,3 +223,11 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf
  */
 esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void*), void* arg,
     int intr_alloc_flags, dmx_isr_handle_t* handle);
+
+/**
+ * @brief Free the DMX interrupt handler (ISR).
+ * 
+ * @param dmx_num 
+ * @return esp_err_t 
+ */
+esp_err_t dmx_isr_free(dmx_port_t dmx_num);
