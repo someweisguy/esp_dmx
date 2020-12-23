@@ -1,13 +1,8 @@
 #pragma once
 
 #include "dmx_ctrl.h"
-#include "driver/uart.h"
-#include "esp_log.h"
 #include "esp_system.h"
 #include "hal/uart_hal.h"
-#include "hal/uart_ll.h"
-#include "soc/uart_reg.h"
-#include "soc/uart_struct.h"
 
 #define DMX_ENTER_CRITICAL_ISR(mux) portENTER_CRITICAL_ISR(mux)
 #define DMX_EXIT_CRITICAL_ISR(mux)  portEXIT_CRITICAL_ISR(mux)
