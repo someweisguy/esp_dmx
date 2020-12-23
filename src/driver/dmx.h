@@ -29,6 +29,7 @@ typedef struct {
   uint8_t rxfifo_full_thresh;  // UART RX full interrupt threshold.
 } dmx_intr_config_t;
 
+#pragma region Driver_Functions /// ###########################################
 /**
  * @brief Install DMX driver and set the DMX to the default configuration.
  *
@@ -67,6 +68,112 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
  *  - false Driver is not installed
  * */
 bool dmx_is_driver_installed(dmx_port_t dmx_num);
+#pragma endregion Driver_Functions
+
+
+#pragma region Hardware_Configuration /// #####################################
+/**
+ * @brief Set DMX pin number.
+ *
+ * @param dmx_num
+ * @param tx_io_num
+ * @param rx_io_num
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ * */
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num);
+
+/**
+ * @brief Set DMX configuration parameters.
+ * 
+ * @param dmx_num 
+ * @param dmx_config 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);
+
+/**
+ * @brief Set the DMX baudrate.
+ * 
+ * @param dmx_num 
+ * @param baudrate 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_set_baudrate(dmx_port_t dmx_num, uint32_t baudrate);
+
+/**
+ * @brief Get the DMX baudrate.
+ * 
+ * @param dmx_num 
+ * @param baudrate 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_get_baudrate(dmx_port_t dmx_num, uint32_t *baudrate);
+
+/**
+ * @brief Set the DMX break time.
+ * 
+ * @param dmx_num 
+ * @param break_num 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num);
+
+/**
+ * @brief Get the DMX break time.
+ * 
+ * @param dmx_num 
+ * @param break_num 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num);
+
+/**
+ * @brief Set the DMX idle time. The idle time is equivalent to mark after break.
+ * 
+ * @param dmx_num 
+ * @param idle_num 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
+
+/**
+ * @brief Get the DMX idle time. The idle time is equivalent to mark after break.
+ * 
+ * @param dmx_num 
+ * @param idle_num 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
+#pragma endregion Hardware_Configuration
+
+
+#pragma region Interrupt_Configuration /// ####################################
+/**
+ * @brief Configure DMX interrupts.
+ *
+ * @param dmx_num
+ * @param intr_conf
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ */
+esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf);
 
 /**
  * @brief Register DMX interrupt handler (ISR).
@@ -85,38 +192,14 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num);
  */
 esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void*), void* arg,
     int intr_alloc_flags, dmx_isr_handle_t* handle);
+#pragma endregion Interrupt_Configuration
 
-/**
- * @brief Configure DMX interrupts.
- *
- * @param dmx_num
- * @param intr_conf
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
- */
-esp_err_t dmx_intr_config(
-    dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf);
 
-/**
- * @brief Set DMX configuration parameters.
- * 
- * @param dmx_num 
- * @param dmx_config 
- * @return 
- *  - ESP_OK:                Success
- *  - ESP_ERR_INVALID_ARG:   Parameter error 
- */
-esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);
+#pragma region Interrupt_Handling /// #########################################
 
-/**
- * @brief Set DMX pin number.
- *
- * @param dmx_num
- * @param tx_io_num
- * @param rx_io_num
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
- * */
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num);
+#pragma endregion Interrupt_Handling
+
+
+#pragma region Read_Write /// #################################################
+
+#pragma endregion Read_Write

@@ -251,3 +251,54 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num) {
 
   return ESP_OK;
 }
+
+esp_err_t dmx_set_baudrate(dmx_port_t dmx_num, uint32_t baudrate) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  uart_sclk_t source_clk = 0;
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_get_sclk(&(dmx_context[dmx_num].hal), &source_clk);
+  uart_hal_set_baudrate(&(dmx_context[dmx_num].hal), source_clk, baudrate);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
+
+esp_err_t dmx_get_baudrate(dmx_port_t dmx_num, uint32_t *baudrate) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), baudrate);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
+
+esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_tx_break(&(dmx_context[dmx_num].hal), break_num)
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
+
+esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  // TODO: write custom dmx hal function to get break num
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
+
+esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(idle_num < 1024, "idle_num error", ESP_ERR_INVALID_ARG);
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
+
+esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  // TODO: write custom dmx hal function to get idle num
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
