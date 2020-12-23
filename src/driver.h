@@ -17,6 +17,8 @@ typedef struct {
   QueueHandle_t queue;
   dmx_isr_handle_t intr_handle;
 
+  int slot_idx;  // The index of the current slot that we are txing/rxing.
+
 } dmx_obj_t;
 
 typedef struct {

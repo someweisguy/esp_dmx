@@ -1,5 +1,6 @@
 #include "dmx.h"
 
+#include "dmx_default_intr_handler.h"
 #include "dmx_types.h"
 #include "driver.h"
 #include "driver/gpio.h"
@@ -20,8 +21,6 @@
   ((UART_INTR_RXFIFO_FULL) | (UART_INTR_RXFIFO_TOUT) | \
       (UART_INTR_RXFIFO_OVF) | (UART_INTR_BRK_DET) | (UART_INTR_PARITY_ERR))
 
-#define DMX_ENTER_CRITICAL_ISR(mux) portENTER_CRITICAL_ISR(mux)
-#define DMX_EXIT_CRITICAL_ISR(mux)  portEXIT_CRITICAL_ISR(mux)
 #define DMX_ENTER_CRITICAL(mux)     portENTER_CRITICAL(mux)
 #define DMX_EXIT_CRITICAL(mux)      portEXIT_CRITICAL(mux)
 
@@ -74,6 +73,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     } else {
       p_dmx_obj[dmx_num]->queue = NULL;
     }
+    p_dmx_obj[dmx_num]->slot_idx = 0;
 
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
@@ -94,9 +94,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   // install interrupt
   uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
-  // TODO: replace NULL with interrupt handler
-  esp_err_t err = dmx_isr_register(dmx_num, NULL, p_dmx_obj[dmx_num],
-      intr_alloc_flags, &p_dmx_obj[dmx_num]->intr_handle);
+  esp_err_t err = dmx_isr_register(dmx_num, &dmx_default_intr_handler, 
+      p_dmx_obj[dmx_num], intr_alloc_flags, &p_dmx_obj[dmx_num]->intr_handle);
   if (err) {
     dmx_driver_delete(dmx_num);
     return err;
