@@ -1,29 +1,3 @@
-// Driver
-# esp_err_t uart_driver_install(uart_port_t uart_num, int rx_buffer_size, int tx_buffer_size, int queue_size, QueueHandle_t* uart_queue, int intr_alloc_flags);
-# esp_err_t uart_driver_delete(uart_port_t uart_num);
-# bool uart_is_driver_installed(uart_port_t uart_num);
-
-
-// Hardware config
-# esp_err_t uart_set_pin(uart_port_t uart_num, int tx_io_num, int rx_io_num, int rts_io_num, int cts_io_num);
-# esp_err_t uart_param_config(uart_port_t uart_num, const uart_config_t *uart_config);
-esp_err_t uart_set_baudrate(uart_port_t uart_num, uint32_t baud);
-esp_err_t uart_get_baudrate(uart_port_t uart_num, uint32_t* baud);
--> esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t brk);
--> esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *brk);
--> esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t mab);
--> esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *mab);
-
-
-// Interrupt config
-# esp_err_t uart_intr_config(uart_port_t uart_num, const uart_intr_config_t *intr_conf);
-esp_err_t uart_set_rx_full_threshold(uart_port_t uart_num, int threshold);
-esp_err_t uart_set_tx_empty_threshold(uart_port_t uart_num, int threshold);
-esp_err_t uart_set_rx_timeout(uart_port_t uart_num, const uint8_t tout_thresh);
-# esp_err_t uart_isr_register(uart_port_t uart_num, void (*fn)(void*), void * arg, int intr_alloc_flags,  uart_isr_handle_t *handle);
-esp_err_t uart_isr_free(uart_port_t uart_num);
-
-
 // Interrupts handling
 esp_err_t uart_clear_intr_status(uart_port_t uart_num, uint32_t clr_mask);
 esp_err_t uart_enable_intr_mask(uart_port_t uart_num, uint32_t enable_mask);
