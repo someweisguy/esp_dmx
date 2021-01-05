@@ -2,6 +2,7 @@
 
 #include "driver/dmx_ctrl.h"
 #include "esp_system.h"
+#include "hal/dmx_hal.h"
 #include "hal/uart_hal.h"
 
 #define DMX_ENTER_CRITICAL_ISR(mux) portENTER_CRITICAL_ISR(mux)
@@ -70,68 +71,42 @@ void dmx_default_intr_handler(void *arg) {
       DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
     }
 
+    // DMX Recieve ####################################################
+    else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET)) {
+      // got data on uart
 
+      // TODO: check if data was received in time
 
-      //uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_DONE);
-      //uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_DONE);
-      //uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_DONE);
-    /*
-        // DMX Recieve ####################################################
-        else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | DMX_RX_BRK_FLAG)) {
-          // got data on uart
+      // fetch data from uart fifo
+      const int frame_rem = p_dmx->buffer_size - p_dmx->slot_idx;
+      const int read = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), p_dmx->buffer, frame_rem);
+      p_dmx->slot_idx += read;
+      if (frame_rem - read > 0) {
+        // the dmx driver buffer size is smaller than the frame we received
+        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
+        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        // TODO: post frame overflow event
+      }
 
-          // check if data was received in time
-          const int64_t data_elapsed = now - driver->last_data;
-          if (data_elapsed > DMX_RX_MAX_MARK_TIME_BETWEEN_SLOTS)
-            driver->frame_ok[driver->buf_idx] = false;
-          driver->last_data = now;
+      if (uart_intr_status & (UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET)) {
+        // got break
 
-          // fetch data from uart fifo
-          uint32_t rx_fifo_rem = UART->status.rxfifo_cnt;
-          while (rx_fifo_rem && driver->chn_idx < driver->buf_len) {
-            // read data from fifo
-            driver->buf[driver->buf_idx][driver->chn_idx++] =
-       UART->fifo.rw_byte;
-            --rx_fifo_rem;
-          }
-          if (rx_fifo_rem) {
-            // driver buffer overflow
-            do {
-              UART->fifo.rw_byte;  // discard remaining data
-            } while (--rx_fifo_rem);
-          }
+        // TODO: check if break was received in time
+        
+        p_dmx->slot_idx = 0;  // reset channel counter
+        // TODO: mutex here?
+      }
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET));
 
-          if (uart_intr_status & DMX_RX_BRK_FLAG) {
-            // got break on uart
-
-            // check if break was received in time
-            const int64_t brk_elapsed = now - driver->last_brk;
-            if (brk_elapsed > DMX_RX_MAX_BREAK_TO_BREAK_TIME)
-              driver->frame_ok[driver->buf_idx] = false;
-
-            driver->last_brk = now;
-
-            driver->chn_idx = 0;  // reset channel counter
-
-            // sync data
-            // TODO: mutex here?
-            driver->buf_idx = !driver->buf_idx;
-            driver->frame_ok[driver->buf_idx] = true;
-          }
-          uart_clear_intr_status(dmx_num, UART_INTR_RXFIFO_FULL |
-       DMX_RX_BRK_FLAG);
-
-        } else if (uart_intr_status & UART_INTR_RXFIFO_OVF) {
-          // uart fifo overflow
-
-          // invalidate frame and stop fetching data from uart fifo
-          driver->frame_ok[driver->buf_idx] = false;
-          driver->chn_idx = UINT16_MAX;
-
-          uart_clear_intr_status(dmx_num, UART_INTR_RXFIFO_OVF);
-        }
-        */
+    } else if (uart_intr_status & (UART_INTR_RXFIFO_OVF)) {
+      // uart fifo overflow
+      // TODO: set 
+      p_dmx->slot_idx = UINT16_MAX; // stop 
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_OVF);
+    }
   }
+  
   if (HPTaskAwoken == pdTRUE) {
     portYIELD_FROM_ISR();
   }

@@ -1,1 +1,1 @@
-idf_component_register(SRCS "src/dmx.c" INCLUDE_DIRS "." "include/")   
+idf_component_register(SRCS "src/dmx.c" "src/hal/dmx_hal.c" INCLUDE_DIRS "." "include/")   
