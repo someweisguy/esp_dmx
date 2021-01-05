@@ -346,15 +346,16 @@ esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void *), void *arg,
 }
 
 esp_err_t dmx_isr_free(dmx_port_t dmx_num) {
-    DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-    DMX_CHECK(p_dmx_obj[dmx_num], "dmx driver error", ESP_ERR_INVALID_ARG);
-    DMX_CHECK(p_dmx_obj[dmx_num]->intr_handle != NULL, "dmx driver error", ESP_ERR_INVALID_ARG);
-    esp_err_t ret;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    ret = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
-    p_dmx_obj[dmx_num]->intr_handle = NULL;
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    return ret;
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num], "dmx driver error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num]->intr_handle != NULL, "dmx driver error", ESP_ERR_INVALID_ARG);
+  
+  esp_err_t ret;
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  ret = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
+  p_dmx_obj[dmx_num]->intr_handle = NULL;
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ret;
 }
 
 /// Interrupt Handling  #######################################################
