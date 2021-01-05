@@ -43,45 +43,41 @@ void dmx_default_intr_handler(void *arg) {
 
         // allow tx fifo to empty, break and idle will be written
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal),
-            UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE);
+        uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE);
         DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         
         p_dmx->slot_idx = 0;  // reset slot counter
       }
 
-      // clear interrupts
-      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal),
-          (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE));
-
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE));
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
+
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
-
-      // TODO: break gets written here
-
     } else if (uart_intr_status & UART_INTR_TX_BRK_DONE) {
       // this interrupt is triggered when the UART break is done
-      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_DONE);
 
       // enable tx fifo empty interrupt to write the next frame
       DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-      uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal),
-          UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE);
+      uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE);
       DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_DONE);
     }
 
     // DMX Recieve ####################################################
-    else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET)) {
-      // got data on uart
+    else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET | UART_INTR_RXFIFO_TOUT)) {
+      // received data on rx fifo
 
       // TODO: check if data was received in time
 
       // fetch data from uart fifo
-      const int frame_rem = p_dmx->buffer_size - p_dmx->slot_idx;
-      const int read = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), p_dmx->buffer, frame_rem);
-      p_dmx->slot_idx += read;
-      if (frame_rem - read > 0) {
+      if (p_dmx->slot_idx < p_dmx->buffer_size) {
+        const uint16_t frame_rem = p_dmx->buffer_size - p_dmx->slot_idx;
+        int read = dmx_hal_readn_rxfifo(
+            &(dmx_context[dmx_num].hal), p_dmx->buffer, frame_rem);
+        p_dmx->slot_idx += read;
+      } else {
         // the dmx driver buffer size is smaller than the frame we received
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
@@ -90,20 +86,45 @@ void dmx_default_intr_handler(void *arg) {
       }
 
       if (uart_intr_status & (UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET)) {
-        // got break
+        // received data break on rx fifo
 
         // TODO: check if break was received in time
-        
-        p_dmx->slot_idx = 0;  // reset channel counter
+
+        p_dmx->slot_idx = 0;  // reset slot counter
         // TODO: mutex here?
       }
-      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET));
 
-    } else if (uart_intr_status & (UART_INTR_RXFIFO_OVF)) {
-      // uart fifo overflow
-      // TODO: set 
-      p_dmx->slot_idx = UINT16_MAX; // stop 
-      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_OVF);
+      if (uart_intr_status & UART_INTR_RXFIFO_TOUT) {
+        // rx timed out waiting for data
+        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
+        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+      } else {
+        // TODO: only call this if rx_timeout is enabled!!!
+        // rx didn't time out AND the rxfifo_tout interrupt is disabled - reenable it
+        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
+        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+      }
+      
+
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET | UART_INTR_RXFIFO_TOUT));
+    } else if (uart_intr_status & (UART_INTR_RXFIFO_OVF | UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)) {
+      // uart rx fifo overflow or parity error
+
+      if (uart_intr_status & (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)) {
+        // TODO: set the valid frame len to the current slot_idx
+        // TODO: post data error event
+      }
+
+      p_dmx->slot_idx = UINT16_MAX; // can't track the slot anymore
+      
+      // flush the rx fifo
+      DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+      uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
+      DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_OVF | UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR));
     }
   }
   
