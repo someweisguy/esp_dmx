@@ -14,8 +14,7 @@
 
 #define DMX_EMPTY_THRESH_DEFAULT     8
 #define DMX_FULL_THRESH_DEFAULT      120
-#define DMX_TOUT_THRESH_DEFAULT      10
-#define DMX_PATTERN_DET_QLEN_DEFAULT 10
+#define DMX_TOUT_THRESH_DEFAULT      126
 #define DMX_MIN_WAKEUP_THRESH        SOC_UART_MIN_WAKEUP_THRESH
 
 #define DMX_INTR_CONFIG_FLAG                           \
@@ -268,7 +267,6 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(intr_conf, "intr_conf is null", ESP_ERR_INVALID_ARG);
 
-  // TODO: determine which interrupts are necessary for DMX driver
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (intr_conf->intr_enable_mask & UART_INTR_RXFIFO_TOUT) {
