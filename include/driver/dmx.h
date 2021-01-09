@@ -38,7 +38,8 @@ typedef struct {
  * running on.
  *
  * @param dmx_num
- * @param buffer_size
+ * @param rx_buffer_size
+ * @param tx_buffer_size
  * @param queue_size
  * @param dmx_queue
  * @param intr_alloc_flags
@@ -47,8 +48,9 @@ typedef struct {
  *  - ESP_ERR_INVALID_ARG   Parameter error
  *  - ESP_ERR_NO_MEM        Not enough memory
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
-    int queue_size, QueueHandle_t* dmx_queue, int intr_alloc_flags);
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, int rx_buffer_size,
+    int tx_buffer_size, int queue_size, QueueHandle_t *dmx_queue,
+    int intr_alloc_flags);
 
 /**
  * @brief Uninstall DMX driver.
@@ -231,3 +233,50 @@ esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void*), void* arg,
  * @return esp_err_t 
  */
 esp_err_t dmx_isr_free(dmx_port_t dmx_num);
+
+/**
+ * @brief Transmits a frame of DMX on the UART bus.
+ * 
+ * @param dmx_num 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error 
+ */
+esp_err_t dmx_tx_frame(dmx_port_t dmx_num);
+
+/**
+ * @brief Send data to the DMX driver from a given buffer and length.
+ * 
+ * @note This function is not synchronous with the DMX frame.
+ * 
+ * @param dmx_num 
+ * @param frame_buffer 
+ * @param length 
+ * @return  
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error  
+ *  - ESP_ERR_INVALID_STATE Driver not installed
+ *  - ESP_FAIL              Driver error
+ */
+esp_err_t dmx_write_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t length);
+
+/**
+ * @brief Read data from the DMX driver.
+ * 
+ * @note This function is not synchronous with the DMX frame.
+ * 
+ * @param dmx_num 
+ * @param frame_buffer 
+ * @param length 
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error  
+ *  - ESP_ERR_INVALID_STATE Driver not installed
+ *  - ESP_FAIL              Driver error
+ */
+esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t length);
+
+esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
+esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value);
+
+int dmx_get_valid_frame_len(dmx_port_t dmx_num);

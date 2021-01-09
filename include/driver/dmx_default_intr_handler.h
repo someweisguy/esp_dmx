@@ -32,13 +32,13 @@ void dmx_default_intr_handler(void *arg) {
     if (uart_intr_status & (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE)) {
       // write data to tx fifo
       uint32_t bytes_written;
-      const uint8_t *buffer_offset = p_dmx->buffer + p_dmx->slot_idx;
+      const uint8_t *buffer_offset = p_dmx->tx_buffer + p_dmx->rx_slot_idx;
       uart_hal_write_txfifo(&(dmx_context[dmx_num].hal), buffer_offset,
-          p_dmx->buffer_size - p_dmx->slot_idx, &bytes_written);
-      p_dmx->slot_idx += bytes_written;
+          p_dmx->tx_buffer_size - p_dmx->rx_slot_idx, &bytes_written);
+      p_dmx->tx_slot_idx += bytes_written;
 
       // check if frame has been fully written
-      if (p_dmx->slot_idx >= p_dmx->buffer_size) {
+      if (p_dmx->tx_slot_idx >= p_dmx->tx_buffer_size) {
         // TODO: release frame written mutex for frame synchronization
 
         // allow tx fifo to empty, break and idle will be written
@@ -46,7 +46,7 @@ void dmx_default_intr_handler(void *arg) {
         uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE);
         DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         
-        p_dmx->slot_idx = 0;  // reset slot counter
+        p_dmx->tx_slot_idx = 0;  // reset slot counter
       }
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE));
@@ -72,11 +72,10 @@ void dmx_default_intr_handler(void *arg) {
       // TODO: check if data was received in time
 
       // fetch data from uart fifo
-      if (p_dmx->slot_idx < p_dmx->buffer_size) {
-        const uint16_t frame_rem = p_dmx->buffer_size - p_dmx->slot_idx;
-        int read = dmx_hal_readn_rxfifo(
-            &(dmx_context[dmx_num].hal), p_dmx->buffer, frame_rem);
-        p_dmx->slot_idx += read;
+      if (p_dmx->rx_slot_idx < p_dmx->rx_buffer_size) {
+        const uint16_t frame_rem = p_dmx->rx_buffer_size - p_dmx->rx_slot_idx;
+        int read = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), p_dmx->rx_buffer, frame_rem);
+        p_dmx->rx_slot_idx += read;
       } else {
         // the dmx driver buffer size is smaller than the frame we received
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
@@ -90,7 +89,7 @@ void dmx_default_intr_handler(void *arg) {
 
         // TODO: check if break was received in time
 
-        p_dmx->slot_idx = 0;  // reset slot counter
+        p_dmx->rx_slot_idx = 0;  // reset slot counter
         // TODO: mutex here?
       }
 
@@ -113,11 +112,11 @@ void dmx_default_intr_handler(void *arg) {
       // uart rx fifo overflow or parity error
 
       if (uart_intr_status & (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)) {
-        // TODO: set the valid frame len to the current slot_idx
+        // TODO: set the valid frame len to the current rx_slot_idx
         // TODO: post data error event
       }
 
-      p_dmx->slot_idx = UINT16_MAX; // can't track the slot anymore
+      p_dmx->rx_slot_idx = UINT16_MAX; // can't track the slot anymore
       
       // flush the rx fifo
       DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));

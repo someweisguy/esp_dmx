@@ -12,12 +12,16 @@
 
 typedef struct {
   dmx_port_t dmx_num;
-  uint16_t buffer_size;
-  uint8_t *buffer;
   QueueHandle_t queue;
   dmx_isr_handle_t intr_handle;
 
-  int slot_idx;  // The index of the current slot that we are txing/rxing.
+  uint16_t rx_buffer_size;
+  uint8_t *rx_buffer;
+  uint16_t rx_slot_idx;  // The index of the current slot that is being rx'd.
+
+  uint16_t tx_buffer_size;
+  uint8_t *tx_buffer;
+  uint16_t tx_slot_idx;  // The index of the current slot that is being tx'd.
 
 } dmx_obj_t;
 
