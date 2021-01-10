@@ -32,9 +32,9 @@ void dmx_default_intr_handler(void *arg) {
     if (uart_intr_status & (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE)) {
       // write data to tx fifo
       uint32_t bytes_written;
-      const uint8_t *buffer_offset = p_dmx->tx_buffer + p_dmx->rx_slot_idx;
+      const uint8_t *buffer_offset = p_dmx->tx_buffer + p_dmx->tx_slot_idx;
       uart_hal_write_txfifo(&(dmx_context[dmx_num].hal), buffer_offset,
-          p_dmx->tx_buffer_size - p_dmx->rx_slot_idx, &bytes_written);
+          p_dmx->tx_buffer_size - p_dmx->tx_slot_idx, &bytes_written);
       p_dmx->tx_slot_idx += bytes_written;
 
       // check if frame has been fully written
