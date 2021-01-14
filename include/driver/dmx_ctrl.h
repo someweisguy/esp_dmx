@@ -3,6 +3,7 @@
 #include "driver/dmx.h"
 #include "hal/uart_hal.h"
 #include "soc/uart_caps.h"
+#include "freertos/semphr.h"
 
 #define DMX_CONTEX_INIT_DEF(dmx_num)                               \
   {                                                                \
@@ -22,6 +23,7 @@ typedef struct {
   uint16_t tx_buffer_size;
   uint8_t *tx_buffer;
   uint16_t tx_slot_idx;  // The index of the current slot that is being tx'd.
+  SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being sent.
 
 } dmx_obj_t;
 

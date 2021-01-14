@@ -235,6 +235,54 @@ esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void*), void* arg,
 esp_err_t dmx_isr_free(dmx_port_t dmx_num);
 
 /**
+ * @brief Enable rxing on the DMX port.
+ * 
+ * @param dmx_num 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ *  - ESP_ERR_INVALID_STATE Driver not installed
+ */
+esp_err_t dmx_enable_rx(dmx_port_t dmx_num);
+
+/**
+ * @brief Disable rxing on the DMX port.
+ * 
+ * @param dmx_num 
+ * @return 
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error
+ *  - ESP_ERR_INVALID_STATE Driver not installed
+ */
+esp_err_t dmx_disable_rx(dmx_port_t dmx_num);
+
+/**
+ * @brief Wait until the DMX port is done receiving.
+ * 
+ * @param dmx_num 
+ * @param ticks_to_wait 
+ * @return
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error
+ * - ESP_ERR_INVALID_STATE  Driver not installed
+ * - ESP_ERR_TIMEOUT        Timed out 
+ */
+esp_err_t dmx_wait_rx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+
+/**
+ * @brief Wait until the DMX port is done transmitting.
+ * 
+ * @param dmx_num 
+ * @param ticks_to_wait 
+ * @return
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error
+ * - ESP_ERR_INVALID_STATE  Driver not installed
+ * - ESP_ERR_TIMEOUT        Timed out
+ */
+esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+
+/**
  * @brief Transmits a frame of DMX on the UART bus.
  * 
  * @param dmx_num 
@@ -276,6 +324,7 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t le
  */
 esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t length);
 
+// TODO:
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
 esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value);
 
