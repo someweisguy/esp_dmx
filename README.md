@@ -8,8 +8,6 @@ For more information on DMX, including timing and physical layer diagrams, see t
 
 ## Background
 
----
-
 DMX is a serial, unidirectional, and differential communication protocol used primarily in the entertainment industry to control lighting and stage equipment. DMX is transmitted as a continuous stream of packets of up to 513 bytes long. The packet begins with a break (a zero, or "off"), followed by a mark after break (a one, or "on"), and then is followed by the packet. Each byte in the packet consists of a start bit, eight bits of data, and two stop bits for a total of 11 bits per byte or "slot." Each frame of DMX must contain a break, mark after break, and packet.
 
 DMX can be transmitted from 1 frame per second up to ~44 frames per second. While it is technically possible to reduce a packet's length to allow for framerates higher than 44fps, it is not considered "to spec" to do so, and therefore it cannot be guaranteed that receiving devices will process commands properly. Framerates slower than 1fps are similarly not allowed.
@@ -18,13 +16,9 @@ DMX was originally invented in 1986 when hardware limitations were much more res
 
 ## Installation
 
----
-
 Clone this repo into your project's ```components``` folder. That's it!
 
 ## Usage
-
----
 
 This library was written to look as similar to the default ESP-IDF UART implementation as possible. To get started, call the following code in your ```main.c``` file:
 
@@ -59,13 +53,9 @@ void app_main(void) {
 
 ## Reading and Writing
 
----
-
 TODO: More info to come!
 
 ## To Do
-
----
 
 - Enable C++ compilation/linking.
 - Remote Device Management.
