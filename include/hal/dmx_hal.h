@@ -23,7 +23,7 @@
 #define dmx_hal_get_break_num(hal) dmx_ll_get_break_num((hal)->dev)
 
 /**
- * @brief Read the first num characters from the rxfifo
+ * @brief Read the first num characters from the rxfifo.
  * 
  * @param hal Context of the HAL layer
  * @param buf Destination buffer to be read into
@@ -34,10 +34,19 @@
 int dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num);
 
 /**
- * @brief Get the current length of the bytes in the RX FIFO
+ * @brief Get the current length of the bytes in the rxfifo.
  * 
  * @param hal Context of the HAL layer
  * 
- * @return The number of bytes in the RX FIFO
+ * @return The number of bytes in the rx fifo
  */
-#define dmx_hal_get_rxfifo_len(hal) uart_ll_get_rxfifo_len((hal)->dev);
+#define dmx_hal_get_rxfifo_len(hal) uart_ll_get_rxfifo_len((hal)->dev)
+
+/**
+ * @brief Get the RX timeout.
+ * 
+ * @param hal Context of the HAL layer
+ * 
+ * @return The RX timeout in units of time corresponding to the length of one word to be sent
+ */
+#define dmx_hal_get_rx_tout(hal) dmx_ll_get_rx_tout((hal)->dev)

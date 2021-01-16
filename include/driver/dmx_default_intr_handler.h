@@ -5,7 +5,7 @@
 #include "hal/dmx_hal.h"
 #include "hal/uart_hal.h"
 
-#include "driver/gpio.h"
+#include "driver/gpio.h" // TODO: for debugging
 
 #define DMX_ENTER_CRITICAL_ISR(mux) portENTER_CRITICAL_ISR(mux)
 #define DMX_EXIT_CRITICAL_ISR(mux)  portEXIT_CRITICAL_ISR(mux)
@@ -21,6 +21,8 @@ void dmx_default_intr_handler(void *arg) {
   while (true) {
     const uint32_t uart_intr_status = uart_hal_get_intsts_mask(&(dmx_context[dmx_num].hal));
     if (uart_intr_status == 0) break;
+
+    const int64_t now = esp_timer_get_time();
 
     // DMX Transmit #####################################################
     if (uart_intr_status & (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE)) {
@@ -44,7 +46,10 @@ void dmx_default_intr_handler(void *arg) {
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE));
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
-      // this interrupt is triggered when the last byte in tx fifo is written      
+      // this interrupt is triggered when the last byte in tx fifo is written
+
+      p_dmx->tx_last_brk_ts = now;  // manage break to break time
+
       xSemaphoreGiveFromISR(p_dmx->tx_done_sem, &HPTaskAwoken);
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
@@ -58,9 +63,7 @@ void dmx_default_intr_handler(void *arg) {
     else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET | UART_INTR_RXFIFO_TOUT)) {
       // received data on rx fifo
 
-      // TODO: check if data was received in time
-
-      // fetch data from uart fifo
+      // fetch data
       if (p_dmx->rx_slot_idx < p_dmx->rx_buffer_size) {
         const uint16_t frame_rem = p_dmx->rx_buffer_size - p_dmx->rx_slot_idx;
         int bytes_read = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), p_dmx->rx_buffer, frame_rem);
@@ -72,27 +75,52 @@ void dmx_default_intr_handler(void *arg) {
         DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         // TODO: post frame overflow event
       }
-
+      
       if (uart_intr_status & (UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET)) {
         // received data break on rx fifo
 
-        // TODO: check if break was received in time
-
+        // check if break was received in time
+        const int64_t brk_to_brk_len = now - p_dmx->rx_last_brk_ts;
+        if (brk_to_brk_len < 1196 || brk_to_brk_len > 1250000) {
+          // TODO: break was received either too quickly or not quick enough
+        }
+        p_dmx->rx_last_brk_ts = now;
+        
         p_dmx->rx_slot_idx = 0;  // reset slot counter
         // TODO: release frame received mutex
-      }
+      } else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT)) {
+        // figure out when the last byte was received
+        int64_t last_byte_rxd;
+        if (uart_intr_status & UART_INTR_RXFIFO_FULL) {
+          last_byte_rxd = now;
 
-      if (uart_intr_status & UART_INTR_RXFIFO_TOUT) {
-        // rx timed out waiting for data
-        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
-        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-      } else {
-        // TODO: only call this if rx_timeout is enabled!!!
-        // rx didn't time out AND the rxfifo_tout interrupt is disabled - reenable it
-        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
-        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+          // reenable the rxfifo timeout interrupt if necessary
+          const uint32_t uart_ena_status = uart_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal));
+          if (!(uart_ena_status & UART_INTR_RXFIFO_TOUT) && dmx_hal_get_rx_tout(&(dmx_context[dmx_num].hal))) {
+            DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+            uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
+            DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+          }
+        } else {
+          uint32_t baud_rate;
+          uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baud_rate);
+          /* If the baudrate is >246912, it takes ~4.05us to send 1 bit, which
+          rounds to 45us to send 11 bits. <252525 is ~3.96us, which rounds to
+          43us for 11 bits. Anything in between should take ~44us. Most of the
+          time the baudrate should be 250k, which takes EXACTLY 44us anyway. */
+          const uint8_t word_speed = baud_rate > 246912 ? 45 : baud_rate < 252525 ? 43 : 44;
+          last_byte_rxd = now - (dmx_hal_get_rx_tout(&(dmx_context[dmx_num].hal)) * word_speed);
+
+          // disable the rxfifo tout interrupt while we're here
+          DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+          uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
+          DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        }
+
+        const int64_t mrk_between_slots_len = last_byte_rxd - p_dmx->rx_last_byte_ts;
+        if (mrk_between_slots_len < 0 || mrk_between_slots_len > 999999) {
+          // TODO: mark between slots was either too quick or not quick enough
+        }
       }
       
 
@@ -101,11 +129,12 @@ void dmx_default_intr_handler(void *arg) {
       // uart rx fifo overflow or parity error
 
       if (uart_intr_status & (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)) {
-        // TODO: set the valid frame len to the current rx_slot_idx
+        // set the valid frame len to the current rx_slot_idx
+        p_dmx->rx_valid_len = p_dmx->rx_slot_idx;
         // TODO: post data error event
       }
 
-      p_dmx->rx_slot_idx = UINT16_MAX; // can't track the slot anymore
+      p_dmx->rx_slot_idx = -1; // can't track the slot anymore
       
       // flush the rx fifo
       DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));

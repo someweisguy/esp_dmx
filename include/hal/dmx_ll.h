@@ -22,3 +22,13 @@ static inline uint16_t dmx_ll_get_idle_num(uart_dev_t *hw) {
 static inline uint8_t dmx_ll_get_break_num(uart_dev_t *hw) {
     return hw->idle_conf.tx_brk_num;
 }
+
+/**
+ * @brief Gets the UART rx timeout (unit: time it takes for one word to be sent at current baudrate).
+ * 
+ * @param hw Pointer to a UART struct.
+ * @return The UART rx timeout.
+ */
+static inline uint8_t dmx_ll_get_rx_tout(uart_dev_t *hw) {
+    return hw->conf1.rx_tout_en ? hw->conf1.rx_tout_thrhd : 0;
+}

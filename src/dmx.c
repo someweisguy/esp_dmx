@@ -1,5 +1,6 @@
 #include "driver/dmx.h"
 
+#include <math.h>
 #include <string.h>
 
 #include "driver/dmx_ctrl.h"
@@ -82,7 +83,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int rx_buffer_size,
       dmx_driver_delete(dmx_num);
       return ESP_ERR_NO_MEM;
     }
-    p_dmx_obj[dmx_num]->rx_slot_idx = -1;  // uint16_t max
+    p_dmx_obj[dmx_num]->rx_slot_idx = -1;  // max value
+    p_dmx_obj[dmx_num]->rx_last_byte_ts = 0;  // TODO:
+    p_dmx_obj[dmx_num]->rx_last_brk_ts = 0;  // TODO:
+    p_dmx_obj[dmx_num]->rx_valid_len = 0;
+
     p_dmx_obj[dmx_num]->tx_buffer_size = tx_buffer_size;
     p_dmx_obj[dmx_num]->tx_buffer = calloc(sizeof(uint8_t), tx_buffer_size);
     if (p_dmx_obj[dmx_num]->tx_buffer == NULL) {
@@ -93,6 +98,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int rx_buffer_size,
     p_dmx_obj[dmx_num]->tx_slot_idx = 0;
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
+    p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MAX;  // break before first tx
 
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
@@ -421,12 +427,15 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, 0) == pdFALSE)
     return ESP_FAIL;
 
+  // check if we need to approximate a new break and mark after break
+  // TODO:
+
   uint32_t bytes_written;
   uart_hal_write_txfifo(&(dmx_context[dmx_num].hal),
       p_dmx_obj[dmx_num]->tx_buffer, p_dmx_obj[dmx_num]->tx_buffer_size,
       &bytes_written);
   p_dmx_obj[dmx_num]->tx_slot_idx = bytes_written;
-  
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | UART_INTR_TX_BRK_DONE));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
