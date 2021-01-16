@@ -48,8 +48,7 @@ void dmx_default_intr_handler(void *arg) {
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
 
-      // track break to break time
-      p_dmx->tx_last_brk_ts = now;
+      p_dmx->tx_last_brk_ts = now;  // track break-to-break to ensure continuous data stream
 
       xSemaphoreGiveFromISR(p_dmx->tx_done_sem, &HPTaskAwoken);
 
