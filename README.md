@@ -55,6 +55,12 @@ void app_main(void) {
 
 TODO: More info to come!
 
+## Error Handling
+
+DMX is an old protocol. It isn't clear why it has such restrictive timing requirements, but it could be a result of allowing backwards compatibility with older, slower equipment. The ESP32 is a fast chip - it can process DMX even if the data stream is faster than the standard allows. Therefore, this library specifies two error states: timing errors and data errors. A timing error occurs if the received data stream is either too fast or too slow. Timing errors are reported in the driver queue, but the data is not necessarily corrupted; data read from the frame buffer may still be accurate. Data errors, on the other hand, will always be corrupted. Data errors occur when the received data is malformed, or the rx UART is not read quickly enough and overflows. When a timing or data error occurs, it is wise to call ```dmx_get_valid_frame_len()``` to verify where in the frame the error occurred.
+
+TODO: Example code coming soon...
+
 ## To Do
 
 - Enable C++ compilation/linking.
