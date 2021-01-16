@@ -14,6 +14,7 @@
 
 void dmx_default_intr_handler(void *arg) {
   gpio_set_level(33, 1);  // TODO: for debugging
+  const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
   portBASE_TYPE HPTaskAwoken = 0;
@@ -22,11 +23,9 @@ void dmx_default_intr_handler(void *arg) {
     const uint32_t uart_intr_status = uart_hal_get_intsts_mask(&(dmx_context[dmx_num].hal));
     if (uart_intr_status == 0) break;
 
-    const int64_t now = esp_timer_get_time();
-
     // DMX Transmit #####################################################
     if (uart_intr_status & (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE)) {
-      // write data to tx fifo
+      // this interrupt is triggered when the tx FIFO is empty, or the mark after break is done
 
       uint32_t bytes_written;
       const uint8_t *buffer_offset = p_dmx->tx_buffer + p_dmx->tx_slot_idx;
@@ -48,7 +47,8 @@ void dmx_default_intr_handler(void *arg) {
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
 
-      p_dmx->tx_last_brk_ts = now;  // manage break to break time
+      // track break to break time
+      p_dmx->tx_last_brk_ts = now;
 
       xSemaphoreGiveFromISR(p_dmx->tx_done_sem, &HPTaskAwoken);
 
@@ -61,7 +61,7 @@ void dmx_default_intr_handler(void *arg) {
 
     // DMX Recieve ####################################################
     else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET | UART_INTR_RXFIFO_TOUT)) {
-      // received data on rx fifo
+      // this interrupt is triggered when the rx FIFO is full or times out, or a break is detected
 
       // fetch data
       if (p_dmx->rx_slot_idx < p_dmx->rx_buffer_size) {
@@ -89,6 +89,8 @@ void dmx_default_intr_handler(void *arg) {
         p_dmx->rx_slot_idx = 0;  // reset slot counter
         // TODO: release frame received mutex
       } else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT)) {
+        // received data on rx fifo
+
         // figure out when the last byte was received
         int64_t last_byte_rxd;
         if (uart_intr_status & UART_INTR_RXFIFO_FULL) {
@@ -122,19 +124,15 @@ void dmx_default_intr_handler(void *arg) {
           // TODO: mark between slots was either too quick or not quick enough
         }
       }
-      
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET | UART_INTR_RXFIFO_TOUT));
     } else if (uart_intr_status & (UART_INTR_RXFIFO_OVF | UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)) {
-      // uart rx fifo overflow or parity error
-
-      if (uart_intr_status & (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)) {
-        // set the valid frame len to the current rx_slot_idx
-        p_dmx->rx_valid_len = p_dmx->rx_slot_idx;
-        // TODO: post data error event
-      }
-
-      p_dmx->rx_slot_idx = -1; // can't track the slot anymore
+      // this interrupt is triggered when the rx FIFO overflows, or if there is a parity error
+      
+      // handle frame error state
+      p_dmx->rx_valid_len = p_dmx->rx_slot_idx;  // track valid frame len
+      p_dmx->rx_slot_idx = -1;                   // can't track the slot anymore
+      // TODO: post data error event
       
       // flush the rx fifo
       DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
