@@ -428,7 +428,25 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
     return ESP_FAIL;
 
   // check if we need to approximate a new break and mark after break
-  // TODO:
+  const int64_t now = esp_timer_get_time();
+  if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts > 999999) {
+    // get uart break and idle values
+    uint32_t baudrate, brk_num, idle_num;
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
+    const float bit_speed = 1000000.0 / baudrate;
+    brk_num = ceil(bit_speed * dmx_hal_get_break_num(&(dmx_context[dmx_num].hal)));
+    idle_num = ceil(bit_speed * dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal)));
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
+    // send an approximated break and mark after break
+    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
+    ets_delay_us(brk_num);
+    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
+    ets_delay_us(idle_num);
+
+    p_dmx_obj[dmx_num]->tx_last_brk_ts = now;  // record break timestamp
+  }
 
   uint32_t bytes_written;
   uart_hal_write_txfifo(&(dmx_context[dmx_num].hal),
