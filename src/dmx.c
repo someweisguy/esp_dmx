@@ -98,7 +98,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int rx_buffer_size,
     p_dmx_obj[dmx_num]->tx_slot_idx = 0;
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
-    p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MAX;  // break before first tx
+    p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
 
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
