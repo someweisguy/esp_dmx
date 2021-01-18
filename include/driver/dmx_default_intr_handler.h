@@ -101,7 +101,6 @@ void dmx_default_intr_handler(void *arg) {
           if (p_dmx->slot_idx > 513) event.type = DMX_INVALID_PACKET_LEN;
           else event.type = DMX_BUFFER_TOO_SMALL;
           xQueueSendFromISR(p_dmx->queue, (void *)&event, &HPTaskAwoken);
-          p_dmx->slot_idx = p_dmx->buf_size; 
         }
 
         // signal the end of the frame
