@@ -20,6 +20,7 @@ typedef struct {
   uint8_t *buffer[2];
   uint16_t slot_idx;  // The index of the current slot that is being rx'd or tx'd.
   uint8_t buf_idx;
+  dmx_mode_t mode;  // The mode the driver is in - either RX or TX.
 
 
   SemaphoreHandle_t done_sem;  // Signals the frame has finished being tx'd or rx'd.
