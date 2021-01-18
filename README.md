@@ -63,6 +63,7 @@ TODO: Example code coming soon...
 
 ## To Do
 
+- DMX rx timing analysis
 - Enable C++ compilation/linking.
 - Remote Device Management.
 - DMX rx timing analysis for _breaks_ and _mark after breaks_.
