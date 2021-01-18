@@ -13,6 +13,8 @@
 #define DMX_INTR_RX_BRK (UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET)
 #define DMX_INTR_RX_ERR (UART_INTR_RXFIFO_OVF | UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)
 
+
+
 void dmx_default_intr_handler(void *arg) {
   gpio_set_level(33, 1);  // TODO: for debugging
   int64_t now = esp_timer_get_time();
@@ -46,6 +48,10 @@ void dmx_default_intr_handler(void *arg) {
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
 
+      // copy writing buffer to txing buffer
+      memcpy(p_dmx->buffer[1], p_dmx->buffer[0], p_dmx->buf_size);
+
+      // signal the end of the frame
       xSemaphoreGiveFromISR(p_dmx->done_sem, &HPTaskAwoken);
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
@@ -88,7 +94,7 @@ void dmx_default_intr_handler(void *arg) {
         }
 
       } else if (uart_intr_status & DMX_INTR_RX_BRK) {
-        // handle dmx break
+        // handle dmx break (start of frame)
 
         // check for packets that are too long
         if (p_dmx->slot_idx > p_dmx->buf_size) {
