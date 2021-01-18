@@ -7,6 +7,12 @@
 
 #include "driver/gpio.h" // TODO: for debugging
 
+#ifdef CONFIG_UART_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 #define DMX_ENTER_CRITICAL_ISR(mux) portENTER_CRITICAL_ISR(mux)
 #define DMX_EXIT_CRITICAL_ISR(mux)  portEXIT_CRITICAL_ISR(mux)
 
@@ -14,8 +20,7 @@
 #define DMX_INTR_RX_ERR (UART_INTR_RXFIFO_OVF | UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)
 
 
-
-void dmx_default_intr_handler(void *arg) {
+void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
   gpio_set_level(33, 1);  // TODO: for debugging
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
