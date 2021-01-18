@@ -436,11 +436,24 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   // only tx when a frame is not being written
   if (xSemaphoreTake(p_dmx_obj[dmx_num]->done_sem, 0) == pdFALSE)
     return ESP_FAIL;
+  
+  /* The ESP32 uart hardware isn't the ideal hardware to transmit DMX. The DMX 
+  protocol states that frames begin with a break, followed by a mark, followed 
+  by up to 513 bytes. The ESP32 uart hardware is designed to send a packet, 
+  followed by a break, followed by a mark. When using this library "correctly,"
+  there shouldn't be any issues because the data stream will be continuous - 
+  even though the hardware sends the break and mark after the packet, it will
+  LOOK like it is being sent before the packet. However if the byte stream isn't
+  continuous, we need to send a break and mark before we send the packet. This 
+  is done by inverting the line, busy waiting, un-inverting the line and 
+  busy waiting again. The busy waiting isn't very accurate (it's usually 
+  accurate within around 10us if the task isn't preempted), but it is the best 
+  that can be done short of using the ESP32 hardware timer library. */
 
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
   if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= 1000000) {
-    // get uart break and idle values
+    // get break and mark time in microseconds
     uint32_t baudrate, brk_num, idle_num;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
@@ -449,9 +462,11 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
     idle_num = ceil(bit_speed * dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal)));
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
-    // send an approximated break and mark after break
+    // invert the tx line and busy wait...
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
     ets_delay_us(brk_num);
+
+    // un-invert the tx line and busy wait...
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
     ets_delay_us(idle_num);
 
@@ -483,7 +498,7 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint1
   DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
   /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, and
-  buffer 1 is used to write to the tx FIFO. */
+  buffer 1 is used by the driver to write to the tx FIFO. */
 
   memcpy(p_dmx_obj[dmx_num]->buffer[0], frame_buffer, length);
 
@@ -499,7 +514,7 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
   /* Reads can happen in either DMX_MODE_RX or DMX_MODE_TX. Reads while in 
   DMX_MODE_RX are made from the inactive buffer while the active buffer is 
   being used to collect data from the rx FIFO. Reads in DMX_MODE_TX are made 
-  from buffer 0 and buffer 1 is used to write to the tx FIFO.*/
+  from buffer 0 and buffer 1 is used by the driver to write to the tx FIFO. */
 
   if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
     uint8_t active_buffer;
@@ -518,10 +533,15 @@ int dmx_get_valid_frame_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", -1);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", -1);
 
-  int rx_valid_len;
+  int rx_valid_len, buf_size;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   rx_valid_len = p_dmx_obj[dmx_num]->rx_valid_len;
+  buf_size = p_dmx_obj[dmx_num]->buf_size;
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
-  return rx_valid_len;
+  /* rx_valid_len could be larger than the size of the DMX buffer if there is a 
+  weirdly malformed packet. If that's the case, an error will be sent to the DMX
+  queue but we should also reduce cap it at the size of the buffer. */
+
+  return rx_valid_len > buf_size ? buf_size : rx_valid_len;
 }
