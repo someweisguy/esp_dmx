@@ -531,7 +531,7 @@ int dmx_get_valid_frame_len(dmx_port_t dmx_num) {
 
   /* rx_valid_len could be larger than the size of the DMX buffer if there is a 
   weirdly malformed packet. If that's the case, an error will be sent to the DMX
-  queue but we should also reduce cap it at the size of the buffer. */
+  queue but we should also cap it to the size of the buffer. */
 
   return rx_valid_len > buf_size ? buf_size : rx_valid_len;
 }
