@@ -66,6 +66,7 @@ TODO: Example code coming soon...
 
 ## To Do
 
+- Use RTS pin
 - RS485 mode
 - DMX rx timing analysis
 - Enable C++ compilation/linking.
