@@ -297,7 +297,7 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num);
  *  - ESP_ERR_INVALID_STATE Driver not installed
  *  - ESP_FAIL              Driver error
  */
-esp_err_t dmx_write_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t length);
+esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint16_t length);
 
 /**
  * @brief Read data from the DMX driver.

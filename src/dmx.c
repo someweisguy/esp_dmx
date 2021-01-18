@@ -475,14 +475,16 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-esp_err_t dmx_write_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t length) {
+esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint16_t length) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(frame_buffer, "frame_buffer is null", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_TX, "not in tx mode", ESP_ERR_INVALID_STATE);
   DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
-  // writes should be made into buffer[0]
+  /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, and
+  buffer 1 is used to write to the tx FIFO. */
+
   memcpy(p_dmx_obj[dmx_num]->buffer[0], frame_buffer, length);
 
   return ESP_OK;
@@ -494,13 +496,19 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
+  /* Reads can happen in either DMX_MODE_RX or DMX_MODE_TX. Reads while in 
+  DMX_MODE_RX are made from the inactive buffer while the active buffer is 
+  being used to collect data from the rx FIFO. Reads in DMX_MODE_TX are made 
+  from buffer 0 and buffer 1 is used to write to the tx FIFO.*/
+
   if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
+    uint8_t active_buffer;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    const uint8_t buf_idx = p_dmx_obj[dmx_num]->buf_idx;
-    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer[!buf_idx], length);
+    active_buffer = p_dmx_obj[dmx_num]->buf_idx;
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer[!active_buffer], length);
   } else { // mode == DMX_MODE_TX
-    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer, length);
+    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer[0], length);
   }
 
   return ESP_OK;
