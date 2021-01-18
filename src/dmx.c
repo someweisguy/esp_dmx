@@ -482,9 +482,8 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t le
   DMX_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_TX, "not in tx mode", ESP_ERR_INVALID_STATE);
   DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
-  /* TODO:
-  memcpy(p_dmx_obj[dmx_num]->tx_buffer, frame_buffer, length);
-  */
+  // writes should be made into buffer[0]
+  memcpy(p_dmx_obj[dmx_num]->buffer[0], frame_buffer, length);
 
   return ESP_OK;
 }
@@ -495,10 +494,14 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
-
-  /* TODO:
-  memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer, length);
-  */
+  if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    const uint8_t buf_idx = p_dmx_obj[dmx_num]->buf_idx;
+    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer[!buf_idx], length);
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  } else { // mode == DMX_MODE_TX
+    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer, length);
+  }
 
   return ESP_OK;
 }
