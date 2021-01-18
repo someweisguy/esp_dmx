@@ -17,7 +17,7 @@
 
 void dmx_default_intr_handler(void *arg) {
   gpio_set_level(33, 1);  // TODO: for debugging
-  int64_t now = esp_timer_get_time();
+  const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
   portBASE_TYPE HPTaskAwoken = 0;
@@ -48,11 +48,10 @@ void dmx_default_intr_handler(void *arg) {
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
 
-      // copy writing buffer to txing buffer
+      // switch buffers, signal end of frame, and track breaks
       memcpy(p_dmx->buffer[1], p_dmx->buffer[0], p_dmx->buf_size);
-
-      // signal the end of the frame
       xSemaphoreGiveFromISR(p_dmx->done_sem, &HPTaskAwoken);
+      p_dmx->tx_last_brk_ts = now;
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_DONE) {
