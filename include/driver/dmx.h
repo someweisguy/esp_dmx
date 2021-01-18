@@ -19,7 +19,19 @@ typedef int dmx_port_t;
 
 typedef intr_handle_t dmx_isr_handle_t;
 
+typedef enum {
+  DMX_INVALID_BRK_LEN = 1,
+  DMX_INVALID_MAB_LEN,
+  DMX_INVALID_MRK_LEN,
+  DMX_INVALID_PACKET_LEN,
+  DMX_MALFORMED_SLOT,
+  DMX_LOST_SIGNAL,
+  DMX_BUFFER_TOO_SMALL,
+} dmx_event_type_t;
+
 typedef struct {
+  dmx_event_type_t type;
+  int value;
 } dmx_event_t;
 
 typedef struct {
@@ -38,8 +50,7 @@ typedef struct {
  * running on.
  *
  * @param dmx_num
- * @param rx_buffer_size
- * @param tx_buffer_size
+ * @param buf_size
  * @param queue_size
  * @param dmx_queue
  * @param intr_alloc_flags
@@ -48,9 +59,8 @@ typedef struct {
  *  - ESP_ERR_INVALID_ARG   Parameter error
  *  - ESP_ERR_NO_MEM        Not enough memory
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, int rx_buffer_size,
-    int tx_buffer_size, int queue_size, QueueHandle_t *dmx_queue,
-    int intr_alloc_flags);
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buf_size,
+    int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags);
 
 /**
  * @brief Uninstall DMX driver.
@@ -280,7 +290,7 @@ esp_err_t dmx_wait_rx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
  * - ESP_ERR_INVALID_STATE  Driver not installed
  * - ESP_ERR_TIMEOUT        Timed out
  */
-esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+esp_err_t dmx_wait_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
 /**
  * @brief Transmits a frame of DMX on the UART bus.
@@ -328,4 +338,4 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
 esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value);
 
-int dmx_get_valid_frame_len(dmx_port_t dmx_num);
+int dmx_get_valid_frame_len(dmx_port_t dmx_num); // TODO: doxygen

@@ -39,12 +39,10 @@ static const char *TAG = "dmx";
   }
 
 /// Driver Functions  #########################################################
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, int rx_buffer_size,
-    int tx_buffer_size, int queue_size, QueueHandle_t *dmx_queue,
-    int intr_alloc_flags) {
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
+    int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(rx_buffer_size <= 513, "rx_buffer_size error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(tx_buffer_size <= 513, "tx_buffer_size error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(buffer_size <= 513, "buffer_size error", ESP_ERR_INVALID_ARG);
 #if CONFIG_UART_ISR_IN_IRAM  // clang-format off
   if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated");
@@ -76,29 +74,23 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int rx_buffer_size,
     } else {
       p_dmx_obj[dmx_num]->queue = NULL;
     }
-    p_dmx_obj[dmx_num]->rx_buffer_size = rx_buffer_size;
-    p_dmx_obj[dmx_num]->rx_buffer = malloc(sizeof(uint8_t) * rx_buffer_size);
-    if (p_dmx_obj[dmx_num]->rx_buffer == NULL) {
-      ESP_LOGE(TAG, "DMX driver rx buffer malloc error");
-      dmx_driver_delete(dmx_num);
-      return ESP_ERR_NO_MEM;
+    p_dmx_obj[dmx_num]->buf_size = buffer_size;
+    p_dmx_obj[dmx_num]->slot_idx = -1;
+    p_dmx_obj[dmx_num]->buf_idx = 0;
+    for (int i = 0; i < 2; ++i) {
+      p_dmx_obj[dmx_num]->buffer[i] = calloc(sizeof(uint8_t), buffer_size);
+      if (p_dmx_obj[dmx_num]->buffer[i] == NULL) {
+        ESP_LOGE(TAG, "DMX driver buffer malloc error");
+        dmx_driver_delete(dmx_num);
+        return ESP_ERR_NO_MEM;
+      }
     }
-    p_dmx_obj[dmx_num]->rx_slot_idx = -1;  // max value
-    p_dmx_obj[dmx_num]->rx_last_byte_ts = 0;  // TODO:
-    p_dmx_obj[dmx_num]->rx_last_brk_ts = 0;  // TODO:
+    p_dmx_obj[dmx_num]->done_sem = xSemaphoreCreateBinary();
+    xSemaphoreGive(p_dmx_obj[dmx_num]->done_sem);
+    p_dmx_obj[dmx_num]->rx_frame_err = false;
     p_dmx_obj[dmx_num]->rx_valid_len = 0;
-
-    p_dmx_obj[dmx_num]->tx_buffer_size = tx_buffer_size;
-    p_dmx_obj[dmx_num]->tx_buffer = calloc(sizeof(uint8_t), tx_buffer_size);
-    if (p_dmx_obj[dmx_num]->tx_buffer == NULL) {
-      ESP_LOGE(TAG, "DMX driver tx buffer malloc error");
-      dmx_driver_delete(dmx_num);
-      return ESP_ERR_NO_MEM;
-    }
-    p_dmx_obj[dmx_num]->tx_slot_idx = 0;
-    p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
-    xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
     p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
+
 
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
@@ -149,9 +141,11 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // free driver resources
-  if (p_dmx_obj[dmx_num]->rx_buffer) free(p_dmx_obj[dmx_num]->rx_buffer);
-  if (p_dmx_obj[dmx_num]->tx_buffer) free(p_dmx_obj[dmx_num]->tx_buffer);
+  for (int i = 0; i < 2; ++i) {
+    if (p_dmx_obj[dmx_num]->buffer[i]) free(p_dmx_obj[dmx_num]->buffer[i]);
+  }
   if (p_dmx_obj[dmx_num]->queue) vQueueDelete(p_dmx_obj[dmx_num]->queue);
+  // TODO: delete semaphores
 
   // free driver
   heap_caps_free(p_dmx_obj[dmx_num]);
@@ -382,10 +376,13 @@ esp_err_t dmx_enable_rx(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
 
+  // TODO:
+  /*
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   p_dmx_obj[dmx_num]->rx_slot_idx = -1;
   uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_RX_INTR);  
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  */
 
   return ESP_OK;
 }
@@ -407,14 +404,14 @@ esp_err_t dmx_wait_rx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   return ESP_FAIL;
 }
 
-esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+esp_err_t dmx_wait_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
 
-  if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, ticks_to_wait) == pdFALSE)
+  if (xSemaphoreTake(p_dmx_obj[dmx_num]->done_sem, ticks_to_wait) == pdFALSE)
     return ESP_ERR_TIMEOUT;
 
-  xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
+  xSemaphoreGive(p_dmx_obj[dmx_num]->done_sem);
 
   return ESP_OK;
 }
@@ -424,10 +421,11 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
 
   // only tx when a frame is not being written
-  if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, 0) == pdFALSE)
+  if (xSemaphoreTake(p_dmx_obj[dmx_num]->done_sem, 0) == pdFALSE)
     return ESP_FAIL;
 
-  // check if we need to approximate a new break and mark after break
+  // check if we need to send a new break and mark after break
+  /* TODO:
   const int64_t now = esp_timer_get_time();
   if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts > 999999) {
     // get uart break and idle values
@@ -445,15 +443,20 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
     ets_delay_us(idle_num);
 
-    p_dmx_obj[dmx_num]->tx_last_brk_ts = now;  // record break timestamp
+    p_dmx_obj[dmx_num]->tx_last_brk_ts = now;
   }
-
+  */
+  
+  /* TODO:
+  // write data to tx FIFO
   uint32_t bytes_written;
   uart_hal_write_txfifo(&(dmx_context[dmx_num].hal),
       p_dmx_obj[dmx_num]->tx_buffer, p_dmx_obj[dmx_num]->tx_buffer_size,
       &bytes_written);
   p_dmx_obj[dmx_num]->tx_slot_idx = bytes_written;
+  */
 
+  // enable tx interrupts
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | UART_INTR_TX_BRK_DONE));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -465,15 +468,11 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t le
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(frame_buffer, "frame_buffer is null", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(length <= p_dmx_obj[dmx_num]->tx_buffer_size, "length error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
-  // prevent null pointer crash
-  if (p_dmx_obj[dmx_num]->tx_buffer == NULL) {
-    ESP_LOGE(TAG, "driver error (tx_buffer is null)");
-    return ESP_FAIL;
-  }
-
+  /* TODO:
   memcpy(p_dmx_obj[dmx_num]->tx_buffer, frame_buffer, length);
+  */
 
   return ESP_OK;
 }
@@ -482,15 +481,24 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(frame_buffer, "frame_buffer is null", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(length <= p_dmx_obj[dmx_num]->rx_buffer_size, "length error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
-  // prevent null pointer crash
-  if (p_dmx_obj[dmx_num]->rx_buffer == NULL) {
-    ESP_LOGE(TAG, "driver error (rx_buffer is null)");
-    return ESP_FAIL;
-  }
 
-  memcpy(frame_buffer, p_dmx_obj[dmx_num]->rx_buffer, length);
+  /* TODO:
+  memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer, length);
+  */
 
   return ESP_OK;
+}
+
+int dmx_get_valid_frame_len(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", -1);
+  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", -1);
+
+  int rx_valid_len;
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  rx_valid_len = p_dmx_obj[dmx_num]->rx_valid_len;
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
+  return rx_valid_len;
 }

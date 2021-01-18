@@ -16,20 +16,17 @@ typedef struct {
   QueueHandle_t queue;
   dmx_isr_handle_t intr_handle;
 
-  uint16_t rx_buffer_size;
-  uint8_t *rx_buffer;
-  uint16_t rx_slot_idx;  // The index of the current slot that is being rx'd.
+  uint16_t buf_size;
+  uint8_t *buffer[2];
+  uint16_t slot_idx;  // The index of the current slot that is being rx'd or tx'd.
+  uint8_t buf_idx;
 
-  int64_t rx_last_byte_ts;  // Timestamp of the last rx'd byte.
-  int64_t rx_last_brk_ts;  // Timestamp of the last rx'd break.
-  int64_t rx_valid_len;  // The valid frame length received.
 
-  uint16_t tx_buffer_size;
-  uint8_t *tx_buffer;
-  uint16_t tx_slot_idx;  // The index of the current slot that is being tx'd.
-  SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being sent.
+  SemaphoreHandle_t done_sem;  // Signals the frame has finished being tx'd or rx'd.
 
-  int64_t tx_last_brk_ts;  // Timestamp of the last tx'd break. 
+  bool rx_frame_err;         // Flag for detecting errors in the current frame.
+  uint16_t rx_valid_len;     // The valid frame length received.
+  int64_t tx_last_brk_ts;    // Timestamp of the last tx'd break.
 
 } dmx_obj_t;
 
