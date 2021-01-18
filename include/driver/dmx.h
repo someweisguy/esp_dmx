@@ -237,32 +237,6 @@ esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold);
 esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh);
 
 /**
- * @brief Register DMX interrupt handler (ISR).
- *
- * @note DMX ISR handler will be attached to the same CPU core that this
- * function is running on.
- *
- * @param dmx_num
- * @param fn
- * @param arg
- * @param intr_alloc_flags
- * @param handle
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
- */
-esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void*), void* arg,
-    int intr_alloc_flags, dmx_isr_handle_t* handle);
-
-/**
- * @brief Free the DMX interrupt handler (ISR).
- * 
- * @param dmx_num 
- * @return esp_err_t 
- */
-esp_err_t dmx_isr_free(dmx_port_t dmx_num);
-
-/**
  * @brief Wait until the DMX port is done receiving or transmitting.
  * 
  * @param dmx_num 

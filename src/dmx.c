@@ -114,8 +114,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   // install interrupt
   uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
-  esp_err_t err = dmx_isr_register(dmx_num, &dmx_default_intr_handler, 
-      p_dmx_obj[dmx_num], intr_alloc_flags, &p_dmx_obj[dmx_num]->intr_handle);
+  esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq,
+      intr_alloc_flags, &dmx_default_intr_handler, p_dmx_obj[dmx_num],
+      &p_dmx_obj[dmx_num]->intr_handle);
   if (err) {
     dmx_driver_delete(dmx_num);
     return err;
@@ -141,6 +142,12 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (p_dmx_obj[dmx_num] == NULL) {
     ESP_LOGI(TAG, "DMX driver already null");
     return ESP_OK;
+  }
+
+  // free isr
+  esp_err_t err = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
+  if (err) {
+    return err;
   }
 
   // free driver resources
@@ -396,30 +403,6 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh) {
   uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), tout_thresh);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   return ESP_OK;
-}
-
-esp_err_t dmx_isr_register(dmx_port_t dmx_num, void (*fn)(void *), void *arg,
-    int intr_alloc_flags, dmx_isr_handle_t *handle) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-
-  esp_err_t ret;
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  ret = esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_alloc_flags, fn, arg, handle);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  return ret;
-}
-
-esp_err_t dmx_isr_free(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(p_dmx_obj[dmx_num], "dmx driver error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(p_dmx_obj[dmx_num]->intr_handle != NULL, "dmx driver error", ESP_ERR_INVALID_ARG);
-  
-  esp_err_t ret;
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  ret = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
-  p_dmx_obj[dmx_num]->intr_handle = NULL;
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  return ret;
 }
 
 /// Read/Write  ###############################################################
