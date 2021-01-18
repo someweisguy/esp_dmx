@@ -25,10 +25,14 @@ This library was written to look as similar to the default ESP-IDF UART implemen
 ```C
 #include "esp_dmx.h"
 
+#define TX_GPIO_NUM  17
+#define RX_GPIO_NUM  16
+#define RTS_GPIO_NUM 21
+
 void app_main(void) {
     // first, setup your input/output pins
     const dmx_port_t dmx_num = 2;
-    dmx_set_pin(dmx_num, TX_GPIO_NUM, RX_GPIO_NUM);
+    dmx_set_pin(dmx_num, TX_GPIO_NUM, RX_GPIO_NUM, RTS_GPIO_NUM);
 
     // then configure the DMX timing how you like it...
     dmx_config_t config = {
@@ -46,8 +50,7 @@ void app_main(void) {
 
     // and install the driver!
     QueueHandle_t dmx_queue;
-    dmx_driver_install(dmx_num, DMX_FRAME_SIZE_MAX, DMX_FRAME_SIZE_MAX, 10, 
-        &dmx_queue, DMX_INTR_ALLOC_FLAGS);
+    dmx_driver_install(dmx_num, 513, 10, &dmx_queue, ESP_INTR_FLAG_LEVEL3);
 }
 ```
 
@@ -63,8 +66,8 @@ TODO: Example code coming soon...
 
 ## To Do
 
+- RS485 mode
 - DMX rx timing analysis
 - Enable C++ compilation/linking.
 - Remote Device Management.
-- DMX rx timing analysis for _breaks_ and _mark after breaks_.
 - Art-Net?
