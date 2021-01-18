@@ -270,14 +270,12 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   // configure the uart hardware
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_init(&(dmx_context[dmx_num].hal), dmx_num);
-  uart_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->source_clk,
-      dmx_config->baudrate);
+  uart_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->source_clk, dmx_config->baudrate);
   uart_hal_set_parity(&(dmx_context[dmx_num].hal), UART_PARITY_DISABLE);
   uart_hal_set_data_bit_num(&(dmx_context[dmx_num].hal), UART_DATA_8_BITS);
   uart_hal_set_stop_bits(&(dmx_context[dmx_num].hal), UART_STOP_BITS_2);
   uart_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), dmx_config->idle_num);
-  uart_hal_set_hw_flow_ctrl(
-      &(dmx_context[dmx_num].hal), UART_HW_FLOWCTRL_DISABLE, 0);
+  uart_hal_set_hw_flow_ctrl(&(dmx_context[dmx_num].hal), UART_HW_FLOWCTRL_DISABLE, 0);
   uart_hal_tx_break(&(dmx_context[dmx_num].hal), dmx_config->break_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   
@@ -290,52 +288,64 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
 
 esp_err_t dmx_set_baudrate(dmx_port_t dmx_num, uint32_t baudrate) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  uart_sclk_t source_clk = 0;
+  
+  uart_sclk_t source_clk;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_get_sclk(&(dmx_context[dmx_num].hal), &source_clk);
   uart_hal_set_baudrate(&(dmx_context[dmx_num].hal), source_clk, baudrate);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
 esp_err_t dmx_get_baudrate(dmx_port_t dmx_num, uint32_t *baudrate) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), baudrate);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
 esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_tx_break(&(dmx_context[dmx_num].hal), break_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
 esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   *break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
 esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(idle_num < 1024, "idle_num error", ESP_ERR_INVALID_ARG);
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
 esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   *idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
@@ -347,61 +357,53 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (intr_conf->intr_enable_mask & UART_INTR_RXFIFO_TOUT) {
-    uart_hal_set_rx_timeout(
-        &(dmx_context[dmx_num].hal), intr_conf->rx_timeout_thresh);
+    uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), intr_conf->rx_timeout_thresh);
   } else {
-    // disable rx_tout intr
-    uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), 0);
+    uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), 0);  // disable rx tout intr
   }
   if (intr_conf->intr_enable_mask & UART_INTR_RXFIFO_FULL) {
-    uart_hal_set_rxfifo_full_thr(
-        &(dmx_context[dmx_num].hal), intr_conf->rxfifo_full_thresh);
+    uart_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), intr_conf->rxfifo_full_thresh);
   }
   if (intr_conf->intr_enable_mask & UART_INTR_TXFIFO_EMPTY) {
-    uart_hal_set_txfifo_empty_thr(
-        &(dmx_context[dmx_num].hal), intr_conf->txfifo_empty_intr_thresh);
+    uart_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), intr_conf->txfifo_empty_intr_thresh);
   }
-  uart_hal_ena_intr_mask(
-      &(dmx_context[dmx_num].hal), intr_conf->intr_enable_mask);
+  uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), intr_conf->intr_enable_mask);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
 esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(threshold < UART_RXFIFO_FULL_THRHD_V && threshold > 0,
-      "rx fifo full threshold value error", ESP_ERR_INVALID_ARG);
-  if (p_dmx_obj[dmx_num] == NULL) {
-    ESP_LOGE(TAG, "call dmx_driver_install API first");
-    return ESP_ERR_INVALID_STATE;
-  }
+  DMX_CHECK(threshold < UART_RXFIFO_FULL_THRHD_V && threshold > 0, "rx fifo full threshold value error", ESP_ERR_INVALID_ARG);
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (uart_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_RXFIFO_FULL)
     uart_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), threshold);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(threshold < UART_TXFIFO_EMPTY_THRHD_V && threshold > 0,
-      "tx fifo empty threshold value error", ESP_ERR_INVALID_ARG);
-  if (p_dmx_obj[dmx_num] == NULL) {
-    ESP_LOGE(TAG, "call dmx_driver_install API first");
-    return ESP_ERR_INVALID_STATE;
-  }
+  DMX_CHECK(threshold < UART_TXFIFO_EMPTY_THRHD_V && threshold > 0, "tx fifo empty threshold value error", ESP_ERR_INVALID_ARG);
+  
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (uart_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_TXFIFO_EMPTY)
     uart_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), threshold);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
 esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(tout_thresh < 127, "tout_thresh max value is 126", ESP_ERR_INVALID_ARG);
+
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), tout_thresh);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
   return ESP_OK;
 }
 
