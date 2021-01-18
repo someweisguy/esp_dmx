@@ -105,11 +105,13 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
  * @param dmx_num
  * @param tx_io_num
  * @param rx_io_num
+ * @param rts_io_num
  * @return
  *  - ESP_OK                Success
  *  - ESP_ERR_INVALID_ARG   Parameter error
  * */
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num);
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
+    int rts_io_num);
 
 /**
  * @brief Set DMX configuration parameters.

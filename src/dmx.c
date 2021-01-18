@@ -213,10 +213,12 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 }
 
 /// Hardware Configuration  ###################################################
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num) {
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
+    int rts_io_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK((tx_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num))), "tx_io_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK((rx_io_num < 0 || (GPIO_IS_VALID_GPIO(rx_io_num))), "rx_io_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK((rts_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(rts_io_num))), "rts_io_num error", ESP_ERR_INVALID_ARG);
 
   // assign hardware pinouts
   if (tx_io_num >= 0) {
@@ -229,6 +231,11 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num) {
     gpio_set_pull_mode(rx_io_num, GPIO_PULLUP_ONLY);
     gpio_set_direction(rx_io_num, GPIO_MODE_INPUT);
     gpio_matrix_in(rx_io_num, uart_periph_signal[dmx_num].rx_sig, 0);
+  }
+  if (rts_io_num >= 0) {
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[rts_io_num], PIN_FUNC_GPIO);
+    gpio_set_direction(rts_io_num, GPIO_MODE_OUTPUT);
+    gpio_matrix_out(rts_io_num, uart_periph_signal[dmx_num].rts_sig, 0, 0);
   }
 
   return ESP_OK;
