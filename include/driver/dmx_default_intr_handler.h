@@ -72,7 +72,7 @@ void dmx_default_intr_handler(void *arg) {
       uint32_t rxfifo_rem = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
       if (slots_rem > 0 && rxfifo_rem) {
         // read data into the active buffer
-        int bytes_read = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal),
+        dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
           p_dmx->buffer[p_dmx->buf_idx], slots_rem);
         p_dmx->slot_idx += rxfifo_rem;
       }
