@@ -44,7 +44,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(buffer_size <= 513, "buffer_size error", ESP_ERR_INVALID_ARG);
-#if CONFIG_UART_ISR_IN_IRAM  // clang-format off
+#if CONFIG_UART_ISR_IN_IRAM
   if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated");
     intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
@@ -54,7 +54,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     ESP_LOGW(TAG, "ESP_INTR_FLAG_IRAM flag is set while CONFIG_UART_ISR_IN_IRAM is not enabled, flag updated");
     intr_alloc_flags &= ~ESP_INTR_FLAG_IRAM;
   }
-#endif  // clang-format on
+#endif
 
   if (p_dmx_obj[dmx_num] == NULL) {
     // allocate the dmx driver
@@ -70,8 +70,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     if (dmx_queue) {
       p_dmx_obj[dmx_num]->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
       *dmx_queue = p_dmx_obj[dmx_num]->queue;
-      ESP_LOGI(TAG, "queue free spaces: %d",
-          uxQueueSpacesAvailable(p_dmx_obj[dmx_num]->queue));
+      ESP_LOGI(TAG, "queue free spaces: %d", uxQueueSpacesAvailable(p_dmx_obj[dmx_num]->queue));
     } else {
       p_dmx_obj[dmx_num]->queue = NULL;
     }
