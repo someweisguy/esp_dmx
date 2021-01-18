@@ -410,9 +410,10 @@ esp_err_t dmx_wait_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
 
+  /* Just try to take the "done" semaphore and give it back immediately. */
+
   if (xSemaphoreTake(p_dmx_obj[dmx_num]->done_sem, ticks_to_wait) == pdFALSE)
     return ESP_ERR_TIMEOUT;
-
   xSemaphoreGive(p_dmx_obj[dmx_num]->done_sem);
 
   return ESP_OK;
@@ -487,7 +488,7 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint1
   DMX_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_TX, "not in tx mode", ESP_ERR_INVALID_STATE);
   DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
-  /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, and
+  /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, whilst
   buffer 1 is used by the driver to write to the tx FIFO. */
 
   memcpy(p_dmx_obj[dmx_num]->buffer[0], frame_buffer, length);
@@ -504,7 +505,8 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
   /* Reads can happen in either DMX_MODE_RX or DMX_MODE_TX. Reads while in 
   DMX_MODE_RX are made from the inactive buffer while the active buffer is 
   being used to collect data from the rx FIFO. Reads in DMX_MODE_TX are made 
-  from buffer 0 and buffer 1 is used by the driver to write to the tx FIFO. */
+  from buffer 0 whilst buffer 1 is used by the driver to write to the tx 
+  FIFO. */
 
   if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
     uint8_t active_buffer;
@@ -529,9 +531,9 @@ int dmx_get_valid_frame_len(dmx_port_t dmx_num) {
   buf_size = p_dmx_obj[dmx_num]->buf_size;
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
-  /* rx_valid_len could be larger than the size of the DMX buffer if there is a 
-  weirdly malformed packet. If that's the case, an error will be sent to the DMX
-  queue but we should also cap it to the size of the buffer. */
+  /* The valid frame length could be larger than the size of the DMX buffer if 
+  there is a weirdly malformed packet. If that's the case, an error will be sent
+  to the DMX queue but we should also cap it to the size of the buffer. */
 
   return rx_valid_len > buf_size ? buf_size : rx_valid_len;
 }
