@@ -20,7 +20,7 @@ void dmx_default_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
-  portBASE_TYPE HPTaskAwoken = 0;
+  portBASE_TYPE task_awoken = 0;
 
   while (true) {
     const uint32_t uart_intr_status = uart_hal_get_intsts_mask(&(dmx_context[dmx_num].hal));
@@ -50,7 +50,7 @@ void dmx_default_intr_handler(void *arg) {
 
       // switch buffers, signal end of frame, and track breaks
       memcpy(p_dmx->buffer[1], p_dmx->buffer[0], p_dmx->buf_size);
-      xSemaphoreGiveFromISR(p_dmx->done_sem, &HPTaskAwoken);
+      xSemaphoreGiveFromISR(p_dmx->done_sem, &task_awoken);
       p_dmx->tx_last_brk_ts = now;
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
@@ -100,11 +100,11 @@ void dmx_default_intr_handler(void *arg) {
           dmx_event_t event = { .value = p_dmx->slot_idx };
           if (p_dmx->slot_idx > 513) event.type = DMX_INVALID_PACKET_LEN;
           else event.type = DMX_BUFFER_TOO_SMALL;
-          xQueueSendFromISR(p_dmx->queue, (void *)&event, &HPTaskAwoken);
+          xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
         }
 
         // signal the end of the frame
-        xSemaphoreGiveFromISR(p_dmx->done_sem, &HPTaskAwoken);
+        xSemaphoreGiveFromISR(p_dmx->done_sem, &task_awoken);
 
         // update valid frame length
         if (!p_dmx->rx_frame_err) p_dmx->rx_valid_len = p_dmx->slot_idx;
@@ -126,7 +126,7 @@ void dmx_default_intr_handler(void *arg) {
   }
   
   gpio_set_level(33, 0);  // TODO: for debugging
-  if (HPTaskAwoken == pdTRUE) {
+  if (task_awoken == pdTRUE) {
     portYIELD_FROM_ISR();
   }
 }
