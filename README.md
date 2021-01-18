@@ -66,8 +66,8 @@ TODO: Example code coming soon...
 
 ## To Do
 
-- Use RTS pin
-- RS485 mode
+- Use RTS pin when tx'ing
+- ESP32 uart RS485 mode
 - DMX rx timing analysis
 - Enable C++ compilation/linking.
 - Remote Device Management.
