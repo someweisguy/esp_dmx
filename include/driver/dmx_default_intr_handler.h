@@ -90,6 +90,11 @@ void dmx_default_intr_handler(void *arg) {
           DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
           uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
           DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        } else {
+          // enable the rxfifo tout interrupt
+          DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+          uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
+          DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         }
 
       } else if (uart_intr_status & DMX_INTR_RX_BRK) {
