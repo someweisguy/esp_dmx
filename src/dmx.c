@@ -196,6 +196,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     p_dmx_obj[dmx_num]->rx_frame_err = false;
     p_dmx_obj[dmx_num]->rx_valid_len = 0;
 
+    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
+
     uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_RX_INTR);
   } else { // dmx_mode == DMX_MODE_TX
     uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_RX_INTR);
@@ -206,6 +208,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     xSemaphoreGive(p_dmx_obj[dmx_num]->done_sem);
     p_dmx_obj[dmx_num]->rx_frame_err = false;
     p_dmx_obj[dmx_num]->rx_valid_len = 0;
+
+    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 0);  // set rts high
 
     // tx interrupts are enabled when calling the tx function!!
   }
