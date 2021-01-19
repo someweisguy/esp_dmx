@@ -348,6 +348,16 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
   return ESP_OK;
 }
 
+esp_err_t dmx_invert_rts(dmx_port_t dmx_num, bool invert) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  dmx_hal_inverse_rts_signal(&(dmx_context[dmx_num].hal), invert);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
+  return ESP_OK;
+}
+
 /// Interrupt Configuration  ##################################################
 esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
@@ -455,11 +465,11 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
     // invert the tx line and busy wait...
-    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
+    dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
     ets_delay_us(brk_num);
 
     // un-invert the tx line and busy wait...
-    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
+    dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), 0);
     ets_delay_us(idle_num);
 
     p_dmx_obj[dmx_num]->tx_last_brk_ts = now;
