@@ -40,7 +40,7 @@ static inline uint8_t dmx_ll_get_rx_tout(uart_dev_t *hw) {
  * @param invert 1 to invert, 0 to un-invert.
  */
 static inline void dmx_ll_inverse_txd_signal(uart_dev_t *hw, int invert) {
-    hw->conf0.txd_inv = invert ? 1 : 0;
+    hw->conf0.txd_inv = invert & 0x01;
 }
 
 /**
@@ -50,5 +50,5 @@ static inline void dmx_ll_inverse_txd_signal(uart_dev_t *hw, int invert) {
  * @param invert 1 to invert, 0 to un-invert.
  */
 static inline void dmx_ll_inverse_rts_signal(uart_dev_t *hw, int invert) {
-    hw->conf0.rts_inv = invert ? 1 : 0;
+    hw->conf0.rts_inv = invert & 0x01;
 }
