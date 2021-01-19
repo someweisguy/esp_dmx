@@ -34,21 +34,21 @@ static inline uint8_t dmx_ll_get_rx_tout(uart_dev_t *hw) {
 }
 
 /**
- * @brief Inverts or uninverts lines on the UART bus.
+ * @brief Inverts or uninverts tx line on the UART bus.
  * 
  * @param hw  Pointer to a UART struct.
- * @param inv_mask Invert mask.
+ * @param invert 1 to invert, 0 to un-invert.
  */
-static inline void dmx_ll_inverse_signal(uart_dev_t *hw, uint32_t inv_mask)
-{
-    typeof(hw->conf0) conf0_reg = hw->conf0;
-    conf0_reg.irda_tx_inv = (inv_mask & UART_SIGNAL_IRDA_TX_INV) ? 1 : 0;
-    conf0_reg.irda_rx_inv = (inv_mask & UART_SIGNAL_IRDA_RX_INV) ? 1 : 0;
-    conf0_reg.rxd_inv = (inv_mask & UART_SIGNAL_RXD_INV) ? 1 : 0;
-    conf0_reg.cts_inv = (inv_mask & UART_SIGNAL_CTS_INV) ? 1 : 0;
-    conf0_reg.dsr_inv = (inv_mask & UART_SIGNAL_DSR_INV) ? 1 : 0;
-    conf0_reg.txd_inv = (inv_mask & UART_SIGNAL_TXD_INV) ? 1 : 0;
-    conf0_reg.rts_inv = (inv_mask & UART_SIGNAL_RTS_INV) ? 1 : 0;
-    conf0_reg.dtr_inv = (inv_mask & UART_SIGNAL_DTR_INV) ? 1 : 0;
-    hw->conf0.val = conf0_reg.val;
+static inline void dmx_ll_inverse_txd_signal(uart_dev_t *hw, int invert) {
+    hw->conf0.txd_inv = invert ? 1 : 0;
+}
+
+/**
+ * @brief Inverts or uninverts rts line on the UART bus.
+ * 
+ * @param hw  Pointer to a UART struct.
+ * @param invert 1 to invert, 0 to un-invert.
+ */
+static inline void dmx_ll_inverse_rts_signal(uart_dev_t *hw, int invert) {
+    hw->conf0.rts_inv = invert ? 1 : 0;
 }

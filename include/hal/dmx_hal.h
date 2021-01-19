@@ -52,10 +52,19 @@ int dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num);
 #define dmx_hal_get_rx_tout(hal) dmx_ll_get_rx_tout((hal)->dev)
 
 /**
- * @brief Inverts or uninverts lines on the UART
+ * @brief Inverts or uninverts tx line on the UART
  * 
  * @param hal Context of the HAL layer
- * @param inv_mask Inversion mask
+ * @param inv Invert or un-invert
  * 
  */
-#define dmx_hal_inverse_signal(hal, inv_mask) dmx_ll_inverse_signal((hal)->dev, inv_mask)
+#define dmx_hal_inverse_txd_signal(hal, inv) dmx_ll_inverse_txd_signal((hal)->dev, inv)
+
+/**
+ * @brief Inverts or uninverts rts line on the UART
+ * 
+ * @param hal Context of the HAL layer
+ * @param inv Invert or un-invert
+ * 
+ */
+#define dmx_hal_inverse_rts_signal(hal, inv) dmx_ll_inverse_rts_signal((hal)->dev, inv)
