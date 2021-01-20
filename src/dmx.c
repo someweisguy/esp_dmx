@@ -23,7 +23,7 @@
 
 #define DMX_TX_INTR                                                     \
   (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | \
-      UART_INTR_TX_BRK_DONE)
+      UART_INTR_TX_BRK_DONE | UART_INTR_RS485_CLASH)
 #define DMX_RX_INTR                                                       \
   (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | \
       UART_INTR_BRK_DET | UART_INTR_RXFIFO_TOUT | UART_INTR_RXFIFO_OVF |  \
@@ -280,6 +280,7 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   uart_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), dmx_config->idle_num);
   uart_hal_set_hw_flow_ctrl(&(dmx_context[dmx_num].hal), UART_HW_FLOWCTRL_DISABLE, 0);
   uart_hal_tx_break(&(dmx_context[dmx_num].hal), dmx_config->break_num);
+  uart_hal_set_mode(&(dmx_context[dmx_num].hal), UART_MODE_RS485_COLLISION_DETECT);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   
   // flush both fifos

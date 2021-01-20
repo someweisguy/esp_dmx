@@ -67,6 +67,10 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
       // this interrupt is triggered when the UART mark after break is done
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_IDLE);
+    } else if (uart_intr_status & UART_INTR_RS485_CLASH) {
+      // this interrupt is triggered if there is a bus collision - should only occur with RDM
+
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_RS485_CLASH);
     }
 
     // DMX Recieve ####################################################
