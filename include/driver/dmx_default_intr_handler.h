@@ -110,9 +110,9 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
         // handle dmx break (start of frame)
 
         // check for packets that are too long
-        if (p_dmx->slot_idx > p_dmx->buf_size) {
+        if (p_dmx->slot_idx > p_dmx->buf_size && p_dmx->queue) {
           dmx_event_t event = { .value = p_dmx->slot_idx };
-          if (p_dmx->slot_idx > 513) event.type = DMX_INVALID_PACKET_LEN;
+          if (p_dmx->slot_idx > 513) event.type = DMX_INVALID_PKT_LEN;
           else event.type = DMX_BUFFER_TOO_SMALL;
           xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
         }
@@ -130,6 +130,15 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 
       } else if (uart_intr_status & DMX_INTR_RX_ERR) {
         // handle rx FIFO overflow or parity error
+
+        // if no error has been reported and the queue exists, report an error
+        if (!p_dmx->rx_frame_err && p_dmx->queue) {
+          dmx_event_t event = { .value = p_dmx->slot_idx };
+          if (uart_intr_status & UART_INTR_RXFIFO_OVF)
+            event.type = DMX_BUFFER_OVERFLOW;
+          else event.type = DMX_MALFORMED_SLOT;
+          xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
+        }
 
         p_dmx->rx_valid_len = p_dmx->slot_idx;
         p_dmx->rx_frame_err = true;
