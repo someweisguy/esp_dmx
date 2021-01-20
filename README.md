@@ -66,9 +66,10 @@ TODO: Example code coming soon...
 
 ## To Do
 
-- Use RTS pin when tx'ing
 - ESP32 uart RS485 mode
+- User macros for certain timing parameters (DMX_SIGNAL_TIMEOUT_MS, etc.)
 - DMX rx timing analysis
 - Enable C++ compilation/linking.
+- Reset-sequence-first mode: allow for sending of DMX reset sequence first
 - Remote Device Management.
 - Art-Net?
