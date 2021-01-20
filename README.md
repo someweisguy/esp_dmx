@@ -66,7 +66,6 @@ TODO: Example code coming soon...
 
 ## To Do
 
-- ESP32 uart RS485 mode
 - User macros for certain timing parameters (DMX_SIGNAL_TIMEOUT_MS, etc.)
 - DMX rx timing analysis
 - Enable C++ compilation/linking.
