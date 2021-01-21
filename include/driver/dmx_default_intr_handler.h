@@ -18,7 +18,9 @@
 
 #define DMX_INTR_RX_BRK (UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET)
 #define DMX_INTR_RX_ERR (UART_INTR_RXFIFO_OVF | UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)
+#define DMX_INTR_RX_ALL (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)
 
+#define BRK_TO_BRK_IS_INVALID(brk_to_brk) (brk_to_brk < DMX_RX_MIN_BRK_TO_BRK_US || brk_to_brk > DMX_RX_MAX_BRK_TO_BRK_US)
 
 void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
   gpio_set_level(33, 1);  // TODO: for debugging
@@ -75,7 +77,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
     }
 
     // DMX Recieve ####################################################
-    else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
+    else if (uart_intr_status & DMX_INTR_RX_ALL) {
       // this interrupt is triggered when any rx event occurs
 
       /* Check if there is data in the rx FIFO and if there is, it either reads
@@ -125,12 +127,14 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
           if (p_dmx->queue != NULL && !rx_frame_err) {
             // report end-of-frame to the queue
             event.size = p_dmx->slot_idx;
-            if (now - p_dmx->rx_last_brk_ts >= (DMX_RX_PACKET_MS * 1000) &&
-                p_dmx->rx_last_brk_ts != INT64_MIN) {
+            const int64_t brk_to_brk = now - p_dmx->rx_last_brk_ts;
+            if (p_dmx->rx_last_brk_ts != INT64_MIN &&
+                BRK_TO_BRK_IS_INVALID(brk_to_brk)) {
               // invalid break-to-break length
               event.type = DMX_ERR_BRK_TO_BRK;
               event.start_code = -1;
-            } else if (p_dmx->slot_idx <= 0 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
+            } else if (p_dmx->slot_idx <= 0 ||
+                       p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
               // invalid packet length
               event.type = DMX_ERR_PACKET_SIZE;
               event.start_code = -1;
@@ -173,7 +177,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 
         }
       }
-      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR));
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
     } else {
       // disable interrupts that shouldn't be handled
       DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
