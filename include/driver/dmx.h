@@ -23,9 +23,7 @@
 #define DMX_TICK_RX_PACKET  ((TickType_t)DMX_RX_PACKET_MS / portTICK_PERIOD_MS) // DMX rx packet timeout in FreeRTOS ticks.
 #define DMX_TICK_TX_PACKET  ((TickType_t)DMX_TX_PACKET_MS / portTICK_PERIOD_MS) // DMX tx packet timeout in FreeRTOS ticks.
 
-typedef int dmx_port_t;     // DMX port type.
-
-typedef intr_handle_t dmx_isr_handle_t;
+typedef int dmx_port_t;             // DMX port type.
 
 typedef enum {
   DMX_OK = 0,                       // The DMX packet is valid.
