@@ -156,7 +156,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
     if (p_dmx_obj[dmx_num]->buffer[i]) free(p_dmx_obj[dmx_num]->buffer[i]);
   }
   if (p_dmx_obj[dmx_num]->queue) vQueueDelete(p_dmx_obj[dmx_num]->queue);
-  // TODO: delete semaphores
+  if (p_dmx_obj[dmx_num]->tx_done_sem) vSemaphoreDelete(p_dmx_obj[dmx_num]->tx_done_sem);
 
   // free driver
   heap_caps_free(p_dmx_obj[dmx_num]);
