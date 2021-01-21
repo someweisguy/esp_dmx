@@ -29,7 +29,7 @@ typedef enum {
 
 typedef struct {
   dmx_event_type_t type;
-  uint8_t start_code;
+  int16_t start_code;
   size_t size;
 } dmx_event_t;
 

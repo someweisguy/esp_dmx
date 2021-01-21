@@ -77,19 +77,23 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
     else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
       // this interrupt is triggered when any rx event occurs
 
-      // TODO: refactor me
-      const uint32_t rxfifo_rem = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
-      if (p_dmx->slot_idx < p_dmx->buf_size) {
-        const int16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx;
-        if (rxfifo_rem) {
-          // read data into the active buffer
-          dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
+      /* The active buffer is used to fetch data from the rx FIFO. The inactive
+      buffer is used for the user to read from. */
+
+      const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
+      if (rxfifo_len) {
+        if (p_dmx->slot_idx < p_dmx->buf_size) {
+          const int16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx + 1;
+          int slots_rd = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
             p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx, slots_rem);
-          p_dmx->slot_idx += rxfifo_rem;
+          p_dmx->slot_idx += slots_rd;
+        } else {
+          // there are more bytes than there is space for in the buffer
+          uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
+          p_dmx->slot_idx += rxfifo_len;
         }
-      } else {
-        // there are more bytes than there is space for in the buffer
-        uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
+        if (uart_intr_status & DMX_INTR_RX_BRK)
+          --p_dmx->slot_idx; // break is not a slot
       }
       
       // handle data received condition
@@ -98,7 +102,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
         DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-      } else if (uart_intr_status & UART_INTR_RXFIFO_FULL) {
+      } else {
         // enable the rxfifo tout interrupt
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
@@ -106,42 +110,67 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
       }
 
       // handle end-of-frame conditions
-      if (uart_intr_status & DMX_INTR_RX_BRK) {
-        // handle dmx break (start of frame)
+      if (uart_intr_status & (DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
+        
+        const bool rx_frame_err = (p_dmx->slot_idx == (uint16_t)-1);
+        dmx_event_t event;
+        
+        if (uart_intr_status & DMX_INTR_RX_BRK) {
+          // handle dmx break (start of frame)
 
-        if (!p_dmx->rx_frame_err && p_dmx->queue) {
-          dmx_event_t event = {.size = p_dmx->slot_idx};
-          // TODO: check for packets that are too long?
-          event.type = DMX_OK;
-          event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
-          xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
+          if (now - p_dmx->rx_last_brk_ts > 1250000) {
+            // frame timed out
+            if (p_dmx->queue && p_dmx->rx_last_brk_ts != INT64_MIN) {
+              event.type = DMX_ERR_LOST_SIGNAL;
+              event.start_code = -1;
+            }
+            xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
+          }
+
+          else if (p_dmx->queue && !rx_frame_err) {
+            event.size = p_dmx->slot_idx;
+            if (p_dmx->slot_idx == 0 || p_dmx->slot_idx > 513) {
+              // multiple breaks without data or invalid packet len
+              event.type = DMX_ERR_PACKET_LENGTH;
+              event.start_code = -1;
+            } else if (p_dmx->slot_idx > p_dmx->buf_size) {
+              // frame buffer too small
+              event.type = DMX_ERR_BUFFER_LENGTH;
+              event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
+            } else {
+              // dmx ok
+              event.type = DMX_OK;
+              event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
+            }
+            xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
+          }
+
+          // switch buffers, reset slot counter
+          p_dmx->buf_idx = !p_dmx->buf_idx;
+          p_dmx->rx_last_brk_ts = now;
+          p_dmx->slot_idx = 0;
+
+        } else {
+          // handle rx FIFO overflow or parity error
+
+          if (p_dmx->queue && !rx_frame_err) {
+            // report an error to the queue
+            event.size = p_dmx->slot_idx;
+            if (uart_intr_status & UART_INTR_RXFIFO_OVF)
+              event.type = DMX_ERR_PACKET_OVERFLOW;
+            else event.type = DMX_ERR_LOST_SIGNAL; // TODO: throw appropriate error for parity err
+            xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
+          }
+
+          // set frame error, don't switch buffers until break rx'd
+          p_dmx->slot_idx = (uint16_t)-1;
+
         }
-
-        /* The active buffer is used to fetch data from the rx FIFO. The
-        inactive buffer is used for the user to read from. */
-
-        // switch buffers, reset error, and reset the slot counter
-        p_dmx->buf_idx = !p_dmx->buf_idx;
-        p_dmx->rx_frame_err = false;
-        p_dmx->slot_idx = 0;
-
-      } else if (uart_intr_status & DMX_INTR_RX_ERR) {
-        // handle rx FIFO overflow or parity error
-
-        // if no error has been reported and the queue exists, report an error
-        if (!p_dmx->rx_frame_err && p_dmx->queue) {
-          dmx_event_t event = {.size = p_dmx->slot_idx};
-          if (uart_intr_status & UART_INTR_RXFIFO_OVF)
-            event.type = DMX_ERR_PACKET_OVERFLOW;
-          else event.type = DMX_ERR_LOST_SIGNAL; // TODO: throw appropriate error for parity err
-          xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
-        }
-
-        p_dmx->rx_frame_err = true;
       }
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR));
     } else {
+      // disable interrupts that shouldn't be handled
       uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), uart_intr_status);
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), uart_intr_status);
     }

@@ -90,10 +90,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
-    p_dmx_obj[dmx_num]->rx_frame_err = false;
-    p_dmx_obj[dmx_num]->rx_valid_len = 0;
-    p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
+    p_dmx_obj[dmx_num]->rx_last_brk_ts = INT64_MIN;
 
+    p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
 
@@ -193,11 +192,9 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_TX_INTR);
     uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
 
-    p_dmx_obj[dmx_num]->slot_idx = -1;
+    p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
-    p_dmx_obj[dmx_num]->rx_frame_err = false;
-    p_dmx_obj[dmx_num]->rx_valid_len = 0;
 
     uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
 
@@ -209,8 +206,6 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     p_dmx_obj[dmx_num]->slot_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
-    p_dmx_obj[dmx_num]->rx_frame_err = false;
-    p_dmx_obj[dmx_num]->rx_valid_len = 0;
 
     uart_hal_set_rts(&(dmx_context[dmx_num].hal), 0);  // set rts high
 
