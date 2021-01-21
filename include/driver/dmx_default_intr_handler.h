@@ -125,12 +125,12 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
           if (p_dmx->queue != NULL && !rx_frame_err) {
             // report end-of-frame to the queue
             event.size = p_dmx->slot_idx;
-            if (now - p_dmx->rx_last_brk_ts >= 125000 &&
+            if (now - p_dmx->rx_last_brk_ts >= (DMX_RX_PACKET_MS * 1000) &&
                 p_dmx->rx_last_brk_ts != INT64_MIN) {
               // invalid break-to-break length
               event.type = DMX_ERR_BRK_TO_BRK;
               event.start_code = -1;
-            } else if (p_dmx->slot_idx <= 0 || p_dmx->slot_idx > 513) {
+            } else if (p_dmx->slot_idx <= 0 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
               // invalid packet length
               event.type = DMX_ERR_PACKET_LENGTH;
               event.start_code = -1;

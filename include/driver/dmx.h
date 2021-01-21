@@ -17,6 +17,7 @@
 #define DMX_MIN_BAUDRATE    245000        // DMX minimum baudrate.
 #define DMX_TYP_BAUDRATE    250000        // DMX typical baudrate.
 #define DMX_MAX_BAUDRATE    255000        // DMX maximum baudrate.
+#define DMX_MAX_PACKET_SIZE 513           // DMX maximum packet size.
 #define DMX_RX_PACKET_MS    1250          // DMX rx packet timeout in milliseconds.
 #define DMX_TX_PACKET_MS    1000          // DMX tx packet timeout in milliseconds.
 
