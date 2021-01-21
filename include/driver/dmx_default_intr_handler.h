@@ -89,7 +89,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
         if (p_dmx->slot_idx < p_dmx->buf_size) {
           // read data from rx FIFO into the buffer
           const uint16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx + 1;
-          const uint8_t *offset = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
+          uint8_t *offset = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
           int slots_rd = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
             offset, slots_rem);
           p_dmx->slot_idx += slots_rd;
