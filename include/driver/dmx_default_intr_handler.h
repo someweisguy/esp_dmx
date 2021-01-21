@@ -55,7 +55,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 
       // switch buffers, signal end of frame, and track breaks
       memcpy(p_dmx->buffer[1], p_dmx->buffer[0], p_dmx->buf_size);
-      xSemaphoreGiveFromISR(p_dmx->done_sem, &task_awoken);
+      xSemaphoreGiveFromISR(p_dmx->tx_done_sem, &task_awoken);
       p_dmx->tx_last_brk_ts = now;
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
@@ -77,55 +77,48 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
     else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
       // this interrupt is triggered when any rx event occurs
 
-      const int16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx;
-      uint32_t rxfifo_rem = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
-      if (slots_rem > 0 && rxfifo_rem) {
-        // read data into the active buffer
-        dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
-          p_dmx->buffer[p_dmx->buf_idx], slots_rem);
-        p_dmx->slot_idx += rxfifo_rem;
-      }
 
-      if (rxfifo_rem > slots_rem) {
+      if (p_dmx->slot_idx < p_dmx->buf_size) {
+        const int16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx;
+        uint32_t rxfifo_rem = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
+        if (rxfifo_rem) {
+          // read data into the active buffer
+          dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
+            p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx, slots_rem);
+          p_dmx->slot_idx += rxfifo_rem;
+        }
+      } else {
         // there are more bytes than there is space for in the buffer
         uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
       }
       
-      if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT)) {
-        // handle data received
+      // handle data received condition
+      if (uart_intr_status & UART_INTR_RXFIFO_TOUT) {
+        // disable the rxfifo tout interrupt
+        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
+        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+      } else if (uart_intr_status & UART_INTR_RXFIFO_FULL) {
+        // enable the rxfifo tout interrupt
+        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
+        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+      }
 
-        if (uart_intr_status & UART_INTR_RXFIFO_TOUT) {
-          // disable the rxfifo tout interrupt
-          DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-          uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
-          DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        } else {
-          // enable the rxfifo tout interrupt
-          DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-          uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
-          DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        }
-
-      } else if (uart_intr_status & DMX_INTR_RX_BRK) {
+      // handle end-of-frame conditions
+      if (uart_intr_status & DMX_INTR_RX_BRK) {
         // handle dmx break (start of frame)
 
-        // check for packets that are too long
-        if (p_dmx->slot_idx > p_dmx->buf_size && p_dmx->queue) {
-          dmx_event_t event = { .value = p_dmx->slot_idx };
-          if (p_dmx->slot_idx > 513) event.type = DMX_INVALID_PKT_LEN;
-          else event.type = DMX_BUFFER_TOO_SMALL;
+        if (!p_dmx->rx_frame_err && p_dmx->queue) {
+          dmx_event_t event = {.size = p_dmx->slot_idx};
+          // TODO: check for packets that are too long?
+          event.type = DMX_OK;
           xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
         }
 
-        // signal the end of the frame
-        xSemaphoreGiveFromISR(p_dmx->done_sem, &task_awoken);
-
-        // update valid frame length
-        if (!p_dmx->rx_frame_err) p_dmx->rx_valid_len = p_dmx->slot_idx;
-        p_dmx->rx_frame_err = false;
-
-        // switch buffers and reset the slot counter
+        // switch buffers, reset error, and reset the slot counter
         p_dmx->buf_idx = !p_dmx->buf_idx;
+        p_dmx->rx_frame_err = false;
         p_dmx->slot_idx = 0;
 
       } else if (uart_intr_status & DMX_INTR_RX_ERR) {
@@ -133,18 +126,20 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 
         // if no error has been reported and the queue exists, report an error
         if (!p_dmx->rx_frame_err && p_dmx->queue) {
-          dmx_event_t event = { .value = p_dmx->slot_idx };
+          dmx_event_t event = {.size = p_dmx->slot_idx};
           if (uart_intr_status & UART_INTR_RXFIFO_OVF)
-            event.type = DMX_BUFFER_OVERFLOW;
-          else event.type = DMX_MALFORMED_SLOT;
+            event.type = DMX_ERR_PACKET_OVERFLOW;
+          else event.type = DMX_ERR_LOST_SIGNAL; // TODO: throw appropriate error for parity err
           xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
         }
 
-        p_dmx->rx_valid_len = p_dmx->slot_idx;
         p_dmx->rx_frame_err = true;
       }
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR));
+    } else {
+      uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), uart_intr_status);
+      uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), uart_intr_status);
     }
   }
   

@@ -22,12 +22,12 @@ typedef struct {
   uint8_t buf_idx;
   dmx_mode_t mode;  // The mode the driver is in - either RX or TX.
 
-
-  SemaphoreHandle_t done_sem;  // Signals the frame has finished being tx'd or rx'd.
-
   bool rx_frame_err;         // Flag for detecting errors in the current frame.
   uint16_t rx_valid_len;     // The valid frame length received.
   int64_t tx_last_brk_ts;    // Timestamp of the last tx'd break.
+
+  SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being tx'd.
+
 
 } dmx_obj_t;
 
