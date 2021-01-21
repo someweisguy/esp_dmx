@@ -21,10 +21,11 @@ typedef intr_handle_t dmx_isr_handle_t;
 
 typedef enum {
   DMX_OK = 0,
-  DMX_ERR_PACKET_LENGTH,
-  DMX_ERR_PACKET_OVERFLOW,
-  DMX_ERR_BUFFER_LENGTH,
-  DMX_ERR_LOST_SIGNAL,
+  DMX_ERR_BRK_TO_BRK,       // Occurs when the break-to-break time is invalid.
+  DMX_ERR_IMPROPER_SLOT,    // Occurs when a slot is improperly framed (missing stop bits).
+  DMX_ERR_PACKET_LENGTH,    // Occurs when the data packet is longer than the DMX standard allows.
+  DMX_ERR_BUFFER_LENGTH,    // Occurs when the user defined buffer is too small for the received packet.
+  DMX_ERR_PACKET_OVERFLOW,  // Occurs when the UART FIFO overflows, causing loss of data.
 } dmx_event_type_t;
 
 typedef struct {
