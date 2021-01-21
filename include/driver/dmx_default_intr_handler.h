@@ -27,7 +27,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
-  portBASE_TYPE task_awoken = 0;
+  portBASE_TYPE task_awoken = pdFALSE;
 
   while (true) {
     const uint32_t uart_intr_status = uart_hal_get_intsts_mask(&(dmx_context[dmx_num].hal));
@@ -188,7 +188,5 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
   }
   
   gpio_set_level(33, 0);  // TODO: for debugging
-  if (task_awoken == pdTRUE) {
-    portYIELD_FROM_ISR();
-  }
+  if (task_awoken == pdTRUE) portYIELD_FROM_ISR();
 }
