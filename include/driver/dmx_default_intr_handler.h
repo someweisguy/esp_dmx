@@ -36,9 +36,9 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
       // this interrupt is triggered when the tx FIFO is empty
 
       uint32_t bytes_written;
-      const uint32_t len = p_dmx->buf_size - p_dmx->slot_idx;
-      const uint8_t *offset = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
-      uart_hal_write_txfifo(&(dmx_context[dmx_num].hal), offset, len,
+      const uint32_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx;
+      const uint8_t *offset = p_dmx->buffer[0] + p_dmx->slot_idx;
+      uart_hal_write_txfifo(&(dmx_context[dmx_num].hal), offset, slots_rem,
         &bytes_written);
       p_dmx->slot_idx += bytes_written;
 
@@ -89,8 +89,9 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
         if (p_dmx->slot_idx < p_dmx->buf_size) {
           // read data from rx FIFO into the buffer
           const uint16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx + 1;
+          const uint8_t *offset = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
           int slots_rd = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
-            p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx, slots_rem);
+            offset, slots_rem);
           p_dmx->slot_idx += slots_rd;
         } else {
           // discard bytes that can't be read into the buffer
