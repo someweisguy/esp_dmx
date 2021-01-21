@@ -23,35 +23,35 @@
 #define DMX_TICK_RX_PACKET  ((TickType_t)DMX_RX_PACKET_MS / portTICK_PERIOD_MS) // DMX rx packet timeout in FreeRTOS ticks.
 #define DMX_TICK_TX_PACKET  ((TickType_t)DMX_TX_PACKET_MS / portTICK_PERIOD_MS) // DMX tx packet timeout in FreeRTOS ticks.
 
-typedef int dmx_port_t;
+typedef int dmx_port_t;     // DMX port type.
 
 typedef intr_handle_t dmx_isr_handle_t;
 
 typedef enum {
-  DMX_OK = 0,
-  DMX_ERR_BRK_TO_BRK,       // Occurs when the break-to-break time is invalid.
-  DMX_ERR_IMPROPER_SLOT,    // Occurs when a slot is improperly framed (missing stop bits).
-  DMX_ERR_PACKET_LENGTH,    // Occurs when the data packet is longer than the DMX standard allows.
-  DMX_ERR_BUFFER_LENGTH,    // Occurs when the user defined buffer is too small for the received packet.
-  DMX_ERR_PACKET_OVERFLOW,  // Occurs when the UART FIFO overflows, causing loss of data.
+  DMX_OK = 0,                       // The DMX packet is valid.
+  DMX_ERR_BRK_TO_BRK,               // The break-to-break time is invalid.
+  DMX_ERR_IMPROPER_SLOT,            // A slot is improperly framed (missing stop bits).
+  DMX_ERR_PACKET_LENGTH,            // The data packet size is shorter or longer than the DMX standard allows.
+  DMX_ERR_BUFFER_LENGTH,            // The user defined buffer is too small for the received packet.
+  DMX_ERR_PACKET_OVERFLOW,          // The hardware FIFO overflowed, causing loss of data.
 } dmx_event_type_t;
 
 typedef struct {
-  dmx_event_type_t type;
-  int16_t start_code;
-  size_t size;
+  dmx_event_type_t type;            // The type of DMX packet received.
+  int16_t start_code;               // The start code (slot 0) of the DMX packet, or -1 on error.
+  size_t size;                      // The length of the received DMX packet.
 } dmx_event_t;
 
 typedef struct {
-  uint32_t intr_enable_mask;  // UART interrupt enable mask, choose from UART_XXXX_INT_ENA_M under UART_INT_ENA_REG(i), connect with bit-or operator.
-  uint8_t rx_timeout_thresh;  // UART timeout interrupt threshold (unit: time of sending one byte).
-  uint8_t txfifo_empty_intr_thresh;  // UART TX empty interrupt threshold.
-  uint8_t rxfifo_full_thresh;  // UART RX full interrupt threshold.
+  uint32_t intr_enable_mask;        // DMX interrupt enable mask, choose from UART_XXXX_INT_ENA_M under UART_INT_ENA_REG(i), connect with bit-or operator.
+  uint8_t rx_timeout_thresh;        // DMX timeout interrupt threshold (unit: time of sending one byte).
+  uint8_t txfifo_empty_intr_thresh; // DMX tx empty interrupt threshold.
+  uint8_t rxfifo_full_thresh;       // DMX rx full interrupt threshold.
 } dmx_intr_config_t;
 
 typedef enum {
-  DMX_MODE_RX,
-  DMX_MODE_TX
+  DMX_MODE_RX,                      // DMX receive mode.
+  DMX_MODE_TX                       // DMX transmit mode.
 } dmx_mode_t;
 
 /// Driver Functions  #########################################################
