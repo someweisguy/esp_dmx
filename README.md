@@ -66,6 +66,7 @@ TODO: Example code coming soon...
 
 ## To Do
 
+- Make DMX rx synchronous
 - User macros for certain timing parameters (DMX_SIGNAL_TIMEOUT_MS, etc.)
 - DMX rx timing analysis
 - Enable C++ compilation/linking.
