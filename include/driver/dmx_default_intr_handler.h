@@ -132,11 +132,11 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
               event.start_code = -1;
             } else if (p_dmx->slot_idx <= 0 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
               // invalid packet length
-              event.type = DMX_ERR_PACKET_LENGTH;
+              event.type = DMX_ERR_PACKET_SIZE;
               event.start_code = -1;
             } else if (p_dmx->slot_idx > p_dmx->buf_size) {
               // driver buffer is too small
-              event.type = DMX_ERR_BUFFER_LENGTH;
+              event.type = DMX_ERR_BUFFER_SIZE;
               event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
             } else {
               // dmx ok
@@ -158,7 +158,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
             event.size = p_dmx->slot_idx;
             if (uart_intr_status & UART_INTR_RXFIFO_OVF) {
               // rx FIFO overflowed
-              event.type = DMX_ERR_PACKET_OVERFLOW;
+              event.type = DMX_ERR_DATA_OVERFLOW;
               event.start_code = -1;
             } else {
               // data parity error
