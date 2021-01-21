@@ -77,10 +77,10 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
     else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
       // this interrupt is triggered when any rx event occurs
 
-
+      // TODO: refactor me
+      const uint32_t rxfifo_rem = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
       if (p_dmx->slot_idx < p_dmx->buf_size) {
         const int16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx;
-        uint32_t rxfifo_rem = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
         if (rxfifo_rem) {
           // read data into the active buffer
           dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
@@ -113,6 +113,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
           dmx_event_t event = {.size = p_dmx->slot_idx};
           // TODO: check for packets that are too long?
           event.type = DMX_OK;
+          event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
           xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
         }
 
