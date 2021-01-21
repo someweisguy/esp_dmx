@@ -7,22 +7,28 @@
 #include "hal/dmx_types.h"
 #include "soc/uart_caps.h"
 
-#define DMX_NUM_0           0             // DMX port 0.
-#define DMX_NUM_1           1             // DMX port 1.
+#define DMX_NUM_0             0             // DMX port 0.
+#define DMX_NUM_1             1             // DMX port 1.
 #if SOC_UART_NUM > 2
-#define DMX_NUM_2           2             // DMX port 2.
+#define DMX_NUM_2             2             // DMX port 2.
 #endif
-#define DMX_NUM_MAX         SOC_UART_NUM  // DMX port max.
+#define DMX_NUM_MAX           SOC_UART_NUM  // DMX port max.
 
-#define DMX_MIN_BAUDRATE    245000        // DMX minimum baudrate.
-#define DMX_TYP_BAUDRATE    250000        // DMX typical baudrate.
-#define DMX_MAX_BAUDRATE    255000        // DMX maximum baudrate.
-#define DMX_MAX_PACKET_SIZE 513           // DMX maximum packet size.
-#define DMX_RX_PACKET_MS    1250          // DMX rx packet timeout in milliseconds.
-#define DMX_TX_PACKET_MS    1000          // DMX tx packet timeout in milliseconds.
+#define DMX_MIN_BAUDRATE      245000        // DMX minimum baudrate.
+#define DMX_TYP_BAUDRATE      250000        // DMX typical baudrate.
+#define DMX_MAX_BAUDRATE      255000        // DMX maximum baudrate.
 
-#define DMX_TICK_RX_PACKET  ((TickType_t)DMX_RX_PACKET_MS / portTICK_PERIOD_MS) // DMX rx packet timeout in FreeRTOS ticks.
-#define DMX_TICK_TX_PACKET  ((TickType_t)DMX_TX_PACKET_MS / portTICK_PERIOD_MS) // DMX tx packet timeout in FreeRTOS ticks.
+#define DMX_MAX_PACKET_SIZE   513           // DMX maximum packet size.
+
+#define DMX_RX_MIN_BRK_TO_BRK_US  1196      // DMX minimum break-to-break in microseconds.
+#define DMX_RX_MAX_BRK_TO_BRK_US  1250000   // DMX maximum break-to-break in microseconds.
+
+#define DMX_RX_PACKET_TOUT_MS 1250          // DMX rx packet timeout in milliseconds.
+#define DMX_TX_PACKET_TOUT_MS 1000          // DMX tx packet timeout in milliseconds.
+
+#define DMX_RX_PACKET_TOUT_TICK  ((TickType_t)DMX_RX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX rx packet timeout in FreeRTOS ticks.
+#define DMX_TX_PACKET_TOUT_TICK  ((TickType_t)DMX_TX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX tx packet timeout in FreeRTOS ticks.
+
 
 typedef int dmx_port_t;             // DMX port type.
 
@@ -37,7 +43,7 @@ typedef enum {
 
 typedef struct {
   dmx_event_type_t type;            // The type of DMX packet received.
-  int16_t start_code;               // The start code (slot 0) of the DMX packet, or -1 on error.
+  int16_t start_code;               // The start code (slot 0) of the DMX packet, or -1 on error (except for DMX_ERR_BUFFER_SIZE).
   size_t size;                      // The length of the received DMX packet.
 } dmx_event_t;
 
