@@ -7,13 +7,21 @@
 #include "hal/dmx_types.h"
 #include "soc/uart_caps.h"
 
-// Valid DMX port number
-#define DMX_NUM_0 0  // DMX port 0
-#define DMX_NUM_1 1  // DMX port 1
+#define DMX_NUM_0           0             // DMX port 0.
+#define DMX_NUM_1           1             // DMX port 1.
 #if SOC_UART_NUM > 2
-#define DMX_NUM_2 2  // DMX port 2
+#define DMX_NUM_2           2             // DMX port 2.
 #endif
-#define DMX_NUM_MAX SOC_UART_NUM  // DMX port max 
+#define DMX_NUM_MAX         SOC_UART_NUM  // DMX port max.
+
+#define DMX_MIN_BAUDRATE    245000        // DMX minimum baudrate.
+#define DMX_TYP_BAUDRATE    250000        // DMX typical baudrate.
+#define DMX_MAX_BAUDRATE    255000        // DMX maximum baudrate.
+#define DMX_RX_PACKET_MS    1250          // DMX rx packet timeout in milliseconds.
+#define DMX_TX_PACKET_MS    1000          // DMX tx packet timeout in milliseconds.
+
+#define DMX_TICK_RX_PACKET  ((TickType_t)DMX_RX_PACKET_MS / portTICK_PERIOD_MS) // DMX rx packet timeout in FreeRTOS ticks.
+#define DMX_TICK_TX_PACKET  ((TickType_t)DMX_TX_PACKET_MS / portTICK_PERIOD_MS) // DMX tx packet timeout in FreeRTOS ticks.
 
 typedef int dmx_port_t;
 
