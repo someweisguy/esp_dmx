@@ -33,7 +33,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 
     // DMX Transmit #####################################################
     if (uart_intr_status & UART_INTR_TXFIFO_EMPTY) {
-      // this interrupt is triggered when the tx FIFO is empty, or the mark after break is done
+      // this interrupt is triggered when the tx FIFO is empty
 
       uint32_t bytes_written;
       const uint32_t len = p_dmx->buf_size - p_dmx->slot_idx;
@@ -60,15 +60,16 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_DONE) {
-      // this interrupt is triggered when the UART break is done
+      // this interrupt is triggered when the break is done
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_IDLE) {
-      // this interrupt is triggered when the UART mark after break is done
+      // this interrupt is triggered when the mark after break is done
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_IDLE);
     } else if (uart_intr_status & UART_INTR_RS485_CLASH) {
-      // this interrupt is triggered if there is a bus collision - should only occur with RDM
+      // this interrupt is triggered if there is a bus collision
+      // this code should only run when using RDM
 
       uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_RS485_CLASH);
     }
@@ -119,7 +120,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
         dmx_event_t event;
         
         if (uart_intr_status & DMX_INTR_RX_BRK) {
-          // handle dmx break (start of frame)
+          // handle rx break
           if (p_dmx->queue != NULL && !rx_frame_err) {
             // report end-of-frame to the queue
             event.size = p_dmx->slot_idx;
@@ -144,7 +145,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
             xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
           }
 
-          // switch buffers, record break timestamp, and reset slot counter
+          // switch buffers, set break timestamp, and reset slot counter
           p_dmx->buf_idx = !p_dmx->buf_idx;
           p_dmx->rx_last_brk_ts = now;
           p_dmx->slot_idx = 0;
