@@ -16,11 +16,11 @@ typedef struct {
   QueueHandle_t queue;
   dmx_isr_handle_t intr_handle;
 
-  uint16_t buf_size;
-  uint8_t *buffer[2];
+  uint16_t buf_size;  // The size of the DMX buffer.
+  uint8_t *buffer[2]; // The buffer for reading or writing DMX data.
   uint16_t slot_idx;  // The index of the current slot that is being rx'd or tx'd.
-  uint8_t buf_idx;
-  dmx_mode_t mode;  // The mode the driver is in - either RX or TX.
+  uint8_t buf_idx;    // The index of the currently active buffer that is being rx'd into.
+  dmx_mode_t mode;    // The mode the driver is in - either RX or TX.
 
   int64_t rx_last_brk_ts;         // Timestamp of the last rx'd break.
 
@@ -45,3 +45,5 @@ dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_2),
 #endif
 };
+
+#undef DMX_CONTEX_INIT_DEF
