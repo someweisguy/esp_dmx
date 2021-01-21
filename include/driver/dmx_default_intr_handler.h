@@ -117,6 +117,9 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
           xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
         }
 
+        /* The active buffer is used to fetch data from the rx FIFO. The
+        inactive buffer is used for the user to read from. */
+
         // switch buffers, reset error, and reset the slot counter
         p_dmx->buf_idx = !p_dmx->buf_idx;
         p_dmx->rx_frame_err = false;
