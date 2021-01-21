@@ -86,6 +86,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     p_dmx_obj[dmx_num]->slot_idx = -1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
     p_dmx_obj[dmx_num]->done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->done_sem);
