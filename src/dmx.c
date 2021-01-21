@@ -16,21 +16,13 @@
 #include "soc/io_mux_reg.h"
 #include "soc/uart_caps.h"
 
-#define DMX_EMPTY_THRESH_DEFAULT     8
-#define DMX_FULL_THRESH_DEFAULT      120
-#define DMX_TOUT_THRESH_DEFAULT      126
-#define DMX_MIN_WAKEUP_THRESH        SOC_UART_MIN_WAKEUP_THRESH
+#define DMX_EMPTY_THRESH_DEFAULT  8
+#define DMX_FULL_THRESH_DEFAULT   120
+#define DMX_TOUT_THRESH_DEFAULT   126
+#define DMX_MIN_WAKEUP_THRESH     SOC_UART_MIN_WAKEUP_THRESH
 
-#define DMX_TX_INTR                                                     \
-  (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | \
-      UART_INTR_TX_BRK_DONE | UART_INTR_RS485_CLASH)
-#define DMX_RX_INTR                                                       \
-  (UART_INTR_RXFIFO_FULL | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | \
-      UART_INTR_BRK_DET | UART_INTR_RXFIFO_TOUT | UART_INTR_RXFIFO_OVF |  \
-      UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR)
-
-#define DMX_ENTER_CRITICAL(mux)     portENTER_CRITICAL(mux)
-#define DMX_EXIT_CRITICAL(mux)      portEXIT_CRITICAL(mux)
+#define DMX_ENTER_CRITICAL(mux)   portENTER_CRITICAL(mux)
+#define DMX_EXIT_CRITICAL(mux)    portEXIT_CRITICAL(mux)
 
 static const char *TAG = "dmx";
 #define DMX_CHECK(a, str, ret_val)                            \
@@ -43,7 +35,7 @@ static const char *TAG = "dmx";
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(buffer_size <= 513, "buffer_size error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(buffer_size > 0 && buffer_size <= DMX_MAX_PACKET_SIZE, "buffer_size error", ESP_ERR_INVALID_ARG);
 #if CONFIG_UART_ISR_IN_IRAM
   if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated");
@@ -123,7 +115,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     return err;
   }
   const dmx_intr_config_t dmx_intr = {
-      .intr_enable_mask = DMX_RX_INTR,  // enable rx
+      .intr_enable_mask = DMX_INTR_RX_ALL, // enable rx
       .rxfifo_full_thresh = DMX_FULL_THRESH_DEFAULT,
       .rx_timeout_thresh = DMX_TOUT_THRESH_DEFAULT,
       .txfifo_empty_intr_thresh = DMX_EMPTY_THRESH_DEFAULT,
@@ -147,9 +139,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // free isr
   esp_err_t err = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
-  if (err) {
-    return err;
-  }
+  if (err) return err;
 
   // free driver resources
   for (int i = 0; i < 2; ++i) {
@@ -189,7 +179,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_mode == DMX_MODE_RX) {
-    uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_TX_INTR);
+    uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
     uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
 
     p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
@@ -198,9 +188,9 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
     uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
 
-    uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_RX_INTR);
+    uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
   } else { // dmx_mode == DMX_MODE_TX
-    uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_RX_INTR);
+    uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
     uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
 
     p_dmx_obj[dmx_num]->slot_idx = 0;
@@ -252,7 +242,7 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
 esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(dmx_config, "dmx_config is null", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(dmx_config->baudrate >= 245000 && dmx_config->baudrate <= 255000, "baudrate error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(dmx_config->baudrate >= DMX_MIN_BAUDRATE && dmx_config->baudrate <= DMX_MAX_BAUDRATE, "baudrate error", ESP_ERR_INVALID_ARG);
   const float bit_speed = 1000000.0 / dmx_config->baudrate;
   DMX_CHECK(dmx_config->break_num * bit_speed >= 92 && dmx_config->break_num < 1024, "break_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(dmx_config->idle_num * bit_speed >= 12 && dmx_config->idle_num * bit_speed < 1000000, "idle_num error", ESP_ERR_INVALID_ARG);
@@ -290,6 +280,7 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
 
 esp_err_t dmx_set_baudrate(dmx_port_t dmx_num, uint32_t baudrate) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  // TODO: error check
   
   uart_sclk_t source_clk;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -312,6 +303,7 @@ esp_err_t dmx_get_baudrate(dmx_port_t dmx_num, uint32_t *baudrate) {
 
 esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  // TODO: error check
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_tx_break(&(dmx_context[dmx_num].hal), break_num);
@@ -333,6 +325,7 @@ esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
 esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(idle_num < 1024, "idle_num error", ESP_ERR_INVALID_ARG);
+  // TODO: error check
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
@@ -371,7 +364,7 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf
   if (intr_conf->intr_enable_mask & UART_INTR_RXFIFO_TOUT) {
     uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), intr_conf->rx_timeout_thresh);
   } else {
-    uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), 0);  // disable rx tout intr
+    uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), 0); // disable rx tout intr
   }
   if (intr_conf->intr_enable_mask & UART_INTR_RXFIFO_FULL) {
     uart_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), intr_conf->rxfifo_full_thresh);
@@ -489,7 +482,7 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
 
   // enable tx interrupts
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_TX_INTR);
+  uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -499,11 +492,15 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint1
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(frame_buffer, "frame_buffer is null", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_TX, "not in tx mode", ESP_ERR_INVALID_STATE);
   DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
 
   /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, whilst
   buffer 1 is used by the driver to write to the tx FIFO. */
+
+  if (p_dmx_obj[dmx_num]->mode != DMX_MODE_TX) {
+    ESP_LOGE(TAG, "cannot write if not in tx mode");
+    return ESP_ERR_INVALID_STATE;
+  }
 
   memcpy(p_dmx_obj[dmx_num]->buffer[0], frame_buffer, length);
 
