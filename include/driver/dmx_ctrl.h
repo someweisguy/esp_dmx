@@ -29,12 +29,12 @@ typedef struct {
 
   int64_t rx_last_brk_ts;         // Timestamp of the last rx'd break.
   
-  uint8_t rx_analyze_mode;
-  gpio_num_t analyze_io_num;
-  int64_t rx_last_pos_edge_ts;
-  int64_t rx_last_neg_edge_ts;
-  int32_t rx_brk_len;
-  int32_t rx_mab_len;
+  uint8_t rx_analyze_state;       // The state of the rx analyzer. Off if 0, else rx analyzer is running.
+  gpio_num_t analyze_io_num;      // The GPIO number of the analyze pin.
+  int64_t rx_last_pos_edge_ts;    // Timestamp of the last positive edge on the analyze pin.
+  int64_t rx_last_neg_edge_ts;    // Timestamp of the last negative edge on the analyze pin.
+  int32_t rx_brk_len;             // Length in microseconds of the last rx'd break.
+  int32_t rx_mab_len;             // Length in microseconds of the last rx'd mark after break.
 
   SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being tx'd.
   int64_t tx_last_brk_ts;         // Timestamp of the last tx'd break.

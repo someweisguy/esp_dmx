@@ -247,7 +247,7 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int analyze_io_num, int intr
   }
 #endif
 
-  p_dmx_obj[dmx_num]->rx_analyze_mode = RX_ANALYZE_ON;
+  p_dmx_obj[dmx_num]->rx_analyze_state = RX_ANALYZE_ON;
   p_dmx_obj[dmx_num]->analyze_io_num = analyze_io_num;
 
   gpio_install_isr_service(intr_alloc_flags);

@@ -152,7 +152,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
               // dmx ok
               event.type = DMX_OK;
               event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
-              if (p_dmx->rx_analyze_mode == RX_ANALYZE_DONE) {
+              if (p_dmx->rx_analyze_state == RX_ANALYZE_DONE) {
                 event.brk_len = p_dmx->rx_brk_len;
                 event.mab_len = p_dmx->rx_mab_len;
               } else {
@@ -166,7 +166,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
           }
 
           // tell the rx analyzer we are in a break
-          if (p_dmx->rx_analyze_mode) p_dmx->rx_analyze_mode = RX_ANALYZE_BRK;
+          if (p_dmx->rx_analyze_state) p_dmx->rx_analyze_state = RX_ANALYZE_BRK;
 
           // switch buffers, set break timestamp, and reset slot counter
           p_dmx->buf_idx = !p_dmx->buf_idx;
@@ -222,15 +222,15 @@ void DMX_ISR_ATTR dmx_rx_analyze_isr(void *arg) {
   should record its length. */
 
   if (rx_is_high) {
-    if (p_dmx->rx_analyze_mode == RX_ANALYZE_BRK) {
+    if (p_dmx->rx_analyze_state == RX_ANALYZE_BRK) {
       p_dmx->rx_brk_len = now - p_dmx->rx_last_neg_edge_ts;
-      p_dmx->rx_analyze_mode = RX_ANALYZE_MAB;
+      p_dmx->rx_analyze_state = RX_ANALYZE_MAB;
     }
     p_dmx->rx_last_pos_edge_ts = now;
   } else {
-    if (p_dmx->rx_analyze_mode == RX_ANALYZE_MAB) {
+    if (p_dmx->rx_analyze_state == RX_ANALYZE_MAB) {
       p_dmx->rx_mab_len = now - p_dmx->rx_last_pos_edge_ts;
-      p_dmx->rx_analyze_mode = RX_ANALYZE_DONE;
+      p_dmx->rx_analyze_state = RX_ANALYZE_DONE;
     }
     p_dmx->rx_last_neg_edge_ts = now;
   }
