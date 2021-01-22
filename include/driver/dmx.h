@@ -54,11 +54,6 @@ typedef struct {
   uint8_t rxfifo_full_thresh;       // DMX rx full interrupt threshold.
 } dmx_intr_config_t;
 
-typedef enum {
-  DMX_MODE_RX,                      // DMX receive mode.
-  DMX_MODE_TX                       // DMX transmit mode.
-} dmx_mode_t;
-
 /// Driver Functions  #########################################################
 /**
  * @brief Install DMX driver and set the DMX to the default configuration.

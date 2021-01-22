@@ -11,7 +11,7 @@
   }
 
 /**
- * @brief DMX configuration parameters for dmx_param_config function
+ * @brief DMX configuration parameters for dmx_param_config() function
  */
 typedef struct {
   int baudrate;           // DMX baud rate.
@@ -19,3 +19,11 @@ typedef struct {
   uint16_t idle_num;      // DMX mark after break length (unit: number of bits).
   uart_sclk_t source_clk; // DMX source clock selection.
 } dmx_config_t;
+
+/**
+ * @brief DMX modes of operation.
+ */
+typedef enum {
+  DMX_MODE_RX,            // DMX receive mode.
+  DMX_MODE_TX             // DMX transmit mode.
+} dmx_mode_t;
