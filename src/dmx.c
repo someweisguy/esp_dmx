@@ -224,7 +224,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_mode = p_dmx_obj[dmx_num]->mode;  
+  *dmx_mode = p_dmx_obj[dmx_num]->mode;  
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
