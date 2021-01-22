@@ -36,7 +36,7 @@ static inline uint8_t dmx_ll_get_rx_tout(uart_dev_t *hw) {
 /**
  * @brief Inverts or uninverts tx line on the UART bus.
  * 
- * @param hw  Pointer to a UART struct.
+ * @param hw Pointer to a UART struct.
  * @param invert 1 to invert, 0 to un-invert.
  */
 static inline void dmx_ll_inverse_txd_signal(uart_dev_t *hw, int invert) {
@@ -46,9 +46,19 @@ static inline void dmx_ll_inverse_txd_signal(uart_dev_t *hw, int invert) {
 /**
  * @brief Inverts or uninverts rts line on the UART bus.
  * 
- * @param hw  Pointer to a UART struct.
+ * @param hw Pointer to a UART struct.
  * @param invert 1 to invert, 0 to un-invert.
  */
 static inline void dmx_ll_inverse_rts_signal(uart_dev_t *hw, int invert) {
     hw->conf0.rts_inv = invert & 0x01;
+}
+
+/**
+ * @brief Gets the level of the rx line on the UART bus.
+ * 
+ * @param hw Pointer to a UART struct.
+ * @return UART rx line level.
+ */
+static inline uint32_t dmx_ll_get_rx_level(uart_dev_t *hw) {
+    return hw->status.rxd;
 }

@@ -68,3 +68,12 @@ int dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num);
  * 
  */
 #define dmx_hal_inverse_rts_signal(hal, inv) dmx_ll_inverse_rts_signal((hal)->dev, inv)
+
+/**
+ * @brief Get the level of the rx line on the UART.
+ * 
+ * @param hal Contest of the HAL layer
+ * 
+ * @return the level of the rx line
+ */
+#define dmx_hal_get_rx_level(hal) dmx_ll_get_rx_level((hal)->dev)
