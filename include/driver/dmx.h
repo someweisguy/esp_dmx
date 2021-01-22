@@ -59,7 +59,7 @@ typedef enum {
 } dmx_event_type_t;
 
 #define DMX_ERR_CORRUPT_DATA  (DMX_ERR_IMPROPER_SLOT | DMX_ERR_DATA_OVERFLOW) // Bitmask for error conditions where data is lost.
-#define DMX_ERR_NOT_TO_SPEC   (DMX_ERR_BRK_TO_BRK | DMX_ERR_PACKET_SIZE)      // Bitmask for error conditions where the bytestream is not to DMX specification.
+#define DMX_ERR_NOT_TO_SPEC   (DMX_ERR_BRK_TO_BRK | DMX_ERR_PACKET_SIZE | DMX_ERR_SPACE_FOR_BRK | DMX_ERR_MRK_AFTER_BRK) // Bitmask for error conditions where the bytestream is not to DMX specification.
 
 /**
  * @brief DMX data events reported to the event queue when a packet is received.
