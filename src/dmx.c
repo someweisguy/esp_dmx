@@ -219,6 +219,17 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   return ESP_OK;
 }
 
+esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  dmx_mode = p_dmx_obj[dmx_num]->mode;  
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
+  return ESP_OK;
+}
+
 /// Hardware Configuration  ###################################################
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
     int rts_io_num) {

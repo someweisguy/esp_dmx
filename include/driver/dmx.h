@@ -104,7 +104,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
 bool dmx_is_driver_installed(dmx_port_t dmx_num);
 
 /**
- * @brief Sets the dmx mode, either DMX_MODE_RX or DMX_MODE_TX.
+ * @brief Sets the DMX mode, either DMX_MODE_RX or DMX_MODE_TX.
  * 
  * @param dmx_num 
  * @param dmx_mode 
@@ -114,6 +114,18 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num);
  * - ESP_ERR_INVALID_STATE  Driver not installed
  */
 esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
+
+/**
+ * @brief Gets the DMX mode, either DMX_MODE_RX, or DMX_MODE_TX.
+ * 
+ * @param dmx_num 
+ * @param dmx_mode 
+ * @return
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error
+ * - ESP_ERR_INVALID_STATE  Driver not installed 
+ */
+esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
 
 /// Hardware Configuration  ###################################################
 /**
