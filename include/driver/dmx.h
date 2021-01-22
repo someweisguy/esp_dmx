@@ -36,12 +36,19 @@ typedef int dmx_port_t;             // DMX port type.
  * @brief DMX packet types reported to the event queue when a packet is received.
  */
 typedef enum {
-  DMX_OK = 0,                       // The DMX packet is valid.
-  DMX_ERR_BRK_TO_BRK = BIT0,        // The break-to-break time is invalid.
-  DMX_ERR_IMPROPER_SLOT = BIT1,     // A slot is improperly framed (missing stop bits).
-  DMX_ERR_PACKET_SIZE = BIT2,       // The packet size is 0 or longer than the DMX standard allows.
-  DMX_ERR_BUFFER_SIZE = BIT3,       // The user defined buffer is too small for the received packet.
-  DMX_ERR_DATA_OVERFLOW = BIT4,     // The hardware FIFO overflowed, causing loss of data.
+  DMX_OK                    = 0,    // The DMX packet is valid.
+  DMX_ERR_BRK_TO_BRK        = BIT0, // The break-to-break time is invalid.
+  DMX_ERR_IMPROPER_SLOT     = BIT1, // A slot is improperly framed (missing stop bits).
+  DMX_ERR_PACKET_SIZE       = BIT2, // The packet size is 0 or longer than the DMX standard allows.
+  DMX_ERR_BUFFER_SIZE       = BIT3, // The user defined buffer is too small for the received packet.
+  DMX_ERR_DATA_OVERFLOW     = BIT4, // The hardware FIFO overflowed, causing loss of data.
+
+  // The remaining event types only occur if detailed rx analysis is enabled
+
+  DMX_ERR_SPACE_FOR_BRK     = BIT5, // The space for break is invalid.
+  DMX_ERR_MRK_AFTER_BRK     = BIT6, // The mark after break is invalid.
+  DMX_ERR_MRK_BETWEEN_SLOTS = BIT7, // The mark between slots is too long.
+  DMX_ERR_MRK_BEFORE_BRK    = BIT8  // The mark before break is too long.
 } dmx_event_type_t;
 
 #define DMX_ERR_CORRUPT_DATA  (DMX_ERR_IMPROPER_SLOT | DMX_ERR_DATA_OVERFLOW) // Bitmask for error conditions where data is lost.
