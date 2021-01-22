@@ -90,7 +90,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
 
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
-    return ESP_FAIL;
+    return ESP_ERR_INVALID_STATE;
   }
 
   // enable uart peripheral module
