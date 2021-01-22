@@ -57,7 +57,6 @@ typedef struct {
  * @brief Interrupt configuration used to configure the DMX hardware ISR.
  */
 typedef struct {
-  uint32_t intr_enable_mask;        // DMX interrupt enable mask, choose from UART_XXXX_INT_ENA_M under UART_INT_ENA_REG(i), connect with bit-or operator.
   uint8_t rx_timeout_thresh;        // DMX timeout interrupt threshold (unit: time of sending one byte).
   uint8_t txfifo_empty_intr_thresh; // DMX tx empty interrupt threshold.
   uint8_t rxfifo_full_thresh;       // DMX rx full interrupt threshold.

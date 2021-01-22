@@ -84,10 +84,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
-
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
     return ESP_ERR_INVALID_STATE;
@@ -105,7 +101,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // install interrupt
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq,
       intr_alloc_flags, &dmx_default_intr_handler, p_dmx_obj[dmx_num],
@@ -115,7 +113,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     return err;
   }
   const dmx_intr_config_t dmx_intr = {
-      .intr_enable_mask = DMX_INTR_RX_ALL, // enable rx
       .rxfifo_full_thresh = DMX_FULL_THRESH_DEFAULT,
       .rx_timeout_thresh = DMX_TOUT_THRESH_DEFAULT,
       .txfifo_empty_intr_thresh = DMX_EMPTY_THRESH_DEFAULT,
@@ -125,6 +122,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     dmx_driver_delete(dmx_num);
     return err;
   }
+
+  // enable rx interrupts and set rts
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
+  uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -213,6 +216,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     // tx interrupts are enabled when calling the tx function!!
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
+
   return ESP_OK;
 }
 
@@ -367,18 +371,9 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf
 
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (intr_conf->intr_enable_mask & UART_INTR_RXFIFO_TOUT) {
-    uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), intr_conf->rx_timeout_thresh);
-  } else {
-    uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), 0); // disable rx tout intr
-  }
-  if (intr_conf->intr_enable_mask & UART_INTR_RXFIFO_FULL) {
-    uart_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), intr_conf->rxfifo_full_thresh);
-  }
-  if (intr_conf->intr_enable_mask & UART_INTR_TXFIFO_EMPTY) {
-    uart_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), intr_conf->txfifo_empty_intr_thresh);
-  }
-  uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), intr_conf->intr_enable_mask);
+  uart_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), intr_conf->rx_timeout_thresh);
+  uart_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), intr_conf->rxfifo_full_thresh);
+  uart_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), intr_conf->txfifo_empty_intr_thresh);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
