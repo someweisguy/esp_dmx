@@ -184,8 +184,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   if (dmx_mode == DMX_MODE_RX) {
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
-    uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
 
     p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
@@ -200,8 +200,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   } else { // dmx_mode == DMX_MODE_TX
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
-    uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
 
     p_dmx_obj[dmx_num]->slot_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
