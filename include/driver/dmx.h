@@ -68,6 +68,8 @@ typedef struct {
   dmx_event_type_t type;            // The type of DMX packet received.
   int16_t start_code;               // The start code (slot 0) of the DMX packet, or -1 on error (except for DMX_ERR_BUFFER_SIZE).
   size_t size;                      // The length of the received DMX packet.
+  uint32_t brk_len;
+  uint32_t mab_len;
 } dmx_event_t;
 
 /**
@@ -143,6 +145,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
  * - ESP_ERR_INVALID_STATE  Driver not installed 
  */
 esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
+
+esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int analyze_io_num, int intr_alloc_flags);
 
 /// Hardware Configuration  ###################################################
 /**
@@ -292,6 +296,7 @@ esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold);
  */
 esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh);
 
+/// Read/Write  ###############################################################
 /**
  * @brief Wait until the DMX port is done transmitting.
  * 

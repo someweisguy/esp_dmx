@@ -22,10 +22,15 @@
 
 #define DMX_INTR_TX_ALL (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | UART_INTR_TX_BRK_DONE | UART_INTR_RS485_CLASH)
 
+#define RX_ANALYZE_OFF  0
+#define RX_ANALYZE_ON   1
+#define RX_ANALYZE_BRK  2
+#define RX_ANALYZE_MAB  3
+#define RX_ANALYZE_DONE 4
+
 #define BRK_TO_BRK_IS_INVALID(brk_to_brk) (brk_to_brk < DMX_RX_MIN_BRK_TO_BRK_US || brk_to_brk > DMX_RX_MAX_BRK_TO_BRK_US)
 
 void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
-  gpio_set_level(33, 1);  // TODO: for debugging
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
@@ -148,9 +153,19 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
               // dmx ok
               event.type = DMX_OK;
               event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
+              if (p_dmx->rx_analyze_mode == RX_ANALYZE_DONE) {
+                event.brk_len = p_dmx->rx_brk_len;
+                event.mab_len = p_dmx->rx_mab_len;
+              } else {
+                event.brk_len = -1;
+                event.mab_len = -1;
+              }
             }
             xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
           }
+
+          // tell the rx analyzer we are in a break
+          if (p_dmx->rx_analyze_mode) p_dmx->rx_analyze_mode = RX_ANALYZE_BRK;
 
           // switch buffers, set break timestamp, and reset slot counter
           p_dmx->buf_idx = !p_dmx->buf_idx;
@@ -189,6 +204,33 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
     }
   }
   
-  gpio_set_level(33, 0);  // TODO: for debugging
+  
   if (task_awoken == pdTRUE) portYIELD_FROM_ISR();
+}
+
+void gpio_isr_handler(void *arg) {
+  gpio_set_level(33, 1); // TODO: for debugging only
+  const int64_t now = esp_timer_get_time();
+  dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
+
+
+  // TODO: use status.rxd to get level
+  if (gpio_get_level(16) == 1) {
+    
+    if (p_dmx->rx_analyze_mode == RX_ANALYZE_BRK) {
+      p_dmx->rx_brk_len = now - p_dmx->rx_last_neg_edge_ts;
+      p_dmx->rx_analyze_mode = RX_ANALYZE_MAB;
+    }
+    p_dmx->rx_last_pos_edge_ts = now;
+
+  } else {
+
+    if (p_dmx->rx_analyze_mode == RX_ANALYZE_MAB) {
+      p_dmx->rx_mab_len = now - p_dmx->rx_last_pos_edge_ts;
+      p_dmx->rx_analyze_mode = RX_ANALYZE_DONE;
+    }
+    p_dmx->rx_last_neg_edge_ts = now;
+
+  }
+  gpio_set_level(33, 0); // TODO: for debugging only
 }

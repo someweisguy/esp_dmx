@@ -231,6 +231,21 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   return ESP_OK;
 }
 
+esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int analyze_io_num, int intr_alloc_flags) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(GPIO_IS_VALID_GPIO(analyze_io_num), "analyze_io_num error", ESP_ERR_INVALID_ARG);
+  
+  p_dmx_obj[dmx_num]->rx_analyze_mode = RX_ANALYZE_ON;
+  p_dmx_obj[dmx_num]->analyze_io_num = analyze_io_num;
+
+  gpio_install_isr_service(intr_alloc_flags);
+  gpio_set_intr_type(analyze_io_num, GPIO_INTR_ANYEDGE);
+  gpio_isr_handler_add(analyze_io_num, gpio_isr_handler, p_dmx_obj[dmx_num]);
+
+  return ESP_OK;
+}
+
 /// Hardware Configuration  ###################################################
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,

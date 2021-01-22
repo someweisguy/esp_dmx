@@ -1,6 +1,7 @@
 #pragma once
 
 #include "driver/dmx.h"
+#include "driver/gpio.h"
 #include "hal/uart_hal.h"
 #include "soc/uart_caps.h"
 #include "freertos/semphr.h"
@@ -27,6 +28,15 @@ typedef struct {
   dmx_mode_t mode;                // The mode the driver is in - either RX or TX.
 
   int64_t rx_last_brk_ts;         // Timestamp of the last rx'd break.
+  
+  uint8_t rx_analyze_mode;
+  gpio_num_t analyze_io_num;
+  int64_t rx_frame_start_ts;
+  int64_t rx_last_pos_edge_ts;
+  int64_t rx_last_neg_edge_ts;
+  int32_t rx_packet_len;
+  int32_t rx_brk_len;
+  int32_t rx_mab_len;
 
   SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being tx'd.
   int64_t tx_last_brk_ts;         // Timestamp of the last tx'd break.
