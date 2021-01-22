@@ -67,15 +67,15 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
       p_dmx_obj[dmx_num]->queue = NULL;
     }
     p_dmx_obj[dmx_num]->buf_size = buffer_size;
-    for (int i = 0; i < 2; ++i) {
-      p_dmx_obj[dmx_num]->buffer[i] = calloc(sizeof(uint8_t), buffer_size);
-      if (p_dmx_obj[dmx_num]->buffer[i] == NULL) {
-        ESP_LOGE(TAG, "DMX driver buffer malloc error");
+    p_dmx_obj[dmx_num]->buffer[0] = malloc(sizeof(uint8_t) * buffer_size * 2);
+    if (p_dmx_obj[dmx_num]->buffer[0] == NULL) {
+      ESP_LOGE(TAG, "DMX driver buffer malloc error");
         dmx_driver_delete(dmx_num);
         return ESP_ERR_NO_MEM;
-      }
     }
-    p_dmx_obj[dmx_num]->slot_idx = -1;
+    p_dmx_obj[dmx_num]->buffer[1] = p_dmx_obj[dmx_num]->buffer[0] + buffer_size;
+
+    p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
 
@@ -84,6 +84,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
+
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
     return ESP_ERR_INVALID_STATE;
@@ -145,9 +146,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (err) return err;
 
   // free driver resources
-  for (int i = 0; i < 2; ++i) {
-    if (p_dmx_obj[dmx_num]->buffer[i]) free(p_dmx_obj[dmx_num]->buffer[i]);
-  }
+  if (p_dmx_obj[dmx_num]->buffer[0]) free(p_dmx_obj[dmx_num]->buffer[0]);
   if (p_dmx_obj[dmx_num]->queue) vQueueDelete(p_dmx_obj[dmx_num]->queue);
   if (p_dmx_obj[dmx_num]->tx_done_sem) vSemaphoreDelete(p_dmx_obj[dmx_num]->tx_done_sem);
 
