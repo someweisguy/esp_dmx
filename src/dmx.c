@@ -241,7 +241,7 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int analyze_io_num, int intr
 
   gpio_install_isr_service(intr_alloc_flags);
   gpio_set_intr_type(analyze_io_num, GPIO_INTR_ANYEDGE);
-  gpio_isr_handler_add(analyze_io_num, gpio_isr_handler, p_dmx_obj[dmx_num]);
+  gpio_isr_handler_add(analyze_io_num, dmx_rx_analyze_isr, p_dmx_obj[dmx_num]);
 
   return ESP_OK;
 }
