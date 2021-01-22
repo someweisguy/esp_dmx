@@ -512,6 +512,8 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint1
   /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, whilst
   buffer 1 is used by the driver to write to the tx FIFO. */
 
+  if (length == 0) return ESP_OK;
+
   if (p_dmx_obj[dmx_num]->mode != DMX_MODE_TX) {
     ESP_LOGE(TAG, "cannot write if not in tx mode");
     return ESP_ERR_INVALID_STATE;
@@ -533,6 +535,8 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
   being used to collect data from the rx FIFO. Reads in DMX_MODE_TX are made 
   from buffer 0 whilst buffer 1 is used by the driver to write to the tx 
   FIFO. */
+
+  if (length == 0) return ESP_OK;
 
   if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
     uint8_t active_buffer;
