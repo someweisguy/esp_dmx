@@ -133,7 +133,6 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
           // handle rx break
           if (p_dmx->queue != NULL && !rx_frame_err) {
             // report end-of-frame to the queue
-            event.size = p_dmx->slot_idx;
             const int64_t brk_to_brk = now - p_dmx->rx_last_brk_ts;
             if (p_dmx->rx_last_brk_ts != INT64_MIN &&
                 BRK_TO_BRK_IS_INVALID(brk_to_brk)) {
@@ -161,6 +160,8 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
                 event.mab_len = -1;
               }
             }
+            event.size = p_dmx->slot_idx;
+            event.packet_len = brk_to_brk;
             xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
           }
 
@@ -209,28 +210,22 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 }
 
 void gpio_isr_handler(void *arg) {
-  gpio_set_level(33, 1); // TODO: for debugging only
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
 
+  const uint32_t rx_is_high = dmx_hal_get_rx_level(&(dmx_context[p_dmx->dmx_num].hal));
 
-  // TODO: use status.rxd to get level
-  if (gpio_get_level(16) == 1) {
-    
+  if (rx_is_high) {
     if (p_dmx->rx_analyze_mode == RX_ANALYZE_BRK) {
       p_dmx->rx_brk_len = now - p_dmx->rx_last_neg_edge_ts;
       p_dmx->rx_analyze_mode = RX_ANALYZE_MAB;
     }
     p_dmx->rx_last_pos_edge_ts = now;
-
   } else {
-
     if (p_dmx->rx_analyze_mode == RX_ANALYZE_MAB) {
       p_dmx->rx_mab_len = now - p_dmx->rx_last_pos_edge_ts;
       p_dmx->rx_analyze_mode = RX_ANALYZE_DONE;
     }
     p_dmx->rx_last_neg_edge_ts = now;
-
   }
-  gpio_set_level(33, 0); // TODO: for debugging only
 }
