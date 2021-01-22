@@ -25,5 +25,6 @@ typedef struct {
  */
 typedef enum {
   DMX_MODE_RX,            // DMX receive mode.
-  DMX_MODE_TX             // DMX transmit mode.
+  DMX_MODE_TX,            // DMX transmit mode.
+  DMX_MODE_MAX            // Maximum DMX mode value - used for error checking.
 } dmx_mode_t;

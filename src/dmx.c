@@ -78,9 +78,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     p_dmx_obj[dmx_num]->slot_idx = -1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
     p_dmx_obj[dmx_num]->rx_last_brk_ts = INT64_MIN;
 
@@ -88,6 +85,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
 
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   } else {
     ESP_LOGE(TAG, "DMX driver already installed");
     return ESP_ERR_INVALID_STATE;
@@ -171,42 +171,48 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num) {
 
 esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(dmx_mode == DMX_MODE_RX || dmx_mode == DMX_MODE_TX, "dmx_mode error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(dmx_mode < DMX_MODE_MAX, "dmx_mode error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
 
-  if (p_dmx_obj[dmx_num]->mode == dmx_mode)
+  // if the driver is in the requested mode, do nothing
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  const dmx_mode_t current_dmx_mode = p_dmx_obj[dmx_num]->mode;
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  if (current_dmx_mode == dmx_mode)
     return ESP_OK;
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_mode == DMX_MODE_RX) {
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
     uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
     p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
+    uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
 
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
-
     uart_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    
   } else { // dmx_mode == DMX_MODE_TX
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
     uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
     p_dmx_obj[dmx_num]->slot_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
+    uart_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
 
-    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 0);  // set rts high
-
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_set_rts(&(dmx_context[dmx_num].hal), 0); // set rts high
     // tx interrupts are enabled when calling the tx function!!
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-
-  // flush both FIFOs
-  uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
-  uart_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
-
   return ESP_OK;
 }
 
