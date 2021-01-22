@@ -32,6 +32,9 @@
 
 typedef int dmx_port_t;             // DMX port type.
 
+/**
+ * @brief DMX packet types reported to the event queue when a packet is received.
+ */
 typedef enum {
   DMX_OK = 0,                       // The DMX packet is valid.
   DMX_ERR_BRK_TO_BRK,               // The break-to-break time is invalid.
@@ -41,12 +44,18 @@ typedef enum {
   DMX_ERR_DATA_OVERFLOW,            // The hardware FIFO overflowed, causing loss of data.
 } dmx_event_type_t;
 
+/**
+ * @brief DMX data events reported to the event queue when a packet is received.
+ */
 typedef struct {
   dmx_event_type_t type;            // The type of DMX packet received.
   int16_t start_code;               // The start code (slot 0) of the DMX packet, or -1 on error (except for DMX_ERR_BUFFER_SIZE).
   size_t size;                      // The length of the received DMX packet.
 } dmx_event_t;
 
+/**
+ * @brief Interrupt configuration used to configure the DMX hardware ISR.
+ */
 typedef struct {
   uint32_t intr_enable_mask;        // DMX interrupt enable mask, choose from UART_XXXX_INT_ENA_M under UART_INT_ENA_REG(i), connect with bit-or operator.
   uint8_t rx_timeout_thresh;        // DMX timeout interrupt threshold (unit: time of sending one byte).
@@ -70,6 +79,7 @@ typedef struct {
  *  - ESP_OK                Success
  *  - ESP_ERR_INVALID_ARG   Parameter error
  *  - ESP_ERR_NO_MEM        Not enough memory
+ *  - ESP_ERR_INVALID_STATE Driver already installed
  * */
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buf_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags);
