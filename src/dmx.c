@@ -235,7 +235,18 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int analyze_io_num, int intr
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_CHECK(GPIO_IS_VALID_GPIO(analyze_io_num), "analyze_io_num error", ESP_ERR_INVALID_ARG);
-  
+#if CONFIG_UART_ISR_IN_IRAM
+  if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
+    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated");
+    intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
+  }
+#else
+  if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) != 0) {
+    ESP_LOGW(TAG, "ESP_INTR_FLAG_IRAM flag is set while CONFIG_UART_ISR_IN_IRAM is not enabled, flag updated");
+    intr_alloc_flags &= ~ESP_INTR_FLAG_IRAM;
+  }
+#endif
+
   p_dmx_obj[dmx_num]->rx_analyze_mode = RX_ANALYZE_ON;
   p_dmx_obj[dmx_num]->analyze_io_num = analyze_io_num;
 
