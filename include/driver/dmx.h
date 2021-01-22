@@ -68,6 +68,7 @@ typedef struct {
   dmx_event_type_t type;            // The type of DMX packet received.
   int16_t start_code;               // The start code (slot 0) of the DMX packet, or -1 on error (except for DMX_ERR_BUFFER_SIZE).
   size_t size;                      // The length of the received DMX packet.
+  uint32_t packet_len;
   uint32_t brk_len;
   uint32_t mab_len;
 } dmx_event_t;

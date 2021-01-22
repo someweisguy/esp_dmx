@@ -31,10 +31,8 @@ typedef struct {
   
   uint8_t rx_analyze_mode;
   gpio_num_t analyze_io_num;
-  int64_t rx_frame_start_ts;
   int64_t rx_last_pos_edge_ts;
   int64_t rx_last_neg_edge_ts;
-  int32_t rx_packet_len;
   int32_t rx_brk_len;
   int32_t rx_mab_len;
 
