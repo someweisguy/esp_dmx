@@ -50,7 +50,8 @@ void app_main(void) {
 
     // and install the driver!
     QueueHandle_t dmx_queue;
-    dmx_driver_install(dmx_num, 513, 10, &dmx_queue, ESP_INTR_FLAG_LEVEL3);
+    dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 10, &dmx_queue, 
+      ESP_INTR_FLAG_LEVEL3);
 }
 ```
 
@@ -60,15 +61,73 @@ TODO: More info to come!
 
 ## Error Handling
 
-DMX is an old protocol. It isn't clear why it has such restrictive timing requirements, but it could be a result of allowing backwards compatibility with older, slower equipment. The ESP32 is a fast chip - it can process DMX even if the data stream is faster than the standard allows. Therefore, this library specifies two error states: timing errors and data errors. A timing error occurs if the received data stream is either too fast or too slow. Timing errors are reported in the driver queue, but the data is not necessarily corrupted; data read from the frame buffer may still be accurate. Data errors, on the other hand, will always be corrupted. Data errors occur when the received data is malformed, or the rx UART is not read quickly enough and overflows. When a timing or data error occurs, it is wise to call ```dmx_get_valid_frame_len()``` to verify where in the frame the error occurred.
+DMX has such restrictive timing requirements due in part to allow for backwards compatibility for older, slower lighting equipment. Because the ESP32 is faster than most lighting equipment in use today, it often can process DMX commands even if the received bytestream is faster than the DMX standard allows. A key design concept of this library is to allow for analysis of the incoming data to determine if it is within the DMX specification.
 
-TODO: Example code coming soon...
+Data can be checked for validity using the FreeRTOS queue created in ```dmx_driver_install()```.
+
+```C
+static dmx_port_t dmx_num = 2;
+static uint8_t data[196];
+
+while (1) {
+  dmx_event_t event;
+  if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
+    if (event.type == DMX_OK) {
+      // data is ok - read the frame to the user buffer
+      dmx_read_frame(dmx_num, data, event.size);
+    } else {
+      switch (event.type) {
+        case DMX_ERR_BRK_TO_BRK:
+          printf("Break-to-break time is invalid\n");
+          // packet was not sent to spec, but data may still be recoverable!
+          if (event.size == sizeof(data)) {
+            dmx_read_frame(dmx_num, data, event.size);
+          }
+          break;
+
+        case DMX_ERR_IMPROPER_SLOT:
+          printf("Received malformed byte at slot %i\n", event.size);
+          // the slot at 'event.size' is malformed - possibly a glitch due to
+          //  the physical XLR line, but certainly warrants more investigation
+          // data can be recovered up until event.size
+          dmx_read_frame(dmx_num, data, event.size);
+          break;
+
+        case DMX_ERR_PACKET_SIZE:
+          printf("Packet size %i is invalid\n", event.size);
+          // the host DMX device is sending a bigger packet than it should
+          // data may be recoverable, but something is likely wrong with the
+          //  host DMX device
+          break;
+
+        case DMX_ERR_BUFFER_SIZE:
+          printf("User DMX buffer is too small - received %i slots\n", event.size);
+          // whoops - our buffer isn't big enough
+          // this condition will never occur if buffer_size == DMX_MAX_PACKET_SIZE
+          break;
+
+        case DMX_ERR_DATA_OVERFLOW:
+          printf("Data could not be processed in time\n");
+          // the UART FIFO overflowed
+          // this could occur if the enabled interrupt mask is misconfigured
+          //  or if the DMX interrupt service routine doesn't run enough
+          break;
+      }
+    }
+  } else {
+    printf("Lost DMX signal\n");
+  }
+}
+```
+
+In error conditions, the ```dmx_event_t``` structure can be used to learn more information on what went wrong. Using ```event.type``` reveals the type of error. In data corruption events, ```event.size``` can be used to determine where the error occurred. If there is no error or if a DMX timing error or occurs, ```event.size``` can be used to determine the size of the received packet. 
+
+To determine whether an event is a data corruption or invalid timing event, the macros ```DMX_ERR_CORRUPT_DATA``` and ```DMX_ERR_NOT_TO_SPEC``` are provided.
 
 ## To Do
 
-- Make DMX rx synchronous
-- User macros for certain timing parameters (DMX_SIGNAL_TIMEOUT_MS, etc.)
-- DMX rx timing analysis
+- Bitwise error reporting
+- detailed DMX rx timing analysis
 - Enable C++ compilation/linking.
 - Reset-sequence-first mode: allow for sending of DMX reset sequence first
 - Remote Device Management.
