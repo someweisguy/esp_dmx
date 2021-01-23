@@ -40,7 +40,7 @@ typedef struct {
   int64_t tx_last_brk_ts;         // Timestamp of the last tx'd break.
 } dmx_obj_t;
 
-dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
+static dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
 
 
 /* This is the DMX hardware context. It is used to track which hardware has
@@ -52,7 +52,7 @@ typedef struct {
   bool hw_enabled;
 } dmx_context_t;
 
-dmx_context_t dmx_context[DMX_NUM_MAX] = {
+static dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_0),
     DMX_CONTEX_INIT_DEF(DMX_NUM_1),
 #if DMX_NUM_MAX > 2
