@@ -144,17 +144,17 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           }
 
           // check if this is the first received packet
-          const int64_t rx_pkt_len = now - p_dmx->rx_last_brk_ts;
-          if (rx_pkt_len > DMX_RX_PACKET_TOUT_MS * 1000) { 
+          const int64_t rx_brk_to_brk = now - p_dmx->rx_last_brk_ts;
+          if (rx_brk_to_brk > DMX_RX_MAX_BRK_TO_BRK_US) { 
             // connection was just established or the packet timed out
-            event.brk_len = -1;
-            event.mab_len = -1;
-            event.packet_len = -1;
+            event.timing.brk = -1;
+            event.timing.mab = -1;
+            event.duration = -1;
           } else {
             // fill out event timing data
-            event.brk_len = p_dmx->rx_brk_len;
-            event.mab_len = p_dmx->rx_mab_len;
-            event.packet_len = rx_pkt_len;
+            event.timing.brk = p_dmx->rx_brk_len;
+            event.timing.mab = p_dmx->rx_mab_len;
+            event.duration = rx_brk_to_brk;
           }
           
           // send the event and reset expired data
