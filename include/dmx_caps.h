@@ -33,6 +33,53 @@ extern "C" {
 #define DMX_TX_PACKET_TOUT_TICK     ((TickType_t)DMX_TX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX host packet timeout in FreeRTOS ticks.
 
 
+/* DMX parameter checking macros */
+/**
+ * @brief Evaluates to true if the packet size is within DMX specification.
+ */
+#define DMX_PKT_SIZE_IS_VALID(size) \
+  (size > 0 && size <= DMX_MAX_PACKET_SIZE)
+
+/**
+ * @brief Evaluates to true if the baudrate is within DMX specification.
+ */
+#define DMX_BAUDRATE_IS_VALID(baud) \
+  (baud >= DMX_MIN_BAUDRATE && baud <= DMX_MAX_BAUDRATE)
+
+/**
+ * @brief Evaluates to true if the packet duration is within DMX specification.
+ */
+#define DMX_PKT_DURATION_IS_VALID(pkt) \
+  (pkt >= DMX_RX_MIN_BRK_TO_BRK_US && pkt <= DMX_RX_MAX_BRK_TO_BRK_US)
+
+/**
+ * @brief Evaluates to true if the break duration is within DMX specification.
+ */
+#define DMX_BRK_DURATION_IS_VALID(brk) \
+    (brk >= DMX_RX_MIN_SPACE_FOR_BRK_US)
+
+/**
+ * @brief Evaluates to true if the mark-after-break duration is within DMX
+ * specification.
+ */
+#define DMX_MAB_DURATION_IS_VALID(mab) \
+  (mab >= DMX_RX_MIN_MRK_AFTER_BRK_US && mab <= DMX_RX_MAX_MRK_AFTER_BRK_US)
+
+/**
+ * @brief Evaluates to true if the start code is a start code permitted in a
+ * non-prototype DMX device.
+ * 
+ * Several alternate start codes are reserved for special purposes or for
+ * future development of the standard. No equipment shall be manufactured that
+ * generates alternate start codes 0x92-0xA9 or 0xAB-0xCD until their use is 
+ * defined by the Standard or by the E1 Accredited Standards Committee.
+ * Manufacturers shall not advertise or sell products or devices that use
+ * alternate start codes 0xF0-0xF7.
+ */
+#define DMX_START_CODE_IS_VALID(sc) \
+  (!(sc >= 0x92 && sc <= 0xa9) && !(sc >= 0xab && sc <= 0xcd) && !(sc >= 0xf0 && sc <= 0xf7))
+
+
 /* DMX start codes */
 /**
  * @brief DMX default NULL start code. A NULL start code identifies subsequent
