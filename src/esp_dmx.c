@@ -30,12 +30,12 @@ static const char *TAG = "dmx";
     return (ret_val);                                         \
   }
 
-static int get_brk_us(int baudrate, int break_num) {
+static inline int get_brk_us(int baudrate, int break_num) {
     // get break in microseconds
     return (int) ceil(break_num * (1000000.0 / baudrate));
 }
 
-static int get_mab_us(int baudrate, int idle_num) {
+static inline int get_mab_us(int baudrate, int idle_num) {
     // get mark-after-break in microseconds
     return (int) ceil(idle_num * (1000000.0 / baudrate));
 }
