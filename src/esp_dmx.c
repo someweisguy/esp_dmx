@@ -30,21 +30,13 @@ static const char *TAG = "dmx";
     return (ret_val);                                         \
   }
 
-static int get_brk_us(dmx_port_t dmx_num, int break_num) {
+static int get_brk_us(int baudrate, int break_num) {
     // get break in microseconds
-    uint32_t baudrate;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     return (int) ceil(break_num * (1000000.0 / baudrate));
 }
 
-static int get_mab_us(dmx_port_t dmx_num, int idle_num) {
+static int get_mab_us(int baudrate, int idle_num) {
     // get mark-after-break in microseconds
-    uint32_t baudrate;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     return (int) ceil(idle_num * (1000000.0 / baudrate));
 }
 
@@ -346,13 +338,13 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
       DMX_MAX_BAUDRATE);
     return ESP_ERR_INVALID_ARG;
   }
-  const int brk_us = get_brk_us(dmx_num, dmx_config->idle_num);
+  const int brk_us = get_brk_us(dmx_config->baudrate, dmx_config->break_num);
   if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
     ESP_LOGE(TAG, "break must be at least %ius (was set to %ius)", 
       DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
     return ESP_ERR_INVALID_ARG;
   }
-   const int mab_us = get_mab_us(dmx_num, dmx_config->idle_num);
+  const int mab_us = get_mab_us(dmx_config->baudrate, dmx_config->idle_num);
   if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US || mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
     ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to %ius)",
       DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US, mab_us);
@@ -424,7 +416,11 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   // ensure the new break is within DMX specification
-  const int brk_us = get_brk_us(dmx_num, break_num);
+  uint32_t baudrate;
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  const int brk_us = get_brk_us(baudrate, break_num);
   if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
     ESP_LOGE(TAG, "break must be at least %ius (was set to %ius)", 
       DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
@@ -453,7 +449,11 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   DMX_CHECK(idle_num <= 0x3ff, "idle_num error", ESP_ERR_INVALID_ARG);
   
   // ensure the new mark-after-break is within DMX specification
-  const int mab_us = get_mab_us(dmx_num, idle_num);
+  uint32_t baudrate;
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  const int mab_us = get_mab_us(baudrate, idle_num);
   if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US || mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
     ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to %ius)",
       DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US, mab_us);
@@ -578,13 +578,14 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   const int64_t now = esp_timer_get_time();
   if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
     // get break and mark time in microseconds
-    uint32_t break_num, idle_num;
+    uint32_t baudrate, break_num, idle_num;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
     break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
     idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    const int brk_us = get_brk_us(dmx_num, break_num);
-    const int mab_us = get_mab_us(dmx_num, idle_num);
+    const int brk_us = get_brk_us(baudrate, break_num);
+    const int mab_us = get_mab_us(baudrate, idle_num);
 
     // invert the tx line and busy wait...
     dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), 1);
