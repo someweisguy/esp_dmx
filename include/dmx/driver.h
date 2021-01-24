@@ -1,7 +1,7 @@
 #pragma once
 
-#include "driver/dmx.h"
 #include "driver/gpio.h"
+#include "esp_dmx.h"
 #include "hal/uart_hal.h"
 #include "soc/uart_caps.h"
 #include "freertos/semphr.h"
@@ -62,5 +62,3 @@ static dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_2),
 #endif
 };
-
-#undef DMX_CONTEX_INIT_DEF
