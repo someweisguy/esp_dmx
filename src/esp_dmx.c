@@ -30,7 +30,7 @@ static const char *TAG = "dmx";
     return (ret_val);                                         \
   }
 
-static int get_brk_us(int brk_num) {
+static int get_brk_us(dmx_port_t dmx_num, int brk_num) {
     // get break in microseconds
     uint32_t baudrate;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -39,7 +39,7 @@ static int get_brk_us(int brk_num) {
     return (int) ceil(brk_num * (1000000.0 / baudrate));
 }
 
-static int get_mab_us(int idle_num) {
+static int get_mab_us(dmx_port_t dmx_num, int idle_num) {
     // get mark-after-break in microseconds
     uint32_t baudrate;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -411,7 +411,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   DMX_CHECK(dmx_num < SOC_DMX_NUM, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   // ensure the new break is within DMX specification
-  const int brk_us = get_brk_us(break_num);
+  const int brk_us = get_brk_us(dmx_num, break_num);
   if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
     // TODO: throw error
   }
@@ -438,7 +438,7 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   DMX_CHECK(idle_num <= 0x3ff, "idle_num error", ESP_ERR_INVALID_ARG);
   
   // ensure the new mark-after-break is within DMX specification
-  const int mab_us = get_mab_us(idle_num);
+  const int mab_us = get_mab_us(dmx_num, idle_num);
   if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US || mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
     // TODO: throw error
   }
