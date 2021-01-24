@@ -83,7 +83,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
 esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
 
 /**
- * @brief Enable the DMX rx analysis tool to determine the break and 
+ * @brief Enable the DMX rx timing tool to determine the break and 
  * mark-after-break length.
  * 
  * @note The analysis tool uses the default GPIO ISR handler, which allows for
@@ -106,7 +106,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
 esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num);
 
 /**
- * @brief Disable the DMX analysis tool.
+ * @brief Disable the DMX timing tool.
  * 
  * @param dmx_num 
  * @return
@@ -115,6 +115,16 @@ esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num);
  * - ESP_ERR_INVALID_STATE  Driver not installed, or already disabled 
  */
 esp_err_t dmx_rx_timing_disable(dmx_port_t dmx_num);
+
+/**
+ * @brief Checks if the rx timing tool is enabled.
+ * 
+ * @param dmx_num 
+ * @return 
+ * - true rx timing tool is enabled
+ * - false rx timing tool is disabled
+ */
+bool dmx_is_rx_timing_enabled(dmx_port_t dmx_num);
 
 /// Hardware Configuration  ###################################################
 /**

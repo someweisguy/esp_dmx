@@ -303,6 +303,10 @@ esp_err_t dmx_rx_timing_disable(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
+bool dmx_is_rx_timing_enabled(dmx_port_t dmx_num) {
+  return dmx_is_driver_installed(dmx_num) && p_dmx_obj[dmx_num]->intr_io_num != -1;
+}
+
 /// Hardware Configuration  ###################################################
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
