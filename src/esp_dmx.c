@@ -267,7 +267,7 @@ esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // add the isr handler
-  esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_analyze_intr_handler, 
+  esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_timing_intr_handler, 
     p_dmx_obj[dmx_num]);
   if (err) return err;
 

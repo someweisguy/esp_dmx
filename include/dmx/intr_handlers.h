@@ -190,7 +190,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
   if (task_awoken == pdTRUE) portYIELD_FROM_ISR();
 }
 
-static void IRAM_ATTR dmx_analyze_intr_handler(void *arg) {
+static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
 
