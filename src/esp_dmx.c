@@ -20,8 +20,8 @@
 #define DMX_TOUT_THRESH_DEFAULT   126
 #define DMX_MIN_WAKEUP_THRESH     SOC_UART_MIN_WAKEUP_THRESH
 
-#define DMX_ENTER_CRITICAL(mux)     portENTER_CRITICAL(mux)
-#define DMX_EXIT_CRITICAL(mux)      portEXIT_CRITICAL(mux)
+#define DMX_ENTER_CRITICAL(mux)   portENTER_CRITICAL(mux)
+#define DMX_EXIT_CRITICAL(mux)    portEXIT_CRITICAL(mux)
 
 static const char *TAG = "dmx";
 #define DMX_CHECK(a, str, ret_val)                            \
@@ -225,6 +225,10 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
 
+    // disable rx timing if it is enabled
+    if (p_dmx_obj[dmx_num]->intr_io_num != -1)
+      dmx_rx_timing_disable(dmx_num);
+
     p_dmx_obj[dmx_num]->slot_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
@@ -254,6 +258,7 @@ esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(GPIO_IS_VALID_GPIO(intr_io_num), "intr_io_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_RX, "must be in rx mode", ESP_ERR_INVALID_STATE);
   DMX_CHECK(p_dmx_obj[dmx_num]->queue, "queue is null", ESP_ERR_INVALID_STATE);
   DMX_CHECK(p_dmx_obj[dmx_num]->intr_io_num == -1, "rx analyze already enabled", ESP_ERR_INVALID_STATE);
 
