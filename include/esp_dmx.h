@@ -184,6 +184,9 @@ esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num);
 /**
  * @brief Set the DMX idle time. The idle time is equivalent to mark after break.
  * 
+ * @note In hardware, the idle num is stored as a 10-bit number. Passing any
+ * idle_num larger than 1023 will result in a parameter error.
+ * 
  * @param dmx_num 
  * @param idle_num 
  * @return
