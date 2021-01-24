@@ -2,11 +2,15 @@
 
 #include "dmx_caps.h"
 #include "dmx_types.h"
-#include "esp_intr_alloc.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
-#include "soc/uart_caps.h"
+
+#define DMX_NUM_0                   0             // DMX port 0.
+#define DMX_NUM_1                   1             // DMX port 1.
+#if DMX_NUM_MAX > 2
+#define DMX_NUM_2                   2             // DMX port 2.
+#endif
 
 /// Driver Functions  #########################################################
 /**

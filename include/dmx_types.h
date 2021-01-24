@@ -16,30 +16,30 @@ typedef int dmx_port_t;             // DMX port type.
  * @brief DMX configuration parameters for dmx_param_config() function
  */
 typedef struct {
-  int baudrate;           // DMX baud rate.
-  uint8_t break_num;      // DMX break length (unit: number of bits).
-  uint16_t idle_num;      // DMX mark after break length (unit: number of bits).
-  uart_sclk_t source_clk; // DMX source clock selection.
+  int baudrate;                     // DMX baud rate.
+  uint8_t break_num;                // DMX break length (unit: number of bits).
+  uint16_t idle_num;                // DMX mark after break length (unit: number of bits).
+  uart_sclk_t source_clk;           // DMX source clock selection.
 } dmx_config_t;
 
 /**
  * @brief DMX modes of operation.
  */
 typedef enum {
-  DMX_MODE_RX,            // DMX receive mode.
-  DMX_MODE_TX,            // DMX transmit mode.
-  DMX_MODE_MAX            // Maximum DMX mode value - used for error checking.
+  DMX_MODE_RX,                      // DMX receive mode.
+  DMX_MODE_TX,                      // DMX transmit mode.
+  DMX_MODE_MAX                      // Maximum DMX mode value - used for error checking.
 } dmx_mode_t;
 
 /**
  * @brief DMX packet types reported to the event queue when a packet is received.
  */
 typedef enum {
-  DMX_OK = 0,             // The DMX packet is valid.
-  DMX_ERR_IMPROPER_SLOT,  // A slot is improperly framed (missing stop bits).
-  DMX_ERR_PACKET_SIZE,    // The packet size is 0 or longer than the DMX standard allows.
-  DMX_ERR_BUFFER_SIZE,    // The user defined buffer is too small for the received packet.
-  DMX_ERR_DATA_OVERFLOW,  // The hardware FIFO overflowed, causing loss of data.
+  DMX_OK = 0,                       // The DMX packet is valid.
+  DMX_ERR_IMPROPER_SLOT,            // A slot is improperly framed (missing stop bits).
+  DMX_ERR_PACKET_SIZE,              // The packet size is 0 or longer than the DMX standard allows.
+  DMX_ERR_BUFFER_SIZE,              // The user defined buffer is too small for the received packet.
+  DMX_ERR_DATA_OVERFLOW,            // The hardware FIFO overflowed, causing loss of data.
   DMX_ERR_MAX
 } dmx_event_type_t;
 

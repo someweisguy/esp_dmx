@@ -1,7 +1,8 @@
 #pragma once
 
-#include "driver/gpio.h"
 #include "esp_dmx.h"
+#include "esp_intr_alloc.h"
+#include "hal/gpio_types.h"
 #include "hal/uart_hal.h"
 #include "soc/uart_caps.h"
 #include "freertos/semphr.h"
@@ -43,7 +44,7 @@ typedef struct {
   int64_t rx_last_neg_edge_ts;    // Timestamp of the last negative edge on the analyze pin.
 } dmx_obj_t;
 
-static dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
+static dmx_obj_t *p_dmx_obj[SOC_DMX_NUM] = {0};
 
 
 /* This is the DMX hardware context. It is used to track which hardware has
@@ -55,7 +56,7 @@ typedef struct {
   bool hw_enabled;
 } dmx_context_t;
 
-static dmx_context_t dmx_context[DMX_NUM_MAX] = {
+static dmx_context_t dmx_context[SOC_DMX_NUM] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_0),
     DMX_CONTEX_INIT_DEF(DMX_NUM_1),
 #if DMX_NUM_MAX > 2

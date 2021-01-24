@@ -1,11 +1,8 @@
 #pragma once
 
-#define DMX_NUM_0                   0             // DMX port 0.
-#define DMX_NUM_1                   1             // DMX port 1.
-#if SOC_UART_NUM > 2
-#define DMX_NUM_2                   2             // DMX port 2.
-#endif
-#define DMX_NUM_MAX                 SOC_UART_NUM  // DMX port max.
+#include "soc/uart_caps.h"
+
+#define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
 
 /* DMX shared parameters */
 #define DMX_MIN_BAUDRATE            245000        // DMX minimum baudrate.
