@@ -9,6 +9,8 @@ extern "C" {
 #include "esp_dmx.h"
 #include "esp_system.h"
 
+#include "esp_log.h"
+
 #define DMX_INTR_RX_BRK                 (UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET) // Interrupt mask that represents a DMX break. 
 #define DMX_INTR_RX_PARITY_ERR          (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR) // Interrupt mask that represents a parity error.
 #define DMX_INTR_RX_ERR                 (UART_INTR_RXFIFO_OVF | DMX_INTR_RX_PARITY_ERR) // Interrupt mask that represents an error condition.
@@ -149,20 +151,15 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
           // check if this is the first received packet
           const int64_t rx_brk_to_brk = now - p_dmx->rx_last_brk_ts;
-          if (rx_brk_to_brk > DMX_RX_MAX_BRK_TO_BRK_US) { 
-            // connection was just established or the packet timed out
-            event.timing.brk = -1;
-            event.timing.mab = -1;
-            event.duration = -1;
-          } else {
-            // fill out event timing data
+          if (rx_brk_to_brk <= DMX_RX_MAX_BRK_TO_BRK_US) { 
+            // only send event if received at least 1 full packet
             event.timing.brk = p_dmx->rx_brk_len;
             event.timing.mab = p_dmx->rx_mab_len;
             event.duration = rx_brk_to_brk;
+            xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
           }
-          
-          // send the event and reset expired data
-          xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
+
+          // reset expired data
           p_dmx->rx_brk_len = -1;
           p_dmx->rx_mab_len = -1;
         }
