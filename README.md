@@ -127,7 +127,6 @@ To determine whether an event is a data corruption or invalid timing event, the 
 ## To Do
 
 - Pass dmx timing checks to user
-- Start code macros
 - Enable C++ compilation/linking.
 - Reset-sequence-first mode: allow for sending of DMX reset sequence first
 - Remote Device Management.
