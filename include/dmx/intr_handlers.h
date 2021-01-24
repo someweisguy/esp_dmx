@@ -193,7 +193,13 @@ static void IRAM_ATTR dmx_analyze_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
 
-  /* This ISR must be called at least twice to ensure that  */
+  /* If this ISR is called on a positive edge and the current DMX frame is in a
+  break and a negative edge condition has already occured, then the break has 
+  just finished, so we can update the length of the break as well as unset the 
+  rx_is_in_brk flag. If this ISR is called on a negative edge and the 
+  mark-after-break has not been recorded while the break has been recorded,
+  then we know that the mark-after-break has just completed so we should record
+  its duration. */
 
   if (dmx_hal_get_rx_level(&(dmx_context[p_dmx->dmx_num].hal))) {
     if (p_dmx->rx_is_in_brk && p_dmx->rx_last_neg_edge_ts > -1) {
