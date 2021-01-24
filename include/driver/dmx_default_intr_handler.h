@@ -209,19 +209,16 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
   if (task_awoken == pdTRUE) portYIELD_FROM_ISR();
 }
 
-void DMX_ISR_ATTR dmx_rx_analyze_isr(void *arg) {
+void IRAM_ATTR dmx_rx_analyze_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
-
-  // determine if the uart rx line is high
-  const uint32_t rx_is_high = dmx_hal_get_rx_level(&(dmx_context[p_dmx->dmx_num].hal));
 
   /* If the UART rx line is high and we are in a break, then the break has
   ended so we should record its length. If the UART rx line is low and we
   are in a mark after break, then the mark after break has ended and we 
   should record its length. */
 
-  if (rx_is_high) {
+  if (dmx_hal_get_rx_level(&(dmx_context[p_dmx->dmx_num].hal))) {
     if (p_dmx->rx_analyze_state == RX_ANALYZE_BRK) {
       p_dmx->rx_brk_len = now - p_dmx->rx_last_neg_edge_ts;
       p_dmx->rx_analyze_state = RX_ANALYZE_MAB;
