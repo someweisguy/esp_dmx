@@ -30,7 +30,23 @@ static const char *TAG = "dmx";
     return (ret_val);                                         \
   }
 
+static int get_brk_us(int brk_num) {
+    // get break in microseconds
+    uint32_t baudrate;
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    return (int) ceil(brk_num * (1000000.0 / baudrate));
+}
 
+static int get_mab_us(int idle_num) {
+    // get mark-after-break in microseconds
+    uint32_t baudrate;
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    return (int) ceil(idle_num * (1000000.0 / baudrate));
+}
 
 /// Driver Functions  #########################################################
 
@@ -323,6 +339,8 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
 esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   DMX_CHECK(dmx_num < SOC_DMX_NUM, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(dmx_config, "dmx_config is null", ESP_ERR_INVALID_ARG);
+
+  // TODO: replace these with macro-ized versions
   DMX_CHECK(dmx_config->baudrate >= DMX_MIN_BAUDRATE && dmx_config->baudrate <= DMX_MAX_BAUDRATE, "baudrate error", ESP_ERR_INVALID_ARG);
   const float bit_speed = 1000000.0 / dmx_config->baudrate;
   DMX_CHECK(dmx_config->break_num * bit_speed >= 92 && dmx_config->break_num < 1024, "break_num error", ESP_ERR_INVALID_ARG);
@@ -362,7 +380,13 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
 
 esp_err_t dmx_set_baudrate(dmx_port_t dmx_num, uint32_t baudrate) {
   DMX_CHECK(dmx_num < SOC_DMX_NUM, "dmx_num error", ESP_ERR_INVALID_ARG);
-  // TODO: error check
+
+  // check that the new baudrate is within DMX specification
+  if (baudrate < DMX_MIN_BAUDRATE || baudrate > DMX_MAX_BAUDRATE) {
+    ESP_LOGE(TAG, "baudrate must be between %i and %i", DMX_MIN_BAUDRATE,
+      DMX_MAX_BAUDRATE);
+    return ESP_ERR_INVALID_ARG;
+  }
   
   uart_sclk_t source_clk;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -385,7 +409,12 @@ esp_err_t dmx_get_baudrate(dmx_port_t dmx_num, uint32_t *baudrate) {
 
 esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   DMX_CHECK(dmx_num < SOC_DMX_NUM, "dmx_num error", ESP_ERR_INVALID_ARG);
-  // TODO: error check
+
+  // ensure the new break is within DMX specification
+  const int brk_us = get_brk_us(break_num);
+  if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
+    // TODO: throw error
+  }
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_tx_break(&(dmx_context[dmx_num].hal), break_num);
@@ -406,8 +435,13 @@ esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
 
 esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   DMX_CHECK(dmx_num < SOC_DMX_NUM, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(idle_num < 1024, "idle_num error", ESP_ERR_INVALID_ARG);
-  // TODO: error check
+  DMX_CHECK(idle_num <= 0x3ff, "idle_num error", ESP_ERR_INVALID_ARG);
+  
+  // ensure the new mark-after-break is within DMX specification
+  const int mab_us = get_mab_us(idle_num);
+  if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US || mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
+    // TODO: throw error
+  }
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
@@ -526,6 +560,7 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
   if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= 1000000) {
+    // TODO: cleanup this section
     // get break and mark time in microseconds
     uint32_t baudrate, brk_num, idle_num;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
