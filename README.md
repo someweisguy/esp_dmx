@@ -126,7 +126,6 @@ To determine whether an event is a data corruption or invalid timing event, the 
 
 ## To Do
 
-- Pass dmx timing checks to user
 - Reset-sequence-first mode: allow for sending of DMX reset sequence first
 - Remote Device Management.
 - Art-Net?
