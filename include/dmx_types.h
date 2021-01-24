@@ -8,11 +8,7 @@ extern "C" {
 #include "hal/uart_types.h"
 
 #define DMX_DEFAULT_CONFIG \
-  {                        \
-      .baudrate = 250000,  \
-      .break_num = 44,     \
-      .idle_num = 3,       \
-  }
+  { .baudrate = DMX_TYP_BAUDRATE, .break_num = 44, .idle_num = 3, }
 
 typedef int dmx_port_t;             // DMX port type.
 
@@ -43,8 +39,7 @@ typedef enum {
   DMX_ERR_IMPROPER_SLOT,            // A slot is improperly framed (missing stop bits).
   DMX_ERR_PACKET_SIZE,              // The packet size is 0 or longer than the DMX standard allows.
   DMX_ERR_BUFFER_SIZE,              // The user defined buffer is too small for the received packet.
-  DMX_ERR_DATA_OVERFLOW,            // The hardware FIFO overflowed, causing loss of data.
-  DMX_ERR_MAX
+  DMX_ERR_DATA_OVERFLOW             // The hardware FIFO overflowed, causing loss of data.
 } dmx_event_type_t;
 
 /**
@@ -58,7 +53,7 @@ typedef struct {
   struct {
     int32_t brk;                    // Duration of the break in microseconds.
     int32_t mab;                    // Duration of the mark-after-break in microseconds.
-  } timing;                         // Timing values received from the DMX rx analyzer tool.
+  } timing;                         // Timing values received from the DMX rx timing tool.
 } dmx_event_t;
 
 /**
