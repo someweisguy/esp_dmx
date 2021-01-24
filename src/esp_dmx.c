@@ -97,12 +97,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
 
-    p_dmx_obj[dmx_num]->rx_last_brk_ts = INT64_MIN;
+    p_dmx_obj[dmx_num]->rx_last_brk_ts = -DMX_RX_MAX_BRK_TO_BRK_US;
     p_dmx_obj[dmx_num]->intr_io_num = -1;
     p_dmx_obj[dmx_num]->rx_brk_len = -1;
     p_dmx_obj[dmx_num]->rx_mab_len = -1;
 
-    p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
+    p_dmx_obj[dmx_num]->tx_last_brk_ts = -DMX_TX_MAX_BRK_TO_BRK_US;
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
 
@@ -559,7 +559,7 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
 
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
-  if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= 1000000) {
+  if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
     // TODO: cleanup this section
     // get break and mark time in microseconds
     uint32_t baudrate, brk_num, idle_num;
@@ -571,7 +571,7 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
     // invert the tx line and busy wait...
-    dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
+    dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), 1);
     ets_delay_us(brk_num);
 
     // un-invert the tx line and busy wait...
