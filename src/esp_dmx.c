@@ -112,7 +112,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_MASK);
   esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq,
-      intr_alloc_flags, &dmx_default_intr_handler, p_dmx_obj[dmx_num],
+      intr_alloc_flags, &dmx_intr_handler, p_dmx_obj[dmx_num],
       &p_dmx_obj[dmx_num]->intr_handle);
   if (err) {
     dmx_driver_delete(dmx_num);
@@ -151,14 +151,16 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (err) return err;
 
   // free rx analyzer isr
-  if (p_dmx_obj[dmx_num]->intr_io_num != -1) {
+  if (p_dmx_obj[dmx_num]->intr_io_num != -1) 
     dmx_rx_analyze_disable(dmx_num);
-  }
 
   // free driver resources
-  if (p_dmx_obj[dmx_num]->buffer[0]) free(p_dmx_obj[dmx_num]->buffer[0]);
-  if (p_dmx_obj[dmx_num]->queue) vQueueDelete(p_dmx_obj[dmx_num]->queue);
-  if (p_dmx_obj[dmx_num]->tx_done_sem) vSemaphoreDelete(p_dmx_obj[dmx_num]->tx_done_sem);
+  if (p_dmx_obj[dmx_num]->buffer[0])
+    free(p_dmx_obj[dmx_num]->buffer[0]);
+  if (p_dmx_obj[dmx_num]->queue)
+    vQueueDelete(p_dmx_obj[dmx_num]->queue);
+  if (p_dmx_obj[dmx_num]->tx_done_sem) 
+    vSemaphoreDelete(p_dmx_obj[dmx_num]->tx_done_sem);
 
   // free driver
   heap_caps_free(p_dmx_obj[dmx_num]);
@@ -251,17 +253,16 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int intr_io_num) {
   p_dmx_obj[dmx_num]->intr_io_num = intr_io_num;
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
-  // add the gpio isr handler and enable the interrupt
-  esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_rx_analyze_isr, p_dmx_obj[dmx_num]);
-  if (err) {
-    return err;
-  }
+  // add the isr handler
+  esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_analyze_intr_handler, 
+    p_dmx_obj[dmx_num]);
+  if (err) return err;
 
-  // TODO:
-  // reset isr counter
+  // set to known values to allow for graceful startup
   p_dmx_obj[dmx_num]->rx_is_in_brk = false;
   p_dmx_obj[dmx_num]->rx_last_neg_edge_ts = -1;  
 
+  // enable interrupt
   gpio_set_intr_type(intr_io_num, GPIO_INTR_ANYEDGE);
 
   return ESP_OK;
@@ -272,17 +273,15 @@ esp_err_t dmx_rx_analyze_disable(dmx_port_t dmx_num) {
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_CHECK(p_dmx_obj[dmx_num]->intr_io_num != -1, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
 
-    gpio_num_t intr_io_num;
+  gpio_num_t intr_io_num;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   intr_io_num = p_dmx_obj[dmx_num]->intr_io_num;
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
-  // remove the gpio isr handler and disable the interrupt
-  esp_err_t err = gpio_isr_handler_remove(intr_io_num);
-  if (err) {
-    return err;
-  }
+  // disable the interrupt and remove the isr handler
   gpio_set_intr_type(intr_io_num, GPIO_INTR_DISABLE);
+  esp_err_t err = gpio_isr_handler_remove(intr_io_num);
+  if (err) return err;
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   p_dmx_obj[dmx_num]->intr_io_num = -1;
@@ -343,7 +342,8 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   // configure the uart hardware
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   uart_hal_init(&(dmx_context[dmx_num].hal), dmx_num);
-  uart_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->source_clk, dmx_config->baudrate);
+  uart_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->source_clk, 
+    dmx_config->baudrate);
   uart_hal_set_parity(&(dmx_context[dmx_num].hal), UART_PARITY_DISABLE);
   uart_hal_set_data_bit_num(&(dmx_context[dmx_num].hal), UART_DATA_8_BITS);
   uart_hal_set_stop_bits(&(dmx_context[dmx_num].hal), UART_STOP_BITS_2);
