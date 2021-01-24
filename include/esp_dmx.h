@@ -12,9 +12,10 @@ extern "C" {
 
 #define DMX_NUM_0                   0             // DMX port 0.
 #define DMX_NUM_1                   1             // DMX port 1.
-#if DMX_NUM_MAX > 2
+#if SOC_DMX_NUM > 2
 #define DMX_NUM_2                   2             // DMX port 2.
 #endif
+#define DMX_NUM_MAX                 SOC_DMX_NUM   // Number of available DMX ports.
 
 /// Driver Functions  #########################################################
 /**

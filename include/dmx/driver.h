@@ -63,7 +63,7 @@ typedef struct {
 static dmx_context_t dmx_context[SOC_DMX_NUM] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_0),
     DMX_CONTEX_INIT_DEF(DMX_NUM_1),
-#if DMX_NUM_MAX > 2
+#if SOC_DMX_NUM > 2
     DMX_CONTEX_INIT_DEF(DMX_NUM_2),
 #endif
 };
