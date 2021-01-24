@@ -41,7 +41,7 @@ typedef struct {
   int64_t tx_last_brk_ts;         // Timestamp of the last tx'd break.
 
   /* The remaining variables are only used if rx analyze is enabled. They are 
-  uninitialized until dmx_rx_analyze_enable() is called. */
+  uninitialized until dmx_rx_timing_enable() is called. */
 
   bool rx_is_in_brk;              // True if the rx packet is currently in a break.
   int64_t rx_last_pos_edge_ts;    // Timestamp of the last positive edge on the analyze pin.
