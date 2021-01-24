@@ -55,7 +55,7 @@ static inline uint8_t dmx_hal_get_rx_tout(uart_hal_context_t *hal) {
  * @param invert 1 to invert, 0 to un-invert.
  */
 static inline void dmx_hal_inverse_txd_signal(uart_hal_context_t *hal, int invert) {
-    hal->dev->conf0.txd_inv = invert & 0x01;
+    hal->dev->conf0.txd_inv = invert ? 1 : 0;
 }
 
 /**
@@ -65,7 +65,7 @@ static inline void dmx_hal_inverse_txd_signal(uart_hal_context_t *hal, int inver
  * @param invert 1 to invert, 0 to un-invert.
  */
 static inline void dmx_hal_inverse_rts_signal(uart_hal_context_t *hal, int invert) {
-    hal->dev->conf0.rts_inv = invert & 0x01;
+    hal->dev->conf0.rts_inv = invert ? 1 : 0;
 }
 
 /**
