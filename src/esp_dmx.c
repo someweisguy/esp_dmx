@@ -30,13 +30,13 @@ static const char *TAG = "dmx";
     return (ret_val);                                         \
   }
 
-static int get_brk_us(dmx_port_t dmx_num, int brk_num) {
+static int get_brk_us(dmx_port_t dmx_num, int break_num) {
     // get break in microseconds
     uint32_t baudrate;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    return (int) ceil(brk_num * (1000000.0 / baudrate));
+    return (int) ceil(break_num * (1000000.0 / baudrate));
 }
 
 static int get_mab_us(dmx_port_t dmx_num, int idle_num) {
@@ -577,23 +577,22 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
   if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
-    // TODO: cleanup this section
     // get break and mark time in microseconds
-    uint32_t baudrate, brk_num, idle_num;
+    uint32_t break_num, idle_num;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    uart_hal_get_baudrate(&(dmx_context[dmx_num].hal), &baudrate);
-    const float bit_speed = 1000000.0 / baudrate;
-    brk_num = ceil(bit_speed * dmx_hal_get_break_num(&(dmx_context[dmx_num].hal)));
-    idle_num = ceil(bit_speed * dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal)));
+    break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
+    idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    const int brk_us = get_brk_us(dmx_num, break_num);
+    const int mab_us = get_mab_us(dmx_num, idle_num);
 
     // invert the tx line and busy wait...
     dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), 1);
-    ets_delay_us(brk_num);
+    ets_delay_us(brk_us);
 
     // un-invert the tx line and busy wait...
     dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), 0);
-    ets_delay_us(idle_num);
+    ets_delay_us(mab_us);
 
     p_dmx_obj[dmx_num]->tx_last_brk_ts = now;
   }
