@@ -50,17 +50,8 @@ typedef enum {
   DMX_ERR_PACKET_SIZE, // The packet size is 0 or longer than the DMX standard allows.
   DMX_ERR_BUFFER_SIZE, // The user defined buffer is too small for the received packet.
   DMX_ERR_DATA_OVERFLOW, // The hardware FIFO overflowed, causing loss of data.
-
-  // The remaining event types only occur if detailed rx analysis is enabled
-
-  //DMX_ERR_BRK_TO_BRK        = BIT0, // The break-to-break time is invalid.
-  //DMX_ERR_SPACE_FOR_BRK     = BIT5, // The space length is invalid.
-  //DMX_ERR_MRK_AFTER_BRK     = BIT6, // The mark after break length is invalid.
   DMX_ERR_MAX
 } dmx_event_type_t;
-
-#define DMX_ERR_CORRUPT_DATA  (DMX_ERR_IMPROPER_SLOT | DMX_ERR_DATA_OVERFLOW) // Bitmask for error conditions where data is lost.
-#define DMX_ERR_NOT_TO_SPEC   (DMX_ERR_BRK_TO_BRK | DMX_ERR_PACKET_SIZE | DMX_ERR_SPACE_FOR_BRK | DMX_ERR_MRK_AFTER_BRK) // Bitmask for error conditions where the bytestream is not to DMX specification.
 
 /**
  * @brief DMX data events reported to the event queue when a packet is received.
