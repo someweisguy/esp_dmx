@@ -242,7 +242,7 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int intr_io_num) {
   DMX_CHECK(GPIO_IS_VALID_GPIO(intr_io_num), "intr_io_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_CHECK(p_dmx_obj[dmx_num]->queue, "queue is null", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(p_dmx_obj[dmx_num]->rx_analyze_state == 0, "rx analyze already enabled", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(p_dmx_obj[dmx_num]->intr_io_num == -1, "rx analyze already enabled", ESP_ERR_INVALID_STATE);
     
   // install isr service if it isn't installed already
   esp_err_t err = gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
@@ -253,7 +253,6 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int intr_io_num) {
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   p_dmx_obj[dmx_num]->intr_io_num = intr_io_num;
-  p_dmx_obj[dmx_num]->rx_analyze_state = RX_ANALYZE_ON;
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // add the gpio isr handler and enable the interrupt
@@ -269,12 +268,11 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int intr_io_num) {
 esp_err_t dmx_rx_analyze_disable(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(p_dmx_obj[dmx_num]->rx_analyze_state != 0, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(p_dmx_obj[dmx_num]->intr_io_num != -1, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
 
   gpio_num_t intr_io_num;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   intr_io_num = p_dmx_obj[dmx_num]->intr_io_num;
-  p_dmx_obj[dmx_num]->rx_analyze_state = RX_ANALYZE_OFF;
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // remove the gpio isr handler and disable the interrupt

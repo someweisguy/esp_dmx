@@ -22,11 +22,9 @@
 
 #define DMX_INTR_TX_ALL (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | UART_INTR_TX_BRK_DONE | UART_INTR_RS485_CLASH)
 
-#define RX_ANALYZE_OFF  0
-#define RX_ANALYZE_ON   1
-#define RX_ANALYZE_BRK  2
-#define RX_ANALYZE_MAB  3
-#define RX_ANALYZE_DONE 4
+#define RX_ANALYZE_BRK  0
+#define RX_ANALYZE_MAB  1
+#define RX_ANALYZE_DONE 2
 
 #define BRK_TO_BRK_IS_INVALID(brk_to_brk) (brk_to_brk < DMX_RX_MIN_BRK_TO_BRK_US || brk_to_brk > DMX_RX_MAX_BRK_TO_BRK_US)
 
@@ -86,6 +84,8 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
     // DMX Recieve ####################################################
     else if (uart_intr_status & DMX_INTR_RX_ALL) {
       // this interrupt is triggered when any rx event occurs
+      
+      const bool rx_frame_err = (p_dmx->slot_idx == (uint16_t)-1);
 
       /* Check if there is data in the rx FIFO and if there is, it either reads
       the data into the driver buffer, or if there is not enough space in the
@@ -102,13 +102,17 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
           int slots_rd = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
             offset, slots_rem);
           p_dmx->slot_idx += slots_rd;
+          if (uart_intr_status & DMX_INTR_RX_BRK) 
+            --p_dmx->slot_idx; // break is not a slot
         } else {
           // discard bytes that can't be read into the buffer
           uart_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
-          p_dmx->slot_idx += rxfifo_len;
+          if (!rx_frame_err) {
+            p_dmx->slot_idx += rxfifo_len;
+            if (uart_intr_status & DMX_INTR_RX_BRK)
+              --p_dmx->slot_idx; // break is not a slot
+          }
         }
-        if (uart_intr_status & DMX_INTR_RX_BRK)
-          --p_dmx->slot_idx; // break is not a slot
       }
       
       // handle data received condition
@@ -126,21 +130,13 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 
       // handle end-of-frame conditions
       if (uart_intr_status & (DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
-        const bool rx_frame_err = (p_dmx->slot_idx == (uint16_t)-1);
         dmx_event_t event;
         
         if (uart_intr_status & DMX_INTR_RX_BRK) {
           // handle rx break
           if (p_dmx->queue != NULL && !rx_frame_err) {
             // report end-of-frame to the queue
-            const int64_t brk_to_brk = now - p_dmx->rx_last_brk_ts;
-            if (p_dmx->rx_last_brk_ts != INT64_MIN &&
-                BRK_TO_BRK_IS_INVALID(brk_to_brk)) {
-              // invalid break-to-break length
-              event.type = DMX_ERR_BRK_TO_BRK;
-              event.start_code = -1;
-            } else if (p_dmx->slot_idx <= 0 ||
-                       p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
+            if (p_dmx->slot_idx <= 0 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
               // invalid packet length
               event.type = DMX_ERR_PACKET_SIZE;
               event.start_code = -1;
@@ -161,12 +157,12 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
               }
             }
             event.size = p_dmx->slot_idx;
-            event.packet_len = brk_to_brk;
+            event.packet_len = now - p_dmx->rx_last_brk_ts;
             xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
           }
 
           // tell the rx analyzer we are in a break
-          if (p_dmx->rx_analyze_state) p_dmx->rx_analyze_state = RX_ANALYZE_BRK;
+          p_dmx->rx_analyze_state = RX_ANALYZE_BRK;
 
           // switch buffers, set break timestamp, and reset slot counter
           p_dmx->buf_idx = !p_dmx->buf_idx;
@@ -210,6 +206,7 @@ void DMX_ISR_ATTR dmx_default_intr_handler(void *arg) {
 }
 
 void IRAM_ATTR dmx_rx_analyze_isr(void *arg) {
+  gpio_set_level(33, 1);
   const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
 
@@ -231,4 +228,5 @@ void IRAM_ATTR dmx_rx_analyze_isr(void *arg) {
     }
     p_dmx->rx_last_neg_edge_ts = now;
   }
+  gpio_set_level(33, 0);
 }
