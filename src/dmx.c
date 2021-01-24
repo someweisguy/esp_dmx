@@ -260,6 +260,10 @@ esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int intr_io_num) {
   if (err) {
     return err;
   }
+
+  // put in a known state to ensure proper break measurement
+  p_dmx_obj[dmx_num]->rx_last_neg_edge_ts = -1;
+
   gpio_set_intr_type(intr_io_num, GPIO_INTR_ANYEDGE);
 
   return ESP_OK;
