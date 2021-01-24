@@ -147,7 +147,39 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
  */
 esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
 
-esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int analyze_io_num, int intr_alloc_flags);
+/**
+ * @brief Enable the DMX rx analysis tool to determine the break and 
+ * mark-after-break length.
+ * 
+ * @note The analysis tool uses the default GPIO ISR handler, which allows for
+ * many ISRs to be registered to different GPIO pins. Depending on how many 
+ * GPIO interrupts are registered, there could be significant latency between
+ * when the analyzer ISR runs and when an ISR condition actually occurs. A 
+ * quirk of this implementation is that ISRs are handled from lowest GPIO
+ * number to highest. It is therefore recommended that the user shorts the UART
+ * rx pin to the lowest numbered GPIO possible and enables the rx analyzer 
+ * interrupt on that pin to ensure that the analyzer ISR is called with the
+ * lowest latency possible.
+ * 
+ * @param dmx_num 
+ * @param intr_io_num 
+ * @return
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error
+ * - ESP_ERR_INVALID_STATE  Driver not installed, no queue, or already enabled
+ */
+esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int intr_io_num);
+
+/**
+ * @brief Disable the DMX analysis tool.
+ * 
+ * @param dmx_num 
+ * @return
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error
+ * - ESP_ERR_INVALID_STATE  Driver not installed, or already disabled 
+ */
+esp_err_t dmx_rx_analyze_disable(dmx_port_t dmx_num);
 
 /// Hardware Configuration  ###################################################
 /**

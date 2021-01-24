@@ -81,6 +81,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
 
     p_dmx_obj[dmx_num]->rx_last_brk_ts = INT64_MIN;
+    p_dmx_obj[dmx_num]->intr_io_num = -1;
 
     p_dmx_obj[dmx_num]->tx_last_brk_ts = INT64_MIN;
     p_dmx_obj[dmx_num]->tx_done_sem = xSemaphoreCreateBinary();
@@ -145,6 +146,11 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // free isr
   esp_err_t err = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
   if (err) return err;
+
+  // free rx analyzer isr
+  if (p_dmx_obj[dmx_num]->intr_io_num != -1) {
+    dmx_rx_analyze_disable(dmx_num);
+  }
 
   // free driver resources
   if (p_dmx_obj[dmx_num]->buffer[0]) free(p_dmx_obj[dmx_num]->buffer[0]);
@@ -231,28 +237,56 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   return ESP_OK;
 }
 
-esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int analyze_io_num, int intr_alloc_flags) {
+esp_err_t dmx_rx_analyze_enable(dmx_port_t dmx_num, int intr_io_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(GPIO_IS_VALID_GPIO(intr_io_num), "intr_io_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(p_dmx_obj[dmx_num]->queue, "queue is null", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(p_dmx_obj[dmx_num]->rx_analyze_state == 0, "rx analyze already enabled", ESP_ERR_INVALID_STATE);
+    
+  // install isr service if it isn't installed already
+  esp_err_t err = gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
+  if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+    // fail if gpio isr isn't installed
+    return err;
+  }
+
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  p_dmx_obj[dmx_num]->intr_io_num = intr_io_num;
+  p_dmx_obj[dmx_num]->rx_analyze_state = RX_ANALYZE_ON;
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+
+  // add the gpio isr handler and enable the interrupt
+  err = gpio_isr_handler_add(intr_io_num, dmx_rx_analyze_isr, p_dmx_obj[dmx_num]);
+  if (err) {
+    return err;
+  }
+  gpio_set_intr_type(intr_io_num, GPIO_INTR_ANYEDGE);
+
+  return ESP_OK;
+}
+
+esp_err_t dmx_rx_analyze_disable(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(GPIO_IS_VALID_GPIO(analyze_io_num), "analyze_io_num error", ESP_ERR_INVALID_ARG);
-#if CONFIG_UART_ISR_IN_IRAM
-  if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
-    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated");
-    intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
-  }
-#else
-  if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) != 0) {
-    ESP_LOGW(TAG, "ESP_INTR_FLAG_IRAM flag is set while CONFIG_UART_ISR_IN_IRAM is not enabled, flag updated");
-    intr_alloc_flags &= ~ESP_INTR_FLAG_IRAM;
-  }
-#endif
+  DMX_CHECK(p_dmx_obj[dmx_num]->rx_analyze_state != 0, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
 
-  p_dmx_obj[dmx_num]->rx_analyze_state = RX_ANALYZE_ON;
-  p_dmx_obj[dmx_num]->analyze_io_num = analyze_io_num;
+  gpio_num_t intr_io_num;
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  intr_io_num = p_dmx_obj[dmx_num]->intr_io_num;
+  p_dmx_obj[dmx_num]->rx_analyze_state = RX_ANALYZE_OFF;
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
-  gpio_install_isr_service(intr_alloc_flags);
-  gpio_set_intr_type(analyze_io_num, GPIO_INTR_ANYEDGE);
-  gpio_isr_handler_add(analyze_io_num, dmx_rx_analyze_isr, p_dmx_obj[dmx_num]);
+  // remove the gpio isr handler and disable the interrupt
+  esp_err_t err = gpio_isr_handler_remove(intr_io_num);
+  if (err) {
+    return err;
+  }
+  gpio_set_intr_type(intr_io_num, GPIO_INTR_DISABLE);
+
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  p_dmx_obj[dmx_num]->intr_io_num = -1;
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
