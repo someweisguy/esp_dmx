@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "esp_system.h"
 #include "hal/uart_types.h"
 
@@ -65,3 +69,7 @@ typedef struct {
   uint8_t txfifo_empty_intr_thresh; // DMX tx empty interrupt threshold.
   uint8_t rxfifo_full_thresh;       // DMX rx full interrupt threshold.
 } dmx_intr_config_t;
+
+#ifdef __cplusplus
+}
+#endif

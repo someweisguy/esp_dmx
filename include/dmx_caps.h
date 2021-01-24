@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "soc/uart_caps.h"
 
 #define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
@@ -123,3 +127,7 @@
  * see annex D5 in the ANSI-ESTA E1.11 DMX512-A standards document.
  */
 #define DMX_SIP_ASC      0xcf
+
+#ifdef __cplusplus
+}
+#endif

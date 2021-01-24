@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "dmx/driver.h"
 #include "dmx/hal.h"
 #include "esp_dmx.h"
@@ -213,3 +217,7 @@ static void IRAM_ATTR dmx_analyze_intr_handler(void *arg) {
     p_dmx->rx_last_neg_edge_ts = now;
   }
 }
+
+#ifdef __cplusplus
+}
+#endif

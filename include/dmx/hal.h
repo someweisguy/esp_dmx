@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "hal/uart_hal.h"
 #include "hal/uart_ll.h"
 #include "hal/uart_types.h"
@@ -89,3 +93,7 @@ static inline int dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_t *buf, in
     uart_ll_read_rxfifo(hal->dev, buf, num);
     return num;
 }
+
+#ifdef __cplusplus
+}
+#endif

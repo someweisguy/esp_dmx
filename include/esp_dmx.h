@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "dmx_caps.h"
 #include "dmx_types.h"
 #include "esp_system.h"
@@ -321,3 +325,7 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
 // TODO:
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
 esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value);
+
+#ifdef __cplusplus
+}
+#endif

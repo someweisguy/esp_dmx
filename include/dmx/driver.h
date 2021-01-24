@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"
 #include "hal/gpio_types.h"
@@ -63,3 +67,7 @@ static dmx_context_t dmx_context[SOC_DMX_NUM] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_2),
 #endif
 };
+
+#ifdef __cplusplus
+}
+#endif
