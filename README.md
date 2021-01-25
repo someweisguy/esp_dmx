@@ -168,6 +168,7 @@ TODO: More info coming soon!
 
 ## To Do
 
+- example code
 - Testing of the DMX_ERR_IMPROPER_SLOT event type
 - Reset-sequence-first mode: allow for sending of DMX reset sequence first
 - Remote Device Management.
