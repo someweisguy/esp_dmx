@@ -299,7 +299,7 @@ esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
  *  - ESP_OK                Success
  *  - ESP_ERR_INVALID_ARG   Parameter error 
  */
-esp_err_t dmx_tx_frame(dmx_port_t dmx_num);
+esp_err_t dmx_tx_packet(dmx_port_t dmx_num);
 
 /**
  * @brief Send data to the DMX driver from a given buffer and length.
@@ -307,15 +307,15 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num);
  * @note This function is not synchronous with the DMX frame.
  * 
  * @param dmx_num 
- * @param frame_buffer 
- * @param length 
+ * @param buffer 
+ * @param size 
  * @return  
  *  - ESP_OK                Success
  *  - ESP_ERR_INVALID_ARG   Parameter error  
  *  - ESP_ERR_INVALID_STATE Driver not installed
  *  - ESP_FAIL              Driver error
  */
-esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint16_t length);
+esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t size);
 
 /**
  * @brief Read data from the DMX driver.
@@ -323,15 +323,15 @@ esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint1
  * @note This function is not synchronous with the DMX frame.
  * 
  * @param dmx_num 
- * @param frame_buffer 
- * @param length 
+ * @param buffer 
+ * @param size 
  * @return
  *  - ESP_OK                Success
  *  - ESP_ERR_INVALID_ARG   Parameter error  
  *  - ESP_ERR_INVALID_STATE Driver not installed
  *  - ESP_FAIL              Driver error
  */
-esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t length);
+esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size);
 
 // TODO:
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);

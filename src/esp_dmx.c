@@ -562,7 +562,7 @@ esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   return ESP_OK;
 }
 
-esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
+esp_err_t dmx_tx_packet(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_TX, "not in tx mode", ESP_ERR_INVALID_STATE);
@@ -625,32 +625,32 @@ esp_err_t dmx_tx_frame(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-esp_err_t dmx_write_frame(dmx_port_t dmx_num, const uint8_t *frame_buffer, uint16_t length) {
+esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(frame_buffer, "frame_buffer is null", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(size <= p_dmx_obj[dmx_num]->buf_size, "size error", ESP_ERR_INVALID_ARG);
 
   /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, whilst
   buffer 1 is used by the driver to write to the tx FIFO. */
 
-  if (length == 0) return ESP_OK;
+  if (size == 0) return ESP_OK;
 
   if (p_dmx_obj[dmx_num]->mode != DMX_MODE_TX) {
     ESP_LOGE(TAG, "cannot write if not in tx mode");
     return ESP_ERR_INVALID_STATE;
   }
 
-  memcpy(p_dmx_obj[dmx_num]->buffer[0], frame_buffer, length);
+  memcpy(p_dmx_obj[dmx_num]->buffer[0], buffer, size);
 
   return ESP_OK;
 }
 
-esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t length) {
+esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(frame_buffer, "frame_buffer is null", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(length <= p_dmx_obj[dmx_num]->buf_size, "length error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(size <= p_dmx_obj[dmx_num]->buf_size, "size error", ESP_ERR_INVALID_ARG);
 
   /* Reads can happen in either DMX_MODE_RX or DMX_MODE_TX. Reads while in 
   DMX_MODE_RX are made from the inactive buffer while the active buffer is 
@@ -658,16 +658,16 @@ esp_err_t dmx_read_frame(dmx_port_t dmx_num, uint8_t *frame_buffer, uint16_t len
   from buffer 0 whilst buffer 1 is used by the driver to write to the tx 
   FIFO. */
 
-  if (length == 0) return ESP_OK;
+  if (size == 0) return ESP_OK;
 
   if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
     uint8_t active_buffer;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     active_buffer = p_dmx_obj[dmx_num]->buf_idx;
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer[!active_buffer], length);
+    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[!active_buffer], size);
   } else { // mode == DMX_MODE_TX
-    memcpy(frame_buffer, p_dmx_obj[dmx_num]->buffer[0], length);
+    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[0], size);
   }
 
   return ESP_OK;
