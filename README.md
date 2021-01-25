@@ -139,6 +139,19 @@ DMX_RX_BRK_DURATION_IS_VALID(event.timing.brk);
 DMX_RX_MAB_DURATION_IS_VALID(event.timing.mab);
 ```
 
+Note that DMX has different timing requirements for transmitters and receivers. Only received parameters should be used with ```DMX_RX_??_DURATION_IS_VALID()``` macros. In situations where transmitted parameters need to be checked, ```DMX_TX_??_DURATION_IS_VALID()``` macros should be used.
+
+```C
+// parameters aren't from an event because they are transmitted, not received
+int break_len_us = 80;     // not ok! should be at least 92us
+int mab_len_us = 12;       // is ok. 12us is the minimum
+int packet_len_us = 22748; // is ok. even though 'break_len_us' is too small
+
+DMX_TX_BRK_DURATION_IS_VALID(break_len_us);  // evaluates false
+DMX_TX_MAB_DURATION_IS_VALID(mab_len_us);    // evaluates true
+DMX_TX_PKT_DURATION_IS_VALID(packet_len_us); // evaluates true
+```
+
 ## To Do
 
 - Reset-sequence-first mode: allow for sending of DMX reset sequence first
