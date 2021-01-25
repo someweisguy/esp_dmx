@@ -59,15 +59,15 @@ TODO: more info on installing the driver, including information about the double
 
 ## Reading and Writing
 
-DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmitting or receiving data but not both at once. Receive or transmit mode can be set using ```dmx_set_mode()``` and passing either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device. Reading and writing to and from the DMX bus can be done using ```dmx_read_frame()``` and ```dmx_write_frame()``` respectively. 
+DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmitting or receiving data but not both at once. Receive or transmit mode can be set using ```dmx_set_mode()``` and passing either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device. Reading and writing to and from the DMX bus can be done using ```dmx_read_frame()``` and ```dmx_write_frame()``` respectively.
 
-If both transmitting and receiving data is desired, the user can install two drivers - one on UART bus 1 and the other on UART bus 2 - to facilitate receiving and transmission. However, it should be noted that this is an unusual use case. This library is not meant to act as an optoisolator to split or retransmit DMX data. 
+If both transmitting and receiving data is desired, the user can install two drivers - one on UART bus 1 and the other on UART bus 2 - to facilitate receiving and transmission. However, it should be noted that this is an unusual use case. This library is not meant to act as an optoisolator to split or retransmit DMX data.
 
 ### Reading from the DMX Bus
 
 After installing the DMX driver with ```dmx_driver_install()``` the driver is automatically configured to receive DMX data. It is therefore not necessary to call ```dmx_set_mode()``` to set the driver to ```DMX_MODE_RX```.
 
-Upon calling ```dmx_driver_install()```, a FreeRTOS queue is passed to the driver and instantiated. Events are posted to this queue whenever a DMX packet is received. Using the queuing system can facilitate synchronous reads from the data bus to ensure that data is not read from the bus before the packet is finished being transmitted. Using the macro ```DMX_RX_PACKET_TOUT_TICK``` can be used to determine a packet timeout if the data packet isn't received quickly enough. 
+Upon calling ```dmx_driver_install()```, a FreeRTOS queue is passed to the driver and instantiated. Events are posted to this queue whenever a DMX packet is received. Using the queuing system can facilitate synchronous reads from the data bus to ensure that data is not read from the bus before the packet is finished being transmitted. Using the macro ```DMX_RX_PACKET_TOUT_TICK``` can be used to determine a packet timeout if the data packet isn't received quickly enough.
 
 ```C
 static const size_t BUF_SIZE = DMX_MAX_PACKET_SIZE;
@@ -92,7 +92,7 @@ while (1) {
 }
 ```
 
-Packet metadata is included in the queue messages and can be read to determine if the data should be processed or ignored. This library offers tools to assist with handling error conditions. See the section on Error Handling for more information. 
+Packet metadata is included in the queue messages and can be read to determine if the data should be processed or ignored. This library offers tools to assist with handling error conditions. See the section on Error Handling for more information.
 
 ```C
 if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
@@ -144,13 +144,9 @@ When the queue reports data has been receieved, the ```dmx_event_t``` structure 
 ```C
 dmx_event_t event;
 if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
-
   // read back break and mark-after-break
   printf("The received break was %ius, ", event.timing.brk);
   printf("and the mark-after-break was %ius.\n", event.timing.mab);
-
-  dmx_read_frame(dmx_num, data, BUF_SIZE); // read data synchronously
-
 }
 ```
 
