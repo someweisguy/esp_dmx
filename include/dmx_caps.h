@@ -55,24 +55,47 @@ extern "C" {
   (!(sc >= 0x92 && sc <= 0xa9) && !(sc >= 0xab && sc <= 0xcd) && !(sc >= 0xf0 && sc <= 0xf7))
 
 /**
- * @brief Evaluates to true if the packet duration is within DMX specification.
+ * @brief Evaluates to true if the received packet duration is within DMX
+ * specification.
  */
 #define DMX_RX_PKT_DURATION_IS_VALID(pkt) \
   (pkt >= DMX_RX_MIN_BRK_TO_BRK_US && pkt <= DMX_RX_MAX_BRK_TO_BRK_US)
 
 /**
- * @brief Evaluates to true if the break duration is within DMX specification.
+ * @brief Evaluates to true if the received break duration is within DMX
+ * specification.
  */
 #define DMX_RX_BRK_DURATION_IS_VALID(brk) \
     (brk >= DMX_RX_MIN_SPACE_FOR_BRK_US)
 
 /**
- * @brief Evaluates to true if the mark-after-break duration is within DMX
- * specification.
+ * @brief Evaluates to true if the received mark-after-break duration is within
+ * DMX specification.
  */
 #define DMX_RX_MAB_DURATION_IS_VALID(mab) \
   (mab >= DMX_RX_MIN_MRK_AFTER_BRK_US && mab <= DMX_RX_MAX_MRK_AFTER_BRK_US)
 
+/**
+ * @brief Evaluates to true if the transmitted packet duration is within DMX
+ * specification.
+ */
+#define DMX_TX_PKT_DURATION_IS_VALID(pkt) \
+ (pkt >= DMX_TX_MIN_BRK_TO_BRK_US && pkt <= DMX_TX_MAX_BRK_TO_BRK_US)
+
+/**
+ * @brief Evaluates to true if the transmitted break duration is within DMX
+ * specification.
+ */
+#define DMX_TX_BRK_DURATION_IS_VALID(brk) \
+  (brk >= DMX_TX_MIN_SPACE_FOR_BRK_US)
+
+/**
+ * @brief Evaluates to true of the transmitted mark-after-break duration is
+ * within DMX specificaiotn.
+ * 
+ */
+#define DMX_TX_MAB_DURATION_IS_VALID(mab) \
+  (mab >= DMX_TX_MIN_MRK_AFTER_BRK_US && mab <= DMX_TX_MAX_MRK_AFTER_BRK_US)
 
 /* DMX start codes */
 /**
