@@ -340,6 +340,7 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
 esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(dmx_config, "dmx_config is null", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(dmx_config->idle_num <= 0x3ff, "idle_num error", ESP_ERR_INVALID_ARG);
 
   // check that the configuration is within DMX specification
   if (dmx_config->baudrate < DMX_MIN_BAUDRATE || dmx_config->baudrate > DMX_MAX_BAUDRATE) {
