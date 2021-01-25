@@ -55,13 +55,13 @@ void app_main(void) {
 }
 ```
 
-TODO: more info on installing the driver
+TODO: more info on installing the driver, including information about the double-buffering, and setting baudrate, break_num, and idle_num
 
 ## Reading and Writing
 
-DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmission or reception of data - but not both! Modes can be set using ```dmx_set_mode()``` to set the ESP32 to either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device.
+DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmitting or receiving data but not both at once. Receive or transmit mode can be set using ```dmx_set_mode()``` and passing either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device. Reading and writing to and from the DMX bus can be done using ```dmx_read_frame()``` and ```dmx_write_frame()``` respectively. 
 
-If transmitting and receiving data is desired, it is recommended to install two drivers - one on the UART bus 1 and the other on UART bus 2 - to facilitate receiving and transmission. However, it should be noted that this is an unusual use case. This library is not meant to act as an optoisolator to split or retransmit DMX data. 
+If both transmitting and receiving data is desired, the user can install two drivers - one on UART bus 1 and the other on UART bus 2 - to facilitate receiving and transmission. However, it should be noted that this is an unusual use case. This library is not meant to act as an optoisolator to split or retransmit DMX data. 
 
 ### Reading from the DMX Bus
 
@@ -75,7 +75,7 @@ static const size_t BUF_SIZE = DMX_MAX_PACKET_SIZE;
 static dmx_port_t dmx_num = 1;
 static uint8_t data[BUF_SIZE];
 
-// driver setup goes here...
+// additional setup happens here...
 
 // install the driver with a queue
 QueueHandle_t queue;
