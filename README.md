@@ -2,13 +2,13 @@
 
 This library is still a work-in-progress! When it's ready to go, I'll remove this note.
 
-This is a C library to handle sending and receiving ANSI-ESTA E1.11 DMX-512A using an Espressif ESP32. It differs from other existing DMX libraries in that it allows some control over the timing of the DMX frame that is transmitted. Furthermore, it monitors the DMX it receives and can alert the user if the data it is receiving is not within the DMX specification.
+This is a C library to handle sending and receiving ANSI-ESTA E1.11 DMX-512A using an Espressif ESP32. It differs from other existing DMX libraries in that it allows some control over the timing of the DMX packet that is transmitted. Furthermore, it monitors the DMX it receives and can alert the user if the data it is receiving is not within the DMX specification.
 
 For more information on DMX, including timing and physical layer diagrams, see the [ANSI-ESTA DMX standards document](https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf). For a quick overview of the DMX standard, keep reading.
 
 ## Background
 
-DMX is a serial, unidirectional, and differential communication protocol used primarily in the entertainment industry to control lighting and stage equipment. DMX is transmitted as a continuous stream of packets of up to 513 bytes long. The packet begins with a break (a zero, or "off"), followed by a mark after break (a one, or "on"), and then is followed by the packet. Each byte in the packet consists of a start bit, eight bits of data, and two stop bits for a total of 11 bits per byte or "slot." Each frame of DMX must contain a break, mark after break, and packet.
+DMX is a serial, unidirectional, and differential communication protocol used primarily in the entertainment industry to control lighting and stage equipment. DMX is transmitted as a continuous stream of packets of up to 513 bytes long. The packet begins with a break (a zero, or "off"), followed by a mark after break (a one, or "on"), and then is followed by the packet. Each byte in the packet consists of a start bit, eight bits of data, and two stop bits for a total of 11 bits per byte or "slot." Each packet of DMX must contain a break, mark after break, and packet.
 
 DMX can be transmitted from 1 frame per second up to ~44 frames per second. While it is technically possible to reduce a packet's length to allow for framerates higher than 44fps, it is not considered "to spec" to do so, and therefore it cannot be guaranteed that receiving devices will process commands properly. Framerates slower than 1fps are similarly not allowed.
 
@@ -80,7 +80,7 @@ dmx_param_config(dmx_num, &dmx_config);
 
 ## Reading and Writing
 
-DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmitting or receiving data but not both at once. Receive or transmit mode can be set using ```dmx_set_mode()``` and passing either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device. Reading and writing to and from the DMX bus can be done using ```dmx_read_frame()``` and ```dmx_write_frame()``` respectively.
+DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmitting or receiving data but not both at once. Receive or transmit mode can be set using ```dmx_set_mode()``` and passing either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device. Reading and writing to and from the DMX bus can be done using ```dmx_read_packet()``` and ```dmx_write_packet()``` respectively.
 
 If both transmitting and receiving data is desired, the user can install two drivers - one on UART bus 1 and the other on UART bus 2 - to facilitate receiving and transmission. However, it should be noted that this is an unusual use case. This library is not meant to act as an optoisolator to split or retransmit DMX data.
 
@@ -106,7 +106,7 @@ dmx_event_t event;
 
 while (1) {
   if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
-    dmx_read_frame(dmx_num, data, BUF_SIZE); // synchronous read
+    dmx_read_packet(dmx_num, data, BUF_SIZE); // synchronous read
   } else {
     // packet timed out...
   }
@@ -139,7 +139,7 @@ If synchronous reads aren't necessary or desired, the driver may be installed wi
 dmx_driver_install(dmx_num, BUF_SIZE, 0, NULL, 0);
 
 while (1) {
-  dmx_read_frame(dmx_num, data, BUF_SIZE); // asynchronous read
+  dmx_read_packet(dmx_num, data, BUF_SIZE); // asynchronous read
   // do other work here...
 }
 ```
@@ -160,7 +160,7 @@ gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
 dmx_rx_timing_enable(dmx_num, 4);
 ```
 
-When the queue reports data has been receieved, the ```dmx_event_t``` structure can be used to read back additional metadata, ```event.timing.brk``` for the received break duration and ```event.timing.mab``` for the received mark-after-break duration, of the received frame.
+When the queue reports data has been receieved, the ```dmx_event_t``` structure can be used to read back additional metadata: ```event.timing.brk``` for the received break duration and ```event.timing.mab``` for the received mark-after-break duration of the received packet.
 
 ```C
 dmx_event_t event;
@@ -204,7 +204,7 @@ while (1) {
         printf("Received packet with start code: %02X and size: %i\n",
           event.start_code, event.size);
         // data is ok - read the packet into our buffer
-        dmx_read_frame(dmx_num, data, event.size);
+        dmx_read_packet(dmx_num, data, event.size);
         break;
 
       case DMX_ERR_IMPROPER_SLOT:
