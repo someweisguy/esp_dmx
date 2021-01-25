@@ -143,12 +143,12 @@ Note that DMX has different timing requirements for transmitters and receivers. 
 
 ```C
 // parameters aren't from an event because they are transmitted, not received
-int break_len_us = 80;     // not ok! should be at least 92us
-int mab_len_us = 12;       // is ok. 12us is the minimum
-int packet_len_us = 22748; // is ok. even though 'break_len_us' is too small
+int break_len_us = 176;    // is ok; 92us is the minimum
+int mab_len_us = 8;        // not ok - should be at least 12us
+int packet_len_us = 22756; // is ok even though 'mab_len_us' is too small
 
-DMX_TX_BRK_DURATION_IS_VALID(break_len_us);  // evaluates false
-DMX_TX_MAB_DURATION_IS_VALID(mab_len_us);    // evaluates true
+DMX_TX_BRK_DURATION_IS_VALID(break_len_us);  // evaluates true
+DMX_TX_MAB_DURATION_IS_VALID(mab_len_us);    // evaluates false!
 DMX_TX_PKT_DURATION_IS_VALID(packet_len_us); // evaluates true
 ```
 
