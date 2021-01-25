@@ -61,6 +61,21 @@ The functions to configure the UART and install the driver should appear familia
 
 ```dmx_param_config()``` configures the UART hardware for use on a DMX bus. The user passes a ```dmx_config_t``` structure as an argument to configure the UART ```baudrate```, ```break_num```, ```idle_num```, and ```source_clk```. In DMX the baudrate can range from 245kBaud to 255kBaud, but typically DMX is transmitted at 250kBaud. The ```break_num``` and ```idle_num``` refer to setting the DMX break and mark-after-break durations. In the ESP32 hardware, these are set in units of the time it takes to send 1 bit at the current baudrate. For example, if the baudrate is set at 250kBaud, then the time it takes to send 1 bit is ```1000000 / 250000 = 4us```. So setting ```break_num``` to ```44``` would result in a ```4 * 44 = 176us``` break time. The user should be aware that in the ESP32 hardware, ```break_num``` is represented as a 8-bit value and ```idle_num``` as a 10-bit value so they are limited to ```255``` decimal and ```1023``` decimal respectively. ```source_clk``` can be used to set the clock source for the UART hardware. A macro ```DMX_DEFAULT_CONFIG``` is included to configure the UART hardware to default DMX settings.
 
+Optionally, there are individual getters and setters for DMX parameter configuration that can be called instead.
+
+```C
+const dmx_port_t dmx_num = 1;
+
+// this is the same thing....
+dmx_set_baudrate(dmx_num, 250000);
+dmx_set_break_num(dmx_num, 44);
+dmx_set_idle_num(dmx_num, 3);
+
+// ... as calling this
+dmx_config_t dmx_config = DMX_DEFAULT_CONFIG;
+dmx_param_config(dmx_num, &dmx_config);
+```
+
 ```dmx_driver_install()``` is called to install the DMX driver. In doing so, the user passes a buffer size, a FreeRTOS queue, and interrupt allocation flags as arguments. The DMX driver uses a double-buffering method to read and write DMX packets from the UART FIFO. As such, the user can expect that the amount of memory allocated for the driver buffer will be twice the size of the argument that is passed. The FreeRTOS queue is used to allow for synchronous reading and error-checking. If the user intends to use this library solely to transmit DMX, the user can pass ```NULL``` instead.
 
 ## Reading and Writing
