@@ -61,68 +61,85 @@ TODO: More info to come!
 
 ## Error Handling
 
-DMX has such restrictive timing requirements due in part to allow for backwards compatibility for older, slower lighting equipment. Because the ESP32 is faster than most lighting equipment in use today, it often can process DMX commands even if the received bytestream is faster than the DMX standard allows. A key design concept of this library is to allow for analysis of the incoming data to determine if it is within the DMX specification.
+DMX has restrictive timing requirements due in part to allow for backwards compatibility with older, slower lighting equipment. Because the ESP32 is faster than most lighting equipment in use today, it often can process DMX commands even if the received bytestream is faster than the DMX standard allows. A key design concept of this library is to allow for timing analysis of the incoming data to determine if it is within the DMX specification.
 
 Data can be checked for validity using the FreeRTOS queue created in ```dmx_driver_install()```.
 
 ```C
+// BUF_SIZE not set to DMX_MAX_PACKET_SIZE for demonstration purposes
+static const size_t BUF_SIZE = 196;
+
 static dmx_port_t dmx_num = 2;
-static uint8_t data[196];
+static uint8_t data[BUF_SIZE];
+
+// driver setup goes here...
+
+QueueHandle_t queue;
+dmx_driver_install(dmx_num, BUF_SIZE, 10, &queue, ESP_INTR_FLAG_LEVEL3);
+
+dmx_event_t event;
 
 while (1) {
-  dmx_event_t event;
   if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
-    if (event.type == DMX_OK) {
-      // data is ok - read the frame to the user buffer
-      dmx_read_frame(dmx_num, data, event.size);
-    } else {
-      switch (event.type) {
-        case DMX_ERR_BRK_TO_BRK:
-          printf("Break-to-break time is invalid\n");
-          // packet was not sent to spec, but data may still be recoverable!
-          if (event.size == sizeof(data)) {
-            dmx_read_frame(dmx_num, data, event.size);
-          }
-          break;
+    switch (event.type) {
+      case DMX_OK:
+        printf("Received packet with start code: %02X and size: %i\n",
+          event.start_code, event.size);
+        // data is ok - read the packet into our buffer
+        dmx_read_frame(dmx_num, data, event.size);
+        break;
 
-        case DMX_ERR_IMPROPER_SLOT:
-          printf("Received malformed byte at slot %i\n", event.size);
-          // the slot at 'event.size' is malformed - possibly a glitch due to
-          //  the physical XLR line, but certainly warrants more investigation
-          // data can be recovered up until event.size
-          dmx_read_frame(dmx_num, data, event.size);
-          break;
+      case DMX_ERR_IMPROPER_SLOT:
+        printf("Received malformed byte at slot %i\n", event.size);
+        // the slot at 'event.size' is malformed - possibly a glitch due to
+        //  the physical XLR, but certainly warrants more investigation
+        // data can be recovered up until event.size
+        dmx_read_frame(dmx_num, data, event.size);
+        break;
 
-        case DMX_ERR_PACKET_SIZE:
-          printf("Packet size %i is invalid\n", event.size);
-          // the host DMX device is sending a bigger packet than it should
-          // data may be recoverable, but something is likely wrong with the
-          //  host DMX device
-          break;
+      case DMX_ERR_PACKET_SIZE:
+        printf("Packet size %i is invalid\n", event.size);
+        // the host DMX device is sending a bigger packet than it should
+        // data may be recoverable, but something is likely wrong with the
+        //  host DMX device
+        break;
 
-        case DMX_ERR_BUFFER_SIZE:
-          printf("User DMX buffer is too small - received %i slots\n", event.size);
-          // whoops - our buffer isn't big enough
-          // this condition will never occur if buffer_size == DMX_MAX_PACKET_SIZE
-          break;
+      case DMX_ERR_BUFFER_SIZE:
+        printf("User DMX buffer is too small - received %i slots\n", 
+          event.size);
+        // whoops - our buffer isn't big enough
+        // this condition will not occur if BUF_SIZE == DMX_MAX_PACKET_SIZE
+        break;
 
-        case DMX_ERR_DATA_OVERFLOW:
-          printf("Data could not be processed in time\n");
-          // the UART FIFO overflowed
-          // this could occur if the enabled interrupt mask is misconfigured
-          //  or if the DMX interrupt service routine doesn't run enough
-          break;
-      }
+      case DMX_ERR_DATA_OVERFLOW:
+        printf("Data could not be processed in time\n");
+        // the UART FIFO overflowed
+        // this could occur if the enabled interrupt mask is misconfigured
+        //  or if the DMX interrupt service routine doesn't run enough
+        break;
     }
   } else {
     printf("Lost DMX signal\n");
+    // haven't received a packet in DMX_RX_PACKET_TOUT_TICK ticks
+    // handle signal loss here
   }
 }
 ```
 
-In error conditions, the ```dmx_event_t``` structure can be used to learn more information on what went wrong. Using ```event.type``` reveals the type of error. In data corruption events, ```event.size``` can be used to determine where the error occurred. If there is no error or if a DMX timing error or occurs, ```event.size``` can be used to determine the size of the received packet. 
+In error conditions, the ```dmx_event_t``` structure can be used to learn more information on what went wrong; ```event.type``` can be read to determine the source of the error. Error conditions are only reported if a likely data-corrupting error occurred. DMX timing errors will not be reported automatically to the user, but the user can use the ```dmx_event_t``` structure with the provided macros below to perform timing error-checking if desired.
 
-To determine whether an event is a data corruption or invalid timing event, the macros ```DMX_ERR_CORRUPT_DATA``` and ```DMX_ERR_NOT_TO_SPEC``` are provided.
+```C
+dmx_event_t event; // we've received an event from the queue
+
+DMX_PKT_SIZE_IS_VALID(event.size);
+DMX_PKT_DURATION_IS_VALID(event.duration);
+DMX_START_CODE_IS_VALID(event.start_code);
+
+// the following macros can be used if rx timing is enabled
+// otherwise, they will evaluate to false!
+DMX_BRK_DURATION_IS_VALID(event.timing.brk);
+DMX_MAB_DURATION_IS_VALID(event.timing.mab);
+```
 
 ## To Do
 
