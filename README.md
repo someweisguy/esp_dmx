@@ -59,11 +59,100 @@ TODO: more info on installing the driver
 
 ## Reading and Writing
 
-DMX is a unidirectional protocol, which means that on the DMX bus, only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmission or reception of data - but not both! Modes can be set using ```dmx_set_mode()``` to set the ESP32 to either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device.
+DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmission or reception of data - but not both! Modes can be set using ```dmx_set_mode()``` to set the ESP32 to either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device.
+
+If transmitting and receiving data is desired, it is recommended to install two drivers - one on the UART bus 1 and the other on UART bus 2 - to facilitate receiving and transmission. However, it should be noted that this is an unusual use case. This library is not meant to act as an optoisolator to split or retransmit DMX data. 
 
 ### Reading from the DMX Bus
 
-TODO: ...
+After installing the DMX driver with ```dmx_driver_install()``` the driver is automatically configured to receive DMX data. It is therefore not necessary to call ```dmx_set_mode()``` to set the driver to ```DMX_MODE_RX```.
+
+Upon calling ```dmx_driver_install()```, a FreeRTOS queue is passed to the driver and instantiated. Events are posted to this queue whenever a DMX packet is received. Using the queuing system can facilitate synchronous reads from the data bus to ensure that data is not read from the bus before the packet is finished being transmitted. Using the macro ```DMX_RX_PACKET_TOUT_TICK``` can be used to determine a packet timeout if the data packet isn't received quickly enough. 
+
+```C
+static const size_t BUF_SIZE = DMX_MAX_PACKET_SIZE;
+
+static dmx_port_t dmx_num = 1;
+static uint8_t data[BUF_SIZE];
+
+// driver setup goes here...
+
+// install the driver with a queue
+QueueHandle_t queue;
+dmx_driver_install(dmx_num, BUF_SIZE, 10, &queue, 0);
+
+dmx_event_t event;
+
+while (1) {
+  if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
+    dmx_read_frame(dmx_num, data, BUF_SIZE); // synchronous read
+  } else {
+    // packet timed out...
+  }
+}
+```
+
+Packet metadata is included in the queue messages and can be read to determine if the data should be processed or ignored. This library offers tools to assist with handling error conditions. See the section on Error Handling for more information. 
+
+```C
+if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
+  printf("Packet error code is %i, ", event.type); 
+  // 'event.type' is used to determine error conditions such as a buffer
+  //  overflow or improperly framed slot
+
+  printf("start code is: %i, " event.start_code);
+  // 'event.start_code' is a copy of slot 0 in the packet - typically non-zero
+  //  start codes are handled differently than standard packets
+  // in most error conditions, .start_code defaults to -1
+
+  printf("and packet took %i microseconds.\n" event.duration);
+  // 'event.duration' is simply the time it took between the start of the
+  //  packet and the end of the packet
+}
+```
+
+If synchronous reads aren't necessary or desired, the driver may be installed without passing a queue handle. Installing the driver without a messaging queue can be risky if the received data isn't guaranteed to be error-free.
+
+```C
+// install the driver without a queue
+dmx_driver_install(dmx_num, BUF_SIZE, 0, NULL, 0);
+
+while (1) {
+  dmx_read_frame(dmx_num, data, BUF_SIZE); // asynchronous read
+  // do other work here...
+}
+```
+
+### RX Timing Analysis
+
+This library contains an API to measure timings of the received DMX packet break and mark-after-break. This resource is relatively more CPU intensive than the default DMX receive driver, so it must be explicitly enabled by calling ```dmx_rx_timing_enable()``` after installing the driver.
+
+The timing analysis tool installs an edge-triggered interrupt on the specified GPIO pin to detect and record the timestamps of when the DMX bus goes high or low. Rather than installing one interrupt that triggers on any GPIO, this library opts to use the default GPIO interrupt API, ```gpio_install_isr_service()```, for registering different event handlers on specific GPIO. This interrupt handler works by iterating through each GPIO to determine if an interrupt was triggered by the pin and if so, calls the callback function. A quirk of this ISR is that GPIO whose numbers are lower are checked first for interrupt conditions before higher numbered GPIO (e.g. 0, 1, 2, 3, ... 37, 38, 39). When using the timing analysis tool, it is recommended to short a lower number GPIO to the RX pin to ensure that there is as little latency as possible between when an edge transition occurs and the timing analysis tool has a chance to run. 
+
+Before enabling the timing analysis tool, ```gpio_install_isr_service()``` should be called first.
+
+```C
+gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
+// gpio #4 is the lowest available on the Adafruit Feather
+dmx_rx_timing_enable(dmx_num, 4);
+```
+
+When the queue reports data has been receieved, the ```dmx_event_t``` structure can be used to read back additional metadata, ```event.timing.brk``` for the received break duration and ```event.timing.mab``` for the received mark-after-break duration, of the received frame.
+
+```C
+dmx_event_t event;
+if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
+
+  // read back break and mark-after-break
+  printf("The received break was %ius, ", event.timing.brk);
+  printf("and the mark-after-break was %ius.\n", event.timing.mab);
+
+  dmx_read_frame(dmx_num, data, BUF_SIZE); // read data synchronously
+
+}
+```
+
+When the timing tool is disabled either because ```dmx_rx_timing_disable()``` was called or because it was not enabled in the first place, both ```event.timing.brk``` and ```event.timing.mab``` default to ```-1```.
 
 ### Writing to the DMX Bus
 
