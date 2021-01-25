@@ -94,7 +94,6 @@ while (1) {
         // the slot at 'event.size' is malformed - possibly a glitch due to
         //  the physical XLR, but certainly warrants more investigation
         // data can be recovered up until event.size
-        dmx_read_frame(dmx_num, data, event.size);
         break;
 
       case DMX_ERR_PACKET_SIZE:
@@ -131,14 +130,13 @@ In error conditions, the ```dmx_event_t``` structure can be used to learn more i
 ```C
 dmx_event_t event; // we've received an event from the queue
 
-DMX_PKT_SIZE_IS_VALID(event.size);
-DMX_PKT_DURATION_IS_VALID(event.duration);
 DMX_START_CODE_IS_VALID(event.start_code);
+DMX_RX_PKT_DURATION_IS_VALID(event.duration);
 
 // the following macros can be used if rx timing is enabled
 // otherwise, they will evaluate to false!
-DMX_BRK_DURATION_IS_VALID(event.timing.brk);
-DMX_MAB_DURATION_IS_VALID(event.timing.mab);
+DMX_RX_BRK_DURATION_IS_VALID(event.timing.brk);
+DMX_RX_MAB_DURATION_IS_VALID(event.timing.mab);
 ```
 
 ## To Do
