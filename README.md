@@ -55,6 +55,8 @@ void app_main(void) {
 }
 ```
 
+TODO: more info on installing the driver
+
 ## Reading and Writing
 
 DMX is a unidirectional protocol, which means that on the DMX bus, only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmission or reception of data - but not both! Modes can be set using ```dmx_set_mode()``` to set the ESP32 to either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device.
