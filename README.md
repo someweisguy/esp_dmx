@@ -25,9 +25,9 @@ This library was written to look as similar to the default ESP-IDF UART implemen
 ```C
 #include "esp_dmx.h"
 
-#define TX_GPIO_NUM  17
-#define RX_GPIO_NUM  16
-#define RTS_GPIO_NUM 21
+#define TX_GPIO_NUM   17
+#define RX_GPIO_NUM   16
+#define RTS_GPIO_NUM  21
 
 void app_main(void) {
     // first, setup your input/output pins
@@ -56,6 +56,14 @@ void app_main(void) {
 ```
 
 ## Reading and Writing
+
+DMX is a unidirectional protocol, which means that on the DMX bus, only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmission or reception of data - but not both! Modes can be set using ```dmx_set_mode()``` to set the ESP32 to either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device.
+
+### Reading from the DMX Bus
+
+TODO: ...
+
+### Writing to the DMX Bus
 
 TODO: More info to come!
 
@@ -152,8 +160,13 @@ DMX_TX_MAB_DURATION_IS_VALID(mab_len_us);    // evaluates false!
 DMX_TX_PKT_DURATION_IS_VALID(packet_len_us); // evaluates true
 ```
 
+## Additional Considerations
+
+TODO: More info coming soon!
+
 ## To Do
 
+- Testing of the DMX_ERR_IMPROPER_SLOT event type
 - Reset-sequence-first mode: allow for sending of DMX reset sequence first
 - Remote Device Management.
 - Art-Net?
