@@ -17,6 +17,8 @@ extern "C" {
 #endif
 #define DMX_NUM_MAX                 SOC_DMX_NUM   // Number of available DMX ports.
 
+#define DMX_PIN_NO_CHANGE           -1            // Constant for dmx_set_pin() which indicates the pin should not be changed.
+
 /// Driver Functions  #########################################################
 /**
  * @brief Install DMX driver and set the DMX to the default configuration.
