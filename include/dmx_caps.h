@@ -35,7 +35,7 @@ extern "C" {
 
 /* DMX parameter checking macros */
 /**
- * @brief Evaluates to true if the baud_rate is within DMX specification.
+ * @brief Evaluates to true if the baud rate is within DMX specification.
  */
 #define DMX_BAUD_RATE_IS_VALID(baud) \
   (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
