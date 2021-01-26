@@ -262,14 +262,14 @@ esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
   DMX_CHECK(p_dmx_obj[dmx_num]->queue, "queue is null", ESP_ERR_INVALID_STATE);
   DMX_CHECK(p_dmx_obj[dmx_num]->intr_io_num == -1, "rx analyze already enabled", ESP_ERR_INVALID_STATE);
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  p_dmx_obj[dmx_num]->intr_io_num = intr_io_num;
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-
   // add the isr handler
   esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_timing_intr_handler, 
     p_dmx_obj[dmx_num]);
   if (err) return err;
+  
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  p_dmx_obj[dmx_num]->intr_io_num = intr_io_num;
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // set to known values to allow for graceful startup
   p_dmx_obj[dmx_num]->rx_is_in_brk = false;
