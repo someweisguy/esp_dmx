@@ -9,9 +9,9 @@ extern "C" {
 #define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
 
 /* DMX shared parameters */
-#define DMX_MIN_BAUDRATE            245000        // DMX minimum baudrate.
-#define DMX_TYP_BAUDRATE            250000        // DMX typical baudrate.
-#define DMX_MAX_BAUDRATE            255000        // DMX maximum baudrate.
+#define DMX_MIN_BAUD_RATE           245000        // DMX minimum baud rate.
+#define DMX_TYP_BAUD_RATE           250000        // DMX typical baud rate.
+#define DMX_MAX_BAUD_RATE           255000        // DMX maximum baud rate.
 #define DMX_MAX_PACKET_SIZE         513           // DMX maximum packet size.
 
 /* DMX client/receive timing parameters */
@@ -35,10 +35,10 @@ extern "C" {
 
 /* DMX parameter checking macros */
 /**
- * @brief Evaluates to true if the baudrate is within DMX specification.
+ * @brief Evaluates to true if the baud_rate is within DMX specification.
  */
-#define DMX_BAUDRATE_IS_VALID(baud) \
-  (baud >= DMX_MIN_BAUDRATE && baud <= DMX_MAX_BAUDRATE)
+#define DMX_BAUD_RATE_IS_VALID(baud) \
+  (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
 
 /**
  * @brief Evaluates to true if the start code is a start code permitted in a

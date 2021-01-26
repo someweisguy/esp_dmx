@@ -39,7 +39,7 @@ static inline uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
 }
 
 /**
- * @brief Gets the UART rx timeout (unit: time it takes for one word to be sent at current baudrate).
+ * @brief Gets the UART rx timeout (unit: time it takes for one word to be sent at current baud_rate).
  * 
  * @param hw Pointer to a UART struct.
  * @return The UART rx timeout.

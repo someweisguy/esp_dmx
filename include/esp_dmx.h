@@ -155,26 +155,26 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
 esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);
 
 /**
- * @brief Set the DMX baudrate.
+ * @brief Set the DMX baud_rate.
  * 
  * @param dmx_num 
- * @param baudrate 
+ * @param baud_rate 
  * @return 
  *  - ESP_OK                Success
  *  - ESP_ERR_INVALID_ARG   Parameter error 
  */
-esp_err_t dmx_set_baudrate(dmx_port_t dmx_num, uint32_t baudrate);
+esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate);
 
 /**
- * @brief Get the DMX baudrate.
+ * @brief Get the DMX baud_rate.
  * 
  * @param dmx_num 
- * @param baudrate 
+ * @param baud_rate 
  * @return
  *  - ESP_OK                Success
  *  - ESP_ERR_INVALID_ARG   Parameter error 
  */
-esp_err_t dmx_get_baudrate(dmx_port_t dmx_num, uint32_t *baudrate);
+esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate);
 
 /**
  * @brief Set the DMX break time.

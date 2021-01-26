@@ -8,7 +8,7 @@ extern "C" {
 #include "hal/uart_types.h"
 
 #define DMX_DEFAULT_CONFIG \
-  { .baudrate = DMX_TYP_BAUDRATE, .break_num = 44, .idle_num = 3, }
+  { .baud_rate = DMX_TYP_BAUD_RATE, .break_num = 44, .idle_num = 3, }
 
 typedef int dmx_port_t;             // DMX port type.
 
@@ -16,7 +16,7 @@ typedef int dmx_port_t;             // DMX port type.
  * @brief DMX configuration parameters for dmx_param_config() function
  */
 typedef struct {
-  int baudrate;                     // DMX baud rate.
+  int baud_rate;                    // DMX baud rate.
   uint8_t break_num;                // DMX break length (unit: number of bits).
   uint16_t idle_num;                // DMX mark after break length (unit: number of bits).
   uart_sclk_t source_clk;           // DMX source clock selection.
