@@ -36,9 +36,9 @@ typedef enum {
  */
 typedef enum {
   DMX_OK = 0,                       // The DMX packet is valid.
+  DMX_ERR_BUFFER_SIZE,              // The user defined buffer is too small for the received packet.
   DMX_ERR_IMPROPER_SLOT,            // A slot is improperly framed (missing stop bits).
   DMX_ERR_PACKET_SIZE,              // The packet size is 0 or longer than the DMX standard allows.
-  DMX_ERR_BUFFER_SIZE,              // The user defined buffer is too small for the received packet.
   DMX_ERR_DATA_OVERFLOW             // The hardware FIFO overflowed, causing loss of data.
 } dmx_event_status_t;
 
