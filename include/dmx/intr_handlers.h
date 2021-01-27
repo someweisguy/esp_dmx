@@ -129,23 +129,23 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           dmx_event_t event = { .size = p_dmx->slot_idx };
           if (uart_intr_status & UART_INTR_RXFIFO_OVF) {
             // FIFO overflowed
-            event.type = DMX_ERR_DATA_OVERFLOW;
+            event.status = DMX_ERR_DATA_OVERFLOW;
             event.start_code = -1;
           } else if (uart_intr_status & DMX_INTR_RX_PARITY_ERR) {
             // parity error
-            event.type = DMX_ERR_IMPROPER_SLOT;
+            event.status = DMX_ERR_IMPROPER_SLOT;
             event.start_code = -1;
           } else if (p_dmx->slot_idx <= 0 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
             // invalid packet length
-            event.type = DMX_ERR_PACKET_SIZE;
+            event.status = DMX_ERR_PACKET_SIZE;
             event.start_code = -1;
           } else if (p_dmx->slot_idx > p_dmx->buf_size) {
             // buffer overflowed
-            event.type = DMX_ERR_BUFFER_SIZE;
+            event.status = DMX_ERR_BUFFER_SIZE;
             event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
           } else {
             // dmx ok
-            event.type = DMX_OK;
+            event.status = DMX_OK;
             event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
           }
 

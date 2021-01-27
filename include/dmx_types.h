@@ -32,7 +32,7 @@ typedef enum {
 } dmx_mode_t;
 
 /**
- * @brief DMX packet types reported to the event queue when a packet is received.
+ * @brief DMX packet status types reported to the event queue when a packet is received.
  */
 typedef enum {
   DMX_OK = 0,                       // The DMX packet is valid.
@@ -40,13 +40,13 @@ typedef enum {
   DMX_ERR_PACKET_SIZE,              // The packet size is 0 or longer than the DMX standard allows.
   DMX_ERR_BUFFER_SIZE,              // The user defined buffer is too small for the received packet.
   DMX_ERR_DATA_OVERFLOW             // The hardware FIFO overflowed, causing loss of data.
-} dmx_event_type_t;
+} dmx_event_status_t;
 
 /**
  * @brief DMX data events reported to the event queue when a packet is received.
  */
 typedef struct {
-  dmx_event_type_t type;            // The type of DMX packet received.
+  dmx_event_status_t status;        // The status of DMX packet.
   int start_code;                   // The start code (slot 0) of the DMX packet, or -1 on error (except for DMX_ERR_BUFFER_SIZE).
   size_t size;                      // The size of the received DMX packet in bytes.
   int32_t duration;                 // The duration of the received DMX packet in microseconds.
