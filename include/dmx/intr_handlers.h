@@ -132,10 +132,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             event.status = DMX_ERR_DATA_OVERFLOW;
             event.start_code = -1;
           } else if (uart_intr_status & DMX_INTR_RX_PARITY_ERR) {
-            // parity error
+            // improperly framed slot
             event.status = DMX_ERR_IMPROPER_SLOT;
             event.start_code = -1;
-          } else if (p_dmx->slot_idx <= 0 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
+          } else if (p_dmx->slot_idx < 1 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
             // invalid packet length
             event.status = DMX_ERR_PACKET_SIZE;
             event.start_code = -1;
