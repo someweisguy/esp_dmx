@@ -11,9 +11,9 @@ extern "C" {
 
 #include "esp_log.h"
 
-#define DMX_INTR_RX_BRK                 (UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR | UART_INTR_BRK_DET) // Interrupt mask that represents a DMX break. 
-#define DMX_INTR_RX_PARITY_ERR          (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR) // Interrupt mask that represents a parity error.
-#define DMX_INTR_RX_ERR                 (UART_INTR_RXFIFO_OVF | DMX_INTR_RX_PARITY_ERR) // Interrupt mask that represents an error condition.
+#define DMX_INTR_RX_BRK                 (UART_INTR_BRK_DET) // Interrupt mask that represents a DMX break. 
+#define DMX_INTR_RX_FRAMING_ERR         (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR) // Interrupt mask that represents a byte framing error.
+#define DMX_INTR_RX_ERR                 (UART_INTR_RXFIFO_OVF | DMX_INTR_RX_FRAMING_ERR) // Interrupt mask that represents an error condition.
 #define DMX_INTR_RX_ALL                 (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR) // Interrupt mask that represents all rx conditions.
 
 #define DMX_INTR_TX_ALL                 (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | UART_INTR_TX_BRK_DONE | UART_INTR_RS485_CLASH) // Interrupt mask that represents all tx conditions.
@@ -131,7 +131,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             // FIFO overflowed
             event.status = DMX_ERR_DATA_OVERFLOW;
             event.start_code = -1;
-          } else if (uart_intr_status & DMX_INTR_RX_PARITY_ERR) {
+          } else if (uart_intr_status & DMX_INTR_RX_FRAMING_ERR) {
             // improperly framed slot
             event.status = DMX_ERR_IMPROPER_SLOT;
             event.start_code = -1;
