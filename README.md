@@ -1,205 +1,295 @@
 # esp_dmx
 
-This library is still a work-in-progress! When it's ready to go, I'll remove this note.
-
-This is a C library to handle sending and receiving ANSI-ESTA E1.11 DMX-512A using an Espressif ESP32. It differs from other existing DMX libraries in that it allows some control over the timing of the DMX packet that is transmitted. Furthermore, it monitors the DMX it receives and can alert the user if the data it is receiving is not within the DMX specification.
-
-For more information on DMX, including timing and physical layer diagrams, see the [ANSI-ESTA DMX standards document](https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf). For a quick overview of the DMX standard, keep reading.
-
-## Background
-
-DMX is a serial, unidirectional, and differential communication protocol used primarily in the entertainment industry to control lighting and stage equipment. DMX is transmitted as a continuous stream of packets of up to 513 bytes long. The packet begins with a break (a zero, or "off"), followed by a mark-after-break (a one, or "on"), and then is followed by the packet. Each byte in the packet consists of a start bit, eight bits of data, and two stop bits for a total of 11 bits per byte or "slot." Each packet of DMX must contain a break, mark after break, and packet.
-
-DMX can be transmitted from 1 frame per second up to ~44 frames per second. While it is technically possible to reduce a packet's length to allow for framerates higher than 44fps, it is not considered "to spec" to do so, and therefore it cannot be guaranteed that receiving devices will process commands properly. Framerates slower than 1fps are similarly not allowed.
-
-DMX was originally invented in 1986 when hardware limitations were much more restrictive than they are today. While DMX has been revised slightly to keep up to date with equipment capabilities, it is still an extremely simple protocol and often struggles to keep up with the demands of the latest technology. However its simplicity and robustness often makes it the first choice for small scale projects.
+This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A using an Espressif ESP32. It provides control and analysis of the packet configuration and allows the user to read synchronously or asynchronously from the DMX bus. This library also includes tools for data error-checking to safely process DMX commands.
 
 ## Installation
 
-Clone this repo into your project's ```components``` folder. That's it!
+### ESP-IDF
 
-## Usage
+Clone this repository into your project's `components` folder. The library can be linked by putting `#include "esp_dmx.h"` at the top of your `main.c` file.
 
-This library was written to look as similar to the default ESP-IDF UART implementation as possible. To get started, call the following code in your ```main.c``` file:
+## Quick-Start Guide
 
-```C
-#include "esp_dmx.h"
+This library was written to look similar to the ESP-IDF UART implementation. To get started, call the following code in `app_main()` in your `main.c` file.
 
-#define TX_GPIO_NUM   17
-#define RX_GPIO_NUM   16
-#define RTS_GPIO_NUM  21
+```cpp
+const dmx_port_t dmx_num = DMX_NUM_2;
 
-void app_main(void) {
-    // first, setup your input/output pins
-    const dmx_port_t dmx_num = 1;
-    dmx_set_pin(dmx_num, TX_GPIO_NUM, RX_GPIO_NUM, RTS_GPIO_NUM);
+// first configure the UART...
+const dmx_config_t config = DMX_DEFAULT_CONFIG;
+dmx_param_config(dmx_num, &config);
 
-    // then setup the DMX timing how you like it...
-    dmx_config_t config = {
-        .baudrate = 250000,
-        .break_num = 44,
-        .idle_num = 3,
-        .source_clk = 0
-    };
+// then set the communication pins...
+const int tx_io_num = 17, rx_io_num = 16, rts_io_num = 21;
+dmx_set_pin(dmx_num, tx_io_num, rx_io_num, rts_io_num);
 
-    // ...or use the standard DMX timing spec
-    config = DMX_DEFAULT_CONFIG;
+// and install the driver!
+QueueHandle_t dmx_queue;
+dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 10, &dmx_queue, 
+      ESP_INTR_FLAG_IRAM);
+```
 
-    // now configure the UART
-    dmx_param_config(dmx_num, &config);
+Before the user is able to read or write to the DMX bus, the driver mode must be set. Call `dmx_set_mode()` and pass either `DMX_MODE_RX` or `DMX_MODE_TX`. After the driver is installed `DMX_MODE_RX` is the default.
 
-    // and install the driver!
-    QueueHandle_t dmx_queue;
-    dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 10, &dmx_queue, 
-      ESP_INTR_FLAG_LEVEL3);
+```cpp
+// configure for tx
+dmx_set_mode(dmx_num, DMX_MODE_TX);
+```
+
+To write data to the DMX bus, two functions are provided. The function `dmx_write_packet()` writes data to the DMX buffer and `dmx_tx_packet()` sends the data out onto the bus. The function `dmx_wait_tx_done()` is used to block the task until the DMX bus is idle.
+
+```cpp
+uint8_t data[DMX_MAX_PACKET_SIZE] = {0};
+while (1) {
+    // write to the packet and tx it
+    dmx_write_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
+    dmx_tx_packet(dmx_num);
+    
+    // do work here...
+
+    // block until the packet is finished sending
+    dmx_wait_tx_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
 }
 ```
 
-The functions to configure the UART and install the driver should appear familiar to those who have experience using the UART in the ESP-IDF as they are almost identical to the IDF functions to assign GPIO, configure UART parameters, and install the UART driver.
+To read from the DMX bus, use the queue handle passed to `dmx_install_driver()`. The function `dmx_read_packet()` is provided to read from the driver buffer into an array.
 
-```dmx_set_pin()``` is functionally the same as ```uart_set_pin()``` except that in this library only three pins are needed to operate a DMX bus: TX, RX, and RTS.
+```cpp
+dmx_event_t event;
+while (1) {
+    if (xQueueReceive(dmx_queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
+        // read the packet from the driver buffer into 'data'
+        dmx_read_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
+    }
 
-```dmx_param_config()``` configures the UART hardware for use on a DMX bus. The user passes a ```dmx_config_t``` structure as an argument to configure the UART ```baudrate```, ```break_num```, ```idle_num```, and ```source_clk```. In DMX the baudrate can range from 245kBaud to 255kBaud, but typically DMX is transmitted at 250kBaud. The ```break_num``` and ```idle_num``` refer to setting the DMX break and mark-after-break durations. In the ESP32 hardware, these are set in units of the time it takes to send 1 bit at the current baudrate. For example, if the baudrate is set at 250kBaud, then the time it takes to send 1 bit is ```1000000 / 250000 = 4us```. So setting ```break_num``` to ```44``` would result in a ```4 * 44 = 176us``` break time. The user should be aware that in the ESP32 hardware, ```break_num``` is represented as a 8-bit value and ```idle_num``` as a 10-bit value so they are limited to ```255``` decimal and ```1023``` decimal respectively. ```source_clk``` can be used to set the clock source for the UART hardware. A macro ```DMX_DEFAULT_CONFIG``` is included to configure the UART hardware to default DMX settings.
+    // do other work here...
 
-Optionally, there are individual getters and setters for DMX parameter configuration that can be called instead.
-
-```C
-const dmx_port_t dmx_num = 1;
-
-// this is the same thing....
-dmx_set_baudrate(dmx_num, 250000);
-dmx_set_break_num(dmx_num, 44);
-dmx_set_idle_num(dmx_num, 3);
-
-// ... as calling this
-dmx_config_t dmx_config = DMX_DEFAULT_CONFIG;
-dmx_param_config(dmx_num, &dmx_config);
+}
 ```
 
-```dmx_driver_install()``` is called to install the DMX driver. In doing so, the user passes a buffer size, a FreeRTOS queue, and interrupt allocation flags as arguments. The DMX driver uses a double-buffering method to read and write DMX packets from the UART FIFO. As such, the user can expect that the amount of memory allocated for the driver buffer will be twice the size of the argument that is passed. The FreeRTOS queue is used to allow for synchronous reading and error-checking. If the user intends to use this library solely to transmit DMX, the user can pass ```NULL``` instead.
+That's it! For more detailed information on how this library works, keep reading.
+
+## What is DMX?
+
+DMX is a unidirectional communication protocol used primarily in the entertainment industry to control lighting and stage equipment. DMX is transmitted as a continuous stream of packets using half-duplex RS-485 signalling with a standard UART port. DMX devices are typically connected using XLR5 in a daisy-chain configuration but other connectors such as XLR3 are common in consumer products.
+
+Each DMX packet begins with a high-to-low transition called the break, followed by a low-to-high transition called the mark after break, followed by an eight-bit byte. This first byte is called the start code. The start-of-packet break, mark after break, and start code is called the reset sequence. After the reset sequence, a packet of up to 512 data bytes may be sent.
+
+DMX imposes very strict timing requirements to allow for backwards compatibility with older lighting equipment. Frame rates may range from 1fps to up to approximately 830fps. A typical DMX controller transmits packets at approximately 44fps. DMX receivers and transmitters have different timing requirements which must be adhered to carefully to ensure commands are processed.
+
+Today, DMX often struggles to keep up with the demands of the latest hardware. Its low data rate and small packet size sees it losing market popularity over more capable protocols. However its simplicity and robustness often makes it the first choice for small scale projects.
+
+For in-depth information on DMX, see the [E1.11 standards document](https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf).
+
+## Setup
+
+Configuring and setting up the DMX driver should be familiar to those who have experience with the [ESP-IDF UART](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html) driver. The functions `dmx_param_config()`, `dmx_set_pin()`, and `dmx_driver_install()` have similar behavior to `uart_param_config()`, `uart_set_pin()`, and `uart_install_driver()`.
+
+The DMX driver’s functions identify each of the UART controllers using `dmx_port_t`. This identification is needed for all the following function calls.
+
+### Setting Communication Parameters
+
+#### Single Step
+
+Call the function `dmx_param_config()` and pass it a `dmx_config_t` structure. It contains all the parameters needed to configure the DMX packet settings. In most situations, custom packet configuration isn't necessary. The macro `DMX_DEFAULT_CONFIG` is provided to simplify this process.
+
+```c
+const dmx_config_t dmx_config = DMX_DEFAULT_CONFIG;
+dmx_param_config(DMX_NUM_2, &dmx_config);
+```
+
+If using a custom DMX configuration is desired, the `dmx_config_t` parameters can be set manually.
+
+```c
+const dmx_config_t dmx_config = {
+    .baud_rate = 250000, // typical baud rate   
+    .break_num = 45,     // 180us 
+    .idle_num = 5        // 20us
+};
+dmx_param_config(DMX_NUM_2, &dmx_config);
+```
+
+The `break_num` corresponds to the duration of the packet break and `idle_num` corresponds to the duration of the mark after break. Both values are set in units of time that it takes to send one bit at the current baud rate. If the current baud rate is 250k, it takes 4μs to send one bit. Setting `break_num` to 45 and `idle_num` to 5 in this example sets the break and mark after break to 180μs and 20μs respectively.
+
+#### Multiple Steps
+
+Parameters may be configured individually by calling the below dedicated functions. These functions are also useful if re-configuring a single parameter.
+
+```cpp
+dmx_set_baud_rate(DMX_NUM_2, 250000);
+dmx_set_break_num(DMX_NUM_2, 44);
+dmx_set_idle_num(DMX_NUM_2, 3);
+```
+
+Each of the above functions has a `_get_` counterpart to check the currently set value. For example, to check the current baud rate, call `dmx_get_baud_rate()`.
+
+### Setting Communication Pins
+
+Configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro DMX_PIN_NO_CHANGE. This macro should also be used if a pin isn't used.
+
+```cpp
+// set TX: IO16 (port 2 default), RX: IO17 (port 2 default), RTS: IO21
+dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
+```
+
+### Installing the Driver
+
+After the communication pins are set, install the driver by calling `dmx_driver_install()`. The following parameters are passed to this function:
+
+- Size of the driver double-buffer
+- Size of the event queue
+- Handle to the queue
+- Flags to allocate interrupts
+
+This function will allocate the necessary resources for the DMX driver. Note that the driver uses a double-buffer system. The driver will allocate twice the size of the passed buffer size argument.
+
+```cpp
+QueueHandle_t dmx_queue;
+const int buffer_size = DMX_MAX_PACKET_SIZE; // 513 bytes
+// install DMX driver using an event queue
+dmx_driver_install(DMX_NUM_2, buffer_size, 10, &dmx_queue, 0);
+```
+
+Once this step is complete, DMX devices can be connected to check for communication.
 
 ## Reading and Writing
 
-DMX is a unidirectional protocol which means that on the DMX bus only one device writes commands whereas many devices (typically up to 32) listen for instructions from the host device. Because of this, this library permits either transmitting or receiving data but not both at once. Receive or transmit mode can be set using ```dmx_set_mode()``` and passing either ```DMX_MODE_RX``` to act as a client device or ```DMX_MODE_TX``` to act as a host device. Reading and writing to and from the DMX bus can be done using ```dmx_read_packet()``` and ```dmx_write_packet()``` respectively.
+### Setting Device Mode
 
-If both transmitting and receiving data is desired, the user can install two drivers - one on UART bus 1 and the other on UART bus 2 - to facilitate receiving and transmission. However, it should be noted that this is an unusual use case. This library is not meant to act as an optoisolator to split or retransmit DMX data.
+DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once.
 
-### Reading from the DMX Bus
+To set the driver mode call `dmx_set_mode()` and pass to it either `DMX_MODE_RX` or `DMX_MODE_TX`. After the driver is installed `DMX_MODE_RX` is the default.
 
-After installing the DMX driver with ```dmx_driver_install()``` the driver is automatically configured to receive DMX data. It is therefore not necessary to call ```dmx_set_mode()``` to set the driver to ```DMX_MODE_RX```.
+```cpp
+// set the DMX driver to transmit mode
+dmx_set_mode(dmx_num, DMX_MODE_TX);
+// dmx_set_mode(dmx_num, DMX_MODE_RX); // don't need to rx now
+```
 
-Upon calling ```dmx_driver_install()```, a FreeRTOS queue is passed to the driver and instantiated. Events are posted to this queue whenever a DMX packet is received. Using the queuing system can facilitate synchronous reads from the data bus to ensure that data is not read from the bus before the packet is finished being transmitted. Using the macro ```DMX_RX_PACKET_TOUT_TICK``` can be used to determine a packet timeout if the data packet isn't received quickly enough.
+If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports. It should be noted that this is an unusual use case. This library is not meant to act as a DMX optoisolator or splitter.
 
-```C
-static const size_t BUF_SIZE = DMX_MAX_PACKET_SIZE;
+### Reading
 
-static dmx_port_t dmx_num = 1;
-static uint8_t data[BUF_SIZE];
+To read from the DMX bus, the event queue handle passed to `dmx_driver_install()` can be used to determine when a packet has been received. A `dmx_event_t` message will be posted to the event queue. Then the packet can be read from the DMX driver double-buffer into a user buffer using `dmx_read_packet()`.
 
-// additional setup happens here...
+The macro `DMX_RX_PACKET_TOUT_TICK` can be used to block the task until a packet is received or a DMX timeout occurs.
 
-// install the driver with a queue
-QueueHandle_t queue;
-dmx_driver_install(dmx_num, BUF_SIZE, 10, &queue, 0);
+```cpp
+// allocate a buffer that is the max size of a DMX packet
+uint8_t data[DMX_MAX_PACKET_SIZE];
 
 dmx_event_t event;
-
 while (1) {
-  if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
-    dmx_read_packet(dmx_num, data, BUF_SIZE); // synchronous read
-  } else {
-    // packet timed out...
-  }
+    if (xQueueReceive(dmx_queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
+        // read back the size of the packet into our buffer
+        dmx_read_packet(dmx_num, data, event.size);
+    } else {
+        // handle packet timeout...
+    }
 }
 ```
 
-Packet metadata is included in the queue messages and can be read to determine if the data should be processed or ignored. This library offers tools to assist with handling error conditions. See the section on Error Handling for more information.
+The `dmx_event_t` structure contains some helpful information about the packet that was received. Some of the information includes:
 
-```C
-if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
-  printf("Packet error code is %i, ", event.type); 
-  // 'event.type' is used to determine error conditions such as a buffer
-  //  overflow or improperly framed slot
+- Packet errors
+- Start code
+- Size in bytes
+- Duration in microseconds
 
-  printf("start code is: %i, " event.start_code);
-  // 'event.start_code' is a copy of slot 0 in the packet - typically non-zero
-  //  start codes are handled differently than standard packets
-  // in most error conditions, .start_code defaults to -1
+These values can be used to determine if the received data should be processed or ignored.
 
-  printf("and packet took %i microseconds.\n" event.duration);
-  // 'event.duration' is simply the time it took between the start of the
-  //  packet and the end of the packet
+```cpp
+// if there are no errors and the start code is correct, read the packet
+if (event.status == DMX_OK && event.start_code == DMX_SC) {
+    dmx_read_packet(dmx_num, data, event.size);
+
+    printf("Packet took %i microseconds!", event.duration);
 }
 ```
 
-If synchronous reads aren't necessary or desired, the driver may be installed without passing a queue handle. Installing the driver without a messaging queue can be risky if the received data isn't guaranteed to be error-free.
+This library offers tools to perform robust error-checking. For more information on errors, see the Error Handling section.
 
-```C
-// install the driver without a queue
-dmx_driver_install(dmx_num, BUF_SIZE, 0, NULL, 0);
+#### RX Timing Tool
 
-while (1) {
-  dmx_read_packet(dmx_num, data, BUF_SIZE); // asynchronous read
-  // do other work here...
-}
-```
+This library offers an option to measure break and mark after break timings of received data packets. This tool is much more resource intensive than the default DMX receive driver, so it must be explicitly enabled by calling `dmx_rx_timing_enable()`.
 
-### RX Timing Analysis
+The timing tool installs an edge-triggered interrupt on the specified GPIO pin. This library uses the ESP-IDF provided GPIO ISR which allows the use of individual interrupt handlers for specific GPIO interrupts. The interrupt handler works by iterating through each GPIO to determine if it triggered an interrupt and if so, it calls the appropriate handler.
 
-This library contains an API to measure timings of the received DMX packet break and mark-after-break. This resource is relatively more CPU intensive than the default DMX receive driver, so it must be explicitly enabled by calling ```dmx_rx_timing_enable()``` after installing the driver.
+A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed earlier than higher GPIO numbers. It is recommended that the DMX RX pin be shorted to a lower GPIO number in order to ensure that the DMX timing tool can run with low latency.
 
-The timing analysis tool installs an edge-triggered interrupt on the specified GPIO pin to detect and record the timestamps of when the DMX bus goes high or low. Rather than installing one interrupt that triggers on any GPIO, this library opts to use the default GPIO interrupt API, ```gpio_install_isr_service()```, for registering different event handlers on specific GPIO. This interrupt handler works by iterating through each GPIO to determine if an interrupt was triggered by the pin and if so, calls the callback function. A quirk of this ISR is that GPIO whose numbers are lower are checked first for interrupt conditions before higher numbered GPIO (e.g. 0, 1, 2, 3, ... 37, 38, 39). When using the timing analysis tool, it is recommended to short a lower number GPIO to the RX pin to ensure that there is as little latency as possible between when an edge transition occurs and the timing analysis tool has a chance to run.
+It is important to note that the timing tool requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the timing tool, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig`.
 
-It is important to note that the timing tool requires the fast clock speed of the ESP32 in order to properly function. In order to guarantee the accuracy of the timing tool, the ESP32 must be set to a CPU clock speed of at least 160MHz in ```sdkconfig```.
+Before enabling the timing analysis tool `gpio_install_isr_service()` must be called.
 
-Before enabling the timing analysis tool, ```gpio_install_isr_service()``` should be called first.
-
-```C
+```cpp
 gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
-// gpio #4 is the lowest available on the Adafruit Feather
-dmx_rx_timing_enable(dmx_num, 4);
+const int timing_io_num = 4; // lowest exposed pin on the Feather breakout board
+dmx_rx_timing_enable(dmx_num, timing_io_num);
 ```
 
-When the queue reports data has been receieved, the ```dmx_event_t``` structure can be used to read back additional metadata: ```event.timing.brk``` for the received break duration and ```event.timing.mab``` for the received mark-after-break duration of the received packet.
+Break and mark after break timings are reported to the event queue when the timing tool is enabled. If the timing tool is disabled, either because `dmx_rx_timing_disable()` was called or because `dmx_rx_timing_enable()` was not called, the reported break and mark after break durations will default to -1.
 
-```C
+```cpp
 dmx_event_t event;
 if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
-  // read back break and mark-after-break
-  printf("The received break was %ius, ", event.timing.brk);
-  printf("and the mark-after-break was %ius.\n", event.timing.mab);
+  // read back break and mark after break
+  printf("The break was %ius, ", event.timing.brk);
+  printf("and the mark after break was %ius.\n", event.timing.mab);
 }
 ```
 
-When the timing tool is disabled either because ```dmx_rx_timing_disable()``` was called or because it was not enabled in the first place, both ```event.timing.brk``` and ```event.timing.mab``` default to ```-1```.
+### Writing
 
-### Writing to the DMX Bus
+Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_tx_packet()` can be called. When a packet is sent out onto the bus, its size will be the same as the buffer size that was passed to `dmx_driver_install().`
 
-TODO: More info to come!
+```cpp
+uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
+
+dmx_set_mode(DMX_NUM_2, DMX_MODE_TX); // enable tx mode
+
+// write the packet and send it out on the DMX bus
+dmx_write_packet(DMX_NUM_2, data, MAX_PACKET_SIZE);
+dmx_tx_packet(DMX_NUM_2);
+```
+
+Calling `dmx_tx_packet()` will fail if the DMX driver is currently transmitting a packet of DMX data. To ensure that packets are continuously sent, `dmx_wait_tx_done()` can be used.
+
+```cpp
+uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
+
+dmx_set_mode(DMX_NUM_2, DMX_MODE_TX); // enable tx mode
+
+while (1) {
+    // write and send the packet
+    dmx_write_packet(DMX_NUM_2, data, MAX_PACKET_SIZE);
+    dmx_tx_packet(DMX_NUM_2);
+
+    // do other work here...
+
+    // block until we are ready to send another packet
+    dmx_wait_tx_done(DMX_NUM_2, DMX_TX_PACKET_TOUT_TICK);
+}
+```
+
+The DMX driver will automatically check if the DMX transmission has timed out between sending the last packet and the current packet. If it has, it will simulate a DMX reset sequence in software before sending a new packet. Simulating the reset sequence uses inefficient busy-waiting to recreate a break and mark after break. ESP32 busy-waiting is imprecise at the microsecond resolution that is needed for the reset sequence. If the DMX task is not preempted it is usually precise within 30μs. Because this should only happen after sending the first packet and because 30μs is well within DMX timing requirements, this behavior is acceptable for this library.
 
 ## Error Handling
 
-DMX has restrictive timing requirements due in part to allow for backwards compatibility with older, slower lighting equipment. Because the ESP32 is faster than most lighting equipment in use today, it often can process DMX commands even if the received bytestream is faster than the DMX standard allows. A key design concept of this library is to allow for timing analysis of the incoming data to determine if it is within the DMX specification.
+On rare occasions, DMX packets can become corrupted. Errors can be checked by reading the status from the `dmx_event_t` structure. The error types are as follows:
 
-Data can be checked for validity using the FreeRTOS queue created in ```dmx_driver_install()```.
+- `DMX_OK` occurs when the packet is received successfully.
+- `DMX_ERR_IMPROPER_SLOT` occurs when a slot is missing a start or stop bit.
+- `DMX_ERR_PACKET_SIZE` occurs when the number of data bytes received exceeds `DMX_MAX_PACKET_SIZE`
+- `DMX_ERR_BUFFER_SIZE` occurs when the driver buffer size is smaller than the number of packets received. This error will not occur if the driver buffer size is set to `DMX_MAX_PACKET_SIZE`.
+- `DMX_ERR_DATA_OVERFLOW` occurs when the UART hardware is not able to process data quickly enough and it overflows.
 
-```C
-// BUF_SIZE not set to DMX_MAX_PACKET_SIZE for demonstration purposes
-static const size_t BUF_SIZE = 196;
+In most errors, the event size can be read to determine at which byte the error occurred. In every error condition except for `DMX_ERR_BUFFER_SIZE` the event start code will default to -1.
 
-static dmx_port_t dmx_num = 2;
-static uint8_t data[BUF_SIZE];
-
-// driver setup goes here...
-
-QueueHandle_t queue;
-dmx_driver_install(dmx_num, BUF_SIZE, 10, &queue, ESP_INTR_FLAG_LEVEL3);
-
+```cpp
 dmx_event_t event;
-
 while (1) {
   if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
-    switch (event.type) {
+    switch (event.status) {
       case DMX_OK:
         printf("Received packet with start code: %02X and size: %i\n",
           event.start_code, event.size);
@@ -209,75 +299,62 @@ while (1) {
 
       case DMX_ERR_IMPROPER_SLOT:
         printf("Received malformed byte at slot %i\n", event.size);
-        // the slot at 'event.size' is malformed - possibly a glitch due to
-        //  the physical XLR, but certainly warrants more investigation
+        // a slot in the packet is malformed - possibly a glitch due to the
+        //  XLR connector? will need some more investigation
         // data can be recovered up until event.size
         break;
 
       case DMX_ERR_PACKET_SIZE:
         printf("Packet size %i is invalid\n", event.size);
         // the host DMX device is sending a bigger packet than it should
-        // data may be recoverable, but something is likely wrong with the
-        //  host DMX device
+        // data may be recoverable but something went very wrong to get here
         break;
 
       case DMX_ERR_BUFFER_SIZE:
         printf("User DMX buffer is too small - received %i slots\n", 
           event.size);
         // whoops - our buffer isn't big enough
-        // this condition will not occur if BUF_SIZE == DMX_MAX_PACKET_SIZE
+        // this code will not run if buffer size is set to DMX_MAX_PACKET_SIZE
         break;
 
       case DMX_ERR_DATA_OVERFLOW:
         printf("Data could not be processed in time\n");
         // the UART FIFO overflowed
-        // this could occur if the enabled interrupt mask is misconfigured
-        //  or if the DMX interrupt service routine doesn't run enough
+        // this could occur if the interrupt mask is misconfigured or if the
+        //  DMX ISR is constantly preempted
         break;
     }
   } else {
     printf("Lost DMX signal\n");
     // haven't received a packet in DMX_RX_PACKET_TOUT_TICK ticks
-    // handle signal loss here
+    // handle packet timeout...
   }
 }
 ```
 
-In error conditions, the ```dmx_event_t``` structure can be used to learn more information on what went wrong; ```event.type``` can be read to determine the source of the error. Error conditions are only reported if a likely data-corrupting error occurred. DMX timing errors will not be reported automatically to the user, but the user can use the ```dmx_event_t``` structure with the provided macros below to perform timing error-checking if desired.
+It should be noted that this library does not automatically check for DMX timing errors. This library does provide macros to assist with timing error checking, but it is left to the user to implement such measures. The following macros can be used to assist with timing error checking.
 
-```C
-dmx_event_t event; // we've received an event from the queue
+- `DMX_RX_PKT_DURATION_IS_VALID()` evaluates to true if the packet duration is valid.
+- `DMX_RX_BRK_DURATION_IS_VALID()` evaluates to true if the break duration is valid.
+- `DMX_RX_MAB_DURATION_IS_VALID()` evaluates to true if the mark after break duration is valid.
 
-DMX_START_CODE_IS_VALID(event.start_code);
-DMX_RX_PKT_DURATION_IS_VALID(event.duration);
+DMX specifies different timing requirements for receivers and transmitters. In situations where it is necessary to check if transmitted timing values are valid, this library provides `_TX_` versions of the above macros.
 
-// the following macros can be used if rx timing is enabled
-// otherwise, they will evaluate to false!
-DMX_RX_BRK_DURATION_IS_VALID(event.timing.brk);
-DMX_RX_MAB_DURATION_IS_VALID(event.timing.mab);
-```
+Finally, the following macros can be used in both transmit and receive scenarios.
 
-Note that DMX has different timing requirements for transmitters and receivers. Only received parameters should be used with ```DMX_RX_??_DURATION_IS_VALID()``` macros. In situations where transmitted parameters need to be checked, ```DMX_TX_??_DURATION_IS_VALID()``` macros should be used.
+- `DMX_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid.
+- `DMX_START_CODE_IS_VALID()` evaluates to true if the start code is permitted in the DMX standard.
 
-```C
-// parameters aren't from an event because they are transmitted, not received
-int break_len_us = 176;    // is ok; 92us is the minimum
-int mab_len_us = 8;        // not ok - should be at least 12us
-int packet_len_us = 22756; // is ok even though 'mab_len_us' is too small
-
-DMX_TX_BRK_DURATION_IS_VALID(break_len_us);  // evaluates true
-DMX_TX_MAB_DURATION_IS_VALID(mab_len_us);    // evaluates false!
-DMX_TX_PKT_DURATION_IS_VALID(packet_len_us); // evaluates true
-```
+This library offers additional macros for common definitions in the DMX standard which can assist with error handling. These macros can be found in `dmx_caps.h` which is included with `esp_dmx.h`. These macros include various defined DMX timing requirements and DMX start codes. See `dmx_caps.h` for a list of these macros.
 
 ## Additional Considerations
 
-TODO: More info coming soon!
+### Hardware Specifications
+
+ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated from other devices on the DMX bus. In the event of a power surge, the likely worse-case scenario would mean the failure of the RS-485 circuitry and not the entire DMX device. Some DMX devices may function without isolation, but using non-isolated equipment is not recommended.
 
 ## To Do
 
-- example code
-- Testing of the DMX_ERR_IMPROPER_SLOT event type
-- Reset-sequence-first mode: allow for sending of DMX reset sequence first
-- Remote Device Management.
-- Art-Net?
+- Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
+- Remote Device Management. Enable RDM compatibility for DMX transceivers.
+- Art-Net. Enable Art-Net compatibility using ESP-IDF Ethernet Driver.
