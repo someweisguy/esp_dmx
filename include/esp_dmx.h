@@ -292,28 +292,33 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh);
 
 /// Read/Write  ###############################################################
 /**
- * @brief Wait until the DMX port is done transmitting. This function blocks
- * the current task until the DMX port is finished with transmission.
+ * @brief Read data from the DMX driver.
+ * 
+ * @note This function is not synchronous with the DMX frame.
  * 
  * @param dmx_num The DMX port number.
- * @param ticks_to_wait Number of FreeRTOS ticks to wait.
+ * @param buffer The buffer that will be read into from the DMX driver buffer.
+ * @param size The size of the receiving buffer.
+ * @return
+ *  - ESP_OK                Success
+ *  - ESP_ERR_INVALID_ARG   Parameter error  
+ *  - ESP_ERR_INVALID_STATE Driver not installed
+ *  - ESP_FAIL              Driver error
+ */
+esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size);
+
+/**
+ * @brief Reads a slot value from the DMX bus.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param slot_idx The index of the slot to be read from.
+ * @param value A pointer to the byte that will store the value read.
  * @return
  * - ESP_OK                 Success
  * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed
- * - ESP_ERR_TIMEOUT        Timed out
+ * - ESP_ERR_INVALID_STATE  Driver not installed 
  */
-esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
-
-/**
- * @brief Transmits a frame of DMX on the UART bus.
- * 
- * @param dmx_num The DMX port number.
- * @return 
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
- */
-esp_err_t dmx_tx_packet(dmx_port_t dmx_num);
+esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value);
 
 /**
  * @brief Send data to the DMX driver from a given buffer and length.
@@ -332,24 +337,47 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num);
 esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t size);
 
 /**
- * @brief Read data from the DMX driver.
- * 
- * @note This function is not synchronous with the DMX frame.
+ * @brief Wrote a slot value to the DMX bus.
  * 
  * @param dmx_num The DMX port number.
- * @param buffer The buffer that will be read into from the DMX driver buffer.
- * @param size The size of the receiving buffer.
+ * @param slot_idx The index of the slot to be read from.
+ * @param value The byte value that will be written to the DMX bus.
  * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error  
- *  - ESP_ERR_INVALID_STATE Driver not installed
- *  - ESP_FAIL              Driver error
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error
+ * - ESP_ERR_INVALID_STATE  Driver not installed 
  */
-esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size);
-
-// TODO:
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
-esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value);
+
+/**
+ * @brief Transmits a frame of DMX on the UART bus.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return 
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error 
+ * - ESP_FAIL               A packet is already being written
+ */
+esp_err_t dmx_tx_packet(dmx_port_t dmx_num);
+
+/**
+ * @brief Wait until the DMX port is done transmitting. This function blocks
+ * the current task until the DMX port is finished with transmission.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param ticks_to_wait Number of FreeRTOS ticks to wait.
+ * @return
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error
+ * - ESP_ERR_INVALID_STATE  Driver not installed
+ * - ESP_ERR_TIMEOUT        Timed out
+ */
+esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+
+
+
+
+
 
 #ifdef __cplusplus
 }

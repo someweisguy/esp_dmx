@@ -549,15 +549,92 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh) {
 
 /// Read/Write  ###############################################################
 
-esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(size <= p_dmx_obj[dmx_num]->buf_size, "size error", ESP_ERR_INVALID_ARG);
+
+  /* Reads can happen in either DMX_MODE_RX or DMX_MODE_TX. Reads while in 
+  DMX_MODE_RX are made from the inactive buffer while the active buffer is 
+  being used to collect data from the rx FIFO. Reads in DMX_MODE_TX are made 
+  from buffer 0 whilst buffer 1 is used by the driver to write to the tx 
+  FIFO. */
+
+  if (size == 0) return ESP_OK;
+
+  if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
+    uint8_t active_buffer;
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    active_buffer = p_dmx_obj[dmx_num]->buf_idx;
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[!active_buffer], size);
+  } else { // mode == DMX_MODE_TX
+    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[0], size);
+  }
+
+  return ESP_OK;
+}
+
+esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(slot_idx >= 0 && slot_idx < p_dmx_obj[dmx_num]->buf_size, "slot_idx error", ESP_ERR_INVALID_ARG);
 
-  /* Just try to take the "done" semaphore and give it back immediately. */
+  /* Reads can happen in either DMX_MODE_RX or DMX_MODE_TX. Reads while in 
+  DMX_MODE_RX are made from the inactive buffer while the active buffer is 
+  being used to collect data from the rx FIFO. Reads in DMX_MODE_TX are made 
+  from buffer 0 whilst buffer 1 is used by the driver to write to the tx 
+  FIFO. */
 
-  if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, ticks_to_wait) == pdFALSE)
-    return ESP_ERR_TIMEOUT;
-  xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
+  if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
+    uint8_t active_buffer;
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    active_buffer = p_dmx_obj[dmx_num]->buf_idx;
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    *value = p_dmx_obj[dmx_num]->buffer[!active_buffer][slot_idx];
+  } else { // mode == DMX_MODE_TX
+    *value = p_dmx_obj[dmx_num]->buffer[0][slot_idx];
+  }
+
+  return ESP_OK;
+}
+
+esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(size <= p_dmx_obj[dmx_num]->buf_size, "size error", ESP_ERR_INVALID_ARG);
+
+  /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, whilst
+  buffer 1 is used by the driver to write to the tx FIFO. */
+
+  if (size == 0) return ESP_OK;
+
+  if (p_dmx_obj[dmx_num]->mode != DMX_MODE_TX) {
+    ESP_LOGE(TAG, "cannot write if not in tx mode");
+    return ESP_ERR_INVALID_STATE;
+  }
+
+  memcpy(p_dmx_obj[dmx_num]->buffer[0], buffer, size);
+
+  return ESP_OK;
+}
+
+esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
+  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
+  DMX_CHECK(slot_idx >= 0 && slot_idx < p_dmx_obj[dmx_num]->buf_size, "slot_idx error", ESP_ERR_INVALID_ARG);
+
+  /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, whilst
+  buffer 1 is used by the driver to write to the tx FIFO. */
+
+  if (p_dmx_obj[dmx_num]->mode != DMX_MODE_TX) {
+    ESP_LOGE(TAG, "cannot write if not in tx mode");
+    return ESP_ERR_INVALID_STATE;
+  }
+
+  p_dmx_obj[dmx_num]->buffer[0][slot_idx] = slot_idx;
 
   return ESP_OK;
 }
@@ -571,18 +648,18 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num) {
   if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, 0) == pdFALSE)
     return ESP_FAIL;
   
-  /* The ESP32 uart hardware isn't the ideal hardware to transmit DMX. The DMX 
-  protocol states that frames begin with a break, followed by a mark, followed 
-  by up to 513 bytes. The ESP32 uart hardware is designed to send a packet, 
-  followed by a break, followed by a mark. When using this library "correctly,"
-  there shouldn't be any issues because the data stream will be continuous - 
-  even though the hardware sends the break and mark after the packet, it will
-  LOOK like it is being sent before the packet. However if the byte stream isn't
-  continuous, we need to send a break and mark before we send the packet. This 
-  is done by inverting the line, busy waiting, un-inverting the line and 
-  busy waiting again. The busy waiting isn't very accurate (it's usually 
-  accurate within around 10us if the task isn't preempted), but it is the best 
-  that can be done short of using the ESP32 hardware timer library. */
+  /* The DMX protocol states that frames begin with a break, followed by a 
+  mark, followed by up to 513 bytes. The ESP32 uart hardware is designed to 
+  send a packet, followed by a break, followed by a mark. When using this 
+  library "correctly," there shouldn't be any issues because the data stream
+  will be continuous - even though the hardware sends the break and mark after
+  the packet, it will LOOK like it is being sent before the packet. However if
+  the byte stream isn't continuous, we need to send a break and mark before we
+  send the packet. This is done by inverting the line, busy waiting, 
+  un-inverting the line and busy waiting again. The busy waiting isn't very
+  accurate (it's usually accurate within around 30us if the task isn't 
+  preempted), but it is the best that can be done short of using the ESP32
+  hardware timer library. */
 
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
@@ -625,50 +702,15 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t size) {
+esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(size <= p_dmx_obj[dmx_num]->buf_size, "size error", ESP_ERR_INVALID_ARG);
 
-  /* Writes can only happen in DMX_MODE_TX. Writes are made to buffer 0, whilst
-  buffer 1 is used by the driver to write to the tx FIFO. */
+  /* Just try to take the "done" semaphore and give it back immediately. */
 
-  if (size == 0) return ESP_OK;
-
-  if (p_dmx_obj[dmx_num]->mode != DMX_MODE_TX) {
-    ESP_LOGE(TAG, "cannot write if not in tx mode");
-    return ESP_ERR_INVALID_STATE;
-  }
-
-  memcpy(p_dmx_obj[dmx_num]->buffer[0], buffer, size);
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
-  DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_CHECK(size <= p_dmx_obj[dmx_num]->buf_size, "size error", ESP_ERR_INVALID_ARG);
-
-  /* Reads can happen in either DMX_MODE_RX or DMX_MODE_TX. Reads while in 
-  DMX_MODE_RX are made from the inactive buffer while the active buffer is 
-  being used to collect data from the rx FIFO. Reads in DMX_MODE_TX are made 
-  from buffer 0 whilst buffer 1 is used by the driver to write to the tx 
-  FIFO. */
-
-  if (size == 0) return ESP_OK;
-
-  if (p_dmx_obj[dmx_num]->mode == DMX_MODE_RX) {
-    uint8_t active_buffer;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    active_buffer = p_dmx_obj[dmx_num]->buf_idx;
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[!active_buffer], size);
-  } else { // mode == DMX_MODE_TX
-    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[0], size);
-  }
+  if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, ticks_to_wait) == pdFALSE)
+    return ESP_ERR_TIMEOUT;
+  xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
 
   return ESP_OK;
 }
