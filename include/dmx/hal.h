@@ -10,7 +10,7 @@ extern "C" {
 #include "soc/uart_periph.h"
 
 /**
- * @brief Get the current length of th ebytes in the rx FIFO.
+ * @brief Get the current length of the bytes in the rx FIFO.
  * 
  * @param hal Context of the HAL layer
  * 
