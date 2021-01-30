@@ -27,10 +27,8 @@ void app_main() {
   // set communications pins
   ESP_ERROR_CHECK(dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN));
 
-  // initialize the DMX driver with an event queue to read data
-  QueueHandle_t queue;
-  ESP_ERROR_CHECK(
-      dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 1, &queue, 1));
+  // initialize the DMX driver without an event queue
+  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 0, NULL, 1));
 
   // set DMX to TX mode
   dmx_set_mode(dmx_num, DMX_MODE_TX);
