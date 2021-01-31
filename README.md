@@ -52,7 +52,7 @@ while (1) {
 }
 ```
 
-To read from the DMX bus, use the queue handle passed to `dmx_install_driver()`. The function `dmx_read_packet()` is provided to read from the driver buffer into an array.
+To read from the DMX bus, use the queue handle passed to `dmx_driver_install()`. The function `dmx_read_packet()` is provided to read from the driver buffer into an array.
 
 ```cpp
 dmx_event_t event;
@@ -83,7 +83,7 @@ For in-depth information on DMX, see the [E1.11 standards document](https://tsp.
 
 ## Setup
 
-Configuring and setting up the DMX driver should be familiar to those who have experience with the [ESP-IDF UART](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html) driver. The functions `dmx_param_config()`, `dmx_set_pin()`, and `dmx_driver_install()` have similar behavior to `uart_param_config()`, `uart_set_pin()`, and `uart_install_driver()`.
+Configuring and setting up the DMX driver should be familiar to those who have experience with the [ESP-IDF UART](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html) driver. The functions `dmx_param_config()`, `dmx_set_pin()`, and `dmx_driver_install()` have similar behavior to `uart_param_config()`, `uart_set_pin()`, and `uart_driver_install()`.
 
 The DMX driver’s functions identify each of the UART controllers using `dmx_port_t`. This identification is needed for all the following function calls.
 
