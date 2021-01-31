@@ -1,8 +1,8 @@
 /*
 * Read synchronously from the DMX bus. If the packet is a standard DMX packet,
 * and there are no errors in the packet, logs a hex dump every 1 second of the
-* first 16 and the last 16 bytes of data from the data packet. When the data
-* times out, uninstalls the driver and the program terminates.
+* first 16 bytes of data from the data packet. When the data times out, 
+* uninstalls the driver and the program terminates.
 */
 
 #include "esp_dmx.h"
