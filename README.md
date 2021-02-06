@@ -125,7 +125,7 @@ Each of the above functions has a `_get_` counterpart to check the currently set
 
 ### Setting Communication Pins
 
-Configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro DMX_PIN_NO_CHANGE. This macro should also be used if a pin isn't used.
+Configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro `DMX_PIN_NO_CHANGE`. This macro should also be used if a pin isn't used.
 
 ```cpp
 // set TX: IO16 (port 2 default), RX: IO17 (port 2 default), RTS: IO21
@@ -240,7 +240,7 @@ if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
 
 ### Writing
 
-Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_tx_packet()` can be called. When a packet is sent out onto the bus, its size will be the same as the buffer size that was passed to `dmx_driver_install().`
+Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_tx_packet()` can be called. When a packet is sent out onto the bus, its size will be the same as the buffer size that was passed to `dmx_driver_install()`.
 
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
