@@ -46,17 +46,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(buffer_size > 0 && buffer_size <= DMX_MAX_PACKET_SIZE, "buffer_size error", ESP_ERR_INVALID_ARG);
-#if CONFIG_UART_ISR_IN_IRAM
+
+  // force interrupt allocation in IRAM
   if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
-    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated");
+    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
     intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
   }
-#else
-  if ((intr_alloc_flags & ESP_INTR_FLAG_IRAM) != 0) {
-    ESP_LOGW(TAG, "ESP_INTR_FLAG_IRAM flag is set while CONFIG_UART_ISR_IN_IRAM is not enabled, flag updated");
-    intr_alloc_flags &= ~ESP_INTR_FLAG_IRAM;
-  }
-#endif
 
   if (p_dmx_obj[dmx_num] == NULL) {
     // allocate the dmx driver
