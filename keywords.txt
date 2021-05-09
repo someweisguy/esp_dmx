@@ -1,0 +1,91 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+dmx_port_t          KEYWORD1
+dmx_mode_t          KEYWORD1
+dmx_event_status_t  KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+dmx_driver_install          KEYWORD2
+dmx_driver_delete           KEYWORD2
+dmx_is_driver_installed     KEYWORD2
+dmx_set_mode                KEYWORD2
+dmx_get_mode                KEYWORD2
+dmx_rx_timing_enable        KEYWORD2
+dmx_rx_timing_disable       KEYWORD2
+dmx_is_rx_timing_enabled    KEYWORD2
+dmx_set_pin                 KEYWORD2
+dmx_param_config            KEYWORD2
+dmx_set_baud_rate           KEYWORD2
+dmx_get_baud_rate           KEYWORD2
+dmx_set_break_num           KEYWORD2
+dmx_get_break_num           KEYWORD2
+dmx_set_idle_num            KEYWORD2
+dmx_get_idle_num            KEYWORD2
+dmx_invert_rts              KEYWORD2
+dmx_intr_config             KEYWORD2
+dmx_set_rx_full_threshold   KEYWORD2
+dmx_set_tx_empty_threshold  KEYWORD2
+dmx_set_rx_timeout          KEYWORD2
+dmx_read_packet             KEYWORD2
+dmx_read_slot               KEYWORD2
+dmx_write_packet            KEYWORD2
+dmx_write_slot              KEYWORD2
+dmx_tx_packet               KEYWORD2
+dmx_wait_tx_done            KEYWORD2
+
+DMX_BAUD_RATE_IS_VALID          KEYWORD2
+DMX_START_CODE_IS_VALID         KEYWORD2
+DMX_RX_PKT_DURATION_IS_VALID    KEYWORD2
+DMX_RX_BRK_DURATION_IS_VALID    KEYWORD2
+DMX_RX_MAB_DURATION_IS_VALID    KEYWORD2
+DMX_TX_PKT_DURATION_IS_VALID    KEYWORD2
+DMX_TX_BRK_DURATION_IS_VALID    KEYWORD2
+DMX_TX_MAB_DURATION_IS_VALID    KEYWORD2
+
+#######################################
+# Structs (KEYWORD3)
+#######################################
+dmx_config_t        KEYWORD3
+dmx_event_t         KEYWORD3
+dmx_intr_config_t   KEYWORD3
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+DMX_NUM_0           LITERAL1
+DMX_NUM_1           LITERAL1
+DMX_NUM_2           LITERAL1
+DMX_PIN_NO_CHANGE   LITERAL1
+
+DMX_DEFAULT_CONFIG  LITERAL1
+
+SOC_DMX_NUM                     LITERAL1
+DMX_MIN_BAUD_RATE               LITERAL1
+DMX_TYP_BAUD_RATE               LITERAL1
+DMX_MAX_BAUD_RATE               LITERAL1
+DMX_MAX_PACKET_SIZE             LITERAL1
+DMX_RX_MIN_SPACE_FOR_BRK_US     LITERAL1
+DMX_RX_MIN_MRK_AFTER_BRK_US     LITERAL1
+DMX_RX_MAX_MRK_AFTER_BRK_US     LITERAL1
+DMX_RX_MIN_BRK_TO_BRK_US        LITERAL1
+DMX_RX_MAX_BRK_TO_BRK_US        LITERAL1
+DMX_RX_PACKET_TOUT_MS           LITERAL1
+DMX_RX_PACKET_TOUT_TICK         LITERAL1
+DMX_TX_MIN_SPACE_FOR_BRK_US     LITERAL1
+DMX_TX_MIN_MRK_AFTER_BRK_US     LITERAL1
+DMX_TX_MAX_MRK_AFTER_BRK_US     LITERAL1
+DMX_TX_MIN_BRK_TO_BRK_US        LITERAL1
+DMX_TX_MAX_BRK_TO_BRK_US        LITERAL1
+DMX_TX_PACKET_TOUT_MS           LITERAL1
+DMX_TX_PACKET_TOUT_TICK         LITERAL1
+
+DMX_SC          LITERAL1
+RDM_SC          LITERAL1
+DMX_TEXT_ASC    LITERAL1
+DMX_TEST_ASC    LITERAL1
+DMX_UTF8_ASC    LITERAL1
+DMX_ORG_ID_ASC  LITERAL1
+DMX_SIP_ASC     LITERAL1
