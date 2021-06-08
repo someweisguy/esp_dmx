@@ -355,6 +355,7 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 
 ## To Do
 
+- Port the library to the Arduino IDE!
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
 - Enable use of ESP32 Hardware Timer for Reset Sequence.
 - Remote Device Management. Enable RDM compatibility for DMX transceivers.
