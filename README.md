@@ -93,14 +93,14 @@ The DMX driver’s functions identify each of the UART controllers using `dmx_po
 
 Call the function `dmx_param_config()` and pass it a `dmx_config_t` structure. It contains all the parameters needed to configure the DMX packet settings. In most situations, custom packet configuration isn't necessary. The macro `DMX_DEFAULT_CONFIG` is provided to simplify this process.
 
-```c
+```cpp
 const dmx_config_t dmx_config = DMX_DEFAULT_CONFIG;
 dmx_param_config(DMX_NUM_2, &dmx_config);
 ```
 
 If using a custom DMX configuration is desired, the `dmx_config_t` parameters can be set manually.
 
-```c
+```cpp
 const dmx_config_t dmx_config = {
     .baud_rate = 250000, // typical baud rate   
     .break_num = 45,     // 180us 
@@ -358,4 +358,3 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
 - Enable use of ESP32 Hardware Timer for Reset Sequence.
 - Remote Device Management. Enable RDM compatibility for DMX transceivers.
-- Art-Net. Enable Art-Net compatibility using ESP-IDF Ethernet Driver.
