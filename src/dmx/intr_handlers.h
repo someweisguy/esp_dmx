@@ -9,6 +9,21 @@ extern "C" {
 #include "esp_dmx.h"
 #include "esp_system.h"
 
+// UART level interupt masks
+#define UART_INTR_RXFIFO_FULL           (1 << 0) // Interrupt that triggers when the RX FIFO is full.
+#define UART_INTR_TXFIFO_EMPTY          (1 << 1) // Interrupt that triggers when the TX FIFO is empty.
+#define UART_INTR_PARITY_ERR            (1 << 2) // Interrupt that triggers when there is a parity bit error.
+#define UART_INTR_FRAM_ERR              (1 << 3) // Interrupt that triggers when there is a data bit framing error.
+#define UART_INTR_RXFIFO_OVF            (1 << 4) // Interrupt that triggers when the RX FIFO overflows.
+#define UART_INTR_BRK_DET               (1 << 7) // Interrupt that triggers when a break is detected (break bit occcurs for longer than a frame length).
+#define UART_INTR_RXFIFO_TOUT           (1 << 8) // Interrupt that triggers when the RX FIFO times out waiting for a new frame (mark bit occurs longer than the RX timeout duration).
+#define UART_INTR_TX_BRK_DONE           (1 << 12) // Interrupt that triggers when the TX break is finished transmitting.
+#define UART_INTR_TX_BRK_IDLE           (1 << 13) // Interrupt that triggers when done TX'ing data, but before the break is finished transmitting.
+#define UART_INTR_TX_DONE               (1 << 14) // Interrupt that triggers when finished transmitting data, usually used to indicate a break is ready to be transmitted.
+#define UART_INTR_RS485_PARITY_ERR      (1 << 15) // Interrupt that triggers when a RS485 mode parity error occurs.
+#define UART_INTR_RS485_FRM_ERR         (1 << 16) // Interrupt that triggers when a RS485 mode frame error occurs.
+#define UART_INTR_RS485_CLASH           (1 << 17) // Interrupt that triggers when a RS485 bus smashing event occurs.
+
 #define DMX_INTR_RX_BRK                 (UART_INTR_BRK_DET) // Interrupt mask that represents a DMX break. 
 #define DMX_INTR_RX_FRAMING_ERR         (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR) // Interrupt mask that represents a byte framing error.
 #define DMX_INTR_RX_ERR                 (UART_INTR_RXFIFO_OVF | DMX_INTR_RX_FRAMING_ERR) // Interrupt mask that represents an error condition.
