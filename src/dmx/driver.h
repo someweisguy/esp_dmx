@@ -70,12 +70,20 @@ static dmx_context_t dmx_context[SOC_DMX_NUM] = {
 #endif
 };
 
-#ifdef ARDUINO_ARCH_ESP32
+typedef struct {
+  int tx_sig;
+  int rx_sig;
+  int rts_sig;
+  int cts_sig;
+  int irq;
+  int module;
+} uart_signal_conn_t;
+
 /*
  Bunch of constants for every UART peripheral: GPIO signals, irqs, hw addr of registers etc
  Not included in Arduino!
 */
-const uart_signal_conn_t uart_periph_signal[SOC_UART_NUM] = {
+const uart_signal_conn_t uart_periph_signal[SOC_DMX_NUM] = {
     {
         .tx_sig = 14,
         .rx_sig = 14,
@@ -101,7 +109,6 @@ const uart_signal_conn_t uart_periph_signal[SOC_UART_NUM] = {
         .module = 3,
     },
 };
-#endif 
 
 #ifdef __cplusplus
 }

@@ -4,12 +4,6 @@
 extern "C" {
 #endif
 
-#ifdef ARDUINO_ARCH_ESP32
-#define SOC_UART_NUM                3             // ESP32 have 3 UART.
-#else
-#include "soc/uart_caps.h"
-#endif
-
 #define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
 
 /* DMX shared parameters */
