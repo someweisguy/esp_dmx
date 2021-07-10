@@ -21,23 +21,22 @@ extern "C" {
  * 
  * @return Number of bytes in the rx FIFO
  */
-static inline uint32_t dmx_hal_get_rxfifo_len(uart_dev_t *hw) 
-{
-    uint32_t fifo_cnt = hw->status.rxfifo_cnt;
-    typeof(hw->mem_rx_status) rx_status = hw->mem_rx_status;
-    uint32_t len = 0;
+static inline uint32_t dmx_hal_get_rxfifo_len(uart_dev_t *hw) {
+  uint32_t fifo_cnt = hw->status.rxfifo_cnt;
+  typeof(hw->mem_rx_status) rx_status = hw->mem_rx_status;
+  uint32_t len = 0;
 
-    // When using DPort to read fifo, fifo_cnt is not credible, we need to calculate the real cnt based on the fifo read and write pointer.
-    // When using AHB to read FIFO, we can use fifo_cnt to indicate the data length in fifo.
-    if (rx_status.wr_addr > rx_status.rd_addr) {
-        len = rx_status.wr_addr - rx_status.rd_addr;
-    } else if (rx_status.wr_addr < rx_status.rd_addr) {
-        len = (rx_status.wr_addr + 128) - rx_status.rd_addr;
-    } else {
-        len = fifo_cnt > 0 ? 128 : 0;
-    }
+  // When using DPort to read fifo, fifo_cnt is not credible, we need to calculate the real cnt based on the fifo read and write pointer.
+  // When using AHB to read FIFO, we can use fifo_cnt to indicate the data length in fifo.
+  if (rx_status.wr_addr > rx_status.rd_addr) {
+    len = rx_status.wr_addr - rx_status.rd_addr;
+  } else if (rx_status.wr_addr < rx_status.rd_addr) {
+    len = (rx_status.wr_addr + 128) - rx_status.rd_addr;
+  } else {
+    len = fifo_cnt > 0 ? 128 : 0;
+  }
 
-    return len;
+  return len;
 }
 
 /**
@@ -109,15 +108,14 @@ static inline uint32_t dmx_hal_get_rx_level(uart_dev_t *dev) {
  *
  * @return None.
  */
-static inline void dmx_hal_read_rxfifo(uart_dev_t *hw, uint8_t *buf, uint32_t rd_len)
-{
-    //Get the UART APB fifo addr. Read fifo, we use APB address
-    for(int i = 0; i < rd_len; i++) {
-        buf[i] = hw->fifo.rw_byte;
+static inline void dmx_hal_read_rxfifo(uart_dev_t *hw, uint8_t *buf, uint32_t rd_len) {
+  //Get the UART APB fifo addr. Read fifo, we use APB address
+  for(int i = 0; i < rd_len; i++) {
+    buf[i] = hw->fifo.rw_byte;
 #ifdef CONFIG_COMPILER_OPTIMIZATION_PERF
-        __asm__ __volatile__("nop"); // TODO: why is this here?
+    __asm__ __volatile__("nop"); // TODO: why is this here?
 #endif
-    }
+  }
 }
 
 /**
@@ -228,20 +226,20 @@ static inline void dmx_hal_set_txfifo_empty_thr(uart_dev_t *dev, uint8_t thresho
 }
 
 static inline void dmx_hal_rxfifo_rst(uart_dev_t *hw) {
-    //Hardware issue: we can not use `rxfifo_rst` to reset the hw rxfifo.
-    uint16_t fifo_cnt;
-    typeof(hw->mem_rx_status) rxmem_sta;
-    //Get the UART APB fifo addr
-    uint32_t fifo_addr = (hw == &UART0) ? UART_FIFO_REG(0) : (hw == &UART1) ? UART_FIFO_REG(1) : UART_FIFO_REG(2);
-    do {
-      fifo_cnt = hw->status.rxfifo_cnt;
-      rxmem_sta.val = hw->mem_rx_status.val;
-      if(fifo_cnt != 0 ||  (rxmem_sta.rd_addr != rxmem_sta.wr_addr)) {
-          READ_PERI_REG(fifo_addr);
-      } else {
-          break;
-      }
-    } while (1);
+  //Hardware issue: we can not use `rxfifo_rst` to reset the hw rxfifo.
+  uint16_t fifo_cnt;
+  typeof(hw->mem_rx_status) rxmem_sta;
+  //Get the UART APB fifo addr
+  uint32_t fifo_addr = (hw == &UART0) ? UART_FIFO_REG(0) : (hw == &UART1) ? UART_FIFO_REG(1) : UART_FIFO_REG(2);
+  do {
+    fifo_cnt = hw->status.rxfifo_cnt;
+    rxmem_sta.val = hw->mem_rx_status.val;
+    if(fifo_cnt != 0 ||  (rxmem_sta.rd_addr != rxmem_sta.wr_addr)) {
+      READ_PERI_REG(fifo_addr);
+    } else {
+      break;
+    }
+  } while (1);
 }
 
 static inline void dmx_ll_write_txfifo(uart_dev_t *hw, const uint8_t *buf, uint32_t wr_len) {
@@ -258,12 +256,12 @@ static inline uint32_t dmx_ll_get_txfifo_len(uart_dev_t *hw) {
 }
 
 static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
-    uint16_t fill_len = dmx_ll_get_txfifo_len(dev);
-    if(fill_len > data_size) {
-      fill_len = data_size;
-    }
-    *write_size = fill_len;
-    dmx_ll_write_txfifo(dev, buf, fill_len);
+  uint16_t fill_len = dmx_ll_get_txfifo_len(dev);
+  if(fill_len > data_size) {
+    fill_len = data_size;
+  }
+  *write_size = fill_len;
+  dmx_ll_write_txfifo(dev, buf, fill_len);
 }
 
 static inline void dmx_hal_txfifo_rst(uart_dev_t *hw) {
