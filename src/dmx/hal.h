@@ -21,9 +21,9 @@ extern "C" {
  * 
  * @return Number of bytes in the rx FIFO
  */
-static inline uint32_t dmx_hal_get_rxfifo_len(uart_dev_t *hw) {
-  uint32_t fifo_cnt = hw->status.rxfifo_cnt;
-  typeof(hw->mem_rx_status) rx_status = hw->mem_rx_status;
+static inline uint32_t dmx_hal_get_rxfifo_len(uart_dev_t *dev) {
+  uint32_t fifo_cnt = dev->status.rxfifo_cnt;
+  typeof(dev->mem_rx_status) rx_status = dev->mem_rx_status;
   uint32_t len = 0;
 
   // When using DPort to read fifo, fifo_cnt is not credible, we need to calculate the real cnt based on the fifo read and write pointer.
@@ -102,16 +102,16 @@ static inline uint32_t dmx_hal_get_rx_level(uart_dev_t *dev) {
 /**
  * @brief  Read the UART rxfifo.
  *
- * @param  hw Beginning address of the peripheral registers.
+ * @param  dev Beginning address of the peripheral registers.
  * @param  buf The data buffer. The buffer size should be large than 128 byts.
  * @param  rd_len The data length needs to be read.
  *
  * @return None.
  */
-static inline void dmx_hal_read_rxfifo(uart_dev_t *hw, uint8_t *buf, uint32_t rd_len) {
+static inline void dmx_hal_read_rxfifo(uart_dev_t *dev, uint8_t *buf, uint32_t rd_len) {
   //Get the UART APB fifo addr. Read fifo, we use APB address
   for(int i = 0; i < rd_len; i++) {
-    buf[i] = hw->fifo.rw_byte;
+    buf[i] = dev->fifo.rw_byte;
 #ifdef CONFIG_COMPILER_OPTIMIZATION_PERF
     __asm__ __volatile__("nop"); // TODO: why is this here?
 #endif
@@ -159,22 +159,35 @@ static inline uint32_t dmx_hal_get_intr_ena_status(uart_dev_t *dev){
 }
 
 static inline void dmx_hal_init(uart_dev_t *dev, dmx_port_t dmx_num) {
-  // TODO: do this
-  // uart_hal_set_parity(&(dmx_context[dmx_num].dev), UART_PARITY_DISABLE);
-  // uart_hal_set_data_bit_num(&(dmx_context[dmx_num].dev), UART_DATA_8_BITS);
-  // uart_hal_set_stop_bits(&(dmx_context[dmx_num].dev), UART_STOP_BITS_2);
-  // uart_hal_set_hw_flow_ctrl(&(dmx_context[dmx_num].dev), UART_HW_FLOWCTRL_DISABLE, 0);
-  // uart_hal_set_mode(&(dmx_context[dmx_num].dev), UART_MODE_RS485_COLLISION_DETECT);
+  // disable parity
+  dev->conf0.parity_en = 0x0;
+
+  // set 8 data bits
+  dev->conf0.bit_num = 0x3; 
+
+  // set 2 stop bits - enable rs485 mode as hardware workaround
+  dev->rs485_conf.dl1_en = 0x1;
+  dev->conf0.stop_bit_num = 0x1;
+
+  // disable flow control
+  dev->conf1.rx_flow_en = 0x0;
+  dev->conf0.tx_flow_en = 0x0;
+
+  // enable rs485 collision detection
+  dev->conf0.irda_en = 0x0;
+  dev->rs485_conf.tx_rx_en = 0x1; // output loop back to the receivers input
+  dev->rs485_conf.rx_busy_tx_en = 0x1; // send data when the receiver is busy
+  dev->conf0.sw_rts = 0x0;
+  dev->rs485_conf.en = 0x1;
 }
 
 static inline void dmx_hal_set_baudrate(uart_dev_t *dev, uart_sclk_t source_clk, int baud_rate) {
   uint32_t sclk_freq = (source_clk == UART_SCLK_APB) ? APB_CLK_FREQ : REF_CLK_FREQ;
   uint32_t clk_div = ((sclk_freq) << 4) / baud_rate;
-  // The baud-rate configuration register is divided into
-  // an integer part and a fractional part.
+  // baud-rate configuration register is divided into an integer part and a fractional part
   dev->clk_div.div_int = clk_div >> 4;
   dev->clk_div.div_frag = clk_div &  0xf;
-  // Configure the UART source clock.
+  // configure the uart source clock
   dev->conf0.tick_ref_always_on = (source_clk == UART_SCLK_APB);
 }
 
@@ -197,7 +210,7 @@ static inline void dmx_hal_get_sclk(uart_dev_t *dev, uart_sclk_t *source_clk) {
 static inline uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
   uint32_t src_clk = dev->conf0.tick_ref_always_on ? APB_CLK_FREQ : REF_CLK_FREQ;
   typeof(dev->clk_div) div_reg = dev->clk_div;
-  return ((src_clk << 4)) / ((div_reg.div_int << 4) | div_reg.div_frag);
+  return (src_clk << 4) / ((div_reg.div_int << 4) | div_reg.div_frag);
 }
 
 static inline void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_thresh) {
@@ -225,15 +238,16 @@ static inline void dmx_hal_set_txfifo_empty_thr(uart_dev_t *dev, uint8_t thresho
   dev->conf1.txfifo_empty_thrhd = threshold;
 }
 
-static inline void dmx_hal_rxfifo_rst(uart_dev_t *hw) {
-  //Hardware issue: we can not use `rxfifo_rst` to reset the hw rxfifo.
+static inline void dmx_hal_rxfifo_rst(uart_dev_t *dev) {
+  // hardware issue: we can not use `rxfifo_rst` to reset the dev rxfifo.
   uint16_t fifo_cnt;
-  typeof(hw->mem_rx_status) rxmem_sta;
-  //Get the UART APB fifo addr
-  uint32_t fifo_addr = (hw == &UART0) ? UART_FIFO_REG(0) : (hw == &UART1) ? UART_FIFO_REG(1) : UART_FIFO_REG(2);
+  typeof(dev->mem_rx_status) rxmem_sta;
+  // get the UART APB fifo addr
+  uint32_t fifo_addr = (dev == &UART0) ? UART_FIFO_REG(0) : (dev == &UART1) 
+    ? UART_FIFO_REG(1) : UART_FIFO_REG(2);
   do {
-    fifo_cnt = hw->status.rxfifo_cnt;
-    rxmem_sta.val = hw->mem_rx_status.val;
+    fifo_cnt = dev->status.rxfifo_cnt;
+    rxmem_sta.val = dev->mem_rx_status.val;
     if(fifo_cnt != 0 ||  (rxmem_sta.rd_addr != rxmem_sta.wr_addr)) {
       READ_PERI_REG(fifo_addr);
     } else {
@@ -242,17 +256,17 @@ static inline void dmx_hal_rxfifo_rst(uart_dev_t *hw) {
   } while (1);
 }
 
-static inline void dmx_ll_write_txfifo(uart_dev_t *hw, const uint8_t *buf, uint32_t wr_len) {
+static inline void dmx_ll_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t wr_len) {
   //Get the UART AHB fifo addr, Write fifo, we use AHB address
-  uint32_t fifo_addr = (hw == &UART0) ? UART_FIFO_AHB_REG(0) : (hw == &UART1) ? UART_FIFO_AHB_REG(1) : UART_FIFO_AHB_REG(2);
+  uint32_t fifo_addr = (dev == &UART0) ? UART_FIFO_AHB_REG(0) : (dev == &UART1) ? UART_FIFO_AHB_REG(1) : UART_FIFO_AHB_REG(2);
   for(int i = 0; i < wr_len; i++) {
     WRITE_PERI_REG(fifo_addr, buf[i]);
   }
 }
 
-static inline uint32_t dmx_ll_get_txfifo_len(uart_dev_t *hw) {
+static inline uint32_t dmx_ll_get_txfifo_len(uart_dev_t *dev) {
   // default fifo len - fifo count
-  return 128 - hw->status.txfifo_cnt;
+  return 128 - dev->status.txfifo_cnt;
 }
 
 static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
@@ -264,15 +278,15 @@ static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uin
   dmx_ll_write_txfifo(dev, buf, fill_len);
 }
 
-static inline void dmx_hal_txfifo_rst(uart_dev_t *hw) {
+static inline void dmx_hal_txfifo_rst(uart_dev_t *dev) {
   /*
    * Note:   Due to hardware issue, reset UART1's txfifo will also reset UART2's txfifo.
    *         So reserve this function for UART1 and UART2. Please do DPORT reset for UART and its memory at chip startup
    *         to ensure the TX FIFO is reset correctly at the beginning.
    */
-  if (hw == &UART0) {
-    hw->conf0.txfifo_rst = 1;
-    hw->conf0.txfifo_rst = 0;
+  if (dev == &UART0) {
+    dev->conf0.txfifo_rst = 1;
+    dev->conf0.txfifo_rst = 0;
   }
 }
 
