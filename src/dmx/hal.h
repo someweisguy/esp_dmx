@@ -6,6 +6,9 @@ extern "C" {
 
 #include "soc/uart_struct.h"
 
+// The timeout calibration factor when using ref_tick
+#define UART_LL_TOUT_REF_FACTOR_DEFAULT (8)
+
 #define REG_UART_BASE(i)      (DR_REG_UART_BASE + (i) * 0x10000 + ((i) > 1 ? 0xe000 : 0 ))
 #define REG_UART_AHB_BASE(i)  (0x60000000 + (i) * 0x10000 + ((i) > 1 ? 0xe000 : 0 ))
 #define UART_FIFO_AHB_REG(i)  (REG_UART_AHB_BASE(i) + 0x0)
@@ -158,6 +161,7 @@ static inline uint32_t dmx_hal_get_intr_ena_status(uart_dev_t *dev){
 }
 
 static inline void dmx_hal_init(uart_dev_t *dev, dmx_port_t dmx_num) {
+  // TODO: do this
   // uart_hal_set_parity(&(dmx_context[dmx_num].dev), UART_PARITY_DISABLE);
   // uart_hal_set_data_bit_num(&(dmx_context[dmx_num].dev), UART_DATA_8_BITS);
   // uart_hal_set_stop_bits(&(dmx_context[dmx_num].dev), UART_STOP_BITS_2);
@@ -166,18 +170,30 @@ static inline void dmx_hal_init(uart_dev_t *dev, dmx_port_t dmx_num) {
 }
 
 static inline void dmx_hal_set_baudrate(uart_dev_t *dev, uart_sclk_t source_clk, int baud_rate) {
-
+  uint32_t sclk_freq = (source_clk == UART_SCLK_APB) ? APB_CLK_FREQ : REF_CLK_FREQ;
+  uint32_t clk_div = ((sclk_freq) << 4) / baud_rate;
+  // The baud-rate configuration register is divided into
+  // an integer part and a fractional part.
+  dev->clk_div.div_int = clk_div >> 4;
+  dev->clk_div.div_frag = clk_div &  0xf;
+  // Configure the UART source clock.
+  dev->conf0.tick_ref_always_on = (source_clk == UART_SCLK_APB);
 }
 
 static inline void dmx_hal_set_tx_idle_num(uart_dev_t *dev, uint16_t idle_num) {
-
+  dev->idle_conf.tx_idle_num = idle_num;
 }
 
 static inline void dmx_hal_tx_break(uart_dev_t *dev, uint8_t break_num) {
-
+  if (break_num > 0) {
+    dev->idle_conf.tx_brk_num = break_num;
+    dev->conf0.txd_brk = 1;
+  } else {
+    dev->conf0.txd_brk = 0;
+  }
 }
 static inline void dmx_hal_get_sclk(uart_dev_t *dev, uart_sclk_t *source_clk) {
-
+  *source_clk = dev->conf0.tick_ref_always_on ? UART_SCLK_APB : UART_SCLK_REF_TICK;
 }
 
 static inline uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
@@ -187,33 +203,45 @@ static inline uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
 }
 
 static inline void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_thresh) {
-
+  if (dev->conf0.tick_ref_always_on == 0) {
+    //Hardware issue workaround: when using ref_tick, the rx timeout threshold needs increase to 10 times.
+    //T_ref = T_apb * APB_CLK/(REF_TICK << CLKDIV_FRAG_BIT_WIDTH)
+    rx_timeout_thresh = rx_timeout_thresh * UART_LL_TOUT_REF_FACTOR_DEFAULT;
+  } else {
+    //If APB_CLK is used: counting rate is BAUD tick rate / 8
+    rx_timeout_thresh = (rx_timeout_thresh + 7) / 8;
+  }
+  if (rx_timeout_thresh > 0) {
+    dev->conf1.rx_tout_thrhd = rx_timeout_thresh;
+    dev->conf1.rx_tout_en = 1;
+  } else {
+    dev->conf1.rx_tout_en = 0;
+  }
 }
 
 static inline void dmx_hal_set_rxfifo_full_thr(uart_dev_t *dev, uint8_t rxfifo_full_thresh) {
-
+  dev->conf1.rxfifo_full_thrhd = rxfifo_full_thresh;
 }
 
 static inline void dmx_hal_set_txfifo_empty_thr(uart_dev_t *dev, uint8_t threshold) {
-
+  dev->conf1.txfifo_empty_thrhd = threshold;
 }
 
-static inline void dmx_hal_rxfifo_rst(uart_dev_t *hw)
-{
+static inline void dmx_hal_rxfifo_rst(uart_dev_t *hw) {
     //Hardware issue: we can not use `rxfifo_rst` to reset the hw rxfifo.
     uint16_t fifo_cnt;
     typeof(hw->mem_rx_status) rxmem_sta;
     //Get the UART APB fifo addr
     uint32_t fifo_addr = (hw == &UART0) ? UART_FIFO_REG(0) : (hw == &UART1) ? UART_FIFO_REG(1) : UART_FIFO_REG(2);
     do {
-        fifo_cnt = hw->status.rxfifo_cnt;
-        rxmem_sta.val = hw->mem_rx_status.val;
-        if(fifo_cnt != 0 ||  (rxmem_sta.rd_addr != rxmem_sta.wr_addr)) {
-            READ_PERI_REG(fifo_addr);
-        } else {
-            break;
-        }
-    } while(1);
+      fifo_cnt = hw->status.rxfifo_cnt;
+      rxmem_sta.val = hw->mem_rx_status.val;
+      if(fifo_cnt != 0 ||  (rxmem_sta.rd_addr != rxmem_sta.wr_addr)) {
+          READ_PERI_REG(fifo_addr);
+      } else {
+          break;
+      }
+    } while (1);
 }
 
 static inline void dmx_ll_write_txfifo(uart_dev_t *hw, const uint8_t *buf, uint32_t wr_len) {
@@ -232,7 +260,7 @@ static inline uint32_t dmx_ll_get_txfifo_len(uart_dev_t *hw) {
 static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
     uint16_t fill_len = dmx_ll_get_txfifo_len(dev);
     if(fill_len > data_size) {
-        fill_len = data_size;
+      fill_len = data_size;
     }
     *write_size = fill_len;
     dmx_ll_write_txfifo(dev, buf, fill_len);
@@ -244,10 +272,10 @@ static inline void dmx_hal_txfifo_rst(uart_dev_t *hw) {
    *         So reserve this function for UART1 and UART2. Please do DPORT reset for UART and its memory at chip startup
    *         to ensure the TX FIFO is reset correctly at the beginning.
    */
-    if (hw == &UART0) {
-        hw->conf0.txfifo_rst = 1;
-        hw->conf0.txfifo_rst = 0;
-    }
+  if (hw == &UART0) {
+    hw->conf0.txfifo_rst = 1;
+    hw->conf0.txfifo_rst = 0;
+  }
 }
 
 #ifdef __cplusplus
