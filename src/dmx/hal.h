@@ -284,10 +284,8 @@ static inline void dmx_hal_txfifo_rst(uart_dev_t *dev) {
    *         So reserve this function for UART1 and UART2. Please do DPORT reset for UART and its memory at chip startup
    *         to ensure the TX FIFO is reset correctly at the beginning.
    */
-  if (dev == &UART0) {
-    dev->conf0.txfifo_rst = 1;
-    dev->conf0.txfifo_rst = 0;
-  }
+  dev->conf0.txfifo_rst = 1;
+  dev->conf0.txfifo_rst = 0;
 }
 
 #ifdef __cplusplus
