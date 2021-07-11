@@ -232,6 +232,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
     dmx_hal_txfifo_rst(dmx_context[dmx_num].dev);
+    bzero(p_dmx_obj[dmx_num]->buffer[0], p_dmx_obj[dmx_num]->buf_size);
 
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_set_rts(dmx_context[dmx_num].dev, 0); // set rts high
