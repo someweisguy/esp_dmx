@@ -100,25 +100,6 @@ static inline uint32_t dmx_hal_get_rx_level(uart_dev_t *dev) {
 }
 
 /**
- * @brief  Read the UART rxfifo.
- *
- * @param  dev Beginning address of the peripheral registers.
- * @param  buf The data buffer. The buffer size should be large than 128 byts.
- * @param  rd_len The data length needs to be read.
- *
- * @return None.
- */
-static inline void dmx_hal_read_rxfifo(uart_dev_t *dev, uint8_t *buf, uint32_t rd_len) {
-  //Get the UART APB fifo addr. Read fifo, we use APB address
-  for(int i = 0; i < rd_len; i++) {
-    buf[i] = dev->fifo.rw_byte;
-#ifdef CONFIG_COMPILER_OPTIMIZATION_PERF
-    __asm__ __volatile__("nop"); // TODO: why is this here?
-#endif
-  }
-}
-
-/**
  * @brief Read the first num characters from the rxfifo.
  * 
  * @param dev Pointer to a UART struct.
@@ -130,7 +111,17 @@ static inline void dmx_hal_read_rxfifo(uart_dev_t *dev, uint8_t *buf, uint32_t r
 static inline int dmx_hal_readn_rxfifo(uart_dev_t *dev, uint8_t *buf, int num) {
   const uint16_t rxfifo_len = dmx_hal_get_rxfifo_len(dev);
   if (num > rxfifo_len) num = rxfifo_len;
-  dmx_hal_read_rxfifo(dev, buf, num);
+  
+  // read the rxfifo
+  for(int i = 0; i < num; i++) {
+    buf[i] = dev->fifo.rw_byte;
+#ifdef CONFIG_COMPILER_OPTIMIZATION_PERF
+    // perform a nop if compiled to optimize performance
+    // not sure why this is here, but we'll keep it for now
+    __asm__ __volatile__("nop");
+#endif
+  }
+
   return num;
 }
 
@@ -184,9 +175,11 @@ static inline void dmx_hal_init(uart_dev_t *dev, dmx_port_t dmx_num) {
 static inline void dmx_hal_set_baudrate(uart_dev_t *dev, uart_sclk_t source_clk, int baud_rate) {
   uint32_t sclk_freq = (source_clk == UART_SCLK_APB) ? APB_CLK_FREQ : REF_CLK_FREQ;
   uint32_t clk_div = ((sclk_freq) << 4) / baud_rate;
+  
   // baud-rate configuration register is divided into an integer part and a fractional part
   dev->clk_div.div_int = clk_div >> 4;
-  dev->clk_div.div_frag = clk_div &  0xf;
+  dev->clk_div.div_frag = clk_div & 0xf;
+
   // configure the uart source clock
   dev->conf0.tick_ref_always_on = (source_clk == UART_SCLK_APB);
 }
@@ -203,6 +196,7 @@ static inline void dmx_hal_tx_break(uart_dev_t *dev, uint8_t break_num) {
     dev->conf0.txd_brk = 0;
   }
 }
+
 static inline void dmx_hal_get_sclk(uart_dev_t *dev, uart_sclk_t *source_clk) {
   *source_clk = dev->conf0.tick_ref_always_on ? UART_SCLK_APB : UART_SCLK_REF_TICK;
 }
@@ -215,11 +209,10 @@ static inline uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
 
 static inline void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_thresh) {
   if (dev->conf0.tick_ref_always_on == 0) {
-    //Hardware issue workaround: when using ref_tick, the rx timeout threshold needs increase to 10 times.
-    //T_ref = T_apb * APB_CLK/(REF_TICK << CLKDIV_FRAG_BIT_WIDTH)
-    rx_timeout_thresh = rx_timeout_thresh * UART_LL_TOUT_REF_FACTOR_DEFAULT;
+    // when using ref_tick, the rx timeout threshold needs increase to 10 times
+    rx_timeout_thresh *= UART_LL_TOUT_REF_FACTOR_DEFAULT;
   } else {
-    //If APB_CLK is used: counting rate is BAUD tick rate / 8
+    // if APB_CLK is used, counting rate is baud tick rate / 8
     rx_timeout_thresh = (rx_timeout_thresh + 7) / 8;
   }
   if (rx_timeout_thresh > 0) {
@@ -256,26 +249,20 @@ static inline void dmx_hal_rxfifo_rst(uart_dev_t *dev) {
   } while (1);
 }
 
-static inline void dmx_ll_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t wr_len) {
-  //Get the UART AHB fifo addr, Write fifo, we use AHB address
-  uint32_t fifo_addr = (dev == &UART0) ? UART_FIFO_AHB_REG(0) : (dev == &UART1) ? UART_FIFO_AHB_REG(1) : UART_FIFO_AHB_REG(2);
-  for(int i = 0; i < wr_len; i++) {
-    WRITE_PERI_REG(fifo_addr, buf[i]);
-  }
-}
-
-static inline uint32_t dmx_ll_get_txfifo_len(uart_dev_t *dev) {
+static inline uint32_t dmx_hal_get_txfifo_len(uart_dev_t *dev) {
   // default fifo len - fifo count
   return 128 - dev->status.txfifo_cnt;
 }
 
 static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
-  uint16_t fill_len = dmx_ll_get_txfifo_len(dev);
-  if(fill_len > data_size) {
-    fill_len = data_size;
-  }
-  *write_size = fill_len;
-  dmx_ll_write_txfifo(dev, buf, fill_len);
+  uint16_t wr_len = dmx_hal_get_txfifo_len(dev);
+  if (wr_len > data_size) wr_len = data_size;
+  *write_size = wr_len;
+  
+  // write to the txfifo using AHB address
+  uint32_t fifo_addr = (dev == &UART0) ? UART_FIFO_AHB_REG(0) : (dev == &UART1)
+    ? UART_FIFO_AHB_REG(1) : UART_FIFO_AHB_REG(2);
+  for (int i = 0; i < wr_len; i++) WRITE_PERI_REG(fifo_addr, buf[i]);
 }
 
 static inline void dmx_hal_txfifo_rst(uart_dev_t *dev) {
