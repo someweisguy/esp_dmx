@@ -6,8 +6,7 @@ extern "C" {
 
 #include "soc/uart_struct.h"
 
-// The timeout calibration factor when using ref_tick
-#define UART_LL_TOUT_REF_FACTOR_DEFAULT (8)
+#define UART_LL_TOUT_REF_FACTOR_DEFAULT (8)  // The timeout calibration factor when using ref_tick
 
 #define REG_UART_BASE(i)      (DR_REG_UART_BASE + (i) * 0x10000 + ((i) > 1 ? 0xe000 : 0 ))
 #define REG_UART_AHB_BASE(i)  (0x60000000 + (i) * 0x10000 + ((i) > 1 ? 0xe000 : 0 ))
@@ -125,30 +124,73 @@ static inline int dmx_hal_readn_rxfifo(uart_dev_t *dev, uint8_t *buf, int num) {
   return num;
 }
 
+/**
+ * @brief The the interrupt status mask from the UART.
+ * 
+ * @param dev Pointer to a UART struct.
+ * 
+ * @return The interrupt status mask. 
+ */
 static inline uint32_t dmx_hal_get_intsts_mask(uart_dev_t *dev) {
   return dev->int_st.val;
 }
 
+/**
+ * @brief Disables UART interrupts using an interrupt mask.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param mask The UART mask that is disabled.
+ */
 static inline void dmx_hal_disable_intr_mask(uart_dev_t *dev, uint32_t mask) {
   dev->int_ena.val &= (~mask);
 }
 
+/**
+ * @brief Clears UART interrupts using a mask.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param mask The UART mask that is cleared.
+ */
 static inline void dmx_hal_clr_intsts_mask(uart_dev_t *dev, uint32_t mask) {
   dev->int_clr.val = mask;
 }
 
+/**
+ * @brief Enables UART interrupts using an interrupt mask.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param mask The UART mask that is enabled.
+ */
 static inline void dmx_hal_ena_intr_mask(uart_dev_t *dev, uint32_t mask) {
   dev->int_ena.val |= mask;
 }
 
-static inline void dmx_hal_set_rts(uart_dev_t *dev, int set) { // 1 sets low, 0 sets high
+/**
+ * @brief Enables or disables the UART RTS line.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param set 1 to enable the RTS line (set low), 0 to disable the RTS line (set high).
+ */
+static inline void dmx_hal_set_rts(uart_dev_t *dev, int set) {
   dev->conf0.sw_rts = set & 0x1;
 }
 
+/**
+ * @brief Gets the enabled UART interrupt status.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @return Gets the enabled UART interrupt status.
+ */
 static inline uint32_t dmx_hal_get_intr_ena_status(uart_dev_t *dev){
   return dev->int_ena.val;
 }
 
+/**
+ * @brief Initializes the UART for DMX mode.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param dmx_num The UART number to initialize.
+ */
 static inline void dmx_hal_init(uart_dev_t *dev, dmx_port_t dmx_num) {
   // disable parity
   dev->conf0.parity_en = 0x0;
@@ -172,6 +214,13 @@ static inline void dmx_hal_init(uart_dev_t *dev, dmx_port_t dmx_num) {
   dev->rs485_conf.en = 0x1;
 }
 
+/**
+ * @brief Sets the baud rate for the UART.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param source_clk The source of the UART hardware clock to use. 
+ * @param baud_rate The baud rate to use.
+ */
 static inline void dmx_hal_set_baudrate(uart_dev_t *dev, uart_sclk_t source_clk, int baud_rate) {
   uint32_t sclk_freq = (source_clk == UART_SCLK_APB) ? APB_CLK_FREQ : REF_CLK_FREQ;
   uint32_t clk_div = ((sclk_freq) << 4) / baud_rate;
@@ -184,10 +233,23 @@ static inline void dmx_hal_set_baudrate(uart_dev_t *dev, uart_sclk_t source_clk,
   dev->conf0.tick_ref_always_on = (source_clk == UART_SCLK_APB);
 }
 
+/**
+ * @brief Sets the number of mark bits to transmit after a break has been transmitted.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param idle_num The number of idle bits to transmit.
+ */
 static inline void dmx_hal_set_tx_idle_num(uart_dev_t *dev, uint16_t idle_num) {
+  // TODO: make this like dmx_hal_tx_break() where 0 disables idle num?
   dev->idle_conf.tx_idle_num = idle_num;
 }
 
+/**
+ * @brief Enables or disables transmitting UART hardware break.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param break_num The number of break bits to transmit when a break is transmitted.
+ */
 static inline void dmx_hal_tx_break(uart_dev_t *dev, uint8_t break_num) {
   if (break_num > 0) {
     dev->idle_conf.tx_brk_num = break_num;
@@ -197,16 +259,35 @@ static inline void dmx_hal_tx_break(uart_dev_t *dev, uint8_t break_num) {
   }
 }
 
+/**
+ * @brief Get the source clock for the UART hardware. 
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param source_clk The ID of the source clock used for the UART hardware.
+ */
 static inline void dmx_hal_get_sclk(uart_dev_t *dev, uart_sclk_t *source_clk) {
   *source_clk = dev->conf0.tick_ref_always_on ? UART_SCLK_APB : UART_SCLK_REF_TICK;
 }
 
+/**
+ * @brief Get the UART baud rate of the selected UART hardware.
+ * 
+ * @param dev Pointer to a UART struct.
+ * 
+ * @return The baud rate of the UART hardware. 
+ */
 static inline uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
   uint32_t src_clk = dev->conf0.tick_ref_always_on ? APB_CLK_FREQ : REF_CLK_FREQ;
   typeof(dev->clk_div) div_reg = dev->clk_div;
   return (src_clk << 4) / ((div_reg.div_int << 4) | div_reg.div_frag);
 }
 
+/**
+ * @brief Set the duration for the UART RX inactivity timeout that triggers the RX timeout interrupt.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param rx_timeout_thresh The RX timeout duration (unit: time of sending one byte).
+ */
 static inline void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_thresh) {
   if (dev->conf0.tick_ref_always_on == 0) {
     // when using ref_tick, the rx timeout threshold needs increase to 10 times
@@ -223,14 +304,31 @@ static inline void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_th
   }
 }
 
+/**
+ * @brief Sets the number of bytes that the UART must receive to trigger a RX FIFO full interrupt.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param rxfifo_full_thresh The number of bytes needed to trigger an RX FIFO full interrupt.
+ */
 static inline void dmx_hal_set_rxfifo_full_thr(uart_dev_t *dev, uint8_t rxfifo_full_thresh) {
   dev->conf1.rxfifo_full_thrhd = rxfifo_full_thresh;
 }
 
+/**
+ * @brief Sets the number of bytes that the UART TX FIFO must have remaining in it to trigger a TX FIFO empty interrupt.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param threshold The number of bytes remaining to trigger a TX FIFO empty interrupt.
+ */
 static inline void dmx_hal_set_txfifo_empty_thr(uart_dev_t *dev, uint8_t threshold) {
   dev->conf1.txfifo_empty_thrhd = threshold;
 }
 
+/**
+ * @brief Resets the UART RX FIFO.
+ * 
+ * @param dev Pointer to a UART struct.
+ */
 static inline void dmx_hal_rxfifo_rst(uart_dev_t *dev) {
   // hardware issue: we can not use `rxfifo_rst` to reset the dev rxfifo.
   uint16_t fifo_cnt;
@@ -249,6 +347,12 @@ static inline void dmx_hal_rxfifo_rst(uart_dev_t *dev) {
   } while (1);
 }
 
+/**
+ * @brief Get the length of the UART TX FIFO.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @return The length of the UART TX FIFO. 
+ */
 static inline uint32_t dmx_hal_get_txfifo_len(uart_dev_t *dev) {
   // default fifo len - fifo count
   return 128 - dev->status.txfifo_cnt;
