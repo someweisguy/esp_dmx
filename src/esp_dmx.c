@@ -378,7 +378,7 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   dmx_hal_set_baudrate(dmx_context[dmx_num].dev, dmx_config->source_clk, 
     dmx_config->baud_rate);
   dmx_hal_set_tx_idle_num(dmx_context[dmx_num].dev, dmx_config->idle_num);
-  dmx_hal_tx_break(dmx_context[dmx_num].dev, dmx_config->break_num);
+  dmx_hal_set_tx_break_num(dmx_context[dmx_num].dev, dmx_config->break_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   
   // flush both fifos
@@ -400,7 +400,7 @@ esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   
   uart_sclk_t source_clk;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_get_sclk(dmx_context[dmx_num].dev, &source_clk);
+  source_clk = dmx_hal_get_sclk(dmx_context[dmx_num].dev);
   dmx_hal_set_baudrate(dmx_context[dmx_num].dev, source_clk, baud_rate);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
@@ -433,7 +433,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   }
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_tx_break(dmx_context[dmx_num].dev, break_num);
+  dmx_hal_set_tx_break_num(dmx_context[dmx_num].dev, break_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
