@@ -4,8 +4,6 @@
 extern "C" {
 #endif
 
-#include "soc/uart_caps.h"
-
 #define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
 
 /* DMX shared parameters */

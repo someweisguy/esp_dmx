@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 #include "esp_system.h"
-#include "hal/uart_types.h"
+#include "driver/uart.h"
 
 #define DMX_DEFAULT_CONFIG \
   { .baud_rate = DMX_TYP_BAUD_RATE, .break_num = 44, .idle_num = 3, }

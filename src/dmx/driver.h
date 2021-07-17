@@ -4,16 +4,18 @@
 extern "C" {
 #endif
 
+#include "driver/gpio.h"
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"
-#include "hal/gpio_types.h"
-#include "hal/uart_hal.h"
-#include "soc/uart_caps.h"
 #include "freertos/semphr.h"
+#include "soc/uart_struct.h"
+
+#define UART_LL_GET_HW(num) \
+  (((num) == 0) ? (&UART0) : (((num) == 1) ? (&UART1) : (&UART2)))
 
 #define DMX_CONTEX_INIT_DEF(dmx_num)                               \
   {                                                                \
-    .hal.dev = UART_LL_GET_HW(dmx_num),                            \
+    .dev = UART_LL_GET_HW(dmx_num),                                \
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
@@ -55,7 +57,7 @@ static dmx_obj_t *p_dmx_obj[SOC_DMX_NUM] = {0};
 been initialized as well as to store spinlocks and pointers to UART hardware
 registers used by the HAL. */
 typedef struct {
-  uart_hal_context_t hal;
+  uart_dev_t *dev;
   portMUX_TYPE spinlock;
   bool hw_enabled;
 } dmx_context_t;
@@ -66,6 +68,46 @@ static dmx_context_t dmx_context[SOC_DMX_NUM] = {
 #if SOC_DMX_NUM > 2
     DMX_CONTEX_INIT_DEF(DMX_NUM_2),
 #endif
+};
+
+typedef struct {
+  int tx_sig;
+  int rx_sig;
+  int rts_sig;
+  int cts_sig;
+  int irq;
+  int module;
+} uart_signal_conn_t;
+
+/*
+ Bunch of constants for every UART peripheral: GPIO signals, irqs, hw addr of registers etc
+ Not included in Arduino!
+*/
+const uart_signal_conn_t uart_periph_signal[SOC_DMX_NUM] = {
+    {
+        .tx_sig = 14,
+        .rx_sig = 14,
+        .rts_sig = 15,
+        .cts_sig = 15,
+        .irq = 34,
+        .module = 1,
+    },
+    {
+        .tx_sig = 17,
+        .rx_sig = 17,
+        .rts_sig = 18,
+        .cts_sig = 18,
+        .irq = 35,
+        .module = 2,
+    },
+    {
+        .tx_sig = 198,
+        .rx_sig = 198,
+        .rts_sig = 199,
+        .cts_sig = 199,
+        .irq = 36,
+        .module = 3,
+    },
 };
 
 #ifdef __cplusplus

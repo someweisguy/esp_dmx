@@ -75,7 +75,7 @@ DMX is a unidirectional communication protocol used primarily in the entertainme
 
 Each DMX packet begins with a high-to-low transition called the break, followed by a low-to-high transition called the mark after break, followed by an eight-bit byte. This first byte is called the start code. The start-of-packet break, mark after break, and start code is called the reset sequence. After the reset sequence, a packet of up to 512 data bytes may be sent.
 
-DMX imposes very strict timing requirements to allow for backwards compatibility with older lighting equipment. Frame rates may range from 1fps to up to approximately 830fps. A typical DMX controller transmits packets at approximately 44fps. DMX receivers and transmitters have different timing requirements which must be adhered to carefully to ensure commands are processed.
+DMX imposes very strict timing requirements to allow for backwards compatibility with older lighting equipment. Frame rates may range from 1fps to up to approximately 830fps. A typical DMX controller transmits packets between approximately 25fps to 44fps. DMX receivers and transmitters have different timing requirements which must be adhered to carefully to ensure commands are processed.
 
 Today, DMX often struggles to keep up with the demands of the latest hardware. Its low data rate and small packet size sees it losing market popularity over more capable protocols. However its simplicity and robustness often makes it the first choice for small scale projects.
 
@@ -93,14 +93,14 @@ The DMX driver’s functions identify each of the UART controllers using `dmx_po
 
 Call the function `dmx_param_config()` and pass it a `dmx_config_t` structure. It contains all the parameters needed to configure the DMX packet settings. In most situations, custom packet configuration isn't necessary. The macro `DMX_DEFAULT_CONFIG` is provided to simplify this process.
 
-```c
+```cpp
 const dmx_config_t dmx_config = DMX_DEFAULT_CONFIG;
 dmx_param_config(DMX_NUM_2, &dmx_config);
 ```
 
 If using a custom DMX configuration is desired, the `dmx_config_t` parameters can be set manually.
 
-```c
+```cpp
 const dmx_config_t dmx_config = {
     .baud_rate = 250000, // typical baud rate   
     .break_num = 45,     // 180us 
@@ -125,7 +125,7 @@ Each of the above functions has a `_get_` counterpart to check the currently set
 
 ### Setting Communication Pins
 
-Configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro DMX_PIN_NO_CHANGE. This macro should also be used if a pin isn't used.
+Configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro `DMX_PIN_NO_CHANGE`. This macro should also be used if a pin isn't used.
 
 ```cpp
 // set TX: IO16 (port 2 default), RX: IO17 (port 2 default), RTS: IO21
@@ -240,7 +240,7 @@ if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
 
 ### Writing
 
-Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_tx_packet()` can be called. When a packet is sent out onto the bus, its size will be the same as the buffer size that was passed to `dmx_driver_install().`
+Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_tx_packet()` can be called. When a packet is sent out onto the bus, its size will be the same as the buffer size that was passed to `dmx_driver_install()`.
 
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
@@ -355,6 +355,7 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 
 ## To Do
 
+- Port the library to the Arduino IDE!
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
+- Enable use of ESP32 Hardware Timer for Reset Sequence.
 - Remote Device Management. Enable RDM compatibility for DMX transceivers.
-- Art-Net. Enable Art-Net compatibility using ESP-IDF Ethernet Driver.
