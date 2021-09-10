@@ -14,6 +14,47 @@ extern "C" {
 #define UART_FIFO_REG(i)      (REG_UART_BASE(i) + 0x0)
 
 /**
+ * @brief The the interrupt status mask from the UART.
+ * 
+ * @param dev Pointer to a UART struct.
+ * 
+ * @return The interrupt status mask. 
+ */
+static inline uint32_t dmx_hal_get_intsts_mask(uart_dev_t *dev) {
+  return dev->int_st.val;
+}
+
+/**
+ * @brief Enables UART interrupts using an interrupt mask.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param mask The UART mask that is enabled.
+ */
+static inline void dmx_hal_ena_intr_mask(uart_dev_t *dev, uint32_t mask) {
+  dev->int_ena.val |= mask;
+}
+
+/**
+ * @brief Disables UART interrupts using an interrupt mask.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param mask The UART mask that is disabled.
+ */
+static inline void dmx_hal_disable_intr_mask(uart_dev_t *dev, uint32_t mask) {
+  dev->int_ena.val &= (~mask);
+}
+
+/**
+ * @brief Clears UART interrupts using a mask.
+ * 
+ * @param dev Pointer to a UART struct.
+ * @param mask The UART mask that is cleared.
+ */
+static inline void dmx_hal_clr_intsts_mask(uart_dev_t *dev, uint32_t mask) {
+  dev->int_clr.val = mask;
+}
+
+/**
  * @brief Get the current length of the bytes in the rx FIFO.
  * 
  * @param hal Context of the HAL layer
@@ -125,47 +166,6 @@ static inline int dmx_hal_readn_rxfifo(uart_dev_t *dev, uint8_t *buf, int num) {
 }
 
 /**
- * @brief The the interrupt status mask from the UART.
- * 
- * @param dev Pointer to a UART struct.
- * 
- * @return The interrupt status mask. 
- */
-static inline uint32_t dmx_hal_get_intsts_mask(uart_dev_t *dev) {
-  return dev->int_st.val;
-}
-
-/**
- * @brief Disables UART interrupts using an interrupt mask.
- * 
- * @param dev Pointer to a UART struct.
- * @param mask The UART mask that is disabled.
- */
-static inline void dmx_hal_disable_intr_mask(uart_dev_t *dev, uint32_t mask) {
-  dev->int_ena.val &= (~mask);
-}
-
-/**
- * @brief Clears UART interrupts using a mask.
- * 
- * @param dev Pointer to a UART struct.
- * @param mask The UART mask that is cleared.
- */
-static inline void dmx_hal_clr_intsts_mask(uart_dev_t *dev, uint32_t mask) {
-  dev->int_clr.val = mask;
-}
-
-/**
- * @brief Enables UART interrupts using an interrupt mask.
- * 
- * @param dev Pointer to a UART struct.
- * @param mask The UART mask that is enabled.
- */
-static inline void dmx_hal_ena_intr_mask(uart_dev_t *dev, uint32_t mask) {
-  dev->int_ena.val |= mask;
-}
-
-/**
  * @brief Enables or disables the UART RTS line.
  * 
  * @param dev Pointer to a UART struct.
@@ -240,7 +240,7 @@ static inline void dmx_hal_set_baudrate(uart_dev_t *dev, uart_sclk_t source_clk,
  * @param idle_num The number of idle bits to transmit.
  */
 static inline void dmx_hal_set_tx_idle_num(uart_dev_t *dev, uint16_t idle_num) {
-  // TODO: make this like dmx_hal_tx_break() where 0 disables idle num?
+  // TODO: make this like dmx_hal_set_tx_break_num() where 0 disables idle num?
   dev->idle_conf.tx_idle_num = idle_num;
 }
 
@@ -250,7 +250,7 @@ static inline void dmx_hal_set_tx_idle_num(uart_dev_t *dev, uint16_t idle_num) {
  * @param dev Pointer to a UART struct.
  * @param break_num The number of break bits to transmit when a break is transmitted.
  */
-static inline void dmx_hal_tx_break(uart_dev_t *dev, uint8_t break_num) {
+static inline void dmx_hal_set_tx_break_num(uart_dev_t *dev, uint8_t break_num) {
   if (break_num > 0) {
     dev->idle_conf.tx_brk_num = break_num;
     dev->conf0.txd_brk = 1;
@@ -265,8 +265,8 @@ static inline void dmx_hal_tx_break(uart_dev_t *dev, uint8_t break_num) {
  * @param dev Pointer to a UART struct.
  * @param source_clk The ID of the source clock used for the UART hardware.
  */
-static inline void dmx_hal_get_sclk(uart_dev_t *dev, uart_sclk_t *source_clk) {
-  *source_clk = dev->conf0.tick_ref_always_on ? UART_SCLK_APB : UART_SCLK_REF_TICK;
+static inline uart_sclk_t dmx_hal_get_sclk(uart_dev_t *dev) {
+  return dev->conf0.tick_ref_always_on ? UART_SCLK_APB : UART_SCLK_REF_TICK;
 }
 
 /**
