@@ -13,10 +13,14 @@
 #include "esp_log.h"
 #include "soc/io_mux_reg.h"
 
+// TODO: use this macro as defined in Arduino, if it is defined in Arduino
+#ifndef CONFIG_ESP_CONSOLE_UART_NUM
+#define CONFIG_ESP_CONSOLE_UART_NUM 0
+#endif
+
 #define DMX_EMPTY_THRESH_DEFAULT  8
 #define DMX_FULL_THRESH_DEFAULT   120
 #define DMX_TOUT_THRESH_DEFAULT   126
-#define DMX_MIN_WAKEUP_THRESH     SOC_UART_MIN_WAKEUP_THRESH
 
 #define DMX_RXFIFO_FULL_THRHD_V   0x7F
 #define DMX_TXFIFO_EMPTY_THRHD_V  0x7F

@@ -12,6 +12,16 @@ extern "C" {
 
 typedef int dmx_port_t;             // DMX port type.
 
+// TODO: is this code defined somewhere in Arduino?
+#ifdef ARDUINO
+typedef enum {
+    UART_SCLK_APB = 0x0,            // UART source clock from APB
+    UART_SCLK_RTC = 0x1,            // UART source clock from RTC
+    UART_SCLK_XTAL = 0x2,           // UART source clock from XTAL
+    UART_SCLK_REF_TICK = 0x3,       // UART source clock from REF_TICK
+} uart_sclk_t;
+#endif 
+
 /**
  * @brief DMX configuration parameters for dmx_param_config() function
  */

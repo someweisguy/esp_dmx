@@ -4,7 +4,12 @@
 extern "C" {
 #endif
 
+// TODO: use SOC_DMX_NUM as defined in Arduino
+#ifndef SOC_DMX_NUM
+#define SOC_DMX_NUM                 3
+#else
 #define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
+#endif
 
 /* DMX shared parameters */
 #define DMX_MIN_BAUD_RATE           245000        // DMX minimum baud rate.
