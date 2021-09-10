@@ -10,6 +10,7 @@ extern "C" {
 #include "freertos/semphr.h"
 #include "soc/uart_struct.h"
 
+// FIXME: won't compile on ESP32-S2 or ESP32-C3
 #define UART_LL_GET_HW(num) \
   (((num) == 0) ? (&UART0) : (((num) == 1) ? (&UART1) : (&UART2)))
 
@@ -65,7 +66,7 @@ typedef struct {
 static dmx_context_t dmx_context[SOC_DMX_NUM] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_0),
     DMX_CONTEX_INIT_DEF(DMX_NUM_1),
-#if SOC_DMX_NUM > 2
+#if SOC_DMX_NUM > 2 // FIXME: not S2 or C3 compatible?
     DMX_CONTEX_INIT_DEF(DMX_NUM_2),
 #endif
 };
@@ -100,6 +101,7 @@ const uart_signal_conn_t uart_periph_signal[SOC_DMX_NUM] = {
         .irq = 35,
         .module = 2,
     },
+#if SOC_DMX_NUM > 2 // FIXME: not S2 or C3 compatible?
     {
         .tx_sig = 198,
         .rx_sig = 198,
@@ -108,6 +110,7 @@ const uart_signal_conn_t uart_periph_signal[SOC_DMX_NUM] = {
         .irq = 36,
         .module = 3,
     },
+#endif
 };
 
 #ifdef __cplusplus

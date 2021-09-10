@@ -6,7 +6,7 @@ extern "C" {
 
 // TODO: use SOC_DMX_NUM as defined in Arduino
 #ifndef SOC_DMX_NUM
-#define SOC_DMX_NUM                 3
+#define SOC_DMX_NUM                 3 // FIXME: allow for targetting specific boards
 #else
 #define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
 #endif

@@ -15,7 +15,7 @@
 
 // TODO: use this macro as defined in Arduino, if it is defined in Arduino
 #ifndef CONFIG_ESP_CONSOLE_UART_NUM
-#define CONFIG_ESP_CONSOLE_UART_NUM 0
+#define CONFIG_ESP_CONSOLE_UART_NUM 0 // FIXME: S2/C3 compatibility
 #endif
 
 #define DMX_EMPTY_THRESH_DEFAULT  8
