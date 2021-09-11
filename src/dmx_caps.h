@@ -4,12 +4,6 @@
 extern "C" {
 #endif
 
-#ifndef SOC_DMX_NUM
-#define SOC_DMX_NUM                 3 // FIXME: allow for targetting specific boards
-#else
-#define SOC_DMX_NUM                 SOC_UART_NUM  // Number of DMX ports available.
-#endif
-
 /* DMX shared parameters */
 #define DMX_MIN_BAUD_RATE           245000        // DMX minimum baud rate.
 #define DMX_TYP_BAUD_RATE           250000        // DMX typical baud rate.

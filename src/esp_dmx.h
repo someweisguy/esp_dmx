@@ -10,14 +10,22 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#define DMX_NUM_0                   0             // DMX port 0.
-#define DMX_NUM_1                   1             // DMX port 1.
-#if SOC_DMX_NUM > 2
-#define DMX_NUM_2                   2             // DMX port 2.
+#define DMX_NUM_0                   (0)           // DMX port 0.
+#define DMX_NUM_1                   (1)           // DMX port 1.
+#if UART_NUM_MAX > 2
+#define DMX_NUM_2                   (2)           // DMX port 2.
 #endif
-#define DMX_NUM_MAX                 SOC_DMX_NUM   // Number of available DMX ports.
+#define DMX_NUM_MAX                 UART_NUM_MAX  // DMX port max.
+#define SOC_DMX_NUM                 UART_NUM_MAX
 
 #define DMX_PIN_NO_CHANGE           -1            // Constant for dmx_set_pin() which indicates the pin should not be changed.
+
+/**
+ * @brief The default configuration for DMX. This macro may be used to 
+ * initialize a dmx_config_t to the standard's defined typical values.
+ */
+#define DMX_DEFAULT_CONFIG \
+  { .baud_rate = DMX_TYP_BAUD_RATE, .break_num = 44, .idle_num = 3, }
 
 /// Driver Functions  #########################################################
 /**

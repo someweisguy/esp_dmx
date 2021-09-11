@@ -7,9 +7,6 @@ extern "C" {
 #include "esp_system.h"
 #include "driver/uart.h"
 
-#define DMX_DEFAULT_CONFIG \
-  { .baud_rate = DMX_TYP_BAUD_RATE, .break_num = 44, .idle_num = 3, }
-
 typedef int dmx_port_t;             // DMX port type.
 
 // TODO: is this code defined somewhere in Arduino?
