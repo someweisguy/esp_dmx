@@ -10,15 +10,6 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#ifdef ARDUINO
-/* Arduino-ESP32 v1.0.6 does not support ESP32-S2 or ESP32-C3. This should be
-fixed in Arduino-ESP32 Arduino 2.0.0. */
-#define DMX_NUM_0                   (0)           // DMX port 0.
-#define DMX_NUM_1                   (1)           // DMX port 1.
-#define DMX_NUM_2                   (2)           // DMX port 2.
-#define DMX_NUM_MAX                 (3)           // DMX port max.
-#define SOC_DMX_NUM                 DMX_NUM_MAX
-#else
 #define DMX_NUM_0                   (0)           // DMX port 0.
 #define DMX_NUM_1                   (1)           // DMX port 1.
 #if UART_NUM_MAX > 2
@@ -26,7 +17,6 @@ fixed in Arduino-ESP32 Arduino 2.0.0. */
 #endif
 #define DMX_NUM_MAX                 UART_NUM_MAX  // DMX port max.
 #define SOC_DMX_NUM                 UART_NUM_MAX
-#endif
 
 #define DMX_PIN_NO_CHANGE           -1            // Constant for dmx_set_pin() which indicates the pin should not be changed.
 
