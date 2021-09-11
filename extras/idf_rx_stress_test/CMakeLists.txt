@@ -1,4 +1,4 @@
 idf_component_register(
-    SRCS "rx_stress_test.c"
+    SRCS "idf_rx_stress_test.c"
     INCLUDE_DIRS ""
 )
