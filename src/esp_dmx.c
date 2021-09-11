@@ -13,9 +13,16 @@
 #include "esp_log.h"
 #include "soc/io_mux_reg.h"
 
-// TODO: use this macro as defined in Arduino, if it is defined in Arduino
-#ifndef CONFIG_ESP_CONSOLE_UART_NUM
-#define CONFIG_ESP_CONSOLE_UART_NUM 0 // FIXME: S2/C3 compatibility
+/* Define the UART number for the console. Depends on which platform is in use. */
+#ifdef CONFIG_ESP_CONSOLE_UART_NUM
+// UART number of the console is defined in sdkconfig (using ESP-IDF).
+#define CONSOLE_UART_NUM  CONFIG_ESP_CONSOLE_UART_NUM
+#elif defined(ARDUINO_USB_CDC_ON_BOOT)
+// UART number of the console is defined in HardwareSerial.h (using Arduino).
+#define CONSOLE_UART_NUM  ARDUINO_USB_CDC_ON_BOOT
+#else
+// UART number of the console is not defined.
+#define CONSOLE_UART_NUM  -1
 #endif
 
 #define DMX_EMPTY_THRESH_DEFAULT  8
@@ -119,7 +126,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   // enable uart peripheral module
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
-    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+    if (dmx_num != CONSOLE_UART_NUM) {
       periph_module_reset(uart_periph_signal[dmx_num].module);
     }
     periph_module_enable(uart_periph_signal[dmx_num].module);
@@ -190,7 +197,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // disable uart peripheral module
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != false) {
-    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+    if (dmx_num != CONSOLE_UART_NUM) {
       periph_module_disable(uart_periph_signal[dmx_num].module);
     }
     dmx_context[dmx_num].hw_enabled = false;
@@ -378,7 +385,7 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   // enable uart peripheral module
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
-    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+    if (dmx_num != CONSOLE_UART_NUM) {
       periph_module_reset(uart_periph_signal[dmx_num].module);
     }
     periph_module_enable(uart_periph_signal[dmx_num].module);
