@@ -80,7 +80,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
       p_dmx_obj[dmx_num]->queue = NULL;
     }
     p_dmx_obj[dmx_num]->buf_size = buffer_size;
-#ifdef ARDUINO
+#ifdef Arduino_h
     /* Arduino only allocates 4-byte aligned memory on the heap. If the size of
     the double-buffer isn't divisible by 4, when it is later freed by calling
     dmx_driver_delete() the heap will appear corrupted and the ESP32 will
