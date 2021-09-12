@@ -359,6 +359,10 @@ This library offers additional macros for common definitions in the DMX standard
 
 ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated from other devices on the DMX bus. In the event of a power surge, the likely worse-case scenario would mean the failure of the RS-485 circuitry and not the entire DMX device. Some DMX devices may function without isolation, but using non-isolated equipment is not recommended.
 
+### Remote Device Management
+
+Currently, implementation of Remote Device Management (RDM) is not planned. The primary reason for this is because the author of this library does not have access to any lighting devices that support RDM, so it is difficult to test RDM compatibility. The secondary reason is because this library supports DMX at a low level of abstraction. RDM is relatively higher level than DMX. This means that RDM can be implemented using this library, but to implement RDM as an API of this library is beyond the scope of this library.
+
 ## To Do
 
 - Port the library to the Arduino IDE!
