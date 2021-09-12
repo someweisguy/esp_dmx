@@ -4,15 +4,15 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 
 ## Installation
 
-### ESP-IDF
-
-Clone this repository into your project's `components` folder. The library can be linked by putting `#include "esp_dmx.h"` at the top of your `main.c` file.
-
 ### Arduino
 
 This library requires the Arduino-ESP32 framework version 2.0.0 or newer. To install the correct framework, follow Espressif's instructions on the Arduino-ESP32 documentation page [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
 
 This library can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager and installing the desired version. Then simply include the library by adding `#include "esp_dmx.h"` at the top of your Arduino sketch.
+
+### ESP-IDF
+
+Clone this repository into your project's `components` folder. The library can be linked by putting `#include "esp_dmx.h"` at the top of your `main.c` file.
 
 ## Quick-Start Guide
 
