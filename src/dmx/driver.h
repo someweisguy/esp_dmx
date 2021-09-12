@@ -10,8 +10,8 @@ extern "C" {
 #include "freertos/semphr.h"
 #include "soc/uart_struct.h"
 
-// FIXME: won't compile on ESP32-S2 or ESP32-C3
-#define UART_LL_GET_HW(num) \
+// FIXME: May not compile on ESP32-S2 or ESP32-C3
+#define UART_LL_GET_HW(num) \ 
   (((num) == 0) ? (&UART0) : (((num) == 1) ? (&UART1) : (&UART2)))
 
 #define DMX_CONTEX_INIT_DEF(dmx_num)                               \

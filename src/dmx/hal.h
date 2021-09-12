@@ -365,7 +365,7 @@ static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uin
   
   // write to the txfifo using AHB address
   uint32_t fifo_addr = (dev == &UART0) ? UART_FIFO_AHB_REG(0) : (dev == &UART1)
-    ? UART_FIFO_AHB_REG(1) : UART_FIFO_AHB_REG(2); // FIXME: S2/C3 compatibility
+    ? UART_FIFO_AHB_REG(1) : UART_FIFO_AHB_REG(2);
   for (int i = 0; i < wr_len; i++) WRITE_PERI_REG(fifo_addr, buf[i]);
 }
 
