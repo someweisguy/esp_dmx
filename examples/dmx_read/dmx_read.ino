@@ -2,13 +2,13 @@
   
   DMX Read
 
-	This sketch allows you to read DMX from a DMX controller using a standard DMX
+  This sketch allows you to read DMX from a DMX controller using a standard DMX
   shield, such SparkFun ESP32 Thing Plus DMX to LED Shield.
 
-	Created 9 September 2021
-	By Mitch Weisbrod
+  Created 9 September 2021
+  By Mitch Weisbrod
 
-	hhttps://github.com/someweisguy/esp_dmx
+  https://github.com/someweisguy/esp_dmx
 
 */
 #include "esp_dmx.h"
