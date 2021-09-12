@@ -75,14 +75,16 @@ void loop() {
   if (packetCounter >= 44) {
 
     /* Increment every byte in our packet to the new increment value. Notice
-      we don't increment the zeroeth byte, since that is our DMX start code.*/
+      we don't increment the zeroeth byte, since that is our DMX start code.
+      Then we must write our changes to the DMX packet. */
     for (int i = 1; i < DMX_MAX_PACKET_SIZE; ++i) {
       data[i] = incrementValue;
     }
+    dmx_write_packet(dmxPort, data, DMX_MAX_PACKET_SIZE);
 
     /* Log a message to the Serial Monitor, decrement the packet counter, and
       increment our increment value. */
-    Serial.printf("Sending DMX 0x%02X", incrementValue);
+    Serial.printf("Sending DMX 0x%02X\n", incrementValue);
     packetCounter -= 44;
     incrementValue++;
   }
