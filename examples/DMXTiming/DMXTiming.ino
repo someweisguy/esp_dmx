@@ -1,6 +1,6 @@
 /*
 
-  DMX Timing Tool
+  DMX Timing
 
   This sketch allows you to read and get detailed metadata DMX from a DMX
   controller using a standard DMX shield, such SparkFun ESP32 Thing Plus 
