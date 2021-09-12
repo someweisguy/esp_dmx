@@ -5,27 +5,27 @@ extern "C" {
 #endif
 
 /* DMX shared parameters */
-#define DMX_MIN_BAUD_RATE           245000        // DMX minimum baud rate.
-#define DMX_TYP_BAUD_RATE           250000        // DMX typical baud rate.
-#define DMX_MAX_BAUD_RATE           255000        // DMX maximum baud rate.
-#define DMX_MAX_PACKET_SIZE         513           // DMX maximum packet size.
+#define DMX_MIN_BAUD_RATE           (245000)        // DMX minimum baud rate.
+#define DMX_TYP_BAUD_RATE           (250000)        // DMX typical baud rate.
+#define DMX_MAX_BAUD_RATE           (255000)        // DMX maximum baud rate.
+#define DMX_MAX_PACKET_SIZE         (513)           // DMX maximum packet size.
 
 /* DMX client/receive timing parameters */
-#define DMX_RX_MIN_SPACE_FOR_BRK_US 88            // DMX minimum receivable break length in microseconds.
-#define DMX_RX_MIN_MRK_AFTER_BRK_US 8             // DMX minimum receivable mark after break length in microseconds.
-#define DMX_RX_MAX_MRK_AFTER_BRK_US 999999        // DMX maximum receivable mark after break length in microseconds.
-#define DMX_RX_MIN_BRK_TO_BRK_US    1196          // DMX minimum receivable break-to-break length in microseconds.
-#define DMX_RX_MAX_BRK_TO_BRK_US    1250000       // DMX maximum receivable break-to-break length in microseconds.
-#define DMX_RX_PACKET_TOUT_MS       1250          // DMX client packet timeout in milliseconds.
+#define DMX_RX_MIN_SPACE_FOR_BRK_US (88)            // DMX minimum receivable break length in microseconds.
+#define DMX_RX_MIN_MRK_AFTER_BRK_US (8)             // DMX minimum receivable mark after break length in microseconds.
+#define DMX_RX_MAX_MRK_AFTER_BRK_US (999999)        // DMX maximum receivable mark after break length in microseconds.
+#define DMX_RX_MIN_BRK_TO_BRK_US    (1196)          // DMX minimum receivable break-to-break length in microseconds.
+#define DMX_RX_MAX_BRK_TO_BRK_US    (1250000)       // DMX maximum receivable break-to-break length in microseconds.
+#define DMX_RX_PACKET_TOUT_MS       (1250)          // DMX client packet timeout in milliseconds.
 #define DMX_RX_PACKET_TOUT_TICK     ((TickType_t)DMX_RX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX client packet timeout in FreeRTOS ticks.
 
 /* DMX host/transmit timing parameters */
-#define DMX_TX_MIN_SPACE_FOR_BRK_US 92            // DMX minimum transmittable break length in microseconds.
-#define DMX_TX_MIN_MRK_AFTER_BRK_US 12            // DMX minimum transmittable mark after break length in microseconds.
-#define DMX_TX_MAX_MRK_AFTER_BRK_US 999999        // DMX maximum transmittable mark after break length in microseconds.
-#define DMX_TX_MIN_BRK_TO_BRK_US    1204          // DMX minimum transmittable break-to-break length in microseconds.
-#define DMX_TX_MAX_BRK_TO_BRK_US    1000000       // DMX maximum transmittable break-to-break length in microseconds.
-#define DMX_TX_PACKET_TOUT_MS       1000          // DMX host packet timeout in milliseconds.
+#define DMX_TX_MIN_SPACE_FOR_BRK_US (92)            // DMX minimum transmittable break length in microseconds.
+#define DMX_TX_MIN_MRK_AFTER_BRK_US (12)            // DMX minimum transmittable mark after break length in microseconds.
+#define DMX_TX_MAX_MRK_AFTER_BRK_US (999999)        // DMX maximum transmittable mark after break length in microseconds.
+#define DMX_TX_MIN_BRK_TO_BRK_US    (1204)          // DMX minimum transmittable break-to-break length in microseconds.
+#define DMX_TX_MAX_BRK_TO_BRK_US    (1000000)       // DMX maximum transmittable break-to-break length in microseconds.
+#define DMX_TX_PACKET_TOUT_MS       (1000)          // DMX host packet timeout in milliseconds.
 #define DMX_TX_PACKET_TOUT_TICK     ((TickType_t)DMX_TX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX host packet timeout in FreeRTOS ticks.
 
 
@@ -100,7 +100,7 @@ extern "C" {
  * identified by a NULL start code are the default packets sent on DMX 
  * networks.
  */
-#define DMX_SC     0x00
+#define DMX_SC     (0x00)
 
 /**
  * @brief Remote Device Management (RDM) start code. RDM is an extension to
@@ -110,7 +110,7 @@ extern "C" {
  * support of the RDM protocol. The use of RDM devices in a DMX system will not
  * compromise any DMX functionality. 
  */
-#define RDM_SC     0xcc
+#define RDM_SC     (0xcc)
 
 /**
  * @brief ASCII Text alternate start code. Alternate start code 0x17 designates
@@ -130,7 +130,7 @@ extern "C" {
  *     slot value of zero shall terminate the ASCII string. Slots transmitted 
  *     after this null terminator up to the reset sequence shall be ignored.
  */
-#define DMX_TEXT_ASC     0x17 
+#define DMX_TEXT_ASC     (0x17) 
 
 /**
  * @brief Test Packet alternate start code. Alternate start code 0x55 designates a
@@ -143,7 +143,7 @@ extern "C" {
  * equal to 120 microseconds. The mark-after-break time shall be greater than
  * or equal to 8 microseconds and less than or equal to 16 microseconds.
  */
-#define DMX_TEST_ASC     0x55
+#define DMX_TEST_ASC     (0x55)
 
 /**
  * @brief UTF-8 Text Packet alternate start code. Alternate start code 0x90
@@ -164,7 +164,7 @@ extern "C" {
  *     of zero shall terminate the UTF-8 text string. Slots transmitted after
  *     this null terminator up to the reset sequence shall be ignored.
  */
-#define DMX_UTF8_ASC     0x90
+#define DMX_UTF8_ASC     (0x90)
 
 /**
  * @brief Manufacturer/Organization ID alternate start code. Alternate start
@@ -173,7 +173,7 @@ extern "C" {
  * The next byte after the manufacturers ID would normally be a manufacturer’s
  * sub-code
  */
-#define DMX_ORG_ID_ASC   0x91
+#define DMX_ORG_ID_ASC   (0x91)
 
 /**
  * @brief System Information Packet alternate start code. Alternate startcode
@@ -186,7 +186,7 @@ extern "C" {
  * For more information on the System Information Packet alternate start code,
  * see annex D5 in the ANSI-ESTA E1.11 DMX512-A standards document.
  */
-#define DMX_SIP_ASC      0xcf
+#define DMX_SIP_ASC      (0xcf)
 
 #ifdef __cplusplus
 }

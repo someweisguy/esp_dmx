@@ -18,7 +18,7 @@ extern "C" {
 #define DMX_NUM_MAX                 UART_NUM_MAX  // DMX port max.
 #define SOC_DMX_NUM                 _Pragma ("GCC warning \"'SOC_DMX_NUM' is depreciated. Use 'DMX_NUM_MAX' instead.\"") DMX_NUM_MAX
 
-#define DMX_PIN_NO_CHANGE           -1            // Constant for dmx_set_pin() which indicates the pin should not be changed.
+#define DMX_PIN_NO_CHANGE           (-1)          // Constant for dmx_set_pin() which indicates the pin should not be changed.
 
 /**
  * @brief The default configuration for DMX. This macro may be used to 
