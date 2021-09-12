@@ -82,8 +82,7 @@ void loop() {
 
     /* Log a message to the Serial Monitor, decrement the packet counter, and
       increment our increment value. */
-    Serial.print("Sending DMX 0x");
-    Serial.println(incrementValue, HEX);
+    Serial.printf("Sending DMX 0x%02X", incrementValue);
     packetCounter -= 44;
     incrementValue++;
   }
