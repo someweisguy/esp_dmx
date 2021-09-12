@@ -1,63 +1,101 @@
 /*
- * Writes data to the DMX bus. Increments the value of each byte in the written
- * packet every 1 second.
- */
 
+  DMX Wr9te
+
+  This sketch allows you to write DMX to a DMX listener using a standard DMX
+  shield, such SparkFun ESP32 Thing Plus DMX to LED Shield.
+
+  Created 10 September 2021
+  By Mitch Weisbrod
+
+  https://github.com/someweisguy/esp_dmx
+
+*/
 #include "esp_dmx.h"
 
-#define TX_PIN 17  // the pin we are using to TX with
-#define RX_PIN 16  // the pin we are using to RX with
-#define EN_PIN 21  // the pin we are using to enable TX on the DMX transceiver
+/* First, lets define the hardware pins that we are using with our ESP32. We
+  need to define which pin is transmitting data and which pin is receiving data.
+  DMX circuits also often need to be told when we are transmitting and when we are
+  receiving data. We can do this by defining an enable pin. */
+int transmitPin = 17;
+int receivePin = 16;
+int enablePin = 21;
 
-// declare the user buffer to write DMX data
-static byte data[DMX_MAX_PACKET_SIZE] = {};
+/* Next, lets decide which DMX port to use. The ESP32 has either 2 or 3 ports.
+  Port 0 is typically used to transmit serial data back to your Serial Monitor,
+  so we shouldn't use that port. Lets use port 2! */
+dmx_port_t dmxPort = 2;
 
-// use DMX port 2
-static const dmx_port_t dmx_num = DMX_NUM_2;
+/* Now we want somewhere to store our DMX data. Since a single packet of DMX
+  data can be up to 513 bytes long, we want our array to be at least that long.
+  This library knows that the max DMX packet size is 513, so we can fill in the
+  array size with `DMX_MAX_PACKET_SIZE`. */
+byte data[DMX_MAX_PACKET_SIZE];
 
-// keeps track of how often we are logging messages to console
-static unsigned int packet_counter = 0;
-static byte inc_value = 0;
+/* The last few main variables that we need allow us to log data to the Serial
+  Monitor. In this sketch, we want to log some information about the DMX we are
+  transmitting once every 44 packets. We'll declare a packet counter variable
+  that will keep track of the amount of packets that have been sent since we
+  last logged a serial message. We'll also want to increment the value of each
+  byte we send so we'll declare a variable to track what value we should
+  increment to. */
+int packetCounter = 44;
+byte incrementValue = 0;
 
 void setup() {
+  /* Start the serial connection back to the computer so that we can log
+     messages to the Serial Monitor. Lets set the baud rate to 115200. */
+  Serial.begin(115200);
 
-  Serial.begin(9600);
-  
-  // configure the UART hardware to the default DMX settings
-  const dmx_config_t dmx_config = DMX_DEFAULT_CONFIG;
-  dmx_param_config(dmx_num, &dmx_config);
+  /* Configure the DMX hardware to the default DMX settings and tell the DMX
+      driver which hardware pins we are using. */
+  dmx_config_t dmxConfig = DMX_DEFAULT_CONFIG;
+  dmx_param_config(dmxPort, &dmxConfig);
+  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
-  // set communications pins
-  dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
+  /* Now we can install the DMX driver! We'll tell it which DMX port to use and
+    how big our DMX packet is expected to be. Typically, we'd pass it a handle
+    to a queue, but since we are only transmitting DMX, we don't need a queue.
+    We can write `NULL` where we'd normally put our queue handle. We'll also
+    pass some interrupt priority information. The interrupt priority can be set
+    to 1. */
+  int queueSize = 0;
+  int interruptPriority = 1;
+  dmx_driver_install(dmxPort, DMX_MAX_PACKET_SIZE, queueSize, NULL,
+                     interruptPriority);
 
-  // initialize the DMX driver without an event queue
-  dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 0, NULL, 1);
-
-  // set DMX to TX mode
-  dmx_set_mode(dmx_num, DMX_MODE_TX);
+  /* Finally, since we are transmitting DMX, we should tell the DMX driver that
+    we are transmitting, not receiving. We should also set our DMX start code
+    to 0.*/
+  dmx_set_mode(dmxPort, DMX_MODE_TX);
+  data[0] = 0;
 }
 
 void loop() {
-  // block until the packet is done being sent
-  dmx_wait_tx_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
+  if (packetCounter >= 44) {
 
-  // transmit the packet on the DMX bus
-  dmx_tx_packet(dmx_num);
+    /* Increment every byte in our packet to the new increment value. Notice
+      we don't increment the zeroeth byte, since that is our DMX start code.*/
+    for (int i = 1; i < DMX_MAX_PACKET_SIZE; ++i) {
+      data[i] = incrementValue;
+    }
 
-  // increment the packet counter
-  ++packet_counter;
-
-  // increment every data slot in the frame by 1 every 1 second (44fps)
-  if (packet_counter >= 44) {
-    printf("incrementing data to 0x%02X\n", ++inc_value);
-    
-    // don't increment the start code
-    for (int i = 1; i < DMX_MAX_PACKET_SIZE; ++i) data[i]++;
-
-    // write the packet to the DMX driver
-    dmx_write_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
-
-    // decrement our packet counter timer
-    packet_counter -= 44;
+    /* Log a message to the Serial Monitor, decrement the packet counter, and
+      increment our increment value. */
+    Serial.print("Sending DMX 0x");
+    Serial.println(incrementValue, HEX);
+    packetCounter -= 44;
+    incrementValue++;
   }
+
+  /* Now we can transmit the DMX packet! */
+  dmx_tx_packet(dmxPort);
+  packetCounter++;
+
+  /* We can do some other work here if we want! */
+  // Do other work here...
+
+  /* If we have no more work to do, we will wait until we are done sending our
+    DMX packet. */
+  dmx_wait_tx_done(dmxPort, DMX_TX_PACKET_TOUT_TICK);
 }
