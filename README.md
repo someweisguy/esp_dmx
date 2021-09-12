@@ -10,9 +10,9 @@ Clone this repository into your project's `components` folder. The library can b
 
 ### Arduino
 
-This library requires the Arduino-ESP32 framework version 2.0.0 or newer. It can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager and installing the desired version. Then simply include the library by added `#include "esp_dmx.h"` at the top of your Arduino sketch.
+This library requires the Arduino-ESP32 framework version 2.0.0 or newer. To install the correct framework, follow Espressif's instructions on the Arduino-ESP32 documentation page [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
 
-To install the proper board manager for ESP32 on Arduino, follow Espressif's instructions on the Arduino-ESP32 documentation page [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
+This library can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager and installing the desired version. Then simply include the library by adding `#include "esp_dmx.h"` at the top of your Arduino sketch.
 
 ## Quick-Start Guide
 
