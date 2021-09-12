@@ -365,7 +365,5 @@ Currently, implementation of Remote Device Management (RDM) is not planned. The 
 
 ## To Do
 
-- Port the library to the Arduino IDE!
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
-- Enable use of ESP32 Hardware Timer for Reset Sequence.
-- Remote Device Management. Enable RDM compatibility for DMX transceivers?
+- Allow for use of ESP32 Hardware Timer for Reset Sequence.
