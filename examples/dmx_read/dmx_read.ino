@@ -99,11 +99,8 @@ void loop() {
       /* Print a log message every 1 second (1,000,000 microseconds). */
       if (timer >= 1000000) {
         /* Print the received start code - it's usually 0.*/
-        Serial.print("Start code is 0x");
-        Serial.print(data[0], HEX);
-        /* Print the first data byte. */
-        Serial.print(" and address 1 is 0x");
-        Serial.println(data[1], HEX);
+        Serial.printf("Start code is 0x%02X and slot 1 is 0x%02X\n",
+                      data[0], data[1]);
         timer -= 1000000;
       }
 
