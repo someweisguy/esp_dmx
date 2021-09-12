@@ -8,6 +8,12 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 
 Clone this repository into your project's `components` folder. The library can be linked by putting `#include "esp_dmx.h"` at the top of your `main.c` file.
 
+### Arduino
+
+This library requires the Arduino-ESP32 framework version 2.0.0 or newer. It can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager and installing the desired version. Then simply include the library by added `#include "esp_dmx.h"` at the top of your Arduino sketch.
+
+To install the proper board manager for ESP32 on Arduino, follow Espressif's instructions on the Arduino-ESP32 documentation page [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
+
 ## Quick-Start Guide
 
 This library was written to look similar to the ESP-IDF UART implementation. To get started, call the following code in `app_main()` in your `main.c` file.
@@ -29,7 +35,7 @@ dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 10, &dmx_queue,
       ESP_INTR_FLAG_IRAM);
 ```
 
-Before the user is able to read or write to the DMX bus, the driver mode must be set. Call `dmx_set_mode()` and pass either `DMX_MODE_RX` or `DMX_MODE_TX`. After the driver is installed `DMX_MODE_RX` is the default.
+Before the user is able to write to the DMX bus, the driver mode must be set. Call `dmx_set_mode()` and pass either `DMX_MODE_RX` or `DMX_MODE_TX`. After the driver is installed `DMX_MODE_RX` is the default.
 
 ```cpp
 // configure for tx
@@ -358,4 +364,4 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 - Port the library to the Arduino IDE!
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
 - Enable use of ESP32 Hardware Timer for Reset Sequence.
-- Remote Device Management. Enable RDM compatibility for DMX transceivers.
+- Remote Device Management. Enable RDM compatibility for DMX transceivers?
