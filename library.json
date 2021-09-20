@@ -1,0 +1,24 @@
+{
+  "name": "esp_dmx",
+  "version": "1.1.1",
+  "description": "Transmit and receive DMX using an ESP32.",
+  "keywords": "esp32, espressif32, DMX, DMX512, DMX512-A, lighting, theater, theatre, esp_dmx",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/someweisguy/esp_dmx"
+  },
+  "authors":
+  [
+    {
+      "name": "Mitch Weisbrod",
+      "email": "mitch@theweisbrods.com",
+      "url": "https://github.com/someweisguy/esp_dmx",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/someweisguy/esp_dmx",
+  "frameworks": "arduino, espidf",
+  "platforms": "espressif32"
+}

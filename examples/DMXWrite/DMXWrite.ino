@@ -1,6 +1,6 @@
 /*
 
-  DMX Wr9te
+  DMX Write
 
   This sketch allows you to write DMX to a DMX listener using a standard DMX
   shield, such SparkFun ESP32 Thing Plus DMX to LED Shield.
