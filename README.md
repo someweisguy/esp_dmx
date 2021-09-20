@@ -16,7 +16,7 @@ Clone this repository into your project's `components` folder. The library can b
 
 ## Quick-Start Guide
 
-This library was written to look similar to the ESP-IDF UART implementation. To get started, call the following code in `app_main()` in your `main.c` file.
+This library was written to look similar to the ESP-IDF UART implementation. To get started, call the following code in your `setup()` function if using Arduino, or `app_main()` in your `main.c` file if using ESP-IDF.
 
 ```cpp
 const dmx_port_t dmx_num = DMX_NUM_2;
@@ -223,7 +223,7 @@ The timing tool installs an edge-triggered interrupt on the specified GPIO pin. 
 
 A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed earlier than higher GPIO numbers. It is recommended that the DMX RX pin be shorted to a lower GPIO number in order to ensure that the DMX timing tool can run with low latency.
 
-It is important to note that the timing tool requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the timing tool, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig`.
+It is important to note that the timing tool requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the timing tool, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig` if the ESP-IDF is used.
 
 Before enabling the timing analysis tool `gpio_install_isr_service()` must be called.
 
