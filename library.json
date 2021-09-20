@@ -2,7 +2,7 @@
   "name": "esp_dmx",
   "version": "1.1.1",
   "description": "Transmit and receive DMX using an ESP32.",
-  "keywords": "esp32, espressif32, DMX, DMX512, DMX512-A, lighting, theater, theatre, esp_dmx",
+  "keywords": "esp32, espressif32, DMX, DMX512, DMX512-A, lighting, theater, theatre, espdmx, esp dmx",
   "repository":
   {
     "type": "git",
