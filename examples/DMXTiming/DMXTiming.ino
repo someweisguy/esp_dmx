@@ -12,8 +12,8 @@
   https://github.com/someweisguy/esp_dmx
 
 */
-#include "Arduino.h"
-#include "esp_dmx.h"
+#include <Arduino.h>
+#include <esp_dmx.h">
 
 /* First, lets define the hardware pins that we are using with our ESP32. We
   need to define which pin is transmitting data and which pin is receiving data.
