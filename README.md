@@ -14,6 +14,10 @@ This library can be installed by cloning this repository into your your `Arduino
 
 Clone this repository into your project's `components` folder. The library can be linked by putting `#include "esp_dmx.h"` at the top of your `main.c` file.
 
+### PlatformIO
+
+This library is compatible with the PlatformIO IDE. PlatformIO does not currently support Arduino-ESP32 v2.0.0 by default. Therefore, when using the Arduino framework on PlatformIO, it is required to adjust your default `platformio.ini` to enable this library to compile. Simply change the platform specified in `platformio.ini` from `espressif32` to `https://github.com/platformio/platform-espressif32.git#feature/arduino-upstream`. This instructs PlatformIO to download Arduino-ESP32 v2.0.0 from its repository which may take some time, typically about 15 minutes. No such changes are necessary when using ESP-IDF on PlatformIO.
+
 ## Quick-Start Guide
 
 This library was written to look similar to the ESP-IDF UART implementation. To get started, call the following code in your `setup()` function if using Arduino, or `app_main()` in your `main.c` file if using ESP-IDF.
