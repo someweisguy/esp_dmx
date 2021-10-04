@@ -11,6 +11,7 @@
   https://github.com/someweisguy/esp_dmx
 
 */
+#include "Arduino.h"
 #include "esp_dmx.h"
 
 /* First, lets define the hardware pins that we are using with our ESP32. We
