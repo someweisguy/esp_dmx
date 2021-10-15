@@ -246,7 +246,7 @@ Individual DMX slots can be read using `dmx_read_slot()`. To verify that the DMX
 
 ```cpp
 const int slot_idx = 5;
-if (event.status == DMX_OK && event.size > slot_idx) {
+if (event.status == DMX_OK && event.size >= slot_idx) {
   uint8_t slot_data;
   dmx_read_slot(DMX_NUM_2, slot_idx, &slot_data);
 
