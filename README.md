@@ -197,8 +197,8 @@ To set the driver mode call `dmx_set_mode()` and pass to it either `DMX_MODE_RX`
 
 ```cpp
 // set the DMX driver to transmit mode
-dmx_set_mode(dmx_num, DMX_MODE_TX);
-// dmx_set_mode(dmx_num, DMX_MODE_RX); // don't need to rx now
+dmx_set_mode(DMX_NUM_2, DMX_MODE_TX);
+// dmx_set_mode(DMX_NUM_2, DMX_MODE_RX); // don't need to rx now
 ```
 
 If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports. It should be noted that this is an unusual use case. This library is not meant to act as a DMX optoisolator or splitter.
@@ -217,7 +217,7 @@ dmx_event_t event;
 while (1) {
     if (xQueueReceive(dmx_queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
         // read back the size of the packet into our buffer
-        dmx_read_packet(dmx_num, data, event.size);
+        dmx_read_packet(DMX_NUM_2, data, event.size);
     } else {
         // handle packet timeout...
     }
@@ -236,13 +236,25 @@ These values can be used to determine if the received data should be processed o
 ```cpp
 // if there are no errors and the start code is correct, read the packet
 if (event.status == DMX_OK && event.start_code == DMX_SC) {
-    dmx_read_packet(dmx_num, data, event.size);
+    dmx_read_packet(DMX_NUM_2, data, event.size);
 
     printf("Packet took %i microseconds!", event.duration);
 }
 ```
 
-This library offers tools to perform robust error-checking. For more information on errors, see the Error Handling section.
+Individual DMX slots can be read using `dmx_read_slot()`. To verify that the DMX slot exists, the size of the packet should be verified.
+
+```cpp
+const int slot_idx = 5;
+if (event.status == DMX_OK && event.size > slot_idx) {
+  uint8_t slot_data;
+  dmx_read_slot(DMX_NUM_2, slot_idx, &slot_data);
+
+  printf("Slot %i == %i", slot_idx, slot_data);
+}
+```
+
+This library offers tools to perform robust error-checking. For more information on errors, see the [Error Handling](#error-handling) section.
 
 ### Timing Tool
 
@@ -259,7 +271,7 @@ Before enabling the timing analysis tool `gpio_install_isr_service()` must be ca
 ```cpp
 gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
 const int timing_io_num = 4; // lowest exposed pin on the Feather breakout board
-dmx_rx_timing_enable(dmx_num, timing_io_num);
+dmx_rx_timing_enable(DMX_NUM_2, timing_io_num);
 ```
 
 Break and mark after break timings are reported to the event queue when the timing tool is enabled. If the timing tool is disabled, either because `dmx_rx_timing_disable()` was called or because `dmx_rx_timing_enable()` was not called, the reported break and mark after break durations will default to -1.
@@ -308,6 +320,17 @@ while (1) {
 
 The DMX driver will automatically check if the DMX transmission has timed out between sending the last packet and the current packet. If it has, it will simulate a DMX reset sequence in software before sending a new packet. Simulating the reset sequence uses inefficient busy-waiting to recreate a break and mark after break. ESP32 busy-waiting is imprecise at the microsecond resolution that is needed for the reset sequence. If the DMX task is not preempted it is usually precise within 30μs. Because this should only happen after sending the first packet and because 30μs is well within DMX timing requirements, this behavior is acceptable for this library.
 
+Individual DMX slots can be written using `dmx_write_slot()`.
+
+```cpp
+// set slot 5 to 127
+const int slot_idx = 5;
+uint8_t slot_val = 127;
+dmx_write_slot(DMX_NUM_2, slot_idx, slot_val);
+
+// don't forget to call dmx_tx_packet()!
+```
+
 ## Error Handling
 
 ### Packet Status
@@ -331,7 +354,7 @@ while (1) {
         printf("Received packet with start code: %02X and size: %i\n",
           event.start_code, event.size);
         // data is ok - read the packet into our buffer
-        dmx_read_packet(dmx_num, data, event.size);
+        dmx_read_packet(DMX_NUM_2, data, event.size);
         break;
 
       case DMX_ERR_IMPROPER_SLOT:
