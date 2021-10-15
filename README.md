@@ -4,26 +4,26 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 
 ## Contents
 
-- [Library Installation](https://github.com/someweisguy/esp_dmx#library-installation)
-  - [Arduino](https://github.com/someweisguy/esp_dmx#arduino)
-  - [ESP-IDF](https://github.com/someweisguy/esp_dmx#esp-idf)
-  - [PlatformIO](https://github.com/someweisguy/esp_dmx#platformio)
-- [Quick-Start Guide](https://github.com/someweisguy/esp_dmx#quick-start-guide)
-- [What is DMX?](https://github.com/someweisguy/esp_dmx#what-is-dmx)
-- [Configuring the DMX Port](https://github.com/someweisguy/esp_dmx#configuring-the-dmx-port)
+- [Library Installation](#library-installation)
+  - [Arduino](#arduino)
+  - [ESP-IDF](#esp-idf)
+  - [PlatformIO](#platformio)
+- [Quick-Start Guide](#quick-start-guide)
+- [What is DMX?](#what-is-dmx)
+- [Configuring the DMX Port](#configuring-the-dmx-port)
   - [Parameter Configuration](#parameter-configuration)
-  - Setting Communication Pins
-  - [Installing the Driver](https://github.com/someweisguy/esp_dmx#installing-the-driver)
-- [Reading and Writing](https://github.com/someweisguy/esp_dmx#reading-and-writing)
-  - Device Mode
-  - Reading
-  - Timing Tool
-  - Writing
-- [Error Handling](https://github.com/someweisguy/esp_dmx#error-handling)
-- [Additional Considerations](https://github.com/someweisguy/esp_dmx#additional-considerations)
-  - Hardware Specifications
-  - Remote Device Management
-- [To Do](https://github.com/someweisguy/esp_dmx#to-do)
+  - [Setting Communication Pins](#setting-communication-pins)
+  - [Installing the Driver](#installing-the-driver)
+- [Reading and Writing](#reading-and-writing)
+  - [Device Mode](#device-mode)
+  - [Reading](#reading)
+  - [Timing Tool](#timing-tool)
+  - [Writing](#writing)
+- [Error Handling](#error-handling)
+- [Additional Considerations](#additional-considerations)
+  - [Hardware Specifications](#hardware-specifications)
+  - [Remote Device Management](#remote-device-management)
+- [To Do](#to-do)
 
 ## Library Installation
 
