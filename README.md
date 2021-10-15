@@ -11,7 +11,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 - [Quick-Start Guide](https://github.com/someweisguy/esp_dmx#quick-start-guide)
 - [What is DMX?](https://github.com/someweisguy/esp_dmx#what-is-dmx)
 - [Configuring the DMX Port](https://github.com/someweisguy/esp_dmx#configuring-the-dmx-port)
-  - Parameter Configuration
+  - [Parameter Configuration](#parameter-configuration)
   - Setting Communication Pins
   - [Installing the Driver](https://github.com/someweisguy/esp_dmx#installing-the-driver)
 - [Reading and Writing](https://github.com/someweisguy/esp_dmx#reading-and-writing)
