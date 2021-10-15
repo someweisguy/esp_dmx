@@ -5,13 +5,25 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 ## Contents
 
 - [Library Installation](https://github.com/someweisguy/esp_dmx#library-installation)
+  - [Arduino](https://github.com/someweisguy/esp_dmx#arduino)
+  - [ESP-IDF](https://github.com/someweisguy/esp_dmx#esp-idf)
+  - [PlatformIO](https://github.com/someweisguy/esp_dmx#platformio)
 - [Quick-Start Guide](https://github.com/someweisguy/esp_dmx#quick-start-guide)
 - [What is DMX?](https://github.com/someweisguy/esp_dmx#what-is-dmx)
 - [Configuring the DMX Port](https://github.com/someweisguy/esp_dmx#configuring-the-dmx-port)
-- [Installing the Driver](https://github.com/someweisguy/esp_dmx#installing-the-driver)
+  - Parameter Configuration
+  - Setting Communication Pins
+  - [Installing the Driver](https://github.com/someweisguy/esp_dmx#installing-the-driver)
 - [Reading and Writing](https://github.com/someweisguy/esp_dmx#reading-and-writing)
+  - Device Mode
+  - Reading
+  - Timing Tool
+  - Writing
 - [Error Handling](https://github.com/someweisguy/esp_dmx#error-handling)
 - [Additional Considerations](https://github.com/someweisguy/esp_dmx#additional-considerations)
+  - Hardware Specifications
+  - Remote Device Management
+- [To Do](https://github.com/someweisguy/esp_dmx#to-do)
 
 ## Library Installation
 
@@ -108,7 +120,7 @@ Configuring and setting up the DMX driver should be familiar to those who have e
 
 The DMX driver’s functions identify each of the UART controllers using `dmx_port_t`. This identification is needed for all the following function calls.
 
-### Setting Communication Parameters
+### Parameter Configuration
 
 #### Single Step
 
@@ -175,7 +187,7 @@ Once this step is complete, DMX devices can be connected to check for communicat
 
 ## Reading and Writing
 
-### Setting Device Mode
+### Device Mode
 
 DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once.
 
@@ -230,7 +242,7 @@ if (event.status == DMX_OK && event.start_code == DMX_SC) {
 
 This library offers tools to perform robust error-checking. For more information on errors, see the Error Handling section.
 
-#### RX Timing Tool
+### Timing Tool
 
 This library offers an option to measure break and mark after break timings of received data packets. This tool is much more resource intensive than the default DMX receive driver, so it must be explicitly enabled by calling `dmx_rx_timing_enable()`.
 
