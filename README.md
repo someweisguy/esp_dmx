@@ -407,7 +407,7 @@ Finally, the following macros can be used in both transmit and receive scenarios
 
 ### DMX Start Codes
 
-This library offers the following macros constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in `dmx_caps.h`.
+This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in `dmx_caps.h`.
 
 - `DMX_SC` is the standard DMX null start code.
 - `RDM_SC` is the standard Remote Device Management start code.
@@ -417,7 +417,7 @@ This library offers the following macros constants for use as DMX start codes. M
 - `DMX_ORG_ID_ASC` is the organization/manufacturer ID alternate start code.
 - `DMX_SIP_ASC` is the System Information Packet alternate start code.
 
-Some start codes are considered invalid and should not be used in a DMX packet. The validity of the start code can be checked using the macro `DMX_START_CODE_IS_VALID()`. If the start code is valid, this macro will evaluate to true. This library does not automatically check for valid start codes. It is left to the user to implement such error checking.
+Some start codes are considered invalid and should not be used in a DMX packet. The validity of the start code can be checked using the macro `DMX_START_CODE_IS_VALID()`. If the start code is valid, this macro will evaluate to true. This library does not automatically check for valid start codes. Such error checking is left to the user to implement.
 
 ## Additional Considerations
 
