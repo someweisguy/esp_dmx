@@ -20,6 +20,8 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
   - [Timing Tool](#timing-tool)
   - [Writing](#writing)
 - [Error Handling](#error-handling)
+  - [Packet Status](#packet-status)
+  - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
   - [Hardware Specifications](#hardware-specifications)
   - [Remote Device Management](#remote-device-management)
@@ -308,6 +310,8 @@ The DMX driver will automatically check if the DMX transmission has timed out be
 
 ## Error Handling
 
+### Packet Status
+
 On rare occasions, DMX packets can become corrupted. Errors can be checked by reading the status from the `dmx_event_t` structure. The error types are as follows:
 
 - `DMX_OK` occurs when the packet is received successfully.
@@ -378,7 +382,19 @@ Finally, the following macros can be used in both transmit and receive scenarios
 - `DMX_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid.
 - `DMX_START_CODE_IS_VALID()` evaluates to true if the start code is permitted in the DMX standard.
 
-This library offers additional macros for common definitions in the DMX standard which can assist with error handling. These macros can be found in `dmx_caps.h` which is included with `esp_dmx.h`. These macros include various defined DMX timing requirements and DMX start codes. See `dmx_caps.h` for a list of these macros.
+### DMX Start Codes
+
+This library offers the following macros constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in `dmx_caps.h`.
+
+- `DMX_SC` is the standard DMX null start code.
+- `RDM_SC` is the standard Remote Device Management start code.
+- `DMX_TEXT_ASC` is the ASCII text alternate start code.
+- `DMX_TEST_ASC` is the test packet alternate start code.
+- `DMX_UTF8_ASC` is the UTF-8 text packet alternate start code.
+- `DMX_ORG_ID_ASC` is the organization/manufacturer ID alternate start code.
+- `DMX_SIP_ASC` is the System Information Packet alternate start code.
+
+Some start codes are considered invalid and should not be used in a DMX packet. The validity of the start code can be checked using the macro `DMX_START_CODE_IS_VALID()`. If the start code is valid, this macro will evaluate to true. This library does not automatically check for valid start codes. It is left to the user to implement such error checking.
 
 ## Additional Considerations
 
