@@ -2,7 +2,18 @@
 
 This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A using an Espressif ESP32. It provides control and analysis of the packet configuration and allows the user to read synchronously or asynchronously from the DMX bus. This library also includes tools for data error-checking to safely process DMX commands.
 
-## Installation
+## Contents
+
+- [Library Installation](https://github.com/someweisguy/esp_dmx#library-installation)
+- [Quick-Start Guide](https://github.com/someweisguy/esp_dmx#quick-start-guide)
+- [What is DMX?](https://github.com/someweisguy/esp_dmx#what-is-dmx)
+- [Configuring the DMX Port](https://github.com/someweisguy/esp_dmx#configuring-the-dmx-port)
+- [Installing the Driver](https://github.com/someweisguy/esp_dmx#installing-the-driver)
+- [Reading and Writing](https://github.com/someweisguy/esp_dmx#reading-and-writing)
+- [Error Handling](https://github.com/someweisguy/esp_dmx#error-handling)
+- [Additional Considerations](https://github.com/someweisguy/esp_dmx#additional-considerations)
+
+## Library Installation
 
 ### Arduino
 
@@ -91,7 +102,7 @@ Today, DMX often struggles to keep up with the demands of the latest hardware. I
 
 For in-depth information on DMX, see the [E1.11 standards document](https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf).
 
-## Setup
+## Configuring the DMX Port
 
 Configuring and setting up the DMX driver should be familiar to those who have experience with the [ESP-IDF UART](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html) driver. The functions `dmx_param_config()`, `dmx_set_pin()`, and `dmx_driver_install()` have similar behavior to `uart_param_config()`, `uart_set_pin()`, and `uart_driver_install()`.
 
