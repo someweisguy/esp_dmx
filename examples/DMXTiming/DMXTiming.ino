@@ -4,7 +4,7 @@
 
   This sketch allows you to read and get detailed metadata DMX from a DMX
   controller using a standard DMX shield, such SparkFun ESP32 Thing Plus 
-  DMX to LED Shield.
+  DMX to LED Shield. This sketch was made for the Arduino framework!
 
   Created 10 September 2021
   By Mitch Weisbrod

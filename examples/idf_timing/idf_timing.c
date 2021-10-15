@@ -1,8 +1,21 @@
 /*
-* This example demonstrates how to use the DMX timing tool to read packet
-* metadata from incoming DMX data packets.
-*/
 
+  ESP-IDF Timing
+
+  This example demonstrates how to use the DMX timing tool to read packet
+  metadata from incoming DMX data packets. Data is read synchronously from the
+  DMX bus. If there are no errors in the packet a log is written every 1 second
+  that contains information about the received DMX data packet. When the data 
+  times out, the driver is uninstalled and the program terminates.
+
+  Note: this example is for use with the ESP-IDF. It will not work on Arduino!
+
+  Created 28 January 2021
+  By Mitch Weisbrod
+
+  https://github.com/someweisguy/esp_dmx
+
+*/
 #include "driver/gpio.h"
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"

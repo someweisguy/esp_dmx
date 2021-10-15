@@ -1,10 +1,20 @@
 /*
-* Read synchronously from the DMX bus. If the packet is a standard DMX packet,
-* and there are no errors in the packet, logs a hex dump every 1 second of the
-* first 16 bytes of data from the data packet. When the data times out, 
-* uninstalls the driver and the program terminates.
-*/
 
+  ESP-IDF DMX Write
+
+  Read synchronously from the DMX bus. If the packet is a standard DMX packet
+  and there are no errors in the packet, logs a hex dump every 1 second
+  containing the first 16 bytes of data from the data packet. When the data
+  times out the driver is uninstalled and the program terminates.
+
+  Note: this example is for use with the ESP-IDF. It will not work on Arduino!
+
+  Created 28 January 2021
+  By Mitch Weisbrod
+
+  https://github.com/someweisguy/esp_dmx
+
+*/
 #include "esp_dmx.h"
 #include "esp_log.h"
 #include "esp_system.h"

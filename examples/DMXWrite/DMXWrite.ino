@@ -3,7 +3,8 @@
   DMX Write
 
   This sketch allows you to write DMX to a DMX listener using a standard DMX
-  shield, such SparkFun ESP32 Thing Plus DMX to LED Shield.
+  shield, such SparkFun ESP32 Thing Plus DMX to LED Shield. This sketch was 
+  made for the Arduino framework!
 
   Created 10 September 2021
   By Mitch Weisbrod

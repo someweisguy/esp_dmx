@@ -3,7 +3,8 @@
   DMX Read
 
   This sketch allows you to read DMX from a DMX controller using a standard DMX
-  shield, such SparkFun ESP32 Thing Plus DMX to LED Shield.
+  shield, such SparkFun ESP32 Thing Plus DMX to LED Shield. This sketch was 
+  made for the Arduino framework!
 
   Created 9 September 2021
   By Mitch Weisbrod

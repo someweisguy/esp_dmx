@@ -1,8 +1,18 @@
 /*
- * Writes data to the DMX bus. Increments the value of each byte in the written
- * packet every 1 second.
- */
 
+  ESP-IDF DMX Write
+
+  Writes data to the DMX bus. The value of every byte in the DMX packet (except
+  the start code) is incremented by 1 every 1 second.
+
+  Note: this example is for use with the ESP-IDF. It will not work on Arduino!
+
+  Created 28 January 2021
+  By Mitch Weisbrod
+
+  https://github.com/someweisguy/esp_dmx
+
+*/
 #include "esp_dmx.h"
 #include "esp_log.h"
 #include "esp_system.h"
