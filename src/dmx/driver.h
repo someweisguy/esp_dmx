@@ -84,7 +84,7 @@ typedef struct {
  Bunch of constants for every UART peripheral: GPIO signals, irqs, hw addr of registers etc
  Not included in Arduino!
 */
-const uart_signal_conn_t uart_periph_signal[DMX_NUM_MAX] = {
+const uart_signal_conn_t dmx_periph_signal[DMX_NUM_MAX] = {
     {
         .tx_sig = 14,
         .rx_sig = 14,
