@@ -652,7 +652,7 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value) {
     return ESP_ERR_INVALID_STATE;
   }
 
-  p_dmx_obj[dmx_num]->buffer[0][slot_idx] = slot_idx;
+  p_dmx_obj[dmx_num]->buffer[0][slot_idx] = value;
 
   return ESP_OK;
 }
