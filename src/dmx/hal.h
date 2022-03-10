@@ -61,7 +61,7 @@ static inline void dmx_hal_clr_intsts_mask(uart_dev_t *dev, uint32_t mask) {
  * 
  * @return Number of bytes in the rx FIFO
  */
-static inline uint32_t dmx_hal_get_rxfifo_len(uart_dev_t *dev) {
+static inline IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_dev_t *dev) {
   uint32_t fifo_cnt = dev->status.rxfifo_cnt;
   typeof(dev->mem_rx_status) rx_status = dev->mem_rx_status;
   uint32_t len = 0;
@@ -148,7 +148,7 @@ static inline uint32_t dmx_hal_get_rx_level(uart_dev_t *dev) {
  * 
  * @return The number of characters read
  */
-static inline int dmx_hal_readn_rxfifo(uart_dev_t *dev, uint8_t *buf, int num) {
+static inline IRAM_ATTR int dmx_hal_readn_rxfifo(uart_dev_t *dev, uint8_t *buf, int num) {
   const uint16_t rxfifo_len = dmx_hal_get_rxfifo_len(dev);
   if (num > rxfifo_len) num = rxfifo_len;
   
@@ -265,7 +265,7 @@ static inline void dmx_hal_set_tx_break_num(uart_dev_t *dev, uint8_t break_num) 
  * @param dev Pointer to a UART struct.
  * @param source_clk The ID of the source clock used for the UART hardware.
  */
-static inline uart_sclk_t dmx_hal_get_sclk(uart_dev_t *dev) {
+static inline IRAM_ATTR uart_sclk_t dmx_hal_get_sclk(uart_dev_t *dev) {
   return dev->conf0.tick_ref_always_on ? UART_SCLK_APB : UART_SCLK_REF_TICK;
 }
 
@@ -276,7 +276,7 @@ static inline uart_sclk_t dmx_hal_get_sclk(uart_dev_t *dev) {
  * 
  * @return The baud rate of the UART hardware. 
  */
-static inline uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
+static inline IRAM_ATTR uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
   uint32_t src_clk = dev->conf0.tick_ref_always_on ? APB_CLK_FREQ : REF_CLK_FREQ;
   typeof(dev->clk_div) div_reg = dev->clk_div;
   return (src_clk << 4) / ((div_reg.div_int << 4) | div_reg.div_frag);
@@ -288,7 +288,7 @@ static inline uint32_t dmx_hal_get_baudrate(uart_dev_t *dev) {
  * @param dev Pointer to a UART struct.
  * @param rx_timeout_thresh The RX timeout duration (unit: time of sending one byte).
  */
-static inline void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_thresh) {
+static inline IRAM_ATTR void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_thresh) {
   if (dev->conf0.tick_ref_always_on == 0) {
     // when using ref_tick, the rx timeout threshold needs increase to 10 times
     rx_timeout_thresh *= UART_LL_TOUT_REF_FACTOR_DEFAULT;
@@ -310,7 +310,7 @@ static inline void dmx_hal_set_rx_timeout(uart_dev_t *dev, uint8_t rx_timeout_th
  * @param dev Pointer to a UART struct.
  * @param rxfifo_full_thresh The number of bytes needed to trigger an RX FIFO full interrupt.
  */
-static inline void dmx_hal_set_rxfifo_full_thr(uart_dev_t *dev, uint8_t rxfifo_full_thresh) {
+static inline IRAM_ATTR void dmx_hal_set_rxfifo_full_thr(uart_dev_t *dev, uint8_t rxfifo_full_thresh) {
   dev->conf1.rxfifo_full_thrhd = rxfifo_full_thresh;
 }
 
@@ -320,7 +320,7 @@ static inline void dmx_hal_set_rxfifo_full_thr(uart_dev_t *dev, uint8_t rxfifo_f
  * @param dev Pointer to a UART struct.
  * @param threshold The number of bytes remaining to trigger a TX FIFO empty interrupt.
  */
-static inline void dmx_hal_set_txfifo_empty_thr(uart_dev_t *dev, uint8_t threshold) {
+static inline IRAM_ATTR void dmx_hal_set_txfifo_empty_thr(uart_dev_t *dev, uint8_t threshold) {
   dev->conf1.txfifo_empty_thrhd = threshold;
 }
 
@@ -329,7 +329,7 @@ static inline void dmx_hal_set_txfifo_empty_thr(uart_dev_t *dev, uint8_t thresho
  * 
  * @param dev Pointer to a UART struct.
  */
-static inline void dmx_hal_rxfifo_rst(uart_dev_t *dev) {
+static inline IRAM_ATTR void dmx_hal_rxfifo_rst(uart_dev_t *dev) {
   // hardware issue: we can not use `rxfifo_rst` to reset the dev rxfifo.
   uint16_t fifo_cnt;
   typeof(dev->mem_rx_status) rxmem_sta;
@@ -353,12 +353,12 @@ static inline void dmx_hal_rxfifo_rst(uart_dev_t *dev) {
  * @param dev Pointer to a UART struct.
  * @return The length of the UART TX FIFO. 
  */
-static inline uint32_t dmx_hal_get_txfifo_len(uart_dev_t *dev) {
+static inline IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_dev_t *dev) {
   // default fifo len - fifo count
   return 128 - dev->status.txfifo_cnt;
 }
 
-static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
+static inline IRAM_ATTR void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
   uint16_t wr_len = dmx_hal_get_txfifo_len(dev);
   if (wr_len > data_size) wr_len = data_size;
   *write_size = wr_len;
@@ -369,7 +369,7 @@ static inline void dmx_hal_write_txfifo(uart_dev_t *dev, const uint8_t *buf, uin
   for (int i = 0; i < wr_len; i++) WRITE_PERI_REG(fifo_addr, buf[i]);
 }
 
-static inline void dmx_hal_txfifo_rst(uart_dev_t *dev) {
+static inline IRAM_ATTR void dmx_hal_txfifo_rst(uart_dev_t *dev) {
   /*
    * Note:   Due to hardware issue, reset UART1's txfifo will also reset UART2's txfifo.
    *         So reserve this function for UART1 and UART2. Please do DPORT reset for UART and its memory at chip startup
