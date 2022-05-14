@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 #include "dmx/driver.h"
-#include "dmx/hal.h"
+#include "dmx/esp32/hal.h"
 #include "esp_dmx.h"
 #include "esp_system.h"
 

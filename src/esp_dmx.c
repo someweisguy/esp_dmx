@@ -5,7 +5,7 @@
 
 #include "dmx_types.h"
 #include "dmx/driver.h"
-#include "dmx/hal.h"
+#include "dmx/esp32/hal.h"
 #include "dmx/intr_handlers.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
