@@ -74,47 +74,6 @@ static dmx_context_t dmx_context[DMX_NUM_MAX] = {
 #endif
 };
 
-typedef struct {
-  int tx_sig;
-  int rx_sig;
-  int rts_sig;
-  int cts_sig;
-  int irq;
-  int module;
-} uart_signal_conn_t;
-
-/*
- Bunch of constants for every UART peripheral: GPIO signals, irqs, hw addr of registers etc
- Not included in Arduino!
-*/
-const uart_signal_conn_t dmx_periph_signal[DMX_NUM_MAX] = {
-    {
-        .tx_sig = 14,
-        .rx_sig = 14,
-        .rts_sig = 15,
-        .cts_sig = 15,
-        .irq = 34,
-        .module = 1,
-    },
-    {
-        .tx_sig = 17,
-        .rx_sig = 17,
-        .rts_sig = 18,
-        .cts_sig = 18,
-        .irq = 35,
-        .module = 2,
-    },
-#if DMX_NUM_MAX > 2
-    {
-        .tx_sig = 198,
-        .rx_sig = 198,
-        .rts_sig = 199,
-        .cts_sig = 199,
-        .irq = 36,
-        .module = 3,
-    },
-#endif
-};
 
 #ifdef __cplusplus
 }
