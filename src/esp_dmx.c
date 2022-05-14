@@ -12,6 +12,7 @@
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "soc/io_mux_reg.h"
+#include "soc/uart_periph.h"
 
 /* Define the UART number for the console. Depends on which platform is in use. */
 #ifdef CONFIG_ESP_CONSOLE_UART_NUM
@@ -127,9 +128,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
     if (dmx_num != CONSOLE_UART_NUM) {
-      periph_module_reset(dmx_periph_signal[dmx_num].module);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
     }
-    periph_module_enable(dmx_periph_signal[dmx_num].module);
+    periph_module_enable(uart_periph_signal[dmx_num].module);
     dmx_context[dmx_num].hw_enabled = true;
   }
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -139,7 +140,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   dmx_hal_disable_intr_mask(dmx_context[dmx_num].dev, DMX_ALL_INTR_MASK);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_clr_intsts_mask(dmx_context[dmx_num].dev, DMX_ALL_INTR_MASK);
-  esp_err_t err = esp_intr_alloc(dmx_periph_signal[dmx_num].irq,
+  esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq,
       intr_alloc_flags, &dmx_intr_handler, p_dmx_obj[dmx_num],
       &p_dmx_obj[dmx_num]->intr_handle);
   if (err) {
@@ -198,7 +199,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != false) {
     if (dmx_num != CONSOLE_UART_NUM) {
-      periph_module_disable(dmx_periph_signal[dmx_num].module);
+      periph_module_disable(uart_periph_signal[dmx_num].module);
     }
     dmx_context[dmx_num].hw_enabled = false;
   }
@@ -336,26 +337,8 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
   DMX_CHECK((tx_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num))), "tx_io_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK((rx_io_num < 0 || (GPIO_IS_VALID_GPIO(rx_io_num))), "rx_io_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK((rts_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(rts_io_num))), "rts_io_num error", ESP_ERR_INVALID_ARG);
-
-  // assign hardware pinouts
-  if (tx_io_num >= 0) {
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[tx_io_num], PIN_FUNC_GPIO);
-    gpio_set_level(tx_io_num, 1);
-    gpio_matrix_out(tx_io_num, dmx_periph_signal[dmx_num].tx_sig, 0, 0);
-  }
-  if (rx_io_num >= 0) {
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[rx_io_num], PIN_FUNC_GPIO);
-    gpio_set_pull_mode(rx_io_num, GPIO_PULLUP_ONLY);
-    gpio_set_direction(rx_io_num, GPIO_MODE_INPUT);
-    gpio_matrix_in(rx_io_num, dmx_periph_signal[dmx_num].rx_sig, 0);
-  }
-  if (rts_io_num >= 0) {
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[rts_io_num], PIN_FUNC_GPIO);
-    gpio_set_direction(rts_io_num, GPIO_MODE_OUTPUT);
-    gpio_matrix_out(rts_io_num, dmx_periph_signal[dmx_num].rts_sig, 0, 0);
-  }
-
-  return ESP_OK;
+  
+  return uart_set_pin(dmx_num, tx_io_num, rx_io_num, rts_io_num, -1);
 }
 
 esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
@@ -386,9 +369,9 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
     if (dmx_num != CONSOLE_UART_NUM) {
-      periph_module_reset(dmx_periph_signal[dmx_num].module);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
     }
-    periph_module_enable(dmx_periph_signal[dmx_num].module);
+    periph_module_enable(uart_periph_signal[dmx_num].module);
     dmx_context[dmx_num].hw_enabled = true;
   }
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
