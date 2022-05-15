@@ -186,7 +186,7 @@ static inline void dmx_hal_set_baudrate(uart_hal_context_t *hal, uint32_t baud_r
  * @param idle_num The number of idle bits to transmit.
  */
 static inline void dmx_hal_set_tx_idle_num(uart_hal_context_t *hal, uint16_t idle_num) {
-  return; // TODO: no equivalent HAL function
+  uart_hal_set_tx_idle_num(hal, idle_num);
 }
 
 /**
