@@ -137,9 +137,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
 
   // install interrupt
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_disable_intr_mask(dmx_context[dmx_num].dev, DMX_ALL_INTR_MASK);
+  dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_clr_intsts_mask(dmx_context[dmx_num].dev, DMX_ALL_INTR_MASK);
+  dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq,
       intr_alloc_flags, &dmx_intr_handler, p_dmx_obj[dmx_num],
       &p_dmx_obj[dmx_num]->intr_handle);
@@ -160,8 +160,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
 
   // enable rx interrupts and set rts
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_ena_intr_mask(dmx_context[dmx_num].dev, DMX_INTR_RX_ALL);
-  dmx_hal_set_rts(dmx_context[dmx_num].dev, 1); // set rts low
+  dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
+  dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -226,25 +226,25 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
   if (dmx_mode == DMX_MODE_RX) {
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    dmx_hal_disable_intr_mask(dmx_context[dmx_num].dev, DMX_INTR_TX_ALL);
+    dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    dmx_hal_clr_intsts_mask(dmx_context[dmx_num].dev, DMX_ALL_INTR_MASK);
+    dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
     p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_RX;
-    dmx_hal_rxfifo_rst(dmx_context[dmx_num].dev);
+    dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
 
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    dmx_hal_set_rts(dmx_context[dmx_num].dev, 1); // set rts low
-    dmx_hal_ena_intr_mask(dmx_context[dmx_num].dev, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
+    dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     
   } else { // dmx_mode == DMX_MODE_TX
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    dmx_hal_disable_intr_mask(dmx_context[dmx_num].dev, DMX_INTR_RX_ALL);
+    dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    dmx_hal_clr_intsts_mask(dmx_context[dmx_num].dev, DMX_ALL_INTR_MASK);
+    dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
     // disable rx timing if it is enabled
     if (p_dmx_obj[dmx_num]->intr_io_num != -1)
@@ -253,11 +253,11 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     p_dmx_obj[dmx_num]->slot_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
     xSemaphoreGive(p_dmx_obj[dmx_num]->tx_done_sem);
-    dmx_hal_txfifo_rst(dmx_context[dmx_num].dev);
+    dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
     bzero(p_dmx_obj[dmx_num]->buffer[0], p_dmx_obj[dmx_num]->buf_size);
 
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    dmx_hal_set_rts(dmx_context[dmx_num].dev, 0); // set rts high
+    dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 0); // set rts high
     // tx interrupts are enabled when calling the tx function!!
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
@@ -378,16 +378,15 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
 
   // configure the uart hardware
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_init(dmx_context[dmx_num].dev, dmx_num);
-  dmx_hal_set_baudrate(dmx_context[dmx_num].dev, dmx_config->source_clk, 
-    dmx_config->baud_rate);
-  dmx_hal_set_tx_idle_num(dmx_context[dmx_num].dev, dmx_config->idle_num);
-  dmx_hal_set_tx_break_num(dmx_context[dmx_num].dev, dmx_config->break_num);
+  dmx_hal_init(&(dmx_context[dmx_num].hal), dmx_num);
+  dmx_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->baud_rate);
+  dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), dmx_config->idle_num);
+  dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), dmx_config->break_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   
   // flush both fifos
-  dmx_hal_rxfifo_rst(dmx_context[dmx_num].dev);
-  dmx_hal_txfifo_rst(dmx_context[dmx_num].dev);
+  dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
+  dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
 
   return ESP_OK;
 }
@@ -402,10 +401,8 @@ esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
     return ESP_ERR_INVALID_ARG;
   }
   
-  uart_sclk_t source_clk;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  source_clk = dmx_hal_get_sclk(dmx_context[dmx_num].dev);
-  dmx_hal_set_baudrate(dmx_context[dmx_num].dev, source_clk, baud_rate);
+  dmx_hal_set_baudrate(&(dmx_context[dmx_num].hal), baud_rate);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -415,7 +412,7 @@ esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  *baud_rate = dmx_hal_get_baudrate(dmx_context[dmx_num].dev);
+  *baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -427,7 +424,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   // ensure the new break is within DMX specification
   uint32_t baud_rate;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  baud_rate = dmx_hal_get_baudrate(dmx_context[dmx_num].dev);
+  baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   const int brk_us = get_brk_us(baud_rate, break_num);
   if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
@@ -437,7 +434,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   }
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_set_tx_break_num(dmx_context[dmx_num].dev, break_num);
+  dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), break_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -447,7 +444,7 @@ esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  *break_num = dmx_hal_get_break_num(dmx_context[dmx_num].dev);
+  *break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -460,7 +457,7 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   // ensure the new mark-after-break is within DMX specification
   uint32_t baud_rate;
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  baud_rate = dmx_hal_get_baudrate(dmx_context[dmx_num].dev);
+  baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   const int mab_us = get_mab_us(baud_rate, idle_num);
   if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US || mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
@@ -470,7 +467,7 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   }
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_set_tx_idle_num(dmx_context[dmx_num].dev, idle_num);
+  dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -480,7 +477,7 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  *idle_num = dmx_hal_get_idle_num(dmx_context[dmx_num].dev);
+  *idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -490,7 +487,7 @@ esp_err_t dmx_invert_rts(dmx_port_t dmx_num, bool invert) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_inverse_rts_signal(dmx_context[dmx_num].dev, invert);
+  //dmx_hal_inverse_rts_signal(&(dmx_context[dmx_num].hal), invert);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -502,11 +499,11 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(intr_conf, "intr_conf is null", ESP_ERR_INVALID_ARG);
 
-  dmx_hal_clr_intsts_mask(dmx_context[dmx_num].dev, DMX_ALL_INTR_MASK);
+  dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_set_rx_timeout(dmx_context[dmx_num].dev, intr_conf->rx_timeout_thresh);
-  dmx_hal_set_rxfifo_full_thr(dmx_context[dmx_num].dev, intr_conf->rxfifo_full_thresh);
-  dmx_hal_set_txfifo_empty_thr(dmx_context[dmx_num].dev, intr_conf->txfifo_empty_intr_thresh);
+  dmx_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), intr_conf->rx_timeout_thresh);
+  dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), intr_conf->rxfifo_full_thresh);
+  dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), intr_conf->txfifo_empty_intr_thresh);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -517,8 +514,8 @@ esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_CHECK(threshold < DMX_RXFIFO_FULL_THRHD_V && threshold > 0, "rx fifo full threshold value error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_hal_get_intr_ena_status(dmx_context[dmx_num].dev) & UART_INTR_RXFIFO_FULL) {
-    dmx_hal_set_rxfifo_full_thr(dmx_context[dmx_num].dev, threshold);
+  if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_RXFIFO_FULL) {
+    dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), threshold);
   }
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
@@ -529,8 +526,8 @@ esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_CHECK(threshold < DMX_TXFIFO_EMPTY_THRHD_V && threshold > 0, "tx fifo empty threshold value error", ESP_ERR_INVALID_ARG);
   
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_hal_get_intr_ena_status(dmx_context[dmx_num].dev) & UART_INTR_TXFIFO_EMPTY) {
-    dmx_hal_set_txfifo_empty_thr(dmx_context[dmx_num].dev, threshold);
+  if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_TXFIFO_EMPTY) {
+    dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), threshold);
   }
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
@@ -542,7 +539,7 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh) {
   DMX_CHECK(tout_thresh < 127, "tout_thresh max value is 126", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_set_rx_timeout(dmx_context[dmx_num].dev, tout_thresh);
+  dmx_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), tout_thresh);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -668,19 +665,19 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num) {
     // get break and mark time in microseconds
     uint32_t baud_rate, break_num, idle_num;
     DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    baud_rate = dmx_hal_get_baudrate(dmx_context[dmx_num].dev);
-    break_num = dmx_hal_get_break_num(dmx_context[dmx_num].dev);
-    idle_num = dmx_hal_get_idle_num(dmx_context[dmx_num].dev);
+    baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
+    break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
+    idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     const int brk_us = get_brk_us(baud_rate, break_num);
     const int mab_us = get_mab_us(baud_rate, idle_num);
 
     // invert the tx line and busy wait...
-    dmx_hal_inverse_txd_signal(dmx_context[dmx_num].dev, 1);
+    // FIXME: dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), 1);
     ets_delay_us(brk_us);
 
     // un-invert the tx line and busy wait...
-    dmx_hal_inverse_txd_signal(dmx_context[dmx_num].dev, 0);
+    // FIXME: dmx_hal_inverse_txd_signal(&(dmx_context[dmx_num].hal), 0);
     ets_delay_us(mab_us);
 
     p_dmx_obj[dmx_num]->tx_last_brk_ts = now;
@@ -691,12 +688,12 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num) {
   dmx_obj_t *const p_dmx = p_dmx_obj[dmx_num];
   const uint32_t len = p_dmx->buf_size - p_dmx->slot_idx;
   const uint8_t *offset = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
-  dmx_hal_write_txfifo(dmx_context[dmx_num].dev, offset, len, &bytes_written);
+  dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), offset, len, &bytes_written);
   p_dmx->slot_idx = bytes_written;
 
   // enable tx interrupts
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_ena_intr_mask(dmx_context[dmx_num].dev, DMX_INTR_TX_ALL);
+  dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;

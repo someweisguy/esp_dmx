@@ -8,20 +8,14 @@ extern "C" {
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"
 #include "freertos/semphr.h"
+#include "hal/uart_hal.h"
 #include "soc/uart_struct.h"
 
-#if DMX_NUM_MAX > 2
-#define UART_LL_GET_HW(num) \
-  (((num) == 0) ? (&UART0) : (((num) == 1) ? (&UART1) : (&UART2)))
-#else
-#define UART_LL_GET_HW(num) (((num) == 0) ? (&UART0) : (&UART1))
-#endif
-
-#define DMX_CONTEX_INIT_DEF(dmx_num)                               \
-  {                                                                \
-    .dev = UART_LL_GET_HW(dmx_num),                                \
-    .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
-  }
+#define DMX_CONTEX_INIT_DEF(uart_num) {\
+    .hal.dev = UART_LL_GET_HW(uart_num),\
+    .spinlock = portMUX_INITIALIZER_UNLOCKED,\
+    .hw_enabled = false,\
+}
 
 /* This is the DMX driver object used to handle tx'ing and rx'ing DMX data on
 the UART port. It stores all the information needed to run and analyze DMX
@@ -56,14 +50,10 @@ typedef struct {
 
 static dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
 
-
-/* This is the DMX hardware context. It is used to track which hardware has
-been initialized as well as to store spinlocks and pointers to UART hardware
-registers used by the HAL. */
 typedef struct {
-  uart_dev_t *dev;
-  portMUX_TYPE spinlock;
-  bool hw_enabled;
+    uart_hal_context_t hal;
+    portMUX_TYPE spinlock;
+    bool hw_enabled;
 } dmx_context_t;
 
 static dmx_context_t dmx_context[DMX_NUM_MAX] = {
@@ -73,7 +63,6 @@ static dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEX_INIT_DEF(DMX_NUM_2),
 #endif
 };
-
 
 #ifdef __cplusplus
 }
