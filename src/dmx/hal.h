@@ -95,7 +95,7 @@ static inline uint8_t dmx_hal_get_rx_tout(uart_hal_context_t *hal) {
  * @param invert_mask Inversion mask.
  */
 static inline void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t invert_mask) {
-  // TODO: library previously had invert tx and rts signals separately - combine them
+  uart_hal_inverse_signal(hal, invert_mask);
 }
 
 /**
