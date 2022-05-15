@@ -146,9 +146,8 @@ static inline uint32_t dmx_hal_get_intr_ena_status(uart_hal_context_t *hal){
  * @brief Initializes the UART for DMX mode.
  * 
  * @param hal Pointer to a UART HAL context.
- * @param dmx_num The UART number to initialize.
  */
-static inline void dmx_hal_init(uart_hal_context_t *hal, dmx_port_t dmx_num) {
+static inline void dmx_hal_init(uart_hal_context_t *hal) {
   // Set default clock source
   uart_ll_set_sclk(hal->dev, UART_SCLK_APB);
   // Set default baud: 250000, use APB clock.
