@@ -162,7 +162,8 @@ static inline void dmx_hal_init(uart_hal_context_t *hal, dmx_port_t dmx_num) {
   uart_ll_set_data_bit_num(hal->dev, UART_DATA_8_BITS);
   // 1-bit stop bit
   uart_ll_set_stop_bits(hal->dev, UART_STOP_BITS_2);
-  // TODO: set break num?
+  // Set break num
+   uart_ll_tx_break(hal->dev, 45);
   // Set tx idle
   uart_ll_set_tx_idle_num(hal->dev, 5);
   // Disable hw-flow control
