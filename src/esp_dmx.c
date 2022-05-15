@@ -3,10 +3,10 @@
 #include <math.h>
 #include <string.h>
 
-#include "dmx_types.h"
 #include "dmx/driver.h"
-#include "dmx/esp32/hal.h"
+#include "dmx/hal.h"
 #include "dmx/intr_handlers.h"
+#include "dmx_types.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
 #include "driver/uart.h"
