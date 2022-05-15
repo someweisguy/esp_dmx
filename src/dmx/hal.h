@@ -105,7 +105,7 @@ static inline void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t inve
  * @return UART rx line level.
  */
 static inline uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
-  return 0; // TODO: doesn't have equivalent HAL function
+  return 0; // TODO: doesn't have equivalent HAL function - used in RX timing tool
 }
 
 /**
