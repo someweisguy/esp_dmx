@@ -89,7 +89,7 @@ static inline uint8_t dmx_hal_get_rx_tout(uart_hal_context_t *hal) {
 }
 
 /**
- * @brief Inverts or uninverts lines on the UART bus using a mask.
+ * @brief Inverts or un-inverts lines on the UART bus using a mask.
  * 
  * @param hal Pointer to a UART HAL context.
  * @param invert_mask Inversion mask.
