@@ -65,7 +65,7 @@ static inline IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal)
  * @return The number of bits the UART is idle after transmitting data. 
  */
 static inline uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
-  return 0; // TODO: no equivalent HAL function
+  return 0; // FIXME: no equivalent HAL function
 }
 
 /**
@@ -75,7 +75,7 @@ static inline uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
  * @return The number of bits the UART sends as a break after transmitting.
  */
 static inline uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
-  return 0; // TODO: no equivalent HAL function
+  return 0; // FIXME: no equivalent HAL function
 }
 
 /**
@@ -105,7 +105,7 @@ static inline void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t inve
  * @return UART rx line level.
  */
 static inline uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
-  return 0; // TODO: doesn't have equivalent HAL function - used in RX timing tool
+  return 0; // FIXME: doesn't have equivalent HAL function - used in RX timing tool
 }
 
 /**
@@ -129,7 +129,7 @@ static inline IRAM_ATTR int dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_
  * @param set 1 to enable the RTS line (set low), 0 to disable the RTS line (set high).
  */
 static inline void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
-  return; // TODO: no equivalent HAL function
+  uart_hal_set_rts(hal, set);
 }
 
 /**
