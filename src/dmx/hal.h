@@ -9,7 +9,7 @@ extern "C" {
 /**
  * @brief The the interrupt status mask from the UART.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * 
  * @return The interrupt status mask. 
  */
@@ -20,7 +20,7 @@ static inline uint32_t dmx_hal_get_intsts_mask(uart_hal_context_t *hal) {
 /**
  * @brief Enables UART interrupts using an interrupt mask.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is enabled.
  */
 static inline void dmx_hal_ena_intr_mask(uart_hal_context_t *hal, uint32_t mask) {
@@ -30,7 +30,7 @@ static inline void dmx_hal_ena_intr_mask(uart_hal_context_t *hal, uint32_t mask)
 /**
  * @brief Disables UART interrupts using an interrupt mask.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is disabled.
  */
 static inline void dmx_hal_disable_intr_mask(uart_hal_context_t *hal, uint32_t mask) {
@@ -40,7 +40,7 @@ static inline void dmx_hal_disable_intr_mask(uart_hal_context_t *hal, uint32_t m
 /**
  * @brief Clears UART interrupts using a mask.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is cleared.
  */
 static inline void dmx_hal_clr_intsts_mask(uart_hal_context_t *hal, uint32_t mask) {
@@ -61,7 +61,7 @@ static inline IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal)
 /**
  * @brief Gets the number of bits the UART remains idle after transmitting data.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @return The number of bits the UART is idle after transmitting data. 
  */
 static inline uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
@@ -71,7 +71,7 @@ static inline uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
 /**
  * @brief Gets the number of bits the UART sends as break.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @return The number of bits the UART sends as a break after transmitting.
  */
 static inline uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
@@ -81,7 +81,7 @@ static inline uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
 /**
  * @brief Gets the UART rx timeout (unit: time it takes for one word to be sent at current baud_rate).
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @return The UART rx timeout.
  */
 static inline uint8_t dmx_hal_get_rx_tout(uart_hal_context_t *hal) {
@@ -91,7 +91,7 @@ static inline uint8_t dmx_hal_get_rx_tout(uart_hal_context_t *hal) {
 /**
  * @brief Inverts or uninverts lines on the UART bus using a mask.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param invert_mask Inversion mask.
  */
 static inline void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t invert_mask) {
@@ -101,7 +101,7 @@ static inline void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t inve
 /**
  * @brief Gets the level of the rx line on the UART bus.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @return UART rx line level.
  */
 static inline uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
@@ -111,7 +111,7 @@ static inline uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 /**
  * @brief Read the first num characters from the rxfifo.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param buf Destination buffer to be read into
  * @param num The maximum number of characters to read. Set to 0 to read all data.
  * 
@@ -125,7 +125,7 @@ static inline IRAM_ATTR int dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_
 /**
  * @brief Enables or disables the UART RTS line.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param set 1 to enable the RTS line (set low), 0 to disable the RTS line (set high).
  */
 static inline void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
@@ -135,7 +135,7 @@ static inline void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
 /**
  * @brief Gets the enabled UART interrupt status.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @return Gets the enabled UART interrupt status.
  */
 static inline uint32_t dmx_hal_get_intr_ena_status(uart_hal_context_t *hal){
@@ -145,7 +145,7 @@ static inline uint32_t dmx_hal_get_intr_ena_status(uart_hal_context_t *hal){
 /**
  * @brief Initializes the UART for DMX mode.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param dmx_num The UART number to initialize.
  */
 static inline void dmx_hal_init(uart_hal_context_t *hal, dmx_port_t dmx_num) {
@@ -172,7 +172,7 @@ static inline void dmx_hal_init(uart_hal_context_t *hal, dmx_port_t dmx_num) {
 /**
  * @brief Sets the baud rate for the UART.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param baud_rate The baud rate to use.
  */
 static inline void dmx_hal_set_baudrate(uart_hal_context_t *hal, uint32_t baud_rate) {
@@ -182,7 +182,7 @@ static inline void dmx_hal_set_baudrate(uart_hal_context_t *hal, uint32_t baud_r
 /**
  * @brief Sets the number of mark bits to transmit after a break has been transmitted.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param idle_num The number of idle bits to transmit.
  */
 static inline void dmx_hal_set_tx_idle_num(uart_hal_context_t *hal, uint16_t idle_num) {
@@ -192,7 +192,7 @@ static inline void dmx_hal_set_tx_idle_num(uart_hal_context_t *hal, uint16_t idl
 /**
  * @brief Enables or disables transmitting UART hardware break.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param break_num The number of break bits to transmit when a break is transmitted.
  */
 static inline void dmx_hal_set_tx_break_num(uart_hal_context_t *hal, uint8_t break_num) {
@@ -202,7 +202,7 @@ static inline void dmx_hal_set_tx_break_num(uart_hal_context_t *hal, uint8_t bre
 /**
  * @brief Get the UART baud rate of the selected UART hardware.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * 
  * @return The baud rate of the UART hardware. 
  */
@@ -215,7 +215,7 @@ static inline IRAM_ATTR uint32_t dmx_hal_get_baudrate(uart_hal_context_t *hal) {
 /**
  * @brief Set the duration for the UART RX inactivity timeout that triggers the RX timeout interrupt.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param rx_timeout_thresh The RX timeout duration (unit: time of sending one byte).
  */
 static inline IRAM_ATTR void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, const uint8_t rx_timeout_thresh) {
@@ -225,7 +225,7 @@ static inline IRAM_ATTR void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, con
 /**
  * @brief Sets the number of bytes that the UART must receive to trigger a RX FIFO full interrupt.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param rxfifo_full_thresh The number of bytes needed to trigger an RX FIFO full interrupt.
  */
 static inline IRAM_ATTR void dmx_hal_set_rxfifo_full_thr(uart_hal_context_t *hal, uint8_t rxfifo_full_thresh) {
@@ -235,7 +235,7 @@ static inline IRAM_ATTR void dmx_hal_set_rxfifo_full_thr(uart_hal_context_t *hal
 /**
  * @brief Sets the number of bytes that the UART TX FIFO must have remaining in it to trigger a TX FIFO empty interrupt.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @param threshold The number of bytes remaining to trigger a TX FIFO empty interrupt.
  */
 static inline IRAM_ATTR void dmx_hal_set_txfifo_empty_thr(uart_hal_context_t *hal, uint8_t threshold) {
@@ -245,7 +245,7 @@ static inline IRAM_ATTR void dmx_hal_set_txfifo_empty_thr(uart_hal_context_t *ha
 /**
  * @brief Resets the UART RX FIFO.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  */
 static inline IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
   uart_hal_rxfifo_rst(hal);
@@ -254,7 +254,7 @@ static inline IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
 /**
  * @brief Get the length of the UART TX FIFO.
  * 
- * @param dev Pointer to a UART struct.
+ * @param hal Pointer to a UART HAL context.
  * @return The length of the UART TX FIFO. 
  */
 static inline IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
