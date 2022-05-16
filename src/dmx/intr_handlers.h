@@ -109,7 +109,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
           // read data from rx FIFO into the buffer
           uint8_t *next_slot = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
-          dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), next_slot, 
+          dmx_hal_read_rxfifo(&(dmx_context[dmx_num].hal), next_slot, 
             num_slots_to_read);
           p_dmx->slot_idx += num_slots_to_read;
           if (uart_intr_status & DMX_INTR_RX_BRK) 
