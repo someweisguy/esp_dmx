@@ -147,23 +147,14 @@ static inline uint32_t dmx_hal_get_intr_ena_status(uart_hal_context_t *hal){
  * @param hal Pointer to a UART HAL context.
  */
 static inline void dmx_hal_init(uart_hal_context_t *hal) {
-  // Set default clock source
   uart_ll_set_sclk(hal->dev, UART_SCLK_APB);
-  // Set default baud, use APB clock.
   uart_ll_set_baudrate(hal->dev, DMX_TYP_BAUD_RATE);
-  // Set RS485 Half Duplex mode.
   uart_ll_set_mode(hal->dev, UART_MODE_RS485_HALF_DUPLEX);
-  // Disable UART parity
   uart_ll_set_parity(hal->dev, UART_PARITY_DISABLE);
-  // 8-bit world
   uart_ll_set_data_bit_num(hal->dev, UART_DATA_8_BITS);
-  // 1-bit stop bit
   uart_ll_set_stop_bits(hal->dev, UART_STOP_BITS_2);
-  // Set break num
-   uart_ll_tx_break(hal->dev, 45);
-  // Set tx idle
-  uart_ll_set_tx_idle_num(hal->dev, 5);
-  // Disable hw-flow control
+  uart_ll_tx_break(hal->dev, 45); // 45 == 180us
+  uart_ll_set_tx_idle_num(hal->dev, 5); // 20 == 20us
   uart_ll_set_hw_flow_ctrl(hal->dev, UART_HW_FLOWCTRL_DISABLE, 100);
 }
 
