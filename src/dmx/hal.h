@@ -155,9 +155,8 @@ static inline uint32_t dmx_hal_get_intr_ena_status(uart_hal_context_t *hal){
 static inline void dmx_hal_init(uart_hal_context_t *hal) {
   // Set default clock source
   uart_ll_set_sclk(hal->dev, UART_SCLK_APB);
-  // Set default baud: 250000, use APB clock.
-  const uint32_t baud_def = 250000;
-  uart_ll_set_baudrate(hal->dev, baud_def);
+  // Set default baud, use APB clock.
+  uart_ll_set_baudrate(hal->dev, DMX_TYP_BAUD_RATE);
   // Set RS485 Half Duplex mode.
   uart_ll_set_mode(hal->dev, UART_MODE_RS485_HALF_DUPLEX);
   // Disable UART parity
