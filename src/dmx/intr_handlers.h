@@ -49,9 +49,9 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // this interrupt is triggered when the tx FIFO is empty
 
       uint32_t bytes_written;
-      const uint32_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx;
-      const uint8_t *offset = p_dmx->buffer[0] + p_dmx->slot_idx;
-      dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), offset, slots_rem,
+      const uint32_t num_slots_to_read = p_dmx->buf_size - p_dmx->slot_idx;
+      const uint8_t *next_slot = p_dmx->buffer[0] + p_dmx->slot_idx;
+      dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, num_slots_to_read,
         &bytes_written);
       p_dmx->slot_idx += bytes_written;
 
@@ -103,12 +103,15 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
       if (rxfifo_len) {
         if (p_dmx->slot_idx < p_dmx->buf_size) {
+          // determine number of slots to read
+          uint16_t num_slots_to_read = p_dmx->buf_size - p_dmx->slot_idx + 1;
+          if (num_slots_to_read > rxfifo_len) num_slots_to_read = rxfifo_len;
+
           // read data from rx FIFO into the buffer
-          const uint16_t slots_rem = p_dmx->buf_size - p_dmx->slot_idx + 1;
-          uint8_t *offset = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
-          int slots_rd = dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), 
-            offset, slots_rem);
-          p_dmx->slot_idx += slots_rd;
+          uint8_t *next_slot = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
+          dmx_hal_readn_rxfifo(&(dmx_context[dmx_num].hal), next_slot, 
+            num_slots_to_read);
+          p_dmx->slot_idx += num_slots_to_read;
           if (uart_intr_status & DMX_INTR_RX_BRK) 
             --p_dmx->slot_idx; // break is not a slot
         } else {

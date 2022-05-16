@@ -117,14 +117,8 @@ static inline uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * 
  * @return The number of characters read
  */
-static inline IRAM_ATTR int dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num) {
-  // TODO: is there a better return value for this function? 
-  const uint16_t rxfifo_len = dmx_hal_get_rxfifo_len(hal);
-  if (num > rxfifo_len) num = rxfifo_len;
-  const int read = num;
-
+static inline IRAM_ATTR void dmx_hal_readn_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num) {
   uart_hal_read_rxfifo(hal, buf, &num);
-  return read;
 }
 
 /**
