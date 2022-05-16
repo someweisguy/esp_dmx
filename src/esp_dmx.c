@@ -688,8 +688,8 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num) {
   uint32_t bytes_written;
   dmx_obj_t *const p_dmx = p_dmx_obj[dmx_num];
   const uint32_t len = p_dmx->buf_size - p_dmx->slot_idx;
-  const uint8_t *offset = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
-  dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), offset, len, &bytes_written);
+  const uint8_t *next_slot = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
+  dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, len, &bytes_written);
   p_dmx->slot_idx = bytes_written;
 
   // enable tx interrupts
