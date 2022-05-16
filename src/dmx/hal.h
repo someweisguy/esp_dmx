@@ -65,7 +65,7 @@ static inline IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal)
  * @return The number of bits the UART is idle after transmitting data. 
  */
 static inline uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
-  return 0; // FIXME: no equivalent HAL function
+  return 5; // FIXME: no equivalent HAL function
 }
 
 /**
@@ -75,7 +75,7 @@ static inline uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
  * @return The number of bits the UART sends as a break after transmitting.
  */
 static inline uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
-  return 0; // FIXME: no equivalent HAL function
+  return 45; // FIXME: no equivalent HAL function
 }
 
 /**
