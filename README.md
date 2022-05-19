@@ -433,6 +433,7 @@ Currently, implementation of Remote Device Management (RDM) is not planned. The 
 
 - Clearer version number compatibilities
 - Add RS-485 example circuit to the readme
+- Allow user to place ISR in IRAM optionally
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
 - Allow for use of ESP32 Hardware Timer for Reset Sequence.
 - Allow for use of UART DMA?
