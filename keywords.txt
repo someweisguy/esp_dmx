@@ -24,7 +24,6 @@ dmx_set_break_num	KEYWORD2
 dmx_get_break_num	KEYWORD2
 dmx_set_idle_num	KEYWORD2
 dmx_get_idle_num	KEYWORD2
-dmx_invert_rts	KEYWORD2
 dmx_intr_config	KEYWORD2
 dmx_set_rx_full_threshold	KEYWORD2
 dmx_set_tx_empty_threshold	KEYWORD2
