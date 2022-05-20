@@ -662,6 +662,11 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num) {
     const int brk_us = get_brk_us(baud_rate, break_num);
     const int mab_us = get_mab_us(baud_rate, idle_num);
 
+    /* This library assumes that all UART signals are un-inverted. This means
+    that if the user inverts, say, the RTS pin, these next two calls to 
+    dmx_hal_inverse_signal() will un-invert them. If an inverted RTS signal is
+    desired, the below code will cause problems. */
+
     // invert the tx line and busy wait...
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
     ets_delay_us(brk_us);
