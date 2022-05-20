@@ -234,18 +234,6 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
  */
 esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
 
-/**
- * @brief Invert or un-invert the RTS line.
- * 
- * @param dmx_num The DMX port number.
- * @param invert Set to 'true' to invert the RTS line or 'false' to un-invert.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
- */
-// TODO: reimplement me!
-//esp_err_t dmx_invert_rts(dmx_port_t dmx_num, bool invert);
-
 /// Interrupt Configuration  ##################################################
 /**
  * @brief Configure DMX interrupts.
