@@ -8,12 +8,12 @@ extern "C" {
 
 /* Some of these functions are marked with IRAM_ATTR to place them in IRAM.
 Any function here that is used in the DMX ISR must be placed in IRAM, or 
-cache miss crashes will (randomly) occur. In the ESP-IDF, HAL functions in the
-UART ISR are either built in a separate source file that is specifically placed
-in IRAM or the functions are #defines instead of actual functions. Personally,
-I'm not a big fan of the "#defines as functions design pattern," so every 
-function defined in this file is an actual function. If the function is used in
-the DMX ISR, it shall be declared an IRAM_ATTR. */
+cache miss crashes will (randomly) occur. In ESP-IDF v4.4.1, HAL functions in
+the UART ISR are either built in a separate source file that is specifically
+placed in IRAM or the functions are #defines instead of actual functions. I'm
+not a big fan of the "#defines as functions design pattern," so every function
+defined in this file is an actual function. If the function is used in the DMX
+ISR, it shall be declared an IRAM_ATTR. */
 
 /**
  * @brief The the interrupt status mask from the UART.
