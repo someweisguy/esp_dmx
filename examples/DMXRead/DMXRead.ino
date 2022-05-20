@@ -83,7 +83,7 @@ void loop() {
     amount of time to receive data, this if statement will evaluate to false. */
   if (xQueueReceive(queue, &packet, DMX_RX_PACKET_TOUT_TICK)) {
 
-    /* If this code gets called, it means we've recieved DMX data! */
+    /* If this code gets called, it means we've received DMX data! */
 
     /* We should check to make sure that there weren't any DMX errors. */
     if (packet.status == DMX_OK) {
