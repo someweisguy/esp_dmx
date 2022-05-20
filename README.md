@@ -23,6 +23,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
   - [Packet Status](#packet-status)
   - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
+  - [How to Wire Your RS-485 Circuit](#how-to-wire-your-rs-485-circuit)
   - [Hardware Specifications](#hardware-specifications)
   - [Remote Device Management](#remote-device-management)
 - [To Do](#to-do)
@@ -421,6 +422,10 @@ Some start codes are considered invalid and should not be used in a DMX packet. 
 
 ## Additional Considerations
 
+### How to Wire Your RS-485 Circuit
+
+TODO...
+
 ### Hardware Specifications
 
 ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated from other devices on the DMX bus. In the event of a power surge, the likely worse-case scenario would mean the failure of the RS-485 circuitry and not the entire DMX device. Some DMX devices may function without isolation, but using non-isolated equipment is not recommended.
@@ -432,7 +437,6 @@ Currently, implementation of Remote Device Management (RDM) is not planned. The 
 ## To Do
 
 - Clearer version number compatibilities
-- Add RS-485 example circuit to the readme
 - Allow user to place ISR in IRAM optionally
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
 - Allow for use of ESP32 Hardware Timer for Reset Sequence.
