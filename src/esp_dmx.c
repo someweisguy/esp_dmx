@@ -38,6 +38,10 @@ static const char *TAG = "dmx";
     return (ret_val);                                         \
   }
 
+#define DMX_FUNCTION_NOT_SUPPORTED()                                 \
+  ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, CONFIG_IDF_TARGET); \
+  return ESP_ERR_NOT_SUPPORTED;
+
 static inline int get_brk_us(int baud_rate, int break_num) {
     // get break in microseconds
     return (int) ceil(break_num * (1000000.0 / baud_rate));
@@ -321,6 +325,10 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
 }
 
 esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
+#ifdef DMX_HAL_GET_RX_LEVEL_NOT_SUPPORTED 
+  DMX_FUNCTION_NOT_SUPPORTED();
+#endif
+
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(GPIO_IS_VALID_GPIO(intr_io_num), "intr_io_num error", ESP_ERR_INVALID_ARG);
   DMX_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
@@ -483,6 +491,10 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
 }
 
 esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
+#ifdef DMX_HAL_GET_IDLE_NUM_NOT_IMPLEMENTED
+  DMX_FUNCTION_NOT_SUPPORTED();
+#endif
+
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -516,6 +528,10 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
 }
 
 esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
+#ifdef DMX_HAL_GET_IDLE_NUM_NOT_IMPLEMENTED
+  DMX_FUNCTION_NOT_SUPPORTED();
+#endif
+
   DMX_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));

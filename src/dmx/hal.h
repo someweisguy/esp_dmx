@@ -75,15 +75,17 @@ IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
  */
 uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
-  return hal->hw->idle_conf.tx_idle_num
-#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  
+  return hal->dev->idle_conf.tx_idle_num;
+// #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  // FIXME
+#else
+#define DMX_HAL_GET_IDLE_NUM_NOT_SUPPORTED
 #endif
-  return 5; // FIXME: no equivalent HAL function
+  return 5; // default 20 microseconds (assuming 250k baud)
 }
 
 /**
@@ -94,15 +96,17 @@ uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
  */
 uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
-  return hal->hw->idle_conf.tx_brk_num;
-#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  
+  return hal->dev->idle_conf.tx_brk_num;
+// #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  // FIXME
+#else
+#define DMX_HAL_GET_BREAK_NUM_NOT_SUPPORTED
 #endif
-  return 45; // FIXME: no equivalent HAL function
+  return 45; // default 180 microseconds (assuming 250k baud)
 }
 
 /**
@@ -133,15 +137,17 @@ void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t invert_mask) {
  */
 IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
-  return hal->hw->status.rxd;
-#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  
+  return hal->dev->status.rxd;
+// #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  // FIXME
+#else
+#define DMX_HAL_GET_RX_LEVEL_NOT_SUPPORTED 1
 #endif
-  return 0; // FIXME: doesn't have equivalent HAL function - used in RX timing tool
+  return 0; // default rx low
 }
 
 /**
