@@ -131,7 +131,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @return UART rx line level.
  */
- uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
+IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->hw->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
