@@ -76,12 +76,16 @@ IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
 uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->idle_conf.tx_idle_num;
+// #elif defined(CONFIG_IDF_TARGET_ESP32C2)
+  // FIXME
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  return hal->dev->idle_conf.tx_idle_num;
+// #elif defined(CONFIG_IDF_TARGET_ESP32H2)
+  // FIXME
 // #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   // FIXME
 // #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   // FIXME
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  return hal->dev->idle_conf.tx_idle_num;
 #else
 #define DMX_HAL_GET_IDLE_NUM_NOT_SUPPORTED
 #endif
@@ -97,13 +101,17 @@ uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
 uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->idle_conf.tx_brk_num;
-// #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-  // FIXME
-// #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+// #elif defined(CONFIG_IDF_TARGET_ESP32C2)
   // FIXME
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   return hal->dev->txbrk_conf.tx_brk_num;
 #else
+// #elif defined(CONFIG_IDF_TARGET_ESP32H2)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+  // FIXME
+// #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  // FIXME
 #define DMX_HAL_GET_BREAK_NUM_NOT_SUPPORTED
 #endif
   return 45; // default 180 microseconds (assuming 250k baud)
@@ -138,12 +146,16 @@ void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t invert_mask) {
 IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->status.rxd;
+// #elif defined(CONFIG_IDF_TARGET_ESP32C2)
+  // FIXME
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  return hal->dev->status.rxd;
+// #elif defined(CONFIG_IDF_TARGET_ESP32H2)
+  // FIXME
 // #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   // FIXME
 // #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   // FIXME
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  return hal->dev->status.rxd;
 #else
 #define DMX_HAL_GET_RX_LEVEL_NOT_SUPPORTED
 #endif
