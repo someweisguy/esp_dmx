@@ -235,6 +235,16 @@ void dmx_hal_set_sclk(uart_hal_context_t *hal, uart_sclk_t sclk) {
 }
 
 /**
+ * @brief Get the UART source clock.
+ * 
+ * @param hal Pointer to a UART HAL context.
+ * @param sclk Pointer to a source clock type to return a source clock value.
+ */
+void dmx_hal_get_sclk(uart_hal_context_t *hal, uart_sclk_t *sclk) {
+  uart_hal_get_sclk(hal, sclk);
+}
+
+/**
  * @brief Get the UART baud rate of the selected UART hardware.
  * 
  * @param hal Pointer to a UART HAL context.

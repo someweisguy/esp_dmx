@@ -13,17 +13,10 @@
 #include "esp_log.h"
 #include "soc/io_mux_reg.h"
 #include "soc/uart_periph.h"
+#include "soc/rtc_cntl_reg.h"
 
-/* Define the UART number for the console. Depends on which platform is in use. */
-#ifdef CONFIG_ESP_CONSOLE_UART_NUM
-// UART number of the console is defined in sdkconfig (using ESP-IDF).
-#define CONSOLE_UART_NUM  CONFIG_ESP_CONSOLE_UART_NUM
-#elif defined(ARDUINO_USB_CDC_ON_BOOT)
-// UART number of the console is defined in HardwareSerial.h (using Arduino).
-#define CONSOLE_UART_NUM  ARDUINO_USB_CDC_ON_BOOT
-#else
-// UART number of the console is not defined.
-#define CONSOLE_UART_NUM  -1
+#if SOC_UART_SUPPORT_RTC_CLK
+#define RTC_ENABLED(uart_num)    (BIT(uart_num))
 #endif
 
 #define DMX_EMPTY_THRESH_DEFAULT  8
@@ -53,6 +46,68 @@ static inline int get_brk_us(int baud_rate, int break_num) {
 static inline int get_mab_us(int baud_rate, int idle_num) {
     // get mark-after-break in microseconds
     return (int) ceil(idle_num * (1000000.0 / baud_rate));
+}
+
+#if SOC_UART_SUPPORT_RTC_CLK
+
+static uint8_t rtc_enabled = 0;
+static portMUX_TYPE rtc_num_spinlock = portMUX_INITIALIZER_UNLOCKED;
+
+static void rtc_clk_enable(dmx_port_t dmx_num)
+{
+    portENTER_CRITICAL(&rtc_num_spinlock);
+    if (!(rtc_enabled & RTC_ENABLED(dmx_num))) {
+        rtc_enabled |= RTC_ENABLED(dmx_num);
+    }
+    SET_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
+    portEXIT_CRITICAL(&rtc_num_spinlock);
+}
+
+static void rtc_clk_disable(dmx_port_t dmx_num)
+{
+    assert(rtc_enabled & RTC_ENABLED(dmx_num));
+
+    portENTER_CRITICAL(&rtc_num_spinlock);
+    rtc_enabled &= ~RTC_ENABLED(dmx_num);
+    if (rtc_enabled == 0) {
+        CLEAR_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
+    }
+    portEXIT_CRITICAL(&rtc_num_spinlock);
+}
+#endif
+
+static void dmx_module_enable(dmx_port_t dmx_num)
+{
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    if (dmx_context[dmx_num].hw_enabled != true) {
+        periph_module_enable(uart_periph_signal[dmx_num].module);
+        if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+            // Workaround for ESP32C3: enable core reset
+            // before enabling uart module clock
+            // to prevent uart output garbage value.
+#if SOC_UART_REQUIRE_CORE_RESET
+            uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
+            periph_module_reset(uart_periph_signal[dmx_num].module);
+            uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), false);
+#else
+            periph_module_reset(uart_periph_signal[dmx_num].module);
+#endif
+        }
+        dmx_context[dmx_num].hw_enabled = true;
+    }
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+}
+
+static void dmx_module_disable(dmx_port_t dmx_num)
+{
+    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    if (dmx_context[dmx_num].hw_enabled != false) {
+        if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM ) {
+            periph_module_disable(uart_periph_signal[dmx_num].module);
+        }
+        dmx_context[dmx_num].hw_enabled = false;
+    }
+    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
 /// Driver Functions  #########################################################
@@ -124,17 +179,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     return ESP_ERR_INVALID_STATE;
   }
 
-  // enable uart peripheral module
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_context[dmx_num].hw_enabled != true) {
-    if (dmx_num != CONSOLE_UART_NUM) {
-      periph_module_reset(uart_periph_signal[dmx_num].module);
-    }
-    periph_module_enable(uart_periph_signal[dmx_num].module);
-    dmx_context[dmx_num].hw_enabled = true;
-  }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-
   // install interrupt
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
@@ -195,15 +239,15 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   heap_caps_free(p_dmx_obj[dmx_num]);
   p_dmx_obj[dmx_num] = NULL;
 
-  // disable uart peripheral module
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_context[dmx_num].hw_enabled != false) {
-    if (dmx_num != CONSOLE_UART_NUM) {
-      periph_module_disable(uart_periph_signal[dmx_num].module);
-    }
-    dmx_context[dmx_num].hw_enabled = false;
+  // disable rtc clock (if using it) and uart peripheral module
+#if SOC_UART_SUPPORT_RTC_CLK
+  uart_sclk_t sclk = 0;
+  dmx_hal_get_sclk(&(dmx_context[dmx_num].hal), &sclk);
+  if (sclk == UART_SCLK_RTC) {
+    rtc_clk_disable(dmx_num);
   }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+#endif
+  dmx_module_disable(dmx_num);
 
   return ESP_OK;
 }
@@ -365,16 +409,13 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
     return ESP_ERR_INVALID_ARG;
   }
 
-  // enable uart peripheral module
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_context[dmx_num].hw_enabled != true) {
-    if (dmx_num != CONSOLE_UART_NUM) {
-      periph_module_reset(uart_periph_signal[dmx_num].module);
-    }
-    periph_module_enable(uart_periph_signal[dmx_num].module);
-    dmx_context[dmx_num].hw_enabled = true;
+  // enable uart module and rtc clock, if using it
+  dmx_module_enable(dmx_num);
+#if SOC_UART_SUPPORT_RTC_CLK
+  if (dmx_config->source_clk == UART_SCLK_RTC) {
+    rtc_clk_enable(dmx_num);
   }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+#endif
 
   // configure the uart hardware
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
