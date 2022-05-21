@@ -192,6 +192,16 @@ ISR, it shall be declared an IRAM_ATTR. */
   uart_ll_tx_break(hal->dev, 45); // 45 == 180us
   uart_ll_set_tx_idle_num(hal->dev, 5); // 20 == 20us
   uart_ll_set_hw_flow_ctrl(hal->dev, UART_HW_FLOWCTRL_DISABLE, 100);
+
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+  /* This fixes an issue on the ESP32-C3 where setting the UART mode to 
+  UART_MODE_RS845_HALF_DUPLEX causes a 2-bit delay after the UART transmits
+  each byte. */
+  // See: https://github.com/someweisguy/esp_dmx/issues/17#issuecomment-1133748359
+  hal->dev->rs485_conf.dl0_en = 0;
+  hal->dev->rs485_conf.dl1_en = 0;
+#endif
+
 }
 
 /**
