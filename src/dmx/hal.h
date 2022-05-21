@@ -22,7 +22,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * 
  * @return The interrupt status mask. 
  */
- uint32_t dmx_hal_get_intsts_mask(uart_hal_context_t *hal) {
+uint32_t dmx_hal_get_intsts_mask(uart_hal_context_t *hal) {
   return uart_hal_get_intsts_mask(hal);
 }
 
@@ -32,7 +32,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is enabled.
  */
- void dmx_hal_ena_intr_mask(uart_hal_context_t *hal, uint32_t mask) {
+void dmx_hal_ena_intr_mask(uart_hal_context_t *hal, uint32_t mask) {
   uart_hal_ena_intr_mask(hal, mask);
 }
 
@@ -42,7 +42,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is disabled.
  */
- void dmx_hal_disable_intr_mask(uart_hal_context_t *hal, uint32_t mask) {
+void dmx_hal_disable_intr_mask(uart_hal_context_t *hal, uint32_t mask) {
   uart_hal_disable_intr_mask(hal, mask);
 }
 
@@ -52,7 +52,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is cleared.
  */
- void dmx_hal_clr_intsts_mask(uart_hal_context_t *hal, uint32_t mask) {
+void dmx_hal_clr_intsts_mask(uart_hal_context_t *hal, uint32_t mask) {
   uart_hal_clr_intsts_mask(hal, mask);
 }
 
@@ -63,7 +63,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * 
  * @return Number of bytes in the rx FIFO
  */
- IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
+IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
   return uart_hal_get_rxfifo_len(hal);
 }
 
@@ -73,7 +73,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @return The number of bits the UART is idle after transmitting data. 
  */
- uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
+uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->hw->idle_conf.tx_idle_num
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -92,7 +92,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @return The number of bits the UART sends as a break after transmitting.
  */
- uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
+uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->hw->idle_conf.tx_brk_num;
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -111,7 +111,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @return The UART rx timeout.
  */
- uint8_t dmx_hal_get_rx_tout(uart_hal_context_t *hal) {
+uint8_t dmx_hal_get_rx_tout(uart_hal_context_t *hal) {
   return uart_hal_get_rx_tout_thr(hal);
 }
 
@@ -121,7 +121,7 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @param invert_mask Inversion mask.
  */
- void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t invert_mask) {
+void dmx_hal_inverse_signal(uart_hal_context_t *hal, uint32_t invert_mask) {
   uart_hal_inverse_signal(hal, invert_mask);
 }
 
@@ -153,7 +153,7 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * 
  * @return The number of characters read
  */
- IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num) {
+IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num) {
   uart_hal_read_rxfifo(hal, buf, &num);
 }
 
@@ -163,7 +163,7 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * @param hal Pointer to a UART HAL context.
  * @param set 1 to enable the RTS line (set low), 0 to disable the RTS line (set high).
  */
- void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
+void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
   uart_hal_set_rts(hal, set);
 }
 
@@ -182,7 +182,7 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * 
  * @param hal Pointer to a UART HAL context.
  */
- void dmx_hal_init(uart_hal_context_t *hal) {
+void dmx_hal_init(uart_hal_context_t *hal) {
   uart_ll_set_sclk(hal->dev, UART_SCLK_APB);
   uart_ll_set_baudrate(hal->dev, DMX_TYP_BAUD_RATE);
   uart_ll_set_mode(hal->dev, UART_MODE_RS485_HALF_DUPLEX);
@@ -220,7 +220,7 @@ void dmx_hal_set_sclk(uart_hal_context_t *hal, uart_sclk_t sclk) {
  * @param hal Pointer to a UART HAL context.
  * @param baud_rate The baud rate to use.
  */
- void dmx_hal_set_baudrate(uart_hal_context_t *hal, uint32_t baud_rate) {
+void dmx_hal_set_baudrate(uart_hal_context_t *hal, uint32_t baud_rate) {
   uart_hal_set_baudrate(hal, baud_rate);
 }
 
@@ -230,7 +230,7 @@ void dmx_hal_set_sclk(uart_hal_context_t *hal, uart_sclk_t sclk) {
  * @param hal Pointer to a UART HAL context.
  * @param idle_num The number of idle bits to transmit.
  */
- void dmx_hal_set_tx_idle_num(uart_hal_context_t *hal, uint16_t idle_num) {
+void dmx_hal_set_tx_idle_num(uart_hal_context_t *hal, uint16_t idle_num) {
   uart_hal_set_tx_idle_num(hal, idle_num);
 }
 
@@ -240,7 +240,7 @@ void dmx_hal_set_sclk(uart_hal_context_t *hal, uart_sclk_t sclk) {
  * @param hal Pointer to a UART HAL context.
  * @param break_num The number of break bits to transmit when a break is transmitted.
  */
- void dmx_hal_set_tx_break_num(uart_hal_context_t *hal, uint8_t break_num) {
+void dmx_hal_set_tx_break_num(uart_hal_context_t *hal, uint8_t break_num) {
   uart_hal_tx_break(hal, break_num);
 }
 
@@ -261,7 +261,7 @@ void dmx_hal_get_sclk(uart_hal_context_t *hal, uart_sclk_t *sclk) {
  * 
  * @return The baud rate of the UART hardware. 
  */
- IRAM_ATTR uint32_t dmx_hal_get_baudrate(uart_hal_context_t *hal) {
+IRAM_ATTR uint32_t dmx_hal_get_baudrate(uart_hal_context_t *hal) {
   uint32_t baud_rate;
   uart_hal_get_baudrate(hal, &baud_rate);
   return baud_rate;
@@ -273,7 +273,7 @@ void dmx_hal_get_sclk(uart_hal_context_t *hal, uart_sclk_t *sclk) {
  * @param hal Pointer to a UART HAL context.
  * @param rx_timeout_thresh The RX timeout duration (unit: time of sending one byte).
  */
- IRAM_ATTR void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, const uint8_t rx_timeout_thresh) {
+IRAM_ATTR void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, const uint8_t rx_timeout_thresh) {
   uart_hal_set_rx_timeout(hal, rx_timeout_thresh);
 }
 
@@ -283,7 +283,7 @@ void dmx_hal_get_sclk(uart_hal_context_t *hal, uart_sclk_t *sclk) {
  * @param hal Pointer to a UART HAL context.
  * @param rxfifo_full_thresh The number of bytes needed to trigger an RX FIFO full interrupt.
  */
- IRAM_ATTR void dmx_hal_set_rxfifo_full_thr(uart_hal_context_t *hal, uint8_t rxfifo_full_thresh) {
+IRAM_ATTR void dmx_hal_set_rxfifo_full_thr(uart_hal_context_t *hal, uint8_t rxfifo_full_thresh) {
   uart_hal_set_rxfifo_full_thr(hal, rxfifo_full_thresh);
 }
 
@@ -302,7 +302,7 @@ void dmx_hal_get_sclk(uart_hal_context_t *hal, uart_sclk_t *sclk) {
  * 
  * @param hal Pointer to a UART HAL context.
  */
- IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
+IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
   uart_hal_rxfifo_rst(hal);
 }
 
@@ -312,15 +312,15 @@ void dmx_hal_get_sclk(uart_hal_context_t *hal, uart_sclk_t *sclk) {
  * @param hal Pointer to a UART HAL context.
  * @return The length of the UART TX FIFO. 
  */
- IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
+IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
   return uart_hal_get_txfifo_len(hal);
 }
 
- IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
+IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const uint8_t *buf, uint32_t data_size, uint32_t *write_size) {
   uart_hal_write_txfifo(hal, buf, data_size, write_size);
 }
 
- IRAM_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
+IRAM_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
   uart_hal_txfifo_rst(hal);
 }
 
