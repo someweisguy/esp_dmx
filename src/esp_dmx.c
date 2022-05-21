@@ -379,6 +379,7 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   // configure the uart hardware
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_init(&(dmx_context[dmx_num].hal));
+  dmx_hal_set_sclk(&(dmx_context[dmx_num].hal), dmx_config->source_clk);
   dmx_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->baud_rate);
   dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), dmx_config->idle_num);
   dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), dmx_config->break_num);

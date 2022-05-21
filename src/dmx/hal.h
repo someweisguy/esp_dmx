@@ -195,6 +195,16 @@ ISR, it shall be declared an IRAM_ATTR. */
 }
 
 /**
+ * @brief Sets the source clock for the UART.
+ * 
+ * @param hal Pointer to a UART HAL context.
+ * @param sclk The source clock to use.
+ */
+void dmx_hal_set_sclk(uart_hal_context_t *hal, uart_sclk_t sclk) {
+  uart_hal_set_sclk(hal, sclk);
+}
+
+/**
  * @brief Sets the baud rate for the UART.
  * 
  * @param hal Pointer to a UART HAL context.
