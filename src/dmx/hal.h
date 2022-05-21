@@ -74,15 +74,15 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @return The number of bits the UART is idle after transmitting data. 
  */
  uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
-  #if defined(CONFIG_IDF_TARGET_ESP32)
-  
-  #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+#if defined(CONFIG_IDF_TARGET_ESP32)
+  return hal->hw->idle_conf.tx_idle_num
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
 
-  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
 
-  #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
   
-  #endif
+#endif
   return 5; // FIXME: no equivalent HAL function
 }
 
@@ -93,15 +93,15 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @return The number of bits the UART sends as a break after transmitting.
  */
  uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
-  #if defined(CONFIG_IDF_TARGET_ESP32)
-  
-  #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+#if defined(CONFIG_IDF_TARGET_ESP32)
+  return hal->hw->idle_conf.tx_brk_num;
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
 
-  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
 
-  #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
   
-  #endif
+#endif
   return 45; // FIXME: no equivalent HAL function
 }
 
@@ -132,15 +132,15 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @return UART rx line level.
  */
  uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
-  #if defined(CONFIG_IDF_TARGET_ESP32)
-  
-  #elif defined(CONFIG_IDF_TARGET_ESP32S2)
+#if defined(CONFIG_IDF_TARGET_ESP32)
+  return hal->hw->status.rxd;
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
 
-  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
 
-  #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
   
-  #endif
+#endif
   return 0; // FIXME: doesn't have equivalent HAL function - used in RX timing tool
 }
 
