@@ -3,9 +3,9 @@
 #include <math.h>
 #include <string.h>
 
-#include "dmx/driver.h"
-#include "dmx/hal.h"
-#include "dmx/intr_handlers.h"
+#include "impl/driver.h"
+#include "impl/dmx_hal.h"
+#include "impl/intr_handlers.h"
 #include "dmx_types.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"

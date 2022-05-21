@@ -4,8 +4,8 @@
 extern "C" {
 #endif
 
-#include "dmx/driver.h"
-#include "dmx/hal.h"
+#include "impl/driver.h"
+#include "impl/dmx_hal.h"
 #include "esp_dmx.h"
 #include "esp_system.h"
 
