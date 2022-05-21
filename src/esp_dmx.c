@@ -327,7 +327,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
 }
 
 esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
-#ifdef DMX_HAL_GET_RX_LEVEL_NOT_SUPPORTED 
+#ifdef DMX_GET_RX_LEVEL_NOT_SUPPORTED 
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
 
@@ -494,7 +494,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
 }
 
 esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
-#ifdef DMX_HAL_GET_IDLE_NUM_NOT_IMPLEMENTED
+#ifdef DMX_GET_IDLE_NUM_NOT_IMPLEMENTED
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
 
@@ -532,7 +532,7 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
 }
 
 esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
-#ifdef DMX_HAL_GET_IDLE_NUM_NOT_IMPLEMENTED
+#ifdef DMX_GET_IDLE_NUM_NOT_IMPLEMENTED
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
 
