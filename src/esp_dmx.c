@@ -38,8 +38,9 @@ static const char *TAG = "dmx";
     return (ret_val);                                         \
   }
 
-#define DMX_FUNCTION_NOT_SUPPORTED()                                 \
-  ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, CONFIG_IDF_TARGET); \
+#define DMX_FUNCTION_NOT_SUPPORTED()                         \
+  ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, \
+    CONFIG_IDF_TARGET);                                      \
   return ESP_ERR_NOT_SUPPORTED;
 
 static inline int get_brk_us(int baud_rate, int break_num) {
