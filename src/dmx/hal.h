@@ -80,8 +80,8 @@ uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
   // FIXME
 // #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   // FIXME
-// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  // FIXME
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  return hal->dev->idle_conf.tx_idle_num;
 #else
 #define DMX_HAL_GET_IDLE_NUM_NOT_SUPPORTED
 #endif
@@ -101,8 +101,8 @@ uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
   // FIXME
 // #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   // FIXME
-// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  // FIXME
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  return hal->dev->txbrk_conf.tx_brk_num;
 #else
 #define DMX_HAL_GET_BREAK_NUM_NOT_SUPPORTED
 #endif
@@ -142,10 +142,10 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
   // FIXME
 // #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   // FIXME
-// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  // FIXME
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  return hal->dev->status.rxd;
 #else
-#define DMX_HAL_GET_RX_LEVEL_NOT_SUPPORTED 1
+#define DMX_HAL_GET_RX_LEVEL_NOT_SUPPORTED
 #endif
   return 0; // default rx low
 }
