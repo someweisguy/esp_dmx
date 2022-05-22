@@ -428,7 +428,11 @@ DMX is transmitted over RS-485. RS-485 uses twisted-pair, half-duplex, different
 
 RS-485 transceivers typically have four data input pins: $RO$, $DI$, $DE$, and $\overline{RE}$. $RO$ is receiver output. It is the pin that the UART TX pin is connected to so that data may be transmitted from the ESP32 to other devices. $DI$ is driver input. It is connected to the UART RX pin so that data may be read from other devices into the ESP32. $DE$ is driver output enable. Bringing this pin high enables the output on the $RO$ pin. $\overline{RE}$ is receiver output enable. The overline on this pin name indicates that it is active when driven low, and inactive when driven high. Driving this pin low enables the input on the $DI$ pin.
 
-TODO...
+Because $DE$ and $\overline{RE}$ enable writing and reading respectively, and because $DE$ is active high and $\overline{RE}$ is active low, these pins are often shorted together. In this example, these pins are wired together and are controlled with one pin on the ESP32. This pin is often called the enable pin. It is also referred to as the RTS pin for request to send. The example schematic can be seen below.
+
+TODO: include a picture of a wiring diagram
+
+Some RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips, particularly chips bought from third-party vendors, may require 5v control to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
 
 ### Hardware Specifications
 
