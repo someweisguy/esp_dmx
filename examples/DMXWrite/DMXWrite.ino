@@ -22,6 +22,9 @@
 int transmitPin = 17;
 int receivePin = 16;
 int enablePin = 21;
+/* Make sure to double-check that these pins are compatible with your ESP32!
+  Some ESP32s, such as the ESP32-WROVER series, do not allow you to read or
+  write data on pins 16 or 17, so it's always good to read the manuals. */
 
 /* Next, lets decide which DMX port to use. The ESP32 has either 2 or 3 ports.
   Port 0 is typically used to transmit serial data back to your Serial Monitor,
