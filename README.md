@@ -23,7 +23,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
   - [Packet Status](#packet-status)
   - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
-  - [How to Wire Your RS-485 Circuit](#how-to-wire-your-rs-485-circuit)
+  - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
   - [Hardware Specifications](#hardware-specifications)
   - [Remote Device Management](#remote-device-management)
 - [To Do](#to-do)
@@ -422,7 +422,7 @@ Some start codes are considered invalid and should not be used in a DMX packet. 
 
 ## Additional Considerations
 
-### How to Wire Your RS-485 Circuit
+### Wiring an RS-485 Circuit
 
 DMX is transmitted over RS-485. RS-485 uses twisted-pair, half-duplex, differential signalling to ensure that data packets can be transmitted over large distances. DMX starts as a UART signal which is then driven using an RS-485 transceiver. Because the ESP32 does not have a built-in RS-485 transceiver, it is required to for the ESP32 to be wired to a transceiver in most cases.
 
