@@ -430,7 +430,7 @@ RS-485 transceivers typically have four data input pins: $RO$, $DI$, $DE$, and $
 
 Because $DE$ and $\overline{RE}$ enable writing and reading respectively, and because $DE$ is active high and $\overline{RE}$ is active low, these pins are often shorted together. In this example, these pins are wired together and are controlled with one pin on the ESP32. This pin is often called the enable pin. It is also referred to as the RTS pin for request to send. The example schematic can be seen below.
 
-TODO: include a picture of a wiring diagram
+![An example RS-485 circuit](/media/rs485-light.png#gh-light-mode-only)![An example RS-485 circuit](/media/rs485-dark.png#gh-dark-mode-only)
 
 Some RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips, particularly chips bought from third-party vendors, may require 5v control to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
 
