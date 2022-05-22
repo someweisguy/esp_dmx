@@ -6,6 +6,8 @@ extern "C" {
 
 #include "hal/uart_types.h"
 
+// TODO: documentation on this file
+
 FORCE_INLINE_ATTR uint16_t dmx_ll_get_idle_num(uart_dev_t *hw) {
   #if defined(CONFIG_IDF_TARGET_ESP32)
   return hw->idle_conf.tx_idle_num;
