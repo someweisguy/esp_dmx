@@ -432,7 +432,7 @@ Because `DE` and `/RE` enable writing and reading respectively, and because `DE`
 
 ![An example RS-485 circuit](/media/rs485-light.png#gh-light-mode-only)![An example RS-485 circuit](/media/rs485-dark.png#gh-dark-mode-only)
 
-R2, the 120 ohm resistor, is a terminating resistor. It is not required to include this resistor but it can ensure system stability when connecting long lines of DMX consisting of multiple devices. If it is decided not to include this resistor, DMX-A and DMX-B should not be connected.
+R2, the 120 ohm resistor, is a terminating resistor. It is not required to include this resistor but it can ensure system stability when connecting long lines of DMX consisting of multiple devices. If it is decided not to include this resistor, DMX-A and DMX-B should not be shorted together.
 
 Some RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips, particularly chips bought from third-party vendors, may require 5v control to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
 
