@@ -54,30 +54,27 @@ static inline int get_mab_us(int baud_rate, int idle_num) {
 }
 
 #if SOC_UART_SUPPORT_RTC_CLK
-
 static uint8_t rtc_enabled = 0;
 static portMUX_TYPE rtc_num_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-static void rtc_clk_enable(dmx_port_t dmx_num)
-{
-    portENTER_CRITICAL(&rtc_num_spinlock);
-    if (!(rtc_enabled & RTC_ENABLED(dmx_num))) {
-        rtc_enabled |= RTC_ENABLED(dmx_num);
-    }
-    SET_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
-    portEXIT_CRITICAL(&rtc_num_spinlock);
+static void rtc_clk_enable(dmx_port_t dmx_num) {
+  portENTER_CRITICAL(&rtc_num_spinlock);
+  if (!(rtc_enabled & RTC_ENABLED(dmx_num))) {
+    rtc_enabled |= RTC_ENABLED(dmx_num);
+  }
+  SET_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
+  portEXIT_CRITICAL(&rtc_num_spinlock);
 }
 
-static void rtc_clk_disable(dmx_port_t dmx_num)
-{
-    assert(rtc_enabled & RTC_ENABLED(dmx_num));
+static void rtc_clk_disable(dmx_port_t dmx_num) {
+  assert(rtc_enabled & RTC_ENABLED(dmx_num));
 
-    portENTER_CRITICAL(&rtc_num_spinlock);
-    rtc_enabled &= ~RTC_ENABLED(dmx_num);
-    if (rtc_enabled == 0) {
-        CLEAR_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
-    }
-    portEXIT_CRITICAL(&rtc_num_spinlock);
+  portENTER_CRITICAL(&rtc_num_spinlock);
+  rtc_enabled &= ~RTC_ENABLED(dmx_num);
+  if (rtc_enabled == 0) {
+    CLEAR_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
+  }
+  portEXIT_CRITICAL(&rtc_num_spinlock);
 }
 #endif
 
