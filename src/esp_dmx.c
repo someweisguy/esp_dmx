@@ -494,7 +494,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
 }
 
 esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
-#ifdef DMX_GET_IDLE_NUM_NOT_IMPLEMENTED
+#ifdef DMX_GET_BREAK_NUM_NOT_SUPPORTED
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
 
