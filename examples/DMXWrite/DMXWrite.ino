@@ -28,8 +28,8 @@ int enablePin = 21;
 
 /* Next, lets decide which DMX port to use. The ESP32 has either 2 or 3 ports.
   Port 0 is typically used to transmit serial data back to your Serial Monitor,
-  so we shouldn't use that port. Lets use port 2! */
-dmx_port_t dmxPort = 2;
+  so we shouldn't use that port. Lets use port 1! */
+dmx_port_t dmxPort = 1;
 
 /* Now we want somewhere to store our DMX data. Since a single packet of DMX
   data can be up to 513 bytes long, we want our array to be at least that long.
