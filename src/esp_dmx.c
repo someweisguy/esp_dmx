@@ -78,38 +78,35 @@ static void rtc_clk_disable(dmx_port_t dmx_num) {
 }
 #endif
 
-static void dmx_module_enable(dmx_port_t dmx_num)
-{
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    if (dmx_context[dmx_num].hw_enabled != true) {
-        periph_module_enable(uart_periph_signal[dmx_num].module);
-        if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-            // Workaround for ESP32C3: enable core reset
-            // before enabling uart module clock
-            // to prevent uart output garbage value.
+static void dmx_module_enable(dmx_port_t dmx_num) {
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  if (dmx_context[dmx_num].hw_enabled != true) {
+    periph_module_enable(uart_periph_signal[dmx_num].module);
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+      // workaround for ESP32C3: enable core reset before enabling uart module
+      // clock to prevent uart output garbage value
 #if SOC_UART_REQUIRE_CORE_RESET
-            uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
-            periph_module_reset(uart_periph_signal[dmx_num].module);
-            uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), false);
+      uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
+      uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), false);
 #else
-            periph_module_reset(uart_periph_signal[dmx_num].module);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
-        }
-        dmx_context[dmx_num].hw_enabled = true;
     }
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_context[dmx_num].hw_enabled = true;
+  }
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
-static void dmx_module_disable(dmx_port_t dmx_num)
-{
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    if (dmx_context[dmx_num].hw_enabled != false) {
-        if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM ) {
-            periph_module_disable(uart_periph_signal[dmx_num].module);
-        }
-        dmx_context[dmx_num].hw_enabled = false;
+static void dmx_module_disable(dmx_port_t dmx_num) {
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  if (dmx_context[dmx_num].hw_enabled != false) {
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM ) {
+      periph_module_disable(uart_periph_signal[dmx_num].module);
     }
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_context[dmx_num].hw_enabled = false;
+  }
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
 /// Driver Functions  #########################################################
