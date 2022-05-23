@@ -44,13 +44,13 @@ static const char *TAG = "dmx";
   return ESP_ERR_NOT_SUPPORTED;
 
 static inline int get_brk_us(int baud_rate, int break_num) {
-    // get break in microseconds
-    return (int) ceil(break_num * (1000000.0 / baud_rate));
+  // get break in microseconds
+  return (int) ceil(break_num * (1000000.0 / baud_rate));
 }
 
 static inline int get_mab_us(int baud_rate, int idle_num) {
-    // get mark-after-break in microseconds
-    return (int) ceil(idle_num * (1000000.0 / baud_rate));
+  // get mark-after-break in microseconds
+  return (int) ceil(idle_num * (1000000.0 / baud_rate));
 }
 
 #if SOC_UART_SUPPORT_RTC_CLK
