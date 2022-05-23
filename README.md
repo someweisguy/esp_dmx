@@ -32,17 +32,17 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 
 ### Arduino
 
-This library requires the Arduino-ESP32 framework version 2.0.0 or newer. To install the correct framework, follow Espressif's instructions on the Arduino-ESP32 documentation page [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
+This library requires the Arduino-ESP32 framework version 2.0.3 or newer. To install the correct framework, follow Espressif's instructions on the Arduino-ESP32 documentation page [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
 
-This library can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager and installing the desired version. Then simply include the library by adding `#include "esp_dmx.h"` at the top of your Arduino sketch.
+This library can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager. Then simply include the library by adding `#include "esp_dmx.h"` at the top of your Arduino sketch.
 
 ### ESP-IDF
 
-Clone this repository into your project's `components` folder. The library can be linked by putting `#include "esp_dmx.h"` at the top of your `main.c` file.
+This library requires ESP-IDF version 4.3.0 or newer. Clone this repository into your project's `components` folder. The library can be linked by writing `#include "esp_dmx.h"` at the top of your `main.c` file.
 
 ### PlatformIO
 
-This library is compatible with the PlatformIO IDE. PlatformIO does not currently support Arduino-ESP32 v2.0.0 by default. Therefore, when using the Arduino framework on PlatformIO, it is required to adjust your default `platformio.ini` to enable this library to compile. Simply change the platform specified in `platformio.ini` from `espressif32` to `https://github.com/platformio/platform-espressif32.git#feature/arduino-upstream`. This instructs PlatformIO to download Arduino-ESP32 v2.0.0 from its repository which may take some time, typically about 15 minutes. No such changes are necessary when using ESP-IDF on PlatformIO.
+This library is compatible with the PlatformIO IDE. Search for this library in the PlatformIO library registry and add it to your project. The library can be included by writing `#include "esp_dmx.h"` at the top of your `main.c` or `main.cpp` file.
 
 ## Quick-Start Guide
 
