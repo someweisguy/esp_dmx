@@ -19,14 +19,14 @@
 #define RTC_ENABLED(uart_num)    (BIT(uart_num))
 #endif
 
-#define DMX_EMPTY_THRESH_DEFAULT  8
-#define DMX_FULL_THRESH_DEFAULT   120
-#define DMX_TOUT_THRESH_DEFAULT   126
+#define DMX_EMPTY_THRESH_DEFAULT  (8)
+#define DMX_FULL_THRESH_DEFAULT   (120)
+#define DMX_TOUT_THRESH_DEFAULT   (126)
 
-#define DMX_RXFIFO_FULL_THRHD_V   0x7F
-#define DMX_TXFIFO_EMPTY_THRHD_V  0x7F
+#define DMX_RXFIFO_FULL_THRHD_V   (0x7F)
+#define DMX_TXFIFO_EMPTY_THRHD_V  (0x7F)
 
-#define DMX_ALL_INTR_MASK         -1
+#define DMX_ALL_INTR_MASK         (-1)
 
 #define DMX_ENTER_CRITICAL(mux)   portENTER_CRITICAL(mux)
 #define DMX_EXIT_CRITICAL(mux)    portEXIT_CRITICAL(mux)
