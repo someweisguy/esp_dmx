@@ -424,7 +424,7 @@ Some start codes are considered invalid and should not be used in a DMX packet. 
 
 ### Wiring an RS-485 Circuit
 
-DMX is transmitted over RS-485. RS-485 uses twisted-pair, half-duplex, differential signalling to ensure that data packets can be transmitted over large distances. DMX starts as a UART signal which is then driven using an RS-485 transceiver. Because the ESP32 does not have a built-in RS-485 transceiver, it is required to for the ESP32 to be wired to a transceiver in most cases.
+DMX is transmitted over RS-485. RS-485 uses twisted-pair, half-duplex, differential signalling to ensure that data packets can be transmitted over large distances. DMX starts as a UART signal which is then driven using an RS-485 transceiver. Because the ESP32 does not have a built-in RS-485 transceiver, it is required for the ESP32 to be wired to a transceiver in most cases.
 
 RS-485 transceivers typically have four data input pins: `RO`, `DI`, `DE`, and `/RE`. `RO` is receiver output. It is the pin that the UART TX pin is connected to so that data may be transmitted from the ESP32 to other devices. `DI` is driver input. It is connected to the UART RX pin so that data may be read from other devices into the ESP32. `DE` is driver output enable. Bringing this pin high enables the output on the `RO` pin. `/RE` is receiver output enable. The overline on this pin name indicates that it is active when driven low, and inactive when driven high. Driving this pin low enables the input on the `DI` pin.
 
