@@ -87,7 +87,7 @@ extern "C" {
 
 /**
  * @brief Evaluates to true of the transmitted mark-after-break duration is
- * within DMX specificaiotn.
+ * within DMX specification.
  * 
  */
 #define DMX_TX_MAB_DURATION_IS_VALID(mab) \
