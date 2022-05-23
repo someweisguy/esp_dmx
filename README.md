@@ -430,7 +430,7 @@ RS-485 transceivers typically have four data input pins: `RO`, `DI`, `DE`, and `
 
 Because `DE` and `/RE` enable writing and reading respectively, and because `DE` is active high and `/RE` is active low, these pins are often shorted together. In this example, these pins are wired together and are controlled with one pin on the ESP32. This pin is called the enable pin. It can also be referred to as the RTS pin. The example schematic can be seen below.
 
-![An example RS-485 circuit](/media/rs485-light.png#gh-light-mode-only)![An example RS-485 circuit](/media/rs485-dark.png#gh-dark-mode-only)
+![An example RS-485 circuit](/media/rs485-ckt.png)
 
 R2, the 120 ohm resistor, is a terminating resistor. It is not required to include this resistor but it can ensure system stability when connecting long lines of DMX consisting of multiple devices. If it is decided not to include this resistor, DMX-A and DMX-B should not be shorted together.
 
