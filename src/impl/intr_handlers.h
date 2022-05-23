@@ -13,9 +13,9 @@ extern "C" {
 #define UART_INTR_RXFIFO_FULL           (1 << 0) // Interrupt that triggers when the RX FIFO is full.
 #define UART_INTR_TXFIFO_EMPTY          (1 << 1) // Interrupt that triggers when the TX FIFO is empty.
 #define UART_INTR_PARITY_ERR            (1 << 2) // Interrupt that triggers when there is a parity bit error.
-#define UART_INTR_FRAM_ERR              (1 << 3) // Interrupt that triggers when there is a data bit framing error.
+#define UART_INTR_FRAME_ERR             (1 << 3) // Interrupt that triggers when there is a data bit framing error.
 #define UART_INTR_RXFIFO_OVF            (1 << 4) // Interrupt that triggers when the RX FIFO overflows.
-#define UART_INTR_BRK_DET               (1 << 7) // Interrupt that triggers when a break is detected (break bit occcurs for longer than a frame length).
+#define UART_INTR_BRK_DET               (1 << 7) // Interrupt that triggers when a break is detected (break bit occurs for longer than a frame length).
 #define UART_INTR_RXFIFO_TOUT           (1 << 8) // Interrupt that triggers when the RX FIFO times out waiting for a new frame (mark bit occurs longer than the RX timeout duration).
 #define UART_INTR_TX_BRK_DONE           (1 << 12) // Interrupt that triggers when the TX break is finished transmitting.
 #define UART_INTR_TX_BRK_IDLE           (1 << 13) // Interrupt that triggers when done TX'ing data, but before the break is finished transmitting.
@@ -25,7 +25,7 @@ extern "C" {
 #define UART_INTR_RS485_CLASH           (1 << 17) // Interrupt that triggers when a RS485 bus smashing event occurs.
 
 #define DMX_INTR_RX_BRK                 (UART_INTR_BRK_DET) // Interrupt mask that represents a DMX break. 
-#define DMX_INTR_RX_FRAMING_ERR         (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR) // Interrupt mask that represents a byte framing error.
+#define DMX_INTR_RX_FRAMING_ERR         (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAME_ERR | UART_INTR_RS485_FRM_ERR) // Interrupt mask that represents a byte framing error.
 #define DMX_INTR_RX_ERR                 (UART_INTR_RXFIFO_OVF | DMX_INTR_RX_FRAMING_ERR) // Interrupt mask that represents an error condition.
 #define DMX_INTR_RX_ALL                 (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR) // Interrupt mask that represents all rx conditions.
 
@@ -87,7 +87,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_RS485_CLASH);
     }
 
-    // DMX Recieve ####################################################
+    // DMX Receive ####################################################
     else if (uart_intr_status & DMX_INTR_RX_ALL) {
       // this interrupt is triggered when any rx event occurs
       
@@ -211,7 +211,7 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
 
   /* If this ISR is called on a positive edge and the current DMX frame is in a
-  break and a negative edge condition has already occured, then the break has 
+  break and a negative edge condition has already occurred, then the break has 
   just finished, so we can update the length of the break as well as unset the 
   rx_is_in_brk flag. If this ISR is called on a negative edge and the 
   mark-after-break has not been recorded while the break has been recorded,
