@@ -224,7 +224,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // free rx analyzer isr
   if (p_dmx_obj[dmx_num]->intr_io_num != -1) 
-    dmx_rx_timing_disable(dmx_num);
+    dmx_sniffer_disable(dmx_num);
 
   // free driver resources
   if (p_dmx_obj[dmx_num]->buffer[0])
@@ -291,7 +291,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
     // disable rx timing if it is enabled
     if (p_dmx_obj[dmx_num]->intr_io_num != -1)
-      dmx_rx_timing_disable(dmx_num);
+      dmx_sniffer_disable(dmx_num);
 
     p_dmx_obj[dmx_num]->slot_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
@@ -320,7 +320,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   return ESP_OK;
 }
 
-esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 #ifdef DMX_GET_RX_LEVEL_NOT_SUPPORTED 
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
@@ -351,7 +351,7 @@ esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
   return ESP_OK;
 }
 
-esp_err_t dmx_rx_timing_disable(dmx_port_t dmx_num) {
+esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->intr_io_num != -1, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
@@ -373,7 +373,7 @@ esp_err_t dmx_rx_timing_disable(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-bool dmx_is_rx_timing_enabled(dmx_port_t dmx_num) {
+bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
   return dmx_is_driver_installed(dmx_num) && p_dmx_obj[dmx_num]->intr_io_num != -1;
 }
 
