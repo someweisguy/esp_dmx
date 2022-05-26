@@ -1,4 +1,4 @@
 idf_component_register(
-    SRCS "idf_timing.c"
+    SRCS "idf_sniffer.c"
     INCLUDE_DIRS ""
 )
