@@ -38,8 +38,10 @@ This library can be installed by cloning this repository into your your `Arduino
 
 ### ESP-IDF
 
-This library requires ESP-IDF version 4.3.0 or newer. Clone this repository into your project's `components` folder. The library can be linked by writing `#include "esp_dmx.h"` at the top of your `main.c` file.
+This library requires ESP-IDF version 4.4.1 or newer. Clone this repository into your project's `components` folder. The library can be linked by writing `#include "esp_dmx.h"` at the top of your `main.c` file.
+
 ### PlatformIO
+
 This library is compatible with the PlatformIO IDE. Search for this library in the PlatformIO library registry and add it to your project. The library can be included by writing `#include "esp_dmx.h"` at the top of your `main.c` or `main.cpp` file.
 
 ## Quick-Start Guide
