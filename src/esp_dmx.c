@@ -19,14 +19,14 @@
 #define RTC_ENABLED(uart_num)    (BIT(uart_num))
 #endif
 
-#define DMX_EMPTY_THRESH_DEFAULT  8
-#define DMX_FULL_THRESH_DEFAULT   120
-#define DMX_TOUT_THRESH_DEFAULT   126
+#define DMX_EMPTY_THRESH_DEFAULT  (8)
+#define DMX_FULL_THRESH_DEFAULT   (120)
+#define DMX_TOUT_THRESH_DEFAULT   (126)
 
-#define DMX_RXFIFO_FULL_THRHD_V   0x7F
-#define DMX_TXFIFO_EMPTY_THRHD_V  0x7F
+#define DMX_RXFIFO_FULL_THRHD_V   (0x7F)
+#define DMX_TXFIFO_EMPTY_THRHD_V  (0x7F)
 
-#define DMX_ALL_INTR_MASK         -1
+#define DMX_ALL_INTR_MASK         (-1)
 
 #define DMX_ENTER_CRITICAL(mux)   portENTER_CRITICAL(mux)
 #define DMX_EXIT_CRITICAL(mux)    portEXIT_CRITICAL(mux)
@@ -44,75 +44,69 @@ static const char *TAG = "dmx";
   return ESP_ERR_NOT_SUPPORTED;
 
 static inline int get_brk_us(int baud_rate, int break_num) {
-    // get break in microseconds
-    return (int) ceil(break_num * (1000000.0 / baud_rate));
+  // get break in microseconds
+  return (int) ceil(break_num * (1000000.0 / baud_rate));
 }
 
 static inline int get_mab_us(int baud_rate, int idle_num) {
-    // get mark-after-break in microseconds
-    return (int) ceil(idle_num * (1000000.0 / baud_rate));
+  // get mark-after-break in microseconds
+  return (int) ceil(idle_num * (1000000.0 / baud_rate));
 }
 
 #if SOC_UART_SUPPORT_RTC_CLK
-
 static uint8_t rtc_enabled = 0;
 static portMUX_TYPE rtc_num_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-static void rtc_clk_enable(dmx_port_t dmx_num)
-{
-    portENTER_CRITICAL(&rtc_num_spinlock);
-    if (!(rtc_enabled & RTC_ENABLED(dmx_num))) {
-        rtc_enabled |= RTC_ENABLED(dmx_num);
-    }
-    SET_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
-    portEXIT_CRITICAL(&rtc_num_spinlock);
+static void rtc_clk_enable(dmx_port_t dmx_num) {
+  portENTER_CRITICAL(&rtc_num_spinlock);
+  if (!(rtc_enabled & RTC_ENABLED(dmx_num))) {
+    rtc_enabled |= RTC_ENABLED(dmx_num);
+  }
+  SET_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
+  portEXIT_CRITICAL(&rtc_num_spinlock);
 }
 
-static void rtc_clk_disable(dmx_port_t dmx_num)
-{
-    assert(rtc_enabled & RTC_ENABLED(dmx_num));
+static void rtc_clk_disable(dmx_port_t dmx_num) {
+  assert(rtc_enabled & RTC_ENABLED(dmx_num));
 
-    portENTER_CRITICAL(&rtc_num_spinlock);
-    rtc_enabled &= ~RTC_ENABLED(dmx_num);
-    if (rtc_enabled == 0) {
-        CLEAR_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
-    }
-    portEXIT_CRITICAL(&rtc_num_spinlock);
+  portENTER_CRITICAL(&rtc_num_spinlock);
+  rtc_enabled &= ~RTC_ENABLED(dmx_num);
+  if (rtc_enabled == 0) {
+    CLEAR_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
+  }
+  portEXIT_CRITICAL(&rtc_num_spinlock);
 }
 #endif
 
-static void dmx_module_enable(dmx_port_t dmx_num)
-{
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    if (dmx_context[dmx_num].hw_enabled != true) {
-        periph_module_enable(uart_periph_signal[dmx_num].module);
-        if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-            // Workaround for ESP32C3: enable core reset
-            // before enabling uart module clock
-            // to prevent uart output garbage value.
+static void dmx_module_enable(dmx_port_t dmx_num) {
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  if (dmx_context[dmx_num].hw_enabled != true) {
+    periph_module_enable(uart_periph_signal[dmx_num].module);
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+      // workaround for ESP32C3: enable core reset before enabling uart module
+      //  clock to prevent uart output garbage value
 #if SOC_UART_REQUIRE_CORE_RESET
-            uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
-            periph_module_reset(uart_periph_signal[dmx_num].module);
-            uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), false);
+      uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
+      uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), false);
 #else
-            periph_module_reset(uart_periph_signal[dmx_num].module);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
-        }
-        dmx_context[dmx_num].hw_enabled = true;
     }
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_context[dmx_num].hw_enabled = true;
+  }
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
-static void dmx_module_disable(dmx_port_t dmx_num)
-{
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    if (dmx_context[dmx_num].hw_enabled != false) {
-        if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM ) {
-            periph_module_disable(uart_periph_signal[dmx_num].module);
-        }
-        dmx_context[dmx_num].hw_enabled = false;
+static void dmx_module_disable(dmx_port_t dmx_num) {
+  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  if (dmx_context[dmx_num].hw_enabled != false) {
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM ) {
+      periph_module_disable(uart_periph_signal[dmx_num].module);
     }
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_context[dmx_num].hw_enabled = false;
+  }
+  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
 /// Driver Functions  #########################################################
@@ -230,7 +224,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // free rx analyzer isr
   if (p_dmx_obj[dmx_num]->intr_io_num != -1) 
-    dmx_rx_timing_disable(dmx_num);
+    dmx_sniffer_disable(dmx_num);
 
   // free driver resources
   if (p_dmx_obj[dmx_num]->buffer[0])
@@ -297,7 +291,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
     // disable rx timing if it is enabled
     if (p_dmx_obj[dmx_num]->intr_io_num != -1)
-      dmx_rx_timing_disable(dmx_num);
+      dmx_sniffer_disable(dmx_num);
 
     p_dmx_obj[dmx_num]->slot_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_TX;
@@ -326,7 +320,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   return ESP_OK;
 }
 
-esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 #ifdef DMX_GET_RX_LEVEL_NOT_SUPPORTED 
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
@@ -357,7 +351,7 @@ esp_err_t dmx_rx_timing_enable(dmx_port_t dmx_num, int intr_io_num) {
   return ESP_OK;
 }
 
-esp_err_t dmx_rx_timing_disable(dmx_port_t dmx_num) {
+esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->intr_io_num != -1, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
@@ -379,7 +373,7 @@ esp_err_t dmx_rx_timing_disable(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-bool dmx_is_rx_timing_enabled(dmx_port_t dmx_num) {
+bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
   return dmx_is_driver_installed(dmx_num) && p_dmx_obj[dmx_num]->intr_io_num != -1;
 }
 
@@ -494,7 +488,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
 }
 
 esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
-#ifdef DMX_GET_IDLE_NUM_NOT_IMPLEMENTED
+#ifdef DMX_GET_BREAK_NUM_NOT_SUPPORTED
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
 

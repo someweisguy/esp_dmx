@@ -34,15 +34,13 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 
 This library requires the Arduino-ESP32 framework version 2.0.3 or newer. To install the correct framework, follow Espressif's instructions on the Arduino-ESP32 documentation page [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
 
-This library can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager and installing the desired version. Then simply include the library by adding `#include "esp_dmx.h"` at the top of your Arduino sketch.
+This library can be installed by cloning this repository into your your `Arduino/libaries` folder or by searching for `esp_dmx` in the Arduino IDE Library Manager. Then simply include the library by adding `#include "esp_dmx.h"` at the top of your Arduino sketch.
 
 ### ESP-IDF
 
-This library requires ESP-IDF version 4.4.1 or newer. Clone this repository into your project's `components` folder. The library can be linked by putting `#include "esp_dmx.h"` at the top of your `main.c` file.
-
+This library requires ESP-IDF version 4.3.0 or newer. Clone this repository into your project's `components` folder. The library can be linked by writing `#include "esp_dmx.h"` at the top of your `main.c` file.
 ### PlatformIO
-
-This library is compatible with the PlatformIO IDE. PlatformIO does not currently support Arduino-ESP32 v2.0.0 by default. Therefore, when using the Arduino framework on PlatformIO, it is required to adjust your default `platformio.ini` to enable this library to compile. Simply change the platform specified in `platformio.ini` from `espressif32` to `https://github.com/platformio/platform-espressif32.git#feature/arduino-upstream`. This instructs PlatformIO to download Arduino-ESP32 v2.0.0 from its repository which may take some time, typically about 15 minutes. No such changes are necessary when using ESP-IDF on PlatformIO.
+This library is compatible with the PlatformIO IDE. Search for this library in the PlatformIO library registry and add it to your project. The library can be included by writing `#include "esp_dmx.h"` at the top of your `main.c` or `main.cpp` file.
 
 ## Quick-Start Guide
 
@@ -426,7 +424,7 @@ Some start codes are considered invalid and should not be used in a DMX packet. 
 
 DMX is transmitted over RS-485. RS-485 uses twisted-pair, half-duplex, differential signalling to ensure that data packets can be transmitted over large distances. DMX starts as a UART signal which is then driven using an RS-485 transceiver. Because the ESP32 does not have a built-in RS-485 transceiver, it is required for the ESP32 to be wired to a transceiver in most cases.
 
-RS-485 transceivers typically have four data input pins: `RO`, `DI`, `DE`, and `/RE`. `RO` is receiver output. It is the pin that the UART RX pin is connected to so that data may be read from other devices to the ESP32. `DI` is driver input. It is connected to the UART TX pin so that data may be written to other devices from the ESP32. `DE` is driver input enable. Bringing this pin high enables the input on the `DI` pin. `/RE` is receiver output enable. The overline on this pin name indicates that it is active when driven low, and inactive when driven high. Driving this pin low enables the inputput on the `DI` pin.
+RS-485 transceivers typically have four data input pins: `RO`, `DI`, `DE`, and `/RE`. `RO` is receiver output. It is the pin that the UART RX pin is connected to so that data may be read from other devices to the ESP32. `DI` is driver input. It is connected to the UART TX pin so that data may be written to other devices from the ESP32. `DE` is driver input enable. Bringing this pin high enables the input on the `DI` pin. `/RE` is receiver output enable. The overline on this pin name indicates that it is active when driven low, and inactive when driven high. Driving this pin low enables the input on the `DI` pin.
 
 Because `DE` and `/RE` enable writing and reading respectively, and because `DE` is active high and `/RE` is active low, these pins are often shorted together. In this example, these pins are wired together and are controlled with one pin on the ESP32. This pin is called the enable pin. It can also be referred to as the RTS pin. The example schematic can be seen below.
 
@@ -436,7 +434,7 @@ In this example circuit, R1 and R3 are 680 ohms each. Many RS-485 breakout board
 
 R2, the 120 ohm resistor, is a terminating resistor. It is not required to include this resistor but it can ensure system stability when connecting long lines of DMX consisting of multiple devices. If it is decided not to include this resistor, DMX-A and DMX-B should not be shorted together.
 
-Some RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips, particularly chips bought from third-party vendors, may require 5v control to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
+Many RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips may require 5v data to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
 
 ### Hardware Specifications
 
@@ -448,7 +446,6 @@ Currently, implementation of Remote Device Management (RDM) is not planned. The 
 
 ## To Do
 
-- Clearer version number compatibilities
 - Allow user to place ISR in IRAM optionally
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
 - Allow for use of ESP32 Hardware Timer for Reset Sequence.

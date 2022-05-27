@@ -1,6 +1,6 @@
 /*
 
-  DMX Timing
+  DMX Sniffer
 
   This sketch allows you to read and get detailed metadata DMX from a DMX
   controller using a standard DMX shield, such SparkFun ESP32 Thing Plus 
@@ -19,8 +19,8 @@
   need to define which pin is transmitting data and which pin is receiving data.
   DMX circuits also often need to be told when we are transmitting and when we are
   receiving data. We can do this by defining an enable pin. Since we are using
-  the timing tool, we also need to define which pin to use to measure timings.
-  It is best to use the lowest number pin as possible. The lowest number pin
+  the sniffer, we also need to define which pin to use to sniff DMX frames. It
+  is best to use the lowest number pin as possible. The lowest number pin
   available on the Adafruit ESP32 Feather is 4, so lets use that. */
 int transmitPin = 17;
 int receivePin = 16;
@@ -78,10 +78,10 @@ void setup() {
   dmx_driver_install(dmxPort, DMX_MAX_PACKET_SIZE, queueSize, &queue,
                      interruptPriority);
 
-  /* In this example, we are using the timing tool. The timing tool uses an
+  /* In this example, we are using the DMX sniffer. The sniffer uses an
     interrupt service routine (ISR) to create metadata about the DMX we
-    receive. We will intall the ISR and then enable the timing tool on the
-    hardware pin that we specified. */
+    receive. We will intall the ISR and then enable the sniffer on the hardware
+    pin that we specified. */
   gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
   dmx_rx_timing_enable(dmxPort, timingPin);
 }
