@@ -17,7 +17,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 - [Reading and Writing](#reading-and-writing)
   - [Device Mode](#device-mode)
   - [Reading](#reading)
-  - [Timing Tool](#timing-tool)
+  - [DMX Sniffer](#dmx-sniffer)
   - [Writing](#writing)
 - [Error Handling](#error-handling)
   - [Packet Status](#packet-status)
@@ -257,25 +257,25 @@ if (event.status == DMX_OK && event.size >= slot_idx) {
 
 This library offers tools to perform robust error-checking. For more information on errors, see the [Error Handling](#error-handling) section.
 
-### Timing Tool
+### DMX Sniffer
 
-This library offers an option to measure break and mark after break timings of received data packets. This tool is much more resource intensive than the default DMX receive driver, so it must be explicitly enabled by calling `dmx_rx_timing_enable()`.
+This library offers an option to measure break and mark after break timings of received data packets. This tool is much more resource intensive than the default DMX receive driver, so it must be explicitly enabled by calling `dmx_sniffer_enable()`.
 
-The timing tool installs an edge-triggered interrupt on the specified GPIO pin. This library uses the ESP-IDF provided GPIO ISR which allows the use of individual interrupt handlers for specific GPIO interrupts. The interrupt handler works by iterating through each GPIO to determine if it triggered an interrupt and if so, it calls the appropriate handler.
+The DMX sniffer installs an edge-triggered interrupt on the specified GPIO pin. This library uses the ESP-IDF provided GPIO ISR which allows the use of individual interrupt handlers for specific GPIO interrupts. The interrupt handler works by iterating through each GPIO to determine if it triggered an interrupt and if so, it calls the appropriate handler.
 
-A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed earlier than higher GPIO numbers. It is recommended that the DMX RX pin be shorted to a lower GPIO number in order to ensure that the DMX timing tool can run with low latency.
+A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed earlier than higher GPIO numbers. It is recommended that the DMX RX pin be shorted to a lower GPIO number in order to ensure that the DMX sniffer can run with low latency.
 
-It is important to note that the timing tool requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the timing tool, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig` if the ESP-IDF is used.
+It is important to note that the sniffer requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the sniffer, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig` if the ESP-IDF is used.
 
-Before enabling the timing analysis tool `gpio_install_isr_service()` must be called.
+Before enabling the sniffer tool, `gpio_install_isr_service()` must be called.
 
 ```cpp
 gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
-const int timing_io_num = 4; // lowest exposed pin on the Feather breakout board
-dmx_rx_timing_enable(DMX_NUM_2, timing_io_num);
+const int sniffer_io_num = 4; // lowest exposed pin on the Feather breakout board
+dmx_sniffer_enable(DMX_NUM_2, sniffer_io_num);
 ```
 
-Break and mark after break timings are reported to the event queue when the timing tool is enabled. If the timing tool is disabled, either because `dmx_rx_timing_disable()` was called or because `dmx_rx_timing_enable()` was not called, the reported break and mark after break durations will default to -1.
+Break and mark after break timings are reported to the event queue when the DMX sniffer is enabled. If the sniffer is disabled, either because `dmx_sniffer_disable()` was called or because `dmx_sniffer_enable()` was not called, the reported break and mark after break durations will default to -1.
 
 ```cpp
 dmx_event_t event;

@@ -50,7 +50,7 @@ typedef struct {
   struct {
     int32_t brk;                    // Duration of the break in microseconds.
     int32_t mab;                    // Duration of the mark-after-break in microseconds.
-  } timing;                         // Timing values received from the DMX rx timing tool.
+  } timing;                         // Timing values received from the DMX sniffer.
 } dmx_event_t;
 
 /**
