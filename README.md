@@ -444,7 +444,7 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 
 ### Remote Device Management
 
-Currently, implementation of Remote Device Management (RDM) is not planned. The primary reason for this is because the author of this library does not have access to any lighting devices that support RDM, so it is difficult to test RDM compatibility. The secondary reason is because this library supports DMX at a low level of abstraction. RDM is relatively higher level than DMX. This means that RDM can be implemented using this library, but to implement RDM as an API of this library is beyond the scope of this library.
+Support for RDM is currently in progress.
 
 ## To Do
 
