@@ -84,7 +84,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
  * @brief Gets the DMX mode, either DMX_MODE_RX, or DMX_MODE_TX.
  * 
  * @param dmx_num The DMX port number.
- * @param dmx_mode A pointer to a dmx_mode_t to return the current mode to.
+ * @param dmx_mode A pointer to a dmx_mode_t to return the current mode.
  * @return
  * - ESP_OK                 Success
  * - ESP_ERR_INVALID_ARG    Parameter error
