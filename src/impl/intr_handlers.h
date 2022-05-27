@@ -49,13 +49,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // this interrupt is triggered when the tx FIFO is empty
 
       uint32_t bytes_written;
-      const uint32_t num_slots_to_read = p_dmx->buf_size - p_dmx->slot_idx;
+      const uint32_t num_slots_to_read = p_dmx->send_size - p_dmx->slot_idx;
       const uint8_t *next_slot = p_dmx->buffer[0] + p_dmx->slot_idx;
       dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, num_slots_to_read,
         &bytes_written);
       p_dmx->slot_idx += bytes_written;
 
-      if (p_dmx->slot_idx == p_dmx->buf_size) {
+      if (p_dmx->slot_idx == p_dmx->send_size) {
         // allow tx FIFO to empty - break and idle will be written
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TXFIFO_EMPTY);

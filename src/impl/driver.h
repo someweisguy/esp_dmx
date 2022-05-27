@@ -28,6 +28,7 @@ typedef struct {
 
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
   uint8_t *buffer[2];             // Used for reading or writing DMX data (double-buffered).
+  uint16_t send_size;             // The size of the number of slots to send.
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
   uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd into.
   dmx_mode_t mode;                // The mode the driver is in - either RX or TX.
@@ -40,8 +41,8 @@ typedef struct {
   SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being tx'd.
   int64_t tx_last_brk_ts;         // Timestamp of the last tx'd break.
 
-  /* The remaining variables are only used if rx analyze is enabled. They are 
-  uninitialized until dmx_rx_timing_enable() is called. */
+  /* The remaining variables are only used if the DMX sniffer is enabled. They
+  are uninitialized until dmx_sniffer_enable() is called. */
 
   bool rx_is_in_brk;              // True if the rx packet is currently in a break.
   int64_t rx_last_pos_edge_ts;    // Timestamp of the last positive edge on the analyze pin.

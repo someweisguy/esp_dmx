@@ -687,7 +687,7 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value) {
 esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->buf_size <= num_slots, "num_slots error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->buf_size >= num_slots && num_slots > 0, "num_slots error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE, "not in tx mode", ESP_ERR_INVALID_STATE);
 
   // only tx when a frame is not being written
@@ -738,11 +738,12 @@ esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
 
   // write data to tx FIFO
   uint32_t bytes_written;
-  dmx_obj_t *const p_dmx = p_dmx_obj[dmx_num];
-  const uint32_t len = p_dmx->buf_size - p_dmx->slot_idx;
-  const uint8_t *next_slot = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
-  dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, len, &bytes_written);
-  p_dmx->slot_idx = bytes_written;
+  p_dmx_obj[dmx_num]->send_size = num_slots;
+  const uint32_t buf_idx = p_dmx_obj[dmx_num]->buf_idx;
+  const uint8_t *zeroeth_slot = p_dmx_obj[dmx_num]->buffer[buf_idx];
+  dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
+    &bytes_written);
+  p_dmx_obj[dmx_num]->slot_idx = bytes_written;
 
   // enable tx interrupts
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
