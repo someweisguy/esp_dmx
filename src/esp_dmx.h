@@ -346,7 +346,7 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t s
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
 
 /**
- * @brief Transmits a frame of DMX on the UART bus.
+ * @brief Transmits a packet of DMX on the UART bus.
  * 
  * @param dmx_num The DMX port number.
  * @return 
@@ -354,7 +354,19 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
  * - ESP_ERR_INVALID_ARG    Parameter error 
  * - ESP_FAIL               A packet is already being written
  */
-esp_err_t dmx_tx_packet(dmx_port_t dmx_num);
+esp_err_t dmx_send_packet(dmx_port_t dmx_num);
+
+/**
+ * @brief Transmits a number of slots of DMX on the UART bus.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param size The number of slots to send.
+ * @return 
+ * - ESP_OK                 Success
+ * - ESP_ERR_INVALID_ARG    Parameter error 
+ * - ESP_FAIL               A packet is already being written
+ */
+esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t size);
 
 /**
  * @brief Wait until the DMX port is done transmitting. This function blocks
@@ -368,7 +380,7 @@ esp_err_t dmx_tx_packet(dmx_port_t dmx_num);
  * - ESP_ERR_INVALID_STATE  Driver not installed
  * - ESP_ERR_TIMEOUT        Timed out
  */
-esp_err_t dmx_wait_tx_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+esp_err_t dmx_wait_send_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
 #ifdef __cplusplus
 }
