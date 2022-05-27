@@ -72,19 +72,19 @@ Before the user is able to write to the DMX bus, the driver mode must be set. Ca
 dmx_set_mode(dmx_num, DMX_MODE_TX);
 ```
 
-To write data to the DMX bus, two functions are provided. The function `dmx_write_packet()` writes data to the DMX buffer and `dmx_tx_packet()` sends the data out onto the bus. The function `dmx_wait_tx_done()` is used to block the task until the DMX bus is idle.
+To write data to the DMX bus, two functions are provided. The function `dmx_write_packet()` writes data to the DMX buffer and `dmx_send_packet()` sends the data out onto the bus. The function `dmx_wait_send_done()` is used to block the task until the DMX bus is idle.
 
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = {0};
 while (1) {
-    // write to the packet and tx it
+    // write to the packet and send it
     dmx_write_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
-    dmx_tx_packet(dmx_num);
+    dmx_send_packet(dmx_num);
     
     // do work here...
 
     // block until the packet is finished sending
-    dmx_wait_tx_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
+    dmx_wait_send_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
 }
 ```
 
@@ -297,10 +297,10 @@ dmx_set_mode(DMX_NUM_2, DMX_MODE_TX); // enable tx mode
 
 // write the packet and send it out on the DMX bus
 dmx_write_packet(DMX_NUM_2, data, MAX_PACKET_SIZE);
-dmx_tx_packet(DMX_NUM_2);
+dmx_send_packet(DMX_NUM_2);
 ```
 
-Calling `dmx_tx_packet()` will fail if the DMX driver is currently transmitting a packet of DMX data. To ensure that packets are continuously sent, `dmx_wait_tx_done()` can be used.
+Calling `dmx_send_packet()` will fail if the DMX driver is currently transmitting a packet of DMX data. To ensure that packets are continuously sent, `dmx_wait_send_done()` can be used.
 
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
@@ -310,12 +310,12 @@ dmx_set_mode(DMX_NUM_2, DMX_MODE_TX); // enable tx mode
 while (1) {
     // write and send the packet
     dmx_write_packet(DMX_NUM_2, data, MAX_PACKET_SIZE);
-    dmx_tx_packet(DMX_NUM_2);
+    dmx_send_packet(DMX_NUM_2);
 
     // do other work here...
 
     // block until we are ready to send another packet
-    dmx_wait_tx_done(DMX_NUM_2, DMX_TX_PACKET_TOUT_TICK);
+    dmx_wait_send_done(DMX_NUM_2, DMX_TX_PACKET_TOUT_TICK);
 }
 ```
 
@@ -329,7 +329,7 @@ const int slot_idx = 5;
 uint8_t slot_val = 127;
 dmx_write_slot(DMX_NUM_2, slot_idx, slot_val);
 
-// don't forget to call dmx_tx_packet()!
+// don't forget to call dmx_send_packet()!
 ```
 
 ## Error Handling
