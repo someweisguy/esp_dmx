@@ -83,7 +83,7 @@ void setup() {
     receive. We will intall the ISR and then enable the sniffer on the hardware
     pin that we specified. */
   gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
-  dmx_rx_timing_enable(dmxPort, timingPin);
+  dmx_sniffer_enable(dmxPort, timingPin);
 }
 
 

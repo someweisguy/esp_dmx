@@ -1,8 +1,8 @@
 /*
 
-  ESP-IDF Timing
+  ESP-IDF Sniffer
 
-  This example demonstrates how to use the DMX timing tool to read packet
+  This example demonstrates how to use the DMX sniffer to read packet
   metadata from incoming DMX data packets. Data is read synchronously from the
   DMX bus. If there are no errors in the packet a log is written every 1 second
   that contains information about the received DMX data packet. When the data 
@@ -25,7 +25,7 @@
 #define TX_PIN 17   // the pin we are using to TX with
 #define RX_PIN 16   // the pin we are using to RX with
 #define EN_PIN 21   // the pin we are using to enable TX on the DMX transceiver
-#define TI_PIN  4   // the pin we are using as the timing tool interrupt
+#define TI_PIN  4   // the pin we are using as the sniffer interrupt
 
 static const char* TAG = "main";
 
@@ -51,8 +51,8 @@ void app_main() {
   // install the default GPIO ISR
   gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
 
-  // enable the rx timing tool
-  dmx_rx_timing_enable(dmx_num, TI_PIN);
+  // enable the sniffer
+  dmx_sniffer_enable(dmx_num, TI_PIN);
 
   // keeps track of how often we are logging messages to console
   uint32_t timer = 0;
