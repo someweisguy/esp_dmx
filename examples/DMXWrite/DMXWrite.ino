@@ -72,7 +72,7 @@ void setup() {
   /* Finally, since we are transmitting DMX, we should tell the DMX driver that
     we are transmitting, not receiving. We should also set our DMX start code
     to 0.*/
-  dmx_set_mode(dmxPort, DMX_MODE_TX);
+  dmx_set_mode(dmxPort, DMX_MODE_WRITE);
   data[0] = 0;
 }
 
@@ -95,7 +95,7 @@ void loop() {
   }
 
   /* Now we can transmit the DMX packet! */
-  dmx_tx_packet(dmxPort);
+  dmx_send_packet(dmxPort);
   packetCounter++;
 
   /* We can do some other work here if we want! */
@@ -103,5 +103,5 @@ void loop() {
 
   /* If we have no more work to do, we will wait until we are done sending our
     DMX packet. */
-  dmx_wait_tx_done(dmxPort, DMX_TX_PACKET_TOUT_TICK);
+  dmx_wait_send_done(dmxPort, DMX_TX_PACKET_TOUT_TICK);
 }

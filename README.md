@@ -65,11 +65,11 @@ dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 10, &dmx_queue,
       ESP_INTR_FLAG_IRAM);
 ```
 
-Before the user is able to write to the DMX bus, the driver mode must be set. Call `dmx_set_mode()` and pass either `DMX_MODE_RX` or `DMX_MODE_TX`. After the driver is installed `DMX_MODE_RX` is the default.
+Before the user is able to write to the DMX bus, the driver mode must be set. Call `dmx_set_mode()` and pass either `DMX_MODE_READ` or `DMX_MODE_WRITE`. After the driver is installed `DMX_MODE_READ` is the default.
 
 ```cpp
 // configure for tx
-dmx_set_mode(dmx_num, DMX_MODE_TX);
+dmx_set_mode(dmx_num, DMX_MODE_WRITE);
 ```
 
 To write data to the DMX bus, two functions are provided. The function `dmx_write_packet()` writes data to the DMX buffer and `dmx_send_packet()` sends the data out onto the bus. The function `dmx_wait_send_done()` is used to block the task until the DMX bus is idle.
@@ -194,12 +194,12 @@ Once this step is complete, DMX devices can be connected to check for communicat
 
 DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once.
 
-To set the driver mode call `dmx_set_mode()` and pass to it either `DMX_MODE_RX` or `DMX_MODE_TX`. After the driver is installed `DMX_MODE_RX` is the default.
+To set the driver mode call `dmx_set_mode()` and pass to it either `DMX_MODE_READ` or `DMX_MODE_WRITE`. After the driver is installed `DMX_MODE_READ` is the default.
 
 ```cpp
 // set the DMX driver to transmit mode
-dmx_set_mode(DMX_NUM_2, DMX_MODE_TX);
-// dmx_set_mode(DMX_NUM_2, DMX_MODE_RX); // don't need to rx now
+dmx_set_mode(DMX_NUM_2, DMX_MODE_WRITE);
+// dmx_set_mode(DMX_NUM_2, DMX_MODE_READ); // don't need to read now
 ```
 
 If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports. It should be noted that this is an unusual use case. This library is not meant to act as a DMX optoisolator or splitter.
@@ -293,7 +293,7 @@ Writing to the DMX bus does not require the use of an event queue. To write to t
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
-dmx_set_mode(DMX_NUM_2, DMX_MODE_TX); // enable tx mode
+dmx_set_mode(DMX_NUM_2, DMX_MODE_WRITE); // enable tx mode
 
 // write the packet and send it out on the DMX bus
 dmx_write_packet(DMX_NUM_2, data, MAX_PACKET_SIZE);
@@ -305,7 +305,7 @@ Calling `dmx_send_packet()` will fail if the DMX driver is currently transmittin
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
-dmx_set_mode(DMX_NUM_2, DMX_MODE_TX); // enable tx mode
+dmx_set_mode(DMX_NUM_2, DMX_MODE_WRITE); // enable tx mode
 
 while (1) {
     // write and send the packet

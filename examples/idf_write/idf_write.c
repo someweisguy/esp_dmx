@@ -41,7 +41,7 @@ void app_main() {
   ESP_ERROR_CHECK(dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 0, NULL, 1));
 
   // set DMX to TX mode
-  dmx_set_mode(dmx_num, DMX_MODE_TX);
+  dmx_set_mode(dmx_num, DMX_MODE_WRITE);
 
   // keeps track of how often we are logging messages to console
   uint32_t packet_counter = 0;
@@ -49,10 +49,10 @@ void app_main() {
 
   while (1) {
     // block until the packet is done being sent
-    dmx_wait_tx_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
+    dmx_wait_send_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
 
     // transmit the packet on the DMX bus
-    dmx_tx_packet(dmx_num);
+    dmx_send_packet(dmx_num);
 
     // increment the packet counter
     ++packet_counter;
