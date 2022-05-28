@@ -16,7 +16,7 @@
 #include "soc/rtc_cntl_reg.h"
 
 #if SOC_UART_SUPPORT_RTC_CLK
-#define RTC_ENABLED(uart_num)    (BIT(uart_num))
+#define RTC_ENABLED(uart_num)           (BIT(uart_num))
 #endif
 
 #define DMX_UART_FULL_DEFAULT           (120)   // The default value for the RX FIFO full interrupt threshold.
