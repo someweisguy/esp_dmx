@@ -340,19 +340,7 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
  * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
  * @retval ESP_FAIL if a packet is already being sent.
  */
-esp_err_t dmx_send_packet(dmx_port_t dmx_num);
-
-/**
- * @brief Transmits a number of slots of DMX on the UART bus.
- *
- * @param dmx_num The DMX port number.
- * @param size The number of slots to send.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- * @retval ESP_FAIL if a packet is already being sent.
- */
-esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t size);
+esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots);
 
 /**
  * @brief Wait until the DMX port is done transmitting. This function blocks

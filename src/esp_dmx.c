@@ -739,7 +739,7 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
   return ESP_OK;
 }
 
-esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
+esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
@@ -811,17 +811,6 @@ esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
-}
-
-esp_err_t dmx_send_packet(dmx_port_t dmx_num) {
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
-                      "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE,
-                      ESP_ERR_INVALID_STATE, TAG, "not in write mode");
-
-  return dmx_send_slots(dmx_num, p_dmx_obj[dmx_num]->buf_size);
 }
 
 esp_err_t dmx_wait_send_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
