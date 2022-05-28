@@ -332,7 +332,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_READ, "must be in rx mode", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->queue, "queue is null", ESP_ERR_INVALID_STATE);
-  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->intr_io_num == -1, "rx analyze already enabled", ESP_ERR_INVALID_STATE);
+  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->intr_io_num == -1, "sniffer already enabled", ESP_ERR_INVALID_STATE);
 
   // add the isr handler
   esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_timing_intr_handler, 
@@ -356,7 +356,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->intr_io_num != -1, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
+  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->intr_io_num != -1, "sniffer not enabled", ESP_ERR_INVALID_STATE);
 
   gpio_num_t intr_io_num;
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
