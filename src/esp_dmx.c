@@ -16,21 +16,22 @@
 #include "soc/rtc_cntl_reg.h"
 
 #if SOC_UART_SUPPORT_RTC_CLK
-#define RTC_ENABLED(uart_num)           (BIT(uart_num))
+#define RTC_ENABLED(uart_num) (BIT(uart_num))
 #endif
 
-#define DMX_UART_FULL_DEFAULT           (120)   // The default value for the RX FIFO full interrupt threshold.
-#define DMX_UART_EMPTY_DEFAULT          (8)     // The default value for the TX FIFO empty interrupt threshold.
-#define DMX_UART_TIMEOUT_DEFAULT        (126)   // The default value for the UART timeout interrupt.
-#define DMX_RXFIFO_FULL_THRESHOLD_MAX   (0x7F)  // The max value for the RX FIFO full interrupt threshold.
-#define DMX_TXFIFO_EMPTY_THRESHOLD_MAX  (0x7F)  // The max value for the TX FIFO empty interrupt threshold.
+// The default value for the RX FIFO full interrupt threshold.
+#define DMX_UART_FULL_DEFAULT (120)
+// The default value for the TX FIFO empty interrupt threshold.
+#define DMX_UART_EMPTY_DEFAULT (8)
+// The default value for the UART timeout interrupt.
+#define DMX_UART_TIMEOUT_DEFAULT (126)
+// The max value for the RX FIFO full interrupt threshold.
+#define DMX_RXFIFO_FULL_THRESHOLD_MAX (0x7F)
+// The max value for the TX FIFO empty interrupt threshold.
+#define DMX_TXFIFO_EMPTY_THRESHOLD_MAX (0x7F)
 
-#define DMX_ALL_INTR_MASK               (-1)
+#define DMX_ALL_INTR_MASK (-1)
 
-#define DMX_ENTER_CRITICAL(mux)         portENTER_CRITICAL(mux)
-#define DMX_EXIT_CRITICAL(mux)          portEXIT_CRITICAL(mux)
-
-static const char *TAG = "dmx";
 #define DMX_ARG_CHECK(a, str, ret_val)                        \
   if (!(a)) {                                                 \
     ESP_LOGE(TAG, "%s(%d): %s", __FUNCTION__, __LINE__, str); \
@@ -39,8 +40,10 @@ static const char *TAG = "dmx";
 
 #define DMX_FUNCTION_NOT_SUPPORTED()                         \
   ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, \
-    CONFIG_IDF_TARGET);                                      \
+           CONFIG_IDF_TARGET);                               \
   return ESP_ERR_NOT_SUPPORTED;
+
+static const char *TAG = "dmx"; // The log tagline for the file.
 
 static inline int get_brk_us(int baud_rate, int break_num) {
   // get break in microseconds
@@ -78,7 +81,7 @@ static void rtc_clk_disable(dmx_port_t dmx_num) {
 #endif
 
 static void dmx_module_enable(dmx_port_t dmx_num) {
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
     periph_module_enable(uart_periph_signal[dmx_num].module);
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
@@ -94,18 +97,18 @@ static void dmx_module_enable(dmx_port_t dmx_num) {
     }
     dmx_context[dmx_num].hw_enabled = true;
   }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
 static void dmx_module_disable(dmx_port_t dmx_num) {
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != false) {
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM ) {
       periph_module_disable(uart_periph_signal[dmx_num].module);
     }
     dmx_context[dmx_num].hw_enabled = false;
   }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
 /// Driver Functions  #########################################################
@@ -178,9 +181,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   }
 
   // install interrupt
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq,
                                  intr_alloc_flags, &dmx_intr_handler, 
@@ -202,10 +205,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   }
 
   // enable rx interrupts and set rts
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
   dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -261,16 +264,16 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
 
   // if the driver is in the requested mode, do nothing
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   const dmx_mode_t current_dmx_mode = p_dmx_obj[dmx_num]->mode;
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (current_dmx_mode == dmx_mode)
     return ESP_OK;
 
   if (dmx_mode == DMX_MODE_READ) {
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
     p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
@@ -278,15 +281,15 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     p_dmx_obj[dmx_num]->mode = DMX_MODE_READ;
     dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
 
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 1); // set rts low
     dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     
   } else { // dmx_mode == DMX_MODE_WRITE
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
     // disable sniffer if it is enabled
@@ -299,10 +302,10 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
     bzero(p_dmx_obj[dmx_num]->buffer[0], p_dmx_obj[dmx_num]->buf_size);
 
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 0); // set rts high
     // tx interrupts are enabled when calling the tx function!!
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
 
   return ESP_OK;
@@ -313,9 +316,9 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(dmx_mode != NULL, "dmx_mode must not be null", ESP_ERR_INVALID_ARG);
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   *dmx_mode = p_dmx_obj[dmx_num]->mode;  
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -336,9 +339,9 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
                                        p_dmx_obj[dmx_num]);
   if (err) return err;
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   p_dmx_obj[dmx_num]->intr_io_num = intr_io_num;
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // set to known values to allow for graceful startup
   p_dmx_obj[dmx_num]->rx_is_in_brk = false;
@@ -356,18 +359,18 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->intr_io_num != -1, "rx analyze not enabled", ESP_ERR_INVALID_STATE);
 
   gpio_num_t intr_io_num;
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   intr_io_num = p_dmx_obj[dmx_num]->intr_io_num;
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // disable the interrupt and remove the isr handler
   gpio_set_intr_type(intr_io_num, GPIO_INTR_DISABLE);
   esp_err_t err = gpio_isr_handler_remove(intr_io_num);
   if (err) return err;
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   p_dmx_obj[dmx_num]->intr_io_num = -1;
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -421,13 +424,13 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
 #endif
 
   // configure the uart hardware
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_init(&(dmx_context[dmx_num].hal));
   dmx_hal_set_sclk(&(dmx_context[dmx_num].hal), dmx_config->source_clk);
   dmx_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->baud_rate);
   dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), dmx_config->idle_num);
   dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), dmx_config->break_num);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   
   // flush both fifos
   dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
@@ -446,9 +449,9 @@ esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
     return ESP_ERR_INVALID_ARG;
   }
   
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_set_baudrate(&(dmx_context[dmx_num].hal), baud_rate);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -457,9 +460,9 @@ esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(baud_rate != NULL, "baud_rate must not be null", ESP_ERR_INVALID_ARG);
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   *baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -469,9 +472,9 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
 
   // ensure the new break is within DMX specification
   uint32_t baud_rate;
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   const int brk_us = get_brk_us(baud_rate, break_num);
   if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
     ESP_LOGE(TAG, "break must be at least %ius (was set to %ius)", 
@@ -479,9 +482,9 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
     return ESP_ERR_INVALID_ARG;
   }
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), break_num);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -494,9 +497,9 @@ esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(break_num != NULL, "break_num must not be null", ESP_ERR_INVALID_ARG);
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   *break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -507,9 +510,9 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   
   // ensure the new mark-after-break is within DMX specification
   uint32_t baud_rate;
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   const int mab_us = get_mab_us(baud_rate, idle_num);
   if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US ||
       mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
@@ -519,9 +522,9 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
     return ESP_ERR_INVALID_ARG;
   }
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -533,9 +536,9 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(idle_num != NULL, "idle_num must not be null", ESP_ERR_INVALID_ARG);
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   *idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -547,14 +550,14 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num,
   DMX_ARG_CHECK(intr_conf, "intr_conf is null", ESP_ERR_INVALID_ARG);
 
   dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), 
     intr_conf->rx_timeout_thresh);
   dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), 
     intr_conf->rxfifo_full_thresh);
   dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), 
     intr_conf->txfifo_empty_intr_thresh);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -563,12 +566,12 @@ esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(threshold < DMX_RXFIFO_FULL_THRESHOLD_MAX && threshold > 0, "rx fifo full threshold value error", ESP_ERR_INVALID_ARG);
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & 
       UART_INTR_RXFIFO_FULL) {
     dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), threshold);
   }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -576,12 +579,12 @@ esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(threshold < DMX_TXFIFO_EMPTY_THRESHOLD_MAX && threshold > 0, "tx fifo empty threshold value error", ESP_ERR_INVALID_ARG);
   
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & 
       UART_INTR_TXFIFO_EMPTY) {
     dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), threshold);
   }
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -590,9 +593,9 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(tout_thresh < 127, "tout_thresh max value is 126", ESP_ERR_INVALID_ARG);
 
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), tout_thresh);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -614,9 +617,9 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
 
   if (p_dmx_obj[dmx_num]->mode == DMX_MODE_READ) {
     uint8_t active_buffer;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     active_buffer = p_dmx_obj[dmx_num]->buf_idx;
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     memcpy(buffer, p_dmx_obj[dmx_num]->buffer[!active_buffer], size);
   } else { // mode == DMX_MODE_WRITE
     memcpy(buffer, p_dmx_obj[dmx_num]->buffer[0], size);
@@ -638,9 +641,9 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
 
   if (p_dmx_obj[dmx_num]->mode == DMX_MODE_READ) {
     uint8_t active_buffer;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     active_buffer = p_dmx_obj[dmx_num]->buf_idx;
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     *value = p_dmx_obj[dmx_num]->buffer[!active_buffer][slot_idx];
   } else { // mode == DMX_MODE_WRITE
     *value = p_dmx_obj[dmx_num]->buffer[0][slot_idx];
@@ -714,11 +717,11 @@ esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
   if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
     // get break and mark time in microseconds
     uint32_t baud_rate, break_num, idle_num;
-    DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
     break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
     idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
-    DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     const int brk_us = get_brk_us(baud_rate, break_num);
     const int mab_us = get_mab_us(baud_rate, idle_num);
 
@@ -748,9 +751,9 @@ esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
   p_dmx_obj[dmx_num]->slot_idx = bytes_written;
 
   // enable tx interrupts
-  DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
-  DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
