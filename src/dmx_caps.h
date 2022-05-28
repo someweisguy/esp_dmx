@@ -28,7 +28,7 @@ extern "C" {
 #define DMX_TX_PACKET_TOUT_MS       (1000)          // DMX host packet timeout in milliseconds.
 #define DMX_TX_PACKET_TOUT_TICK     ((TickType_t)DMX_TX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX host packet timeout in FreeRTOS ticks.
 
-#define DMX_PACKET_TIMEOUT_TICK    (DMX_TX_PACKET_TOUT_TICK)  // DMX host packet timeout in FreeRTOS ticks.
+#define DMX_PACKET_TIMEOUT_TICK     (DMX_TX_PACKET_TOUT_TICK)  // DMX host packet timeout in FreeRTOS ticks.
 
 /* DMX parameter checking macros */
 /**
