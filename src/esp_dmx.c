@@ -113,7 +113,8 @@ static void dmx_module_disable(dmx_port_t dmx_num) {
 
 /// Driver Functions  #########################################################
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
-    int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags) {
+                             int queue_size, QueueHandle_t *dmx_queue, 
+                             int intr_alloc_flags) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(buffer_size > 0 && buffer_size <= DMX_MAX_PACKET_SIZE, "buffer_size error", ESP_ERR_INVALID_ARG);
 
@@ -323,7 +324,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   return ESP_OK;
 }
 
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, gpio_num_t intr_io_num) {
 #ifdef DMX_GET_RX_LEVEL_NOT_SUPPORTED 
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
@@ -381,12 +382,12 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
 }
 
 /// Hardware Configuration  ###################################################
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
-                      int rts_io_num) {
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, gpio_num_t tx_io_num, 
+                      gpio_num_t rx_io_num, gpio_num_t rts_io_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_ARG_CHECK((tx_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num))), "tx_io_num error", ESP_ERR_INVALID_ARG);
-  DMX_ARG_CHECK((rx_io_num < 0 || (GPIO_IS_VALID_GPIO(rx_io_num))), "rx_io_num error", ESP_ERR_INVALID_ARG);
-  DMX_ARG_CHECK((rts_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(rts_io_num))), "rts_io_num error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num), "tx_io_num error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(GPIO_IS_VALID_GPIO(rx_io_num), "rx_io_num error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(GPIO_IS_VALID_OUTPUT_GPIO(rts_io_num), "rts_io_num error", ESP_ERR_INVALID_ARG);
   
   return uart_set_pin(dmx_num, tx_io_num, rx_io_num, rts_io_num, 
                       DMX_PIN_NO_CHANGE);
