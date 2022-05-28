@@ -79,7 +79,7 @@ uint8_t data[DMX_MAX_PACKET_SIZE] = {0};
 while (1) {
     // write to the packet and send it
     dmx_write_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
-    dmx_send_packet(dmx_num);
+    dmx_send_packet(dmx_num, DMX_MAX_PACKET_SIZE);
     
     // do work here...
 
@@ -286,7 +286,7 @@ if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
 
 ### Writing
 
-Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_send_packet()` can be called. When a packet is sent out onto the bus with `dmx_send_packet()`, its size will be the same as the buffer size that was passed to `dmx_driver_install()`. If it is desired to send a custom number of slots in a packet, as is needed for some RDM packets, `dmx_send_slots()` may be used instead.
+Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_send_packet()` can be called.
 
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
@@ -294,11 +294,11 @@ uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
 dmx_set_mode(DMX_NUM_2, DMX_MODE_WRITE); // enable tx mode
 
 // write the packet and send it out on the DMX bus
-dmx_write_packet(DMX_NUM_2, data, MAX_PACKET_SIZE);
-dmx_send_packet(DMX_NUM_2);
+dmx_write_packet(DMX_NUM_2, data, DMX_MAX_PACKET_SIZE);
+dmx_send_packet(DMX_NUM_2, DMX_MAX_PACKET_SIZE);
 ```
 
-Calling `dmx_send_packet()` or `dmx_send_slots()` will fail if the DMX driver is currently transmitting a packet of DMX data. To ensure that packets are continuously sent, `dmx_wait_send_done()` can be used.
+Calling `dmx_send_packet()` will fail if the DMX driver is currently transmitting a packet of DMX data. To ensure that packets are continuously sent, `dmx_wait_send_done()` can be used.
 
 ```cpp
 uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
@@ -309,7 +309,7 @@ while (1) {
     // write and send the packet
     const int num_slots = 100;
     dmx_write_packet(DMX_NUM_2, data, num_slots);
-    dmx_send_slots(DMX_NUM_2, num_slots);
+    dmx_send_packet(DMX_NUM_2, num_slots);
 
     // do other work here...
 
