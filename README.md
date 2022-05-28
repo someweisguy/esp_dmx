@@ -46,7 +46,7 @@ This library is compatible with the PlatformIO IDE. Search for this library in t
 
 ## Quick-Start Guide
 
-This library was written to look similar to the ESP-IDF UART implementation. To get started, call the following code in your `setup()` function if using Arduino, or `app_main()` in your `main.c` file if using ESP-IDF.
+To get started, call the following code in your `setup()` function if using Arduino, or `app_main()` in your `main.c` file if using ESP-IDF.
 
 ```cpp
 const dmx_port_t dmx_num = DMX_NUM_2;
@@ -118,8 +118,6 @@ Today, DMX often struggles to keep up with the demands of the latest hardware. I
 For in-depth information on DMX, see the [E1.11 standards document](https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf).
 
 ## Configuring the DMX Port
-
-Configuring and setting up the DMX driver should be familiar to those who have experience with the [ESP-IDF UART](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/uart.html) driver. The functions `dmx_param_config()`, `dmx_set_pin()`, and `dmx_driver_install()` have similar behavior to `uart_param_config()`, `uart_set_pin()`, and `uart_driver_install()`.
 
 The DMX driver’s functions identify each of the UART controllers using `dmx_port_t`. This identification is needed for all the following function calls.
 
