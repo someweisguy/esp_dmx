@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include "hal/uart_types.h"
+#include "soc/uart_struct.h"
 
 // TODO: documentation on this file
 
