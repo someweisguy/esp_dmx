@@ -82,8 +82,8 @@ static void dmx_module_enable(dmx_port_t dmx_num) {
   if (dmx_context[dmx_num].hw_enabled != true) {
     periph_module_enable(uart_periph_signal[dmx_num].module);
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-      // workaround for ESP32C3: enable core reset before enabling uart module
-      //  clock to prevent uart output garbage value
+      /* Workaround for ESP32C3: enable core reset before enabling UART module
+      clock to prevent UART output garbage value. */
 #if SOC_UART_REQUIRE_CORE_RESET
       uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
       periph_module_reset(uart_periph_signal[dmx_num].module);
@@ -135,7 +135,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     if (dmx_queue) {
       p_dmx_obj[dmx_num]->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
       *dmx_queue = p_dmx_obj[dmx_num]->queue;
-      ESP_LOGI(TAG, "queue free spaces: %d", uxQueueSpacesAvailable(p_dmx_obj[dmx_num]->queue));
+      ESP_LOGI(TAG, "queue free spaces: %d", 
+               uxQueueSpacesAvailable(p_dmx_obj[dmx_num]->queue));
     } else {
       p_dmx_obj[dmx_num]->queue = NULL;
     }
@@ -182,16 +183,17 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq,
-      intr_alloc_flags, &dmx_intr_handler, p_dmx_obj[dmx_num],
-      &p_dmx_obj[dmx_num]->intr_handle);
+                                 intr_alloc_flags, &dmx_intr_handler, 
+                                 p_dmx_obj[dmx_num], 
+                                 &p_dmx_obj[dmx_num]->intr_handle);
   if (err) {
     dmx_driver_delete(dmx_num);
     return err;
   }
   const dmx_intr_config_t dmx_intr = {
-      .rxfifo_full_thresh = DMX_UART_FULL_DEFAULT,
-      .rx_timeout_thresh = DMX_UART_TIMEOUT_DEFAULT,
-      .txfifo_empty_intr_thresh = DMX_UART_EMPTY_DEFAULT,
+    .rxfifo_full_thresh = DMX_UART_FULL_DEFAULT,
+    .rx_timeout_thresh = DMX_UART_TIMEOUT_DEFAULT,
+    .txfifo_empty_intr_thresh = DMX_UART_EMPTY_DEFAULT,
   };
   err = dmx_intr_config(dmx_num, &dmx_intr);
   if (err) {
@@ -220,7 +222,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   esp_err_t err = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
   if (err) return err;
 
-  // free rx analyzer isr
+  // free sniffer isr
   if (p_dmx_obj[dmx_num]->intr_io_num != -1) 
     dmx_sniffer_disable(dmx_num);
 
@@ -287,7 +289,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
-    // disable rx timing if it is enabled
+    // disable sniffer if it is enabled
     if (p_dmx_obj[dmx_num]->intr_io_num != -1)
       dmx_sniffer_disable(dmx_num);
 
@@ -322,7 +324,6 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 #ifdef DMX_GET_RX_LEVEL_NOT_SUPPORTED 
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
-
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(GPIO_IS_VALID_GPIO(intr_io_num), "intr_io_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
@@ -332,7 +333,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 
   // add the isr handler
   esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_timing_intr_handler, 
-    p_dmx_obj[dmx_num]);
+                                       p_dmx_obj[dmx_num]);
   if (err) return err;
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -372,12 +373,13 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
 }
 
 bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
-  return dmx_is_driver_installed(dmx_num) && p_dmx_obj[dmx_num]->intr_io_num != -1;
+  return dmx_is_driver_installed(dmx_num) &&
+    p_dmx_obj[dmx_num]->intr_io_num != -1;
 }
 
 /// Hardware Configuration  ###################################################
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
-    int rts_io_num) {
+                      int rts_io_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK((tx_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num))), "tx_io_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK((rx_io_num < 0 || (GPIO_IS_VALID_GPIO(rx_io_num))), "rx_io_num error", ESP_ERR_INVALID_ARG);
@@ -509,9 +511,11 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   const int mab_us = get_mab_us(baud_rate, idle_num);
-  if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US || mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
-    ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to %ius)",
-      DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US, mab_us);
+  if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US ||
+      mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
+    ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to "
+             "%ius)", DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US,
+             mab_us);
     return ESP_ERR_INVALID_ARG;
   }
 
@@ -526,7 +530,6 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
 #ifdef DMX_GET_IDLE_NUM_NOT_IMPLEMENTED
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
-
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(idle_num != NULL, "idle_num must not be null", ESP_ERR_INVALID_ARG);
 
@@ -538,15 +541,19 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
 }
 
 /// Interrupt Configuration  ##################################################
-esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf) {
+esp_err_t dmx_intr_config(dmx_port_t dmx_num, 
+                          const dmx_intr_config_t *intr_conf) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(intr_conf, "intr_conf is null", ESP_ERR_INVALID_ARG);
 
   dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), intr_conf->rx_timeout_thresh);
-  dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), intr_conf->rxfifo_full_thresh);
-  dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), intr_conf->txfifo_empty_intr_thresh);
+  dmx_hal_set_rx_timeout(&(dmx_context[dmx_num].hal), 
+    intr_conf->rx_timeout_thresh);
+  dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), 
+    intr_conf->rxfifo_full_thresh);
+  dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), 
+    intr_conf->txfifo_empty_intr_thresh);
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -557,7 +564,8 @@ esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_ARG_CHECK(threshold < DMX_RXFIFO_FULL_THRESHOLD_MAX && threshold > 0, "rx fifo full threshold value error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_RXFIFO_FULL) {
+  if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & 
+      UART_INTR_RXFIFO_FULL) {
     dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal), threshold);
   }
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -569,7 +577,8 @@ esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_ARG_CHECK(threshold < DMX_TXFIFO_EMPTY_THRESHOLD_MAX && threshold > 0, "tx fifo empty threshold value error", ESP_ERR_INVALID_ARG);
   
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_TXFIFO_EMPTY) {
+  if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & 
+      UART_INTR_TXFIFO_EMPTY) {
     dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal), threshold);
   }
   DMX_EXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -640,14 +649,15 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
   return ESP_OK;
 }
 
-esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer, uint16_t size) {
+esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer, 
+                           uint16_t size) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(size <= p_dmx_obj[dmx_num]->buf_size, "size error", ESP_ERR_INVALID_ARG);
 
-  /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0, whilst
-  buffer 1 is used by the driver to write to the tx FIFO. */
+  /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0, 
+  whilst buffer 1 is used by the driver to write to the tx FIFO. */
 
   if (size == 0) return ESP_OK;
 
@@ -661,14 +671,15 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer, uint16_t size
   return ESP_OK;
 }
 
-esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx, const uint8_t value) {
+esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx, 
+                         const uint8_t value) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(slot_idx < p_dmx_obj[dmx_num]->buf_size, "slot_idx error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE, "not in write mode", ESP_ERR_INVALID_STATE);
 
-  /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0, whilst
-  buffer 1 is used by the driver to write to the tx FIFO. */
+  /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0, 
+  whilst buffer 1 is used by the driver to write to the tx FIFO. */
 
   p_dmx_obj[dmx_num]->buffer[0][slot_idx] = value;
 
