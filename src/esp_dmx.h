@@ -17,7 +17,7 @@ extern "C" {
 #endif
 #define DMX_NUM_MAX                 UART_NUM_MAX  // DMX port max.
 
-#define DMX_PIN_NO_CHANGE           (-1)          // Constant for dmx_set_pin() which indicates the pin should not be changed.
+#define DMX_PIN_NO_CHANGE           (UART_PIN_NO_CHANGE) // Constant for dmx_set_pin() which indicates the pin should not be changed.
 
 /**
  * @brief The default configuration for DMX. This macro may be used to 
@@ -28,67 +28,62 @@ extern "C" {
 
 /// Driver Functions  #########################################################
 /**
- * @brief Install DMX driver and set the DMX to the default configuration.
- *
- * DMX ISR handler will be attached to the same CPU core that this function is
+ * @brief Install DMX driver and set the DMX to the default configuration. DMX
+ * ISR handler will be attached to the same CPU core that this function is 
  * running on.
  *
  * @param dmx_num The DMX port number.
  * @param buf_size The size of the DMX driver rx/tx buffer. 
  * @param queue_size The size of the DMX event queue.
- * @param dmx_queue Handle to the event queue.
+ * @param[in] dmx_queue Handle to the event queue.
  * @param intr_alloc_flags Interrupt allocation flags as specified in 
- * 'esp_intr_alloc.h'.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
- *  - ESP_ERR_NO_MEM        Not enough memory
- *  - ESP_ERR_INVALID_STATE Driver already installed
+ * esp_intr_alloc.h.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there is an argument error.
+ * @retval ESP_ERR_NO_MEM if there is not enough memory.
+ * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buf_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags);
 
+
 /**
- * @brief Uninstall DMX driver.
- *
- * @param dmx_num The DMX port number.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
- * */
+ * @brief Uninstall the DMX driver.
+ * 
+ * @param dmx_num The DMX port number
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there is an argument error.
+ */
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
 
 /**
  * @brief Checks if DMX driver is installed.
  *
  * @param dmx_num The DMX port number.
- * @return
- *  - true  Driver is installed
- *  - false Driver is not installed
+ * @retval true if the driver is installed.
+ * @retval false if the driver is not installed or DMX port does not exist.
  * */
 bool dmx_is_driver_installed(dmx_port_t dmx_num);
 
 /**
- * @brief Sets the DMX mode, either DMX_MODE_RX or DMX_MODE_TX.
+ * @brief Sets the DMX mode, either DMX_MODE_READ or DMX_MODE_WRITE.
  * 
  * @param dmx_num The DMX port number.
- * @param dmx_mode The mode that the DMX driver will be set to. 
- * @return 
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed
+ * @param dmx_mode The mode that the DMX driver will be set to.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver is not installed.
  */
 esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
 
 /**
- * @brief Gets the DMX mode, either DMX_MODE_RX, or DMX_MODE_TX.
+ * @brief Gets the DMX mode.
  * 
  * @param dmx_num The DMX port number.
- * @param dmx_mode A pointer to a dmx_mode_t to return the current mode.
- * @return
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed 
+ * @param[out] dmx_mode A pointer to a dmx_mode_t to return the current mode.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver is not installed.
  */
 esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
 
@@ -108,10 +103,10 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
  * 
  * @param dmx_num The DMX port number.
  * @param intr_io_num The pin to assign the to which to assign the interrupt.
- * @return
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed, no queue, or already enabled
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver is not installed, no queue, or
+ * sniffer already enabled.
  */
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num);
 
@@ -119,10 +114,10 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num);
  * @brief Disable the DMX sniffer.
  * 
  * @param dmx_num The DMX port number.
- * @return
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed, or already disabled 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver is not installed, no queue, or
+ * sniffer already disabled.
  */
 esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num);
 
@@ -130,9 +125,8 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num);
  * @brief Checks if the sniffer is enabled.
  * 
  * @param dmx_num The DMX port number.
- * @return 
- * - true rx timing tool is enabled
- * - false rx timing tool is disabled
+ * @retval true if the sniffer is installed.
+ * @retval false if the sniffer is not installed or DMX port does not exist.
  */
 bool dmx_is_sniffer_enabled(dmx_port_t dmx_num);
 
@@ -141,12 +135,11 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num);
  * @brief Set DMX pin number.
  *
  * @param dmx_num The DMX port number.
- * @param tx_io_num The pin to which the UART TX signal will be assigned.
- * @param rx_io_num The pin to which the UART RX signal will be assigned.
- * @param rts_io_num The pin to which the UART RTS signal will be assigned.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
+ * @param tx_io_num The pin to which the TX signal will be assigned.
+ * @param rx_io_num The pin to which the RX signal will be assigned.
+ * @param rts_io_num The pin to which the RTS signal will be assigned.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  * */
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
     int rts_io_num);
@@ -155,44 +148,40 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
  * @brief Set DMX configuration parameters.
  * 
  * @param dmx_num The DMX port number.
- * @param dmx_config A pointer to a dmx_config_t structure to assign
+ * @param[in] dmx_config A pointer to a dmx_config_t structure to assign
  * configuration parameters.
- * @return 
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);
 
 /**
- * @brief Set the DMX baud_rate.
+ * @brief Set the DMX baud rate.
  * 
  * @param dmx_num The DMX port number.
- * @param baud_rate The baud rate to set the UART port to.
- * @return 
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
+ * @param baud_rate The baud rate to set the DMX port to.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate);
 
 /**
- * @brief Get the DMX baud_rate.
+ * @brief Get the DMX baud rate.
  * 
  * @param dmx_num The DMX port number.
- * @param baud_rate The baud rate returned from the UART configuration.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
+ * @param[out] baud_rate The baud rate returned from the DMX configuration.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate);
 
 /**
- * @brief Set the DMX break time.
+ * @brief Set the DMX packet break time.
  * 
  * @param dmx_num The DMX port number.
  * @param break_num The break number to set the UART hardware to.
- * @return 
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num);
 
@@ -202,9 +191,8 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num);
  * @param dmx_num The DMX port number.
  * @param break_num The currently configured break number returned from the
  * UART hardware.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num);
 
@@ -216,9 +204,8 @@ esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num);
  * 
  * @param dmx_num The DMX port number.
  * @param idle_num The value to set the idle number to.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
 
@@ -227,9 +214,8 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
  * 
  * @param dmx_num The DMX port number.
  * @param idle_num The idle number currently configured in the UART hardware.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
 
@@ -240,9 +226,8 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
  * @param dmx_num The DMX port number.
  * @param intr_conf A pointer to a dmx_intr_config_t to configure the UART
  * hardware interrupts.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf);
 
@@ -253,9 +238,8 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t* intr_conf
  * @param threshold The threshold value to set the UART hardware to. This is
  * the number of bytes that must be in the UART RX FIFO for the FIFO to be 
  * 'full.'
- * @return 
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold);
 
@@ -266,9 +250,8 @@ esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold);
  * @param threshold The threshold value to set the UART hardware to. This is
  * the number of bytes or fewer that must be in the UART TX FIFO for it to 
  * be 'empty.'
- * @return 
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold);
 
@@ -276,15 +259,14 @@ esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold);
  * @brief Configure DMX rx timeout interrupt threshold.
  * 
  * @param dmx_num The DMX port number.
- * @param tout_thresh The timeout threshold for the UART FIFO. This is the
+ * @param timeout The timeout threshold for the UART FIFO. This is the
  * amount of time that must pass without receiving data for the UART to
  * timeout. The unit of time is the time it takes for the UART to receive
  * 1 byte of data.
- * @return 
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
-esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh);
+esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout);
 
 /// Read/Write  ###############################################################
 /**
@@ -295,11 +277,10 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh);
  * @param dmx_num The DMX port number.
  * @param buffer The buffer that will be read into from the DMX driver buffer.
  * @param size The size of the receiving buffer.
- * @return
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error  
- *  - ESP_ERR_INVALID_STATE Driver not installed
- *  - ESP_FAIL              Driver error
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
+ * @retval ESP_FAIL on driver error.
  */
 esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size);
 
@@ -309,50 +290,48 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size);
  * @param dmx_num The DMX port number.
  * @param slot_idx The index of the slot to be read from.
  * @param value A pointer to the byte that will store the value read.
- * @return
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
  */
 esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value);
 
 /**
- * @brief Send data to the DMX driver from a given buffer and length.
+ * @brief Write data to the DMX driver from a given buffer and length.
  * 
  * @note This function is not synchronous with the DMX frame.
  * 
  * @param dmx_num The DMX port number.
  * @param buffer The buffer that will be written to the DMX driver.
  * @param size The size of the buffer that will be written to the DMX driver.
- * @return  
- *  - ESP_OK                Success
- *  - ESP_ERR_INVALID_ARG   Parameter error  
- *  - ESP_ERR_INVALID_STATE Driver not installed
- *  - ESP_FAIL              Driver error
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
+ * @retval ESP_FAIL on driver error.
  */
 esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t size);
 
 /**
- * @brief Wrote a slot value to the DMX bus.
+ * @brief Write a slot value to the DMX bus.
  * 
  * @param dmx_num The DMX port number.
  * @param slot_idx The index of the slot to be read from.
  * @param value The byte value that will be written to the DMX bus.
- * @return
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed 
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
  */
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value);
 
 /**
- * @brief Transmits a packet of DMX on the UART bus.
+ * @brief Transmits a packet of DMX. This sends the number of slots as was
+ * declared in dmx_driver_install().
  * 
  * @param dmx_num The DMX port number.
- * @return 
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error 
- * - ESP_FAIL               A packet is already being written
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
+ * @retval ESP_FAIL if a packet is already being sent.
  */
 esp_err_t dmx_send_packet(dmx_port_t dmx_num);
 
@@ -361,10 +340,10 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num);
  * 
  * @param dmx_num The DMX port number.
  * @param size The number of slots to send.
- * @return 
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error 
- * - ESP_FAIL               A packet is already being written
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
+ * @retval ESP_FAIL if a packet is already being sent.
  */
 esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t size);
 
@@ -373,12 +352,11 @@ esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t size);
  * the current task until the DMX port is finished with transmission.
  * 
  * @param dmx_num The DMX port number.
- * @param ticks_to_wait Number of FreeRTOS ticks to wait.
- * @return
- * - ESP_OK                 Success
- * - ESP_ERR_INVALID_ARG    Parameter error
- * - ESP_ERR_INVALID_STATE  Driver not installed
- * - ESP_ERR_TIMEOUT        Timed out
+ * @param ticks_to_wait The number of FreeRTOS ticks to wait.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
+ * @retval ESP_ERR_TIMEOUT on timeout.
  */
 esp_err_t dmx_wait_send_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
