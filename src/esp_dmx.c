@@ -705,7 +705,7 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
                       "buffer is null");
   ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->buf_size < size, ESP_ERR_INVALID_ARG,
+  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
                       TAG, "size error");
   ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE,
                       ESP_ERR_INVALID_STATE, TAG, "not in write mode");
