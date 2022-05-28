@@ -593,9 +593,10 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num,
 esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(
-      threshold > 0 && threshold < DMX_RXFIFO_FULL_THRESHOLD_MAX,
-      ESP_ERR_INVALID_ARG, TAG, "rx fifo full threshold value error");
+  ESP_RETURN_ON_FALSE(threshold > 0 && 
+                      threshold < DMX_RXFIFO_FULL_THRESHOLD_MAX,
+                      ESP_ERR_INVALID_ARG, TAG, 
+                      "rx fifo full threshold value error");
 
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) &
