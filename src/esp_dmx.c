@@ -671,7 +671,7 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
   return ESP_OK;
 }
 
-esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx, 
+esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
                          const uint8_t value) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
@@ -744,7 +744,7 @@ esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
   const uint32_t buf_idx = p_dmx_obj[dmx_num]->buf_idx;
   const uint8_t *zeroeth_slot = p_dmx_obj[dmx_num]->buffer[buf_idx];
   dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
-    &bytes_written);
+                       &bytes_written);
   p_dmx_obj[dmx_num]->slot_idx = bytes_written;
 
   // enable tx interrupts
