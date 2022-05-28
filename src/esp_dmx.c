@@ -23,8 +23,8 @@
 #define DMX_FULL_THRESH_DEFAULT   (120)
 #define DMX_TOUT_THRESH_DEFAULT   (126)
 
-#define DMX_RXFIFO_FULL_THRHD_V   (0x7F)
-#define DMX_TXFIFO_EMPTY_THRHD_V  (0x7F)
+#define DMX_RXFIFO_FULL_THRESHOLD_MAX   (0x7F)
+#define DMX_TXFIFO_EMPTY_THRESHOLD_MAX  (0x7F)
 
 #define DMX_ALL_INTR_MASK         (-1)
 
@@ -558,7 +558,7 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf
 
 esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_ARG_CHECK(threshold < DMX_RXFIFO_FULL_THRHD_V && threshold > 0, "rx fifo full threshold value error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(threshold < DMX_RXFIFO_FULL_THRESHOLD_MAX && threshold > 0, "rx fifo full threshold value error", ESP_ERR_INVALID_ARG);
 
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_RXFIFO_FULL) {
@@ -570,7 +570,7 @@ esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
 }
 esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
-  DMX_ARG_CHECK(threshold < DMX_TXFIFO_EMPTY_THRHD_V && threshold > 0, "tx fifo empty threshold value error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(threshold < DMX_TXFIFO_EMPTY_THRESHOLD_MAX && threshold > 0, "tx fifo empty threshold value error", ESP_ERR_INVALID_ARG);
   
   DMX_ENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_hal_get_intr_ena_status(&(dmx_context[dmx_num].hal)) & UART_INTR_TXFIFO_EMPTY) {
