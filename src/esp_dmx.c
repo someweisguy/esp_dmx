@@ -621,10 +621,10 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size) {
   return ESP_OK;
 }
 
-esp_err_t dmx_read_slot(dmx_port_t dmx_num, int slot_idx, uint8_t *value) {
+esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_ARG_CHECK(slot_idx >= 0 && slot_idx < p_dmx_obj[dmx_num]->buf_size, "slot_idx error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(slot_idx < p_dmx_obj[dmx_num]->buf_size, "slot_idx error", ESP_ERR_INVALID_ARG);
 
   /* Reads can happen in either DMX_MODE_READ or DMX_MODE_WRITE. Reads while in 
   DMX_MODE_READ are made from the inactive buffer while the active buffer is 
@@ -666,18 +666,14 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t s
   return ESP_OK;
 }
 
-esp_err_t dmx_write_slot(dmx_port_t dmx_num, int slot_idx, uint8_t value) {
+esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t value) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
-  DMX_ARG_CHECK(slot_idx >= 0 && slot_idx < p_dmx_obj[dmx_num]->buf_size, "slot_idx error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(slot_idx < p_dmx_obj[dmx_num]->buf_size, "slot_idx error", ESP_ERR_INVALID_ARG);
+  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE, "not in write mode", ESP_ERR_INVALID_STATE);
 
   /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0, whilst
   buffer 1 is used by the driver to write to the tx FIFO. */
-
-  if (p_dmx_obj[dmx_num]->mode != DMX_MODE_WRITE) {
-    ESP_LOGE(TAG, "cannot write if not in tx mode");
-    return ESP_ERR_INVALID_STATE;
-  }
 
   p_dmx_obj[dmx_num]->buffer[0][slot_idx] = value;
 
@@ -688,7 +684,7 @@ esp_err_t dmx_send_slots(dmx_port_t dmx_num, uint16_t num_slots) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num], "driver not installed", ESP_ERR_INVALID_STATE);
   DMX_ARG_CHECK(p_dmx_obj[dmx_num]->buf_size >= num_slots && num_slots > 0, "num_slots error", ESP_ERR_INVALID_ARG);
-  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE, "not in tx mode", ESP_ERR_INVALID_STATE);
+  DMX_ARG_CHECK(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE, "not in write mode", ESP_ERR_INVALID_STATE);
 
   // only tx when a frame is not being written
   if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, 0) == pdFALSE)
