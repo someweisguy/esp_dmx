@@ -112,8 +112,8 @@ static void dmx_module_disable(dmx_port_t dmx_num) {
 }
 
 /// Driver Functions  #########################################################
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
-                             int queue_size, QueueHandle_t *dmx_queue, 
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, uint16_t buffer_size,
+                             uint32_t queue_size, QueueHandle_t *dmx_queue, 
                              int intr_alloc_flags) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(buffer_size > 0 && buffer_size <= DMX_MAX_PACKET_SIZE, "buffer_size error", ESP_ERR_INVALID_ARG);

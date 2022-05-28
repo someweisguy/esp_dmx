@@ -35,7 +35,7 @@ extern "C" {
  * running on.
  *
  * @param dmx_num The DMX port number.
- * @param buf_size The size of the DMX driver rx/tx buffer.
+ * @param buffer_size The size of the DMX driver send and receive buffer.
  * @param queue_size The size of the DMX event queue.
  * @param[in] dmx_queue Handle to the event queue.
  * @param intr_alloc_flags Interrupt allocation flags as specified in
@@ -45,8 +45,9 @@ extern "C" {
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buf_size, int queue_size,
-                             QueueHandle_t *dmx_queue, int intr_alloc_flags);
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, uint16_t buffer_size, 
+                             uint32_t queue_size, QueueHandle_t *dmx_queue, 
+                             int intr_alloc_flags);
 
 /**
  * @brief Uninstall the DMX driver.
