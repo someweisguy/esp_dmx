@@ -400,19 +400,20 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   // check that the configuration is within DMX specification
   if (DMX_BAUD_RATE_IS_VALID(dmx_config->baud_rate)) {
     ESP_LOGE(TAG, "baud_rate must be between %i and %i", DMX_MIN_BAUD_RATE,
-      DMX_MAX_BAUD_RATE);
+             DMX_MAX_BAUD_RATE);
     return ESP_ERR_INVALID_ARG;
   }
   const int brk_us = get_brk_us(dmx_config->baud_rate, dmx_config->break_num);
   if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
     ESP_LOGE(TAG, "break must be at least %ius (was set to %ius)", 
-      DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
+             DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
     return ESP_ERR_INVALID_ARG;
   }
   const int mab_us = get_mab_us(dmx_config->baud_rate, dmx_config->idle_num);
   if (DMX_TX_MAB_DURATION_IS_VALID(mab_us)) {
-    ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to %ius)",
-      DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US, mab_us);
+    ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to "
+             "%ius)", DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US, 
+             mab_us);
     return ESP_ERR_INVALID_ARG;
   }
 
@@ -444,9 +445,9 @@ esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
 
   // check that the new baud_rate is within DMX specification
-  if (baud_rate < DMX_MIN_BAUD_RATE || baud_rate > DMX_MAX_BAUD_RATE) {
+  if (DMX_BAUD_RATE_IS_VALID(baud_rate)) {
     ESP_LOGE(TAG, "baud_rate must be between %i and %i", DMX_MIN_BAUD_RATE,
-      DMX_MAX_BAUD_RATE);
+             DMX_MAX_BAUD_RATE);
     return ESP_ERR_INVALID_ARG;
   }
   
@@ -479,7 +480,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
   const int brk_us = get_brk_us(baud_rate, break_num);
   if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
     ESP_LOGE(TAG, "break must be at least %ius (was set to %ius)", 
-      DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
+             DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
     return ESP_ERR_INVALID_ARG;
   }
 
@@ -515,8 +516,7 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
   baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   const int mab_us = get_mab_us(baud_rate, idle_num);
-  if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US ||
-      mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
+  if (DMX_TX_MAB_DURATION_IS_VALID(mab_us)) {
     ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to "
              "%ius)", DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US,
              mab_us);
