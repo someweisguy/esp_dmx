@@ -19,17 +19,16 @@
 #define RTC_ENABLED(uart_num)    (BIT(uart_num))
 #endif
 
-#define DMX_EMPTY_THRESH_DEFAULT  (8)
-#define DMX_FULL_THRESH_DEFAULT   (120)
-#define DMX_TOUT_THRESH_DEFAULT   (126)
+#define DMX_UART_FULL_DEFAULT           (120)   // The default value for the RX FIFO full interrupt threshold.
+#define DMX_UART_EMPTY_DEFAULT          (8)     // The default value for the TX FIFO empty interrupt threshold.
+#define DMX_UART_TIMEOUT_DEFAULT        (126)   // The default value for the UART timeout interrupt.
+#define DMX_RXFIFO_FULL_THRESHOLD_MAX   (0x7F)  // The max value for the RX FIFO full interrupt threshold.
+#define DMX_TXFIFO_EMPTY_THRESHOLD_MAX  (0x7F)  // The max value for the TX FIFO empty interrupt threshold.
 
-#define DMX_RXFIFO_FULL_THRESHOLD_MAX   (0x7F)
-#define DMX_TXFIFO_EMPTY_THRESHOLD_MAX  (0x7F)
+#define DMX_ALL_INTR_MASK               (-1)
 
-#define DMX_ALL_INTR_MASK         (-1)
-
-#define DMX_ENTER_CRITICAL(mux)   portENTER_CRITICAL(mux)
-#define DMX_EXIT_CRITICAL(mux)    portEXIT_CRITICAL(mux)
+#define DMX_ENTER_CRITICAL(mux)         portENTER_CRITICAL(mux)
+#define DMX_EXIT_CRITICAL(mux)          portEXIT_CRITICAL(mux)
 
 static const char *TAG = "dmx";
 #define DMX_ARG_CHECK(a, str, ret_val)                        \
@@ -110,7 +109,6 @@ static void dmx_module_disable(dmx_port_t dmx_num) {
 }
 
 /// Driver Functions  #########################################################
-
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     int queue_size, QueueHandle_t *dmx_queue, int intr_alloc_flags) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
@@ -191,9 +189,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int buffer_size,
     return err;
   }
   const dmx_intr_config_t dmx_intr = {
-      .rxfifo_full_thresh = DMX_FULL_THRESH_DEFAULT,
-      .rx_timeout_thresh = DMX_TOUT_THRESH_DEFAULT,
-      .txfifo_empty_intr_thresh = DMX_EMPTY_THRESH_DEFAULT,
+      .rxfifo_full_thresh = DMX_UART_FULL_DEFAULT,
+      .rx_timeout_thresh = DMX_UART_TIMEOUT_DEFAULT,
+      .txfifo_empty_intr_thresh = DMX_UART_EMPTY_DEFAULT,
   };
   err = dmx_intr_config(dmx_num, &dmx_intr);
   if (err) {
@@ -378,7 +376,6 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
 }
 
 /// Hardware Configuration  ###################################################
-
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
     int rts_io_num) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
@@ -541,7 +538,6 @@ esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
 }
 
 /// Interrupt Configuration  ##################################################
-
 esp_err_t dmx_intr_config(dmx_port_t dmx_num, const dmx_intr_config_t *intr_conf) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(intr_conf, "intr_conf is null", ESP_ERR_INVALID_ARG);
@@ -593,7 +589,6 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t tout_thresh) {
 }
 
 /// Read/Write  ###############################################################
-
 esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
   DMX_ARG_CHECK(dmx_num < DMX_NUM_MAX, "dmx_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK(buffer, "buffer is null", ESP_ERR_INVALID_ARG);
