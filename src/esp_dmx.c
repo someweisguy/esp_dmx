@@ -388,7 +388,8 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
   DMX_ARG_CHECK((rx_io_num < 0 || (GPIO_IS_VALID_GPIO(rx_io_num))), "rx_io_num error", ESP_ERR_INVALID_ARG);
   DMX_ARG_CHECK((rts_io_num < 0 || (GPIO_IS_VALID_OUTPUT_GPIO(rts_io_num))), "rts_io_num error", ESP_ERR_INVALID_ARG);
   
-  return uart_set_pin(dmx_num, tx_io_num, rx_io_num, rts_io_num, -1);
+  return uart_set_pin(dmx_num, tx_io_num, rx_io_num, rts_io_num, 
+                      DMX_PIN_NO_CHANGE);
 }
 
 esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
@@ -397,7 +398,7 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
   DMX_ARG_CHECK(dmx_config->idle_num <= 0x3ff, "idle_num error", ESP_ERR_INVALID_ARG);
 
   // check that the configuration is within DMX specification
-  if (dmx_config->baud_rate < DMX_MIN_BAUD_RATE || dmx_config->baud_rate > DMX_MAX_BAUD_RATE) {
+  if (DMX_BAUD_RATE_IS_VALID(dmx_config->baud_rate)) {
     ESP_LOGE(TAG, "baud_rate must be between %i and %i", DMX_MIN_BAUD_RATE,
       DMX_MAX_BAUD_RATE);
     return ESP_ERR_INVALID_ARG;
@@ -409,7 +410,7 @@ esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
     return ESP_ERR_INVALID_ARG;
   }
   const int mab_us = get_mab_us(dmx_config->baud_rate, dmx_config->idle_num);
-  if (mab_us < DMX_TX_MIN_MRK_AFTER_BRK_US || mab_us > DMX_TX_MAX_MRK_AFTER_BRK_US) {
+  if (DMX_TX_MAB_DURATION_IS_VALID(mab_us)) {
     ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to %ius)",
       DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US, mab_us);
     return ESP_ERR_INVALID_ARG;
