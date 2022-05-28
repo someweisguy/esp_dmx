@@ -282,7 +282,7 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout);
  * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
  * @retval ESP_FAIL on driver error.
  */
-esp_err_t dmx_read_packet(dmx_port_t dmx_num, uint8_t *buffer, uint16_t size);
+esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size);
 
 /**
  * @brief Reads a slot value from the DMX bus.
@@ -309,7 +309,7 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value);
  * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
  * @retval ESP_FAIL on driver error.
  */
-esp_err_t dmx_write_packet(dmx_port_t dmx_num, const uint8_t *buffer, uint16_t size);
+esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer, uint16_t size);
 
 /**
  * @brief Write a slot value to the DMX bus.
