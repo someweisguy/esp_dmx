@@ -95,7 +95,7 @@ void loop() {
   }
 
   /* Now we can transmit the DMX packet! */
-  dmx_send_packet(dmxPort);
+  dmx_send_packet(dmxPort, DMX_MAX_PACKET_SIZE);
   packetCounter++;
 
   /* We can do some other work here if we want! */

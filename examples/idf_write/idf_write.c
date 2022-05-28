@@ -52,7 +52,7 @@ void app_main() {
     dmx_wait_send_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
 
     // transmit the packet on the DMX bus
-    dmx_send_packet(dmx_num);
+    dmx_send_packet(dmx_num, DMX_MAX_PACKET_SIZE);
 
     // increment the packet counter
     ++packet_counter;
