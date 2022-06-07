@@ -93,7 +93,7 @@ To read from the DMX bus, use the queue handle passed to `dmx_driver_install()`.
 ```cpp
 dmx_event_t event;
 while (1) {
-    if (xQueueReceive(dmx_queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
+    if (xQueueReceive(dmx_queue, &event, DMX_PACKET_TIMEOUT_TICK)) {
         // read the packet from the driver buffer into 'data'
         dmx_read_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
     }
@@ -206,7 +206,7 @@ If transmitting and receiving data simultaneously is desired, the user can insta
 
 To read from the DMX bus, the event queue handle passed to `dmx_driver_install()` can be used to determine when a packet has been received. A `dmx_event_t` message will be posted to the event queue. Then the packet can be read from the DMX driver double-buffer into a user buffer using `dmx_read_packet()`.
 
-The macro `DMX_RX_PACKET_TOUT_TICK` can be used to block the task until a packet is received or a DMX timeout occurs.
+The macro `DMX_PACKET_TIMEOUT_TICK` can be used to block the task until a packet is received or a DMX timeout occurs.
 
 ```cpp
 // allocate a buffer that is the max size of a DMX packet
@@ -214,7 +214,7 @@ uint8_t data[DMX_MAX_PACKET_SIZE];
 
 dmx_event_t event;
 while (1) {
-    if (xQueueReceive(dmx_queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
+    if (xQueueReceive(dmx_queue, &event, DMX_PACKET_TIMEOUT_TICK) == pdTRUE) {
         // read back the size of the packet into our buffer
         dmx_read_packet(DMX_NUM_2, data, event.size);
     } else {
@@ -277,7 +277,7 @@ Break and mark after break timings are reported to the event queue when the DMX 
 
 ```cpp
 dmx_event_t event;
-if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
+if (xQueueReceive(queue, &event, DMX_PACKET_TIMEOUT_TICK) == pdTRUE) {
   // read back break and mark after break
   printf("The break was %ius, ", event.timing.brk);
   printf("and the mark after break was %ius.\n", event.timing.mab);
@@ -348,7 +348,7 @@ In most errors, the event size can be read to determine at which byte the error 
 ```cpp
 dmx_event_t event;
 while (1) {
-  if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
+  if (xQueueReceive(queue, &event, DMX_PACKET_TIMEOUT_TICK)) {
     switch (event.status) {
       case DMX_OK:
         printf("Received packet with start code: %02X and size: %i\n",
@@ -386,7 +386,7 @@ while (1) {
     }
   } else {
     printf("Lost DMX signal\n");
-    // haven't received a packet in DMX_RX_PACKET_TOUT_TICK ticks
+    // haven't received a packet in DMX_PACKET_TIMEOUT_TICK ticks
     // handle packet timeout...
   }
 }
