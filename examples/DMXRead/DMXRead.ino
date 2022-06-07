@@ -84,7 +84,7 @@ void loop() {
     officially times out. That amount of time is converted into ESP32 clock ticks
     using the constant `DMX_RX_PACKET_TOUT_TICK`. If it takes longer than that
     amount of time to receive data, this if statement will evaluate to false. */
-  if (xQueueReceive(queue, &packet, DMX_RX_PACKET_TOUT_TICK)) {
+  if (xQueueReceive(queue, &packet, DMX_PACKET_TIMEOUT_TICK)) {
 
     /* If this code gets called, it means we've received DMX data! */
 

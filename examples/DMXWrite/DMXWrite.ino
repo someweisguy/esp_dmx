@@ -103,5 +103,5 @@ void loop() {
 
   /* If we have no more work to do, we will wait until we are done sending our
     DMX packet. */
-  dmx_wait_send_done(dmxPort, DMX_TX_PACKET_TOUT_TICK);
+  dmx_wait_send_done(dmxPort, DMX_PACKET_TIMEOUT_TICK);
 }

@@ -63,7 +63,7 @@ void app_main() {
   while (1) {
     dmx_event_t packet;
     // wait until a packet is received or times out
-    if (xQueueReceive(queue, &packet, DMX_RX_PACKET_TOUT_TICK)) {
+    if (xQueueReceive(queue, &packet, DMX_PACKET_TIMEOUT_TICK)) {
       
       if (packet.status == DMX_OK) {
         // print a message upon initial DMX connection
