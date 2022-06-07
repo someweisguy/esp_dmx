@@ -449,4 +449,4 @@ Support for RDM is currently in progress.
 
 - Allow user to place ISR in IRAM optionally
 - Reset-Sequence-First Mode. Allow for reset sequences to be sent first rather than using the UART hardware break circuitry.
-- Allow for use of UART DMA?
+- RDM Support
