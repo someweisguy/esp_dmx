@@ -7,7 +7,18 @@ extern "C" {
 #include "hal/uart_types.h"
 #include "soc/uart_struct.h"
 
-// TODO: documentation on this file
+/**
+ * The primary purpose of the LL Layer is to abstract away register field access
+ * into more easily understandable functions. LL functions essentially translate
+ * various in/out arguments into the register fields of a peripheral in the form
+ * of get/set functions. All the necessary bit-shifting, masking, ofsetting, and
+ * endianness of the register fields should be handled by the LL functions. 
+ * 
+ * All LL Layer functions should be tagged with FORCE_INLINE_ATTR to ensure 
+ * minimal overhead. The functions defined here do not have an equivalent LL
+ * Layer function in the ESP-IDF LL Layer.
+ * 
+ * */
 
 FORCE_INLINE_ATTR uint16_t dmx_ll_get_idle_num(uart_dev_t *hw) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
