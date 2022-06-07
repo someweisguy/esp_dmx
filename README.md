@@ -84,7 +84,7 @@ while (1) {
     // do work here...
 
     // block until the packet is finished sending
-    dmx_wait_send_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
+    dmx_wait_send_done(dmx_num, DMX_PACKET_TIMEOUT_TICK);
 }
 ```
 
@@ -314,7 +314,7 @@ while (1) {
     // do other work here...
 
     // block until we are ready to send another packet
-    dmx_wait_send_done(DMX_NUM_2, DMX_TX_PACKET_TOUT_TICK);
+    dmx_wait_send_done(DMX_NUM_2, DMX_PACKET_TIMEOUT_TICK);
 }
 ```
 
