@@ -323,7 +323,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
   return ESP_OK;
 }
 
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, gpio_num_t intr_io_num) {
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 #ifdef DMX_GET_RX_LEVEL_NOT_SUPPORTED
   DMX_FUNCTION_NOT_SUPPORTED();
 #endif
@@ -390,8 +390,8 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
 }
 
 /// Hardware Configuration  ###################################################
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, gpio_num_t tx_io_num,
-                      gpio_num_t rx_io_num, gpio_num_t rts_io_num) {
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
+                      int rts_io_num) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(tx_io_num < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num),

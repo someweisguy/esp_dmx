@@ -110,7 +110,7 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
  * @retval ESP_ERR_INVALID_STATE if the driver is not installed, no queue, or
  * sniffer already enabled.
  */
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, gpio_num_t intr_io_num);
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num);
 
 /**
  * @brief Disable the DMX sniffer.
@@ -143,8 +143,8 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num);
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  * */
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, gpio_num_t tx_io_num,
-                      gpio_num_t rx_io_num, gpio_num_t rts_io_num);
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
+                      int rts_io_num);
 
 /**
  * @brief Set DMX configuration parameters.
