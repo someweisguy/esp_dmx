@@ -112,7 +112,16 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num,
                              uint32_t queue_size, QueueHandle_t *dmx_queue) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  // TODO: arg checks
+  ESP_RETURN_ON_FALSE(dmx_driver_config != NULL, ESP_ERR_INVALID_ARG, TAG, 
+                      "dmx_driver_config is null");
+  ESP_RETURN_ON_FALSE(dmx_driver_config->buffer_size <= DMX_MAX_PACKET_SIZE, 
+                      ESP_ERR_INVALID_ARG, TAG, "buffer_size error");
+  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_group >= -1 && 
+                      dmx_driver_config->timer_group < TIMER_GROUP_MAX, 
+                      ESP_ERR_INVALID_ARG, TAG, "timer_group error");
+  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_idx >= -1 && 
+                      dmx_driver_config->timer_idx < TIMER_MAX, 
+                      ESP_ERR_INVALID_ARG, TAG, "timer_idx error");
 
   /* Driver ISR is in IRAM so intr_alloc_flags must include the
   ESP_INTR_FLAG_IRAM flag. */
@@ -287,8 +296,11 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (err) return err;
 
   // deinit timer and free timer isr
-  // TODO: check if timer is being used
-  timer_deinit(p_dmx_obj[dmx_num]->timer_group, p_dmx_obj[dmx_num]->timer_idx);
+  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
+      p_dmx_obj[dmx_num]->timer_idx != -1) {
+    timer_deinit(p_dmx_obj[dmx_num]->timer_group, 
+                 p_dmx_obj[dmx_num]->timer_idx);
+  }
   
   // free sniffer isr
   if (p_dmx_obj[dmx_num]->intr_io_num != -1) dmx_sniffer_disable(dmx_num);
