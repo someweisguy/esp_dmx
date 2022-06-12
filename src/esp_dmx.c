@@ -781,81 +781,81 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, 0) == pdFALSE)
     return ESP_FAIL;
 
-  /* TODO: 
-  if reset-sequence-last mode: check if break is needed. If yes, simulate reset 
-  sequence and then send packet.
-
-  if reset-sequence-first mode: trigger timer interrupt for reset sequence 
-  (which will then send the data)
-  */
-
-  /* The DMX protocol states that frames begin with a break, followed by a
-  mark, followed by up to 513 bytes. The ESP32 uart hardware is designed to
-  send a packet, followed by a break, followed by a mark. When using this
-  library "correctly," there shouldn't be any issues because the data stream
-  will be continuous - even though the hardware sends the break and mark after
-  the packet, it will LOOK like it is being sent before the packet. However if
-  the byte stream isn't continuous, we need to send a break and mark before we
-  send the packet. This is done by inverting the line, busy waiting,
-  un-inverting the line and busy waiting again. The busy waiting isn't very
-  accurate (it's usually accurate within around 30us if the task isn't
-  preempted), but it is the best that can be done short of using the ESP32
-  hardware timer library. */
+  /* There are two modes in which this library can transmit DMX: reset-sequence
+  first mode or reset-sequence last mode. The default is reset-sequence first
+  mode. This mode uses one of the ESP32's hardware timers to precisely send a 
+  break and mark-after-break to DMX listener devices before sending the DMX data
+  packet. Reset-sequence last mode takes advantage of the ESP32 UART hardware to 
+  send a break and mark-after-break after the data packet is sent. When using 
+  this library "correctly," there shouldn't be any issues because the data 
+  stream will be continuous - even though the hardware sends the break and 
+  mark-after-break after the packet, it will LOOK like it is being sent before 
+  the packet. However if the byte stream isn't continuous, we need to send a 
+  break and mark-after-break before we send the packet. This is done by 
+  inverting the line, busy waiting, un-inverting the line and busy waiting 
+  again. The busy waiting isn't very accurate (it's usually accurate within
+  around 30us if the task isn't preempted), but it can be used when the user 
+  is unable to use one of the available hardware timers on the ESP32. */
 
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
-  if (p_dmx_obj[dmx_num]->timer_group != -1 &&
-      p_dmx_obj[dmx_num]->timer_idx != -1) {
-    p_dmx_obj[dmx_num]->send_size = num_slots;
+  dmx_obj_t *const p_dmx = p_dmx_obj[dmx_num];
 
-    // trigger the reset sequence
-    timer_set_alarm_value(p_dmx_obj[dmx_num]->timer_group, 
-                          p_dmx_obj[dmx_num]->timer_idx, 0);
-    timer_set_counter_value(p_dmx_obj[dmx_num]->timer_group, 
-                            p_dmx_obj[dmx_num]->timer_idx, 0);
-    p_dmx_obj[dmx_num]->rst_seq_step = 0;
-    timer_start(p_dmx_obj[dmx_num]->timer_group, p_dmx_obj[dmx_num]->timer_idx);
+  if (p_dmx->timer_group != -1 && p_dmx->timer_group != -1) {
+    // driver is using hardware timers for reset sequence
 
-  } else if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
-    // get break and mark time in microseconds
-    uint32_t baud_rate, break_num, idle_num;
+    // ready the dmx driver to send a reset sequence
+    p_dmx->send_size = num_slots;
+    p_dmx->rst_seq_step = 0;
+
+    // ready and start the hardware timer for a reset sequence
+    timer_set_alarm_value(p_dmx->timer_group, p_dmx->timer_idx, 0);
+    timer_set_counter_value(p_dmx->timer_group, p_dmx->timer_idx, 0);
+    timer_start(p_dmx->timer_group, p_dmx->timer_idx);
+  } else {
+    // driver is using uart hardware for reset sequence
+
+    // check if a simulated reset sequence must be sent
+    if (now - p_dmx->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
+      // get break and mark time in microseconds
+      uint32_t baud_rate, break_num, idle_num;
+      portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+      baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
+      break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
+      idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
+      portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+      const int brk_us = get_brk_us(baud_rate, break_num);
+      const int mab_us = get_mab_us(baud_rate, idle_num);
+
+      /* This library assumes that all UART signals are un-inverted. This means
+      that if the user inverts, say, the RTS pin, these next two calls to
+      dmx_hal_inverse_signal() will un-invert them. If an inverted RTS signal is
+      desired, the below code will cause problems. */
+
+      // invert the tx line and busy wait...
+      dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
+      ets_delay_us(brk_us);
+
+      // un-invert the tx line and busy wait...
+      dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
+      ets_delay_us(mab_us);
+
+      p_dmx->tx_last_brk_ts = now;
+    }
+
+    // write data to tx FIFO
+    uint32_t bytes_written;
+    p_dmx->send_size = num_slots;
+    const uint8_t *zeroeth_slot = p_dmx->buffer[p_dmx->buf_idx];
+    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
+                         &bytes_written);
+    p_dmx->slot_idx = bytes_written;
+
+    // enable tx interrupts
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
-    break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
-    idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
+    dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    const int brk_us = get_brk_us(baud_rate, break_num);
-    const int mab_us = get_mab_us(baud_rate, idle_num);
-
-    /* This library assumes that all UART signals are un-inverted. This means
-    that if the user inverts, say, the RTS pin, these next two calls to
-    dmx_hal_inverse_signal() will un-invert them. If an inverted RTS signal is
-    desired, the below code will cause problems. */
-
-    // invert the tx line and busy wait...
-    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
-    ets_delay_us(brk_us);
-
-    // un-invert the tx line and busy wait...
-    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
-    ets_delay_us(mab_us);
-
-    p_dmx_obj[dmx_num]->tx_last_brk_ts = now;
   }
-
-  // // write data to tx FIFO
-  // uint32_t bytes_written;
-  // p_dmx_obj[dmx_num]->send_size = num_slots;
-  // const uint32_t buf_idx = p_dmx_obj[dmx_num]->buf_idx;
-  // const uint8_t *zeroeth_slot = p_dmx_obj[dmx_num]->buffer[buf_idx];
-  // dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
-  //                      &bytes_written);
-  // p_dmx_obj[dmx_num]->slot_idx = bytes_written;
-
-  // // enable tx interrupts
-  // portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  // dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
-  // portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
