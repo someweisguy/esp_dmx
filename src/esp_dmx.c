@@ -797,8 +797,6 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   around 30us if the task isn't preempted), but it can be used when the user 
   is unable to use one of the available hardware timers on the ESP32. */
 
-  // check if we need to send a new break and mark after break
-  const int64_t now = esp_timer_get_time();
   dmx_obj_t *const p_dmx = p_dmx_obj[dmx_num];
 
   if (p_dmx->timer_group != -1 && p_dmx->timer_group != -1) {
@@ -814,6 +812,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     timer_start(p_dmx->timer_group, p_dmx->timer_idx);
   } else {
     // driver is using uart hardware for reset sequence
+    const int64_t now = esp_timer_get_time();
 
     // check if a simulated reset sequence must be sent
     if (now - p_dmx->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
@@ -828,9 +827,9 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
       const int mab_us = get_mab_us(baud_rate, idle_num);
 
       /* This library assumes that all UART signals are un-inverted. This means
-      that if the user inverts, say, the RTS pin, these next two calls to
-      dmx_hal_inverse_signal() will un-invert them. If an inverted RTS signal is
-      desired, the below code will cause problems. */
+      that if the user inverts, for example, the RTS pin, these next two calls
+      to dmx_hal_inverse_signal() will un-invert them. If an inverted RTS signal
+      is desired, the below code will cause problems. */
 
       // invert the tx line and busy wait...
       dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
