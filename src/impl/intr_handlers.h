@@ -30,6 +30,7 @@ extern "C" {
 #define DMX_INTR_RX_ALL                 (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BRK | DMX_INTR_RX_ERR) // Interrupt mask that represents all rx conditions.
 
 #define DMX_INTR_TX_ALL                 (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | UART_INTR_TX_BRK_DONE | UART_INTR_RS485_CLASH) // Interrupt mask that represents all tx conditions.
+#define DMX_INTR_TX_ALL_TIMER           (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_DONE | UART_INTR_RS485_CLASH) // Interrupt mask that represents all tx conditions.
 
 #define DMX_ENTER_CRITICAL_ISR(mux)     portENTER_CRITICAL_ISR(mux)
 #define DMX_EXIT_CRITICAL_ISR(mux)      portEXIT_CRITICAL_ISR(mux)
@@ -229,6 +230,41 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
       p_dmx->rx_mab_len = now - p_dmx->rx_last_pos_edge_ts;
     p_dmx->rx_last_neg_edge_ts = now;
   }
+}
+
+static bool IRAM_ATTR timer_isr(void *arg) {
+  dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
+  const dmx_port_t dmx_num = p_dmx->dmx_num;
+
+  if (p_dmx->rst_seq_step == 0) {
+    // start break
+    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
+    timer_set_alarm_value(p_dmx->timer_group, p_dmx->timer_idx, p_dmx->brk_len);
+  } else if (p_dmx->rst_seq_step == 1) {
+    // start mab
+    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
+    timer_set_alarm_value(p_dmx->timer_group, p_dmx->timer_idx, p_dmx->mab_len);
+  } else {
+    // write data to tx FIFO
+    uint32_t bytes_written;
+    const uint32_t buf_idx = p_dmx->buf_idx;
+    const uint8_t *zeroeth_slot = p_dmx->buffer[buf_idx];
+    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, 
+                         p_dmx->send_size, &bytes_written);
+    p_dmx->slot_idx = bytes_written;
+
+    // disable this interrupt
+    timer_pause(p_dmx->timer_group, p_dmx->timer_idx);
+
+    // enable tx interrupts
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL_TIMER);
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  }
+  
+  ++(p_dmx->rst_seq_step);
+
+  return false;
 }
 
 #ifdef __cplusplus

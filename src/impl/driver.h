@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include "driver/gpio.h"
+#include "driver/timer.h"
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"
 #include "freertos/semphr.h"
@@ -32,6 +33,12 @@ typedef struct {
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
   uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd into.
   dmx_mode_t mode;                // The mode the driver is in - either RX or TX.
+  
+  uint32_t brk_len;               // The length of the reset sequence break in microseconds.
+  uint32_t mab_len;               // The length of the reset sequence mark-after-break in microseconds.
+  uint8_t rst_seq_step;           // The current step in the reset sequence. 0 is BREAK, 1 is MARK-AFTER-BREAK, 2 is START CODE.
+  timer_group_t timer_group;      // The timer group being used for the reset sequence.
+  timer_idx_t timer_idx;          // The timer index being used for the reset sequence.
 
   int64_t rx_last_brk_ts;         // Timestamp of the last rx'd break.
   gpio_num_t intr_io_num;         // GPIO number of the rx analyzer interrupt pin.
@@ -49,7 +56,7 @@ typedef struct {
   int64_t rx_last_neg_edge_ts;    // Timestamp of the last negative edge on the analyze pin.
 } dmx_obj_t;
 
-static dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
+static IRAM_ATTR dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
 
 typedef struct {
     uart_hal_context_t hal;

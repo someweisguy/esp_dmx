@@ -164,6 +164,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, uint16_t buffer_size,
     p_dmx_obj[dmx_num]->buf_idx = 0;
     p_dmx_obj[dmx_num]->mode = DMX_MODE_READ;
 
+    // TODO: allow these to be configurable by the user
+    p_dmx_obj[dmx_num]->brk_len = 176;
+    p_dmx_obj[dmx_num]->mab_len = 12;
+    p_dmx_obj[dmx_num]->timer_group = 0;
+    p_dmx_obj[dmx_num]->timer_idx = 0;
+
     p_dmx_obj[dmx_num]->rx_last_brk_ts = -DMX_RX_MAX_BRK_TO_BRK_US;
     p_dmx_obj[dmx_num]->intr_io_num = -1;
     p_dmx_obj[dmx_num]->rx_brk_len = -1;
@@ -178,7 +184,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, uint16_t buffer_size,
     return ESP_ERR_INVALID_STATE;
   }
 
-  // install interrupt
+  // install uart interrupt
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -208,6 +214,31 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, uint16_t buffer_size,
   dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 1);  // set rts low
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
+  // install timer interrupts
+  if (p_dmx_obj[dmx_num]->timer_group == 0 || p_dmx_obj[dmx_num]->timer_group == 1) {
+    // remove hardware break and mab
+    dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), 0);
+    dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), 0);
+
+    // setup the timer
+    timer_config_t timer_conf = {
+        .divider = 80,  // 80MHz / 80 == 1MHz resolution timer
+        .counter_dir = TIMER_COUNT_UP,
+        .counter_en = false,
+        .alarm_en = true,
+        .auto_reload = true,
+    };
+
+    // TODO: replace the 0 constants with variables
+    timer_init(0, 0, &timer_conf);
+
+    timer_set_counter_value(0, 0, 0);
+    timer_set_alarm_value(0, 0, 0);
+    timer_isr_callback_add(0, 0, timer_isr, p_dmx_obj[dmx_num], 
+                           intr_alloc_flags);
+    timer_enable_intr(0, 0);
+  }
+
   return ESP_OK;
 }
 
@@ -220,10 +251,14 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
     return ESP_OK;
   }
 
-  // free isr
+  // free uart isr
   esp_err_t err = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
   if (err) return err;
 
+  // deinit timer and free timer isr
+  // TODO: check if timer is being used
+  timer_deinit(p_dmx_obj[dmx_num]->timer_group, p_dmx_obj[dmx_num]->timer_idx);
+  
   // free sniffer isr
   if (p_dmx_obj[dmx_num]->intr_io_num != -1) dmx_sniffer_disable(dmx_num);
 
@@ -246,6 +281,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 #endif
   dmx_module_disable(dmx_num);
+
 
   return ESP_OK;
 }
@@ -754,6 +790,14 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx_done_sem, 0) == pdFALSE)
     return ESP_FAIL;
 
+  /* TODO: 
+  if reset-sequence-last mode: check if break is needed. If yes, simulate reset 
+  sequence and then send packet.
+
+  if reset-sequence-first mode: trigger timer interrupt for reset sequence 
+  (which will then send the data)
+  */
+
   /* The DMX protocol states that frames begin with a break, followed by a
   mark, followed by up to 513 bytes. The ESP32 uart hardware is designed to
   send a packet, followed by a break, followed by a mark. When using this
@@ -769,7 +813,18 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
-  if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
+  if (p_dmx_obj[dmx_num]->timer_group == 0) {
+    p_dmx_obj[dmx_num]->send_size = num_slots;
+
+    // trigger the reset sequence
+    timer_set_alarm_value(p_dmx_obj[dmx_num]->timer_group, 
+                          p_dmx_obj[dmx_num]->timer_idx, 0);
+    timer_set_counter_value(p_dmx_obj[dmx_num]->timer_group, 
+                            p_dmx_obj[dmx_num]->timer_idx, 0);
+    p_dmx_obj[dmx_num]->rst_seq_step = 0;
+    timer_start(0, 0);
+
+  } else if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
     // get break and mark time in microseconds
     uint32_t baud_rate, break_num, idle_num;
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -796,19 +851,19 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     p_dmx_obj[dmx_num]->tx_last_brk_ts = now;
   }
 
-  // write data to tx FIFO
-  uint32_t bytes_written;
-  p_dmx_obj[dmx_num]->send_size = num_slots;
-  const uint32_t buf_idx = p_dmx_obj[dmx_num]->buf_idx;
-  const uint8_t *zeroeth_slot = p_dmx_obj[dmx_num]->buffer[buf_idx];
-  dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
-                       &bytes_written);
-  p_dmx_obj[dmx_num]->slot_idx = bytes_written;
+  // // write data to tx FIFO
+  // uint32_t bytes_written;
+  // p_dmx_obj[dmx_num]->send_size = num_slots;
+  // const uint32_t buf_idx = p_dmx_obj[dmx_num]->buf_idx;
+  // const uint8_t *zeroeth_slot = p_dmx_obj[dmx_num]->buffer[buf_idx];
+  // dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
+  //                      &bytes_written);
+  // p_dmx_obj[dmx_num]->slot_idx = bytes_written;
 
-  // enable tx interrupts
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  // // enable tx interrupts
+  // portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  // dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
+  // portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
