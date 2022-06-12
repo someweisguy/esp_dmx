@@ -25,15 +25,16 @@ extern "C" {
  * @brief The default configuration for DMX. This macro may be used to
  * initialize a dmx_config_t to the standard's defined typical values.
  */
-#define DMX_DEFAULT_CONFIG \
-  { .baud_rate = DMX_TYP_BAUD_RATE, .break_num = 44, .idle_num = 3, }
+//#define DMX_DEFAULT_CONFIG 
+//  { .baud_rate = DMX_TYP_BAUD_RATE, .break_num = 44, .idle_num = 3, }
 
 /// Driver Functions  #########################################################
 /**
  * @brief Install DMX driver and set the DMX to the default configuration. DMX
  * ISR handler will be attached to the same CPU core that this function is
  * running on.
- *
+ * 
+ * 
  * @param dmx_num The DMX port number.
  * @param buffer_size The size of the DMX driver send and receive buffer.
  * @param queue_size The size of the DMX event queue.
@@ -45,9 +46,10 @@ extern "C" {
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, uint16_t buffer_size, 
-                             uint32_t queue_size, QueueHandle_t *dmx_queue, 
-                             int intr_alloc_flags);
+// TODO: update documentation
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, 
+                             dmx_driver_config_t *dmx_driver_config, 
+                             uint32_t queue_size, QueueHandle_t *dmx_queue);
 
 /**
  * @brief Uninstall the DMX driver.

@@ -12,6 +12,7 @@ extern "C" {
 
 /* DMX client/receive timing parameters */
 #define DMX_RX_MIN_SPACE_FOR_BRK_US (88)            // DMX minimum receivable break length in microseconds.
+#define DMX_RX_TYP_SPACE_FOR_BRK_US (176)           // DMX typical receivable break length in microseconds.
 #define DMX_RX_MIN_MRK_AFTER_BRK_US (8)             // DMX minimum receivable mark after break length in microseconds.
 #define DMX_RX_MAX_MRK_AFTER_BRK_US (999999)        // DMX maximum receivable mark after break length in microseconds.
 #define DMX_RX_MIN_BRK_TO_BRK_US    (1196)          // DMX minimum receivable break-to-break length in microseconds.
@@ -21,6 +22,7 @@ extern "C" {
 
 /* DMX host/transmit timing parameters */
 #define DMX_TX_MIN_SPACE_FOR_BRK_US (92)            // DMX minimum transmittable break length in microseconds.
+#define DMX_TX_TYP_SPACE_FOR_BRK_US (176)           // DMX typical transmittable break length in microseconds.
 #define DMX_TX_MIN_MRK_AFTER_BRK_US (12)            // DMX minimum transmittable mark after break length in microseconds.
 #define DMX_TX_MAX_MRK_AFTER_BRK_US (999999)        // DMX maximum transmittable mark after break length in microseconds.
 #define DMX_TX_MIN_BRK_TO_BRK_US    (1204)          // DMX minimum transmittable break-to-break length in microseconds.

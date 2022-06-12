@@ -232,7 +232,7 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   }
 }
 
-static bool IRAM_ATTR timer_isr(void *arg) {
+static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
 

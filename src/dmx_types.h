@@ -6,18 +6,27 @@ extern "C" {
 
 #include "esp_system.h"
 #include "driver/uart.h"
+#include "driver/timer.h"
 
 typedef int dmx_port_t;             // DMX port type.
 
-/**
- * @brief DMX configuration parameters for dmx_param_config() function
- */
+// TODO: documentation! This struct contains DMX config information that CAN be
+//  changed without deleting the driver
 typedef struct {
-  int baud_rate;                    // DMX baud rate.
-  uint8_t break_num;                // DMX break length (unit: number of bits).
-  uint16_t idle_num;                // DMX mark after break length (unit: number of bits).
-  uart_sclk_t source_clk;           // DMX source clock selection.
+  uint32_t baud_rate;
+  uint32_t brk_len;
+  uint32_t mab_len;
+  uart_sclk_t source_clock;
 } dmx_config_t;
+
+// TODO: documentation! This struct contains driver config information that
+//  cannot be changed without first deleting the driver
+typedef struct {
+  uint16_t buffer_size;
+  timer_group_t timer_group;
+  timer_idx_t timer_idx;
+  int intr_alloc_flags;
+} dmx_driver_config_t;
 
 /**
  * @brief DMX modes of operation.
