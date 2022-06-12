@@ -47,6 +47,8 @@ typedef struct {
   
   SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being tx'd.
 
+  // TODO: add a semaphore that can be given/taken during the mab to ensure precise mab
+
   // TODO: add this to a union that includes brk_len, mab_len, and rst_seq_step
   int64_t tx_last_brk_ts;         // Timestamp of the last tx'd break.
 

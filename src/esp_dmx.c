@@ -116,10 +116,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num,
                       "dmx_driver_config is null");
   ESP_RETURN_ON_FALSE(dmx_driver_config->buffer_size <= DMX_MAX_PACKET_SIZE, 
                       ESP_ERR_INVALID_ARG, TAG, "buffer_size error");
-  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_group >= -1 && 
+  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_group == -1 || 
                       dmx_driver_config->timer_group < TIMER_GROUP_MAX, 
                       ESP_ERR_INVALID_ARG, TAG, "timer_group error");
-  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_idx >= -1 && 
+  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_idx == -1 || 
                       dmx_driver_config->timer_idx < TIMER_MAX, 
                       ESP_ERR_INVALID_ARG, TAG, "timer_idx error");
 
@@ -484,59 +484,6 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
                       DMX_PIN_NO_CHANGE);
 }
 
-esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config) {
-  /*
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(dmx_config != NULL, ESP_ERR_INVALID_ARG, TAG,
-                      "dmx_config is null");
-  ESP_RETURN_ON_FALSE(dmx_config->idle_num <= 0x3ff, ESP_ERR_INVALID_ARG, TAG,
-                      "idle_num error");
-
-  // check that the configuration is within DMX specification
-  if (!DMX_BAUD_RATE_IS_VALID(dmx_config->baud_rate)) {
-    ESP_LOGE(TAG, "baud_rate must be between %i and %i", DMX_MIN_BAUD_RATE,
-             DMX_MAX_BAUD_RATE);
-    return ESP_ERR_INVALID_ARG;
-  }
-  const int brk_us = get_brk_us(dmx_config->baud_rate, dmx_config->break_num);
-  if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
-    ESP_LOGE(TAG, "break must be at least %ius (was set to %ius)",
-             DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
-    return ESP_ERR_INVALID_ARG;
-  }
-  const int mab_us = get_mab_us(dmx_config->baud_rate, dmx_config->idle_num);
-  if (!DMX_TX_MAB_DURATION_IS_VALID(mab_us)) {
-    ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to "
-             "%ius)", DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US,
-             mab_us);
-    return ESP_ERR_INVALID_ARG;
-  }
-
-  // enable uart module and rtc clock, if using it
-  dmx_module_enable(dmx_num);
-#if SOC_UART_SUPPORT_RTC_CLK
-  if (dmx_config->source_clk == UART_SCLK_RTC) {
-    rtc_clk_enable(dmx_num);
-  }
-#endif
-
-  // configure the uart hardware
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_init(&(dmx_context[dmx_num].hal));
-  dmx_hal_set_sclk(&(dmx_context[dmx_num].hal), dmx_config->source_clk);
-  dmx_hal_set_baudrate(&(dmx_context[dmx_num].hal), dmx_config->baud_rate);
-  dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), dmx_config->idle_num);
-  dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), dmx_config->break_num);
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-
-  // flush both fifos
-  dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
-  dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
-  */
-  return ESP_OK;
-}
-
 esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
@@ -857,7 +804,8 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
   // check if we need to send a new break and mark after break
   const int64_t now = esp_timer_get_time();
-  if (p_dmx_obj[dmx_num]->timer_group == 0) {
+  if (p_dmx_obj[dmx_num]->timer_group != -1 &&
+      p_dmx_obj[dmx_num]->timer_idx != -1) {
     p_dmx_obj[dmx_num]->send_size = num_slots;
 
     // trigger the reset sequence
@@ -866,7 +814,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     timer_set_counter_value(p_dmx_obj[dmx_num]->timer_group, 
                             p_dmx_obj[dmx_num]->timer_idx, 0);
     p_dmx_obj[dmx_num]->rst_seq_step = 0;
-    timer_start(0, 0);
+    timer_start(p_dmx_obj[dmx_num]->timer_group, p_dmx_obj[dmx_num]->timer_idx);
 
   } else if (now - p_dmx_obj[dmx_num]->tx_last_brk_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
     // get break and mark time in microseconds
