@@ -40,31 +40,6 @@
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-#if SOC_UART_SUPPORT_RTC_CLK
-static uint8_t rtc_enabled = 0;
-static portMUX_TYPE rtc_num_spinlock = portMUX_INITIALIZER_UNLOCKED;
-
-static void rtc_clk_enable(dmx_port_t dmx_num) {
-  portENTER_CRITICAL(&rtc_num_spinlock);
-  if (!(rtc_enabled & RTC_ENABLED(dmx_num))) {
-    rtc_enabled |= RTC_ENABLED(dmx_num);
-  }
-  SET_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
-  portEXIT_CRITICAL(&rtc_num_spinlock);
-}
-
-static void rtc_clk_disable(dmx_port_t dmx_num) {
-  assert(rtc_enabled & RTC_ENABLED(dmx_num));
-
-  portENTER_CRITICAL(&rtc_num_spinlock);
-  rtc_enabled &= ~RTC_ENABLED(dmx_num);
-  if (rtc_enabled == 0) {
-    CLEAR_PERI_REG_MASK(RTC_CNTL_CLK_CONF_REG, RTC_CNTL_DIG_CLK8M_EN_M);
-  }
-  portEXIT_CRITICAL(&rtc_num_spinlock);
-}
-#endif
-
 static void dmx_module_enable(dmx_port_t dmx_num) {
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
@@ -119,13 +94,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
     dmx_config->intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
   }
-
-// TODO: move this to dmx_config function
-// #if SOC_UART_SUPPORT_RTC_CLK
-//     if (dmx_config->source_clk == UART_SCLK_RTC) {
-//       rtc_clk_enable(dmx_num);
-//     }
-// #endif
     
   // configure the uart hardware
   dmx_module_enable(dmx_num);
@@ -150,25 +118,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   dmx_hal_txfifo_rst(&(hardware_ctx.hal));
 
   // allocate the dmx driver
-  dmx_driver[dmx_num] = (dmx_driver_t *)heap_caps_calloc(1, sizeof(dmx_driver_t), 
-      MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  const uint32_t mem_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+  dmx_driver[dmx_num] = heap_caps_malloc(sizeof(dmx_driver_t), mem_caps);
   if (dmx_driver[dmx_num] == NULL) {
     ESP_LOGE(TAG, "DMX driver malloc error");
     return ESP_ERR_NO_MEM;
   }
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // allocate driver rx queue
-  if (dmx_queue) {
-    driver->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
-    if (driver->queue == NULL) {
-      ESP_LOGE(TAG, "DMX driver queue malloc error");
-      dmx_driver_delete(dmx_num);
-      return ESP_ERR_NO_MEM;
-    }
-    *dmx_queue = driver->queue;
-  } 
-  driver->queue = dmx_queue;
 
   // allocate driver double-buffer
   int alloc_size = 2 * dmx_config->buffer_size;
@@ -180,6 +136,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   allocation is divisible by 4. These extra bytes are left unused. */
   alloc_size += (2 * dmx_config->buffer_size % 4);
 #endif
+  // TODO: try to heaps_cap_malloc the buffer to 8BIT to see if arduino still crashes
   driver->buffer[0] = malloc(sizeof(uint8_t) * alloc_size);
   if (driver->buffer[0] == NULL) {
     ESP_LOGE(TAG, "DMX driver buffer malloc error");
@@ -187,6 +144,18 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
     return ESP_ERR_NO_MEM;
   }
   driver->buffer[1] = driver->buffer[0] + dmx_config->buffer_size;
+
+  // allocate driver rx queue
+  if (dmx_queue != NULL) {
+    driver->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
+    if (driver->queue == NULL) {
+      ESP_LOGE(TAG, "DMX driver queue malloc error");
+      dmx_driver_delete(dmx_num);
+      return ESP_ERR_NO_MEM;
+    }
+    *dmx_queue = driver->queue;
+  } 
+  driver->queue = dmx_queue;
 
   // allocate semaphores
   driver->tx.done_sem = xSemaphoreCreateBinary();
