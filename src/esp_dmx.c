@@ -107,7 +107,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
                       "dmx_config is null");
   ESP_RETURN_ON_FALSE(dmx_config->buffer_size <= DMX_MAX_PACKET_SIZE, 
                       ESP_ERR_INVALID_ARG, TAG, "buffer_size error");
-  ESP_RETURN_ON_FALSE(dmx_config->timer_group == -1 || 
+  ESP_RETURN_ON_FALSE(dmx_config->timer_group == DMX_USE_UART_RESET_SEQUENCE || 
                       dmx_config->timer_group < TIMER_GROUP_MAX, 
                       ESP_ERR_INVALID_ARG, TAG, "timer_group error");
   ESP_RETURN_ON_FALSE(dmx_config->timer_idx < TIMER_MAX, 
@@ -131,7 +131,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   dmx_module_enable(dmx_num);
   uint8_t brk_num = 0;
   uint16_t idle_num = 0;
-  if (dmx_config->timer_group == -1) {
+  if (dmx_config->timer_group == DMX_USE_UART_RESET_SEQUENCE) {
     // user is not using a hardware timer for the reset sequence
     brk_num = 44;
     idle_num = 3;
@@ -184,12 +184,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
     return ESP_ERR_NO_MEM;
   }
   driver->buffer[1] = driver->buffer[0] + dmx_config->buffer_size;
-  if (dmx_config->timer_group == -1) {
-    driver->timer_group = -1;
-  } else {
-    driver->timer_group = dmx_config->timer_group;
+  driver->timer_group = dmx_config->timer_group;
+  if (dmx_config->timer_group != DMX_USE_UART_RESET_SEQUENCE)
     driver->tx.timer_idx = dmx_config->timer_idx;
-  }
 
   driver->slot_idx = (uint16_t)-1;
   driver->buf_idx = 0;
@@ -238,7 +235,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   portEXIT_CRITICAL(&(hardware_ctx.spinlock));
 
   // install timer interrupts
-  if (dmx_driver[dmx_num]->timer_group != -1) {
+  if (dmx_driver[dmx_num]->timer_group != DMX_USE_UART_RESET_SEQUENCE) {
     // setup the timer
     const timer_config_t timer_conf = {
         .divider = 80,  // 80MHz / 80 == 1MHz resolution timer
@@ -277,7 +274,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (err) return err;
 
   // deinit timer and free timer isr
-  if (dmx_driver[dmx_num]->timer_group != -1) {
+  if (dmx_driver[dmx_num]->timer_group != DMX_USE_UART_RESET_SEQUENCE) {
     timer_deinit(dmx_driver[dmx_num]->timer_group, 
                  dmx_driver[dmx_num]->tx.timer_idx);
   }
@@ -501,8 +498,7 @@ esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   ESP_RETURN_ON_FALSE(DMX_TX_BRK_DURATION_IS_VALID(break_len), 
                       ESP_ERR_INVALID_ARG, TAG, "break_len error");
 
-  if (dmx_driver[dmx_num]->timer_group != -1 && 
-      dmx_driver[dmx_num]->tx.timer_idx != -1) {
+  if (dmx_driver[dmx_num]->timer_group != DMX_USE_UART_RESET_SEQUENCE) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_driver[dmx_num]->tx.break_len = break_len;
@@ -531,7 +527,7 @@ esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
   ESP_RETURN_ON_FALSE(break_len != NULL, ESP_ERR_INVALID_ARG, TAG, 
                       "break_len is null");
 
-  if (dmx_driver[dmx_num]->timer_group != -1) {
+  if (dmx_driver[dmx_num]->timer_group != DMX_USE_UART_RESET_SEQUENCE) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     *break_len = dmx_driver[dmx_num]->tx.break_len;
@@ -560,8 +556,7 @@ esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   ESP_RETURN_ON_FALSE(DMX_TX_MAB_DURATION_IS_VALID(mab_len), 
                       ESP_ERR_INVALID_ARG, TAG, "mab_len error");
   
-  if (dmx_driver[dmx_num]->timer_group != -1 && 
-      dmx_driver[dmx_num]->tx.timer_idx != -1) {
+  if (dmx_driver[dmx_num]->timer_group != DMX_USE_UART_RESET_SEQUENCE) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_driver[dmx_num]->tx.mab_len = mab_len;
@@ -590,7 +585,7 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
   ESP_RETURN_ON_FALSE(mab_len != NULL, ESP_ERR_INVALID_ARG, TAG,
                       "mab_len is null");
 
-  if (dmx_driver[dmx_num]->timer_group != -1) {
+  if (dmx_driver[dmx_num]->timer_group != DMX_USE_UART_RESET_SEQUENCE) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     *mab_len = dmx_driver[dmx_num]->tx.mab_len;
@@ -817,7 +812,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  if (driver->timer_group != -1 && driver->timer_group != -1) {
+  if (driver->timer_group != DMX_USE_UART_RESET_SEQUENCE) {
     // driver is using hardware timers for reset sequence
 
     // ready the dmx driver to send a reset sequence
