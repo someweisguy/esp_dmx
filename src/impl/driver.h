@@ -66,9 +66,9 @@ typedef struct {
     int64_t last_pos_edge_ts;     // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;     // Timestamp of the last negative edge on the sniffer pin.
   } rx;
-} dmx_obj_t;
+} dmx_driver_t;
 
-static IRAM_ATTR dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
+static IRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
 
 typedef struct {
     uart_hal_context_t hal;

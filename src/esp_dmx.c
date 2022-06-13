@@ -101,7 +101,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
                              uint32_t queue_size, QueueHandle_t *dmx_queue) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] == NULL, ESP_ERR_INVALID_STATE, TAG, 
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] == NULL, ESP_ERR_INVALID_STATE, TAG, 
                       "DMX driver is already installed");
   ESP_RETURN_ON_FALSE(dmx_config != NULL, ESP_ERR_INVALID_ARG, TAG, 
                       "dmx_config is null");
@@ -150,21 +150,20 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   dmx_hal_txfifo_rst(&(hardware_ctx.hal));
 
   // allocate the dmx driver
-  p_dmx_obj[dmx_num] = (dmx_obj_t *)heap_caps_calloc(1, sizeof(dmx_obj_t), 
+  dmx_driver[dmx_num] = (dmx_driver_t *)heap_caps_calloc(1, sizeof(dmx_driver_t), 
       MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-  if (p_dmx_obj[dmx_num] == NULL) {
+  if (dmx_driver[dmx_num] == NULL) {
     ESP_LOGE(TAG, "DMX driver malloc error");
     return ESP_ERR_NO_MEM;
   }
-  dmx_obj_t *const driver = p_dmx_obj[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // initialize the driver to default values
   driver->dmx_num = dmx_num;
   if (dmx_queue) {
     driver->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
     *dmx_queue = driver->queue;
-    ESP_LOGI(TAG, "queue free spaces: %d",
-             uxQueueSpacesAvailable(driver->queue));
+    ESP_LOGI(TAG, "queue free spaces: %d", uxQueueSpacesAvailable(driver->queue));
   } else {
     driver->queue = NULL;
   }
@@ -215,7 +214,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   dmx_hal_clr_intsts_mask(&(hardware_ctx.hal), DMX_ALL_INTR_MASK);
   esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq, 
                                  dmx_config->intr_alloc_flags, 
-                                 &dmx_intr_handler, driver, &driver->intr_handle);
+                                 &dmx_intr_handler, driver, 
+                                 &driver->intr_handle);
   if (err) {
     dmx_driver_delete(dmx_num);
     return err;
@@ -238,7 +238,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   portEXIT_CRITICAL(&(hardware_ctx.spinlock));
 
   // install timer interrupts
-  if (p_dmx_obj[dmx_num]->timer_group != -1) {
+  if (dmx_driver[dmx_num]->timer_group != -1) {
     // setup the timer
     const timer_config_t timer_conf = {
         .divider = 80,  // 80MHz / 80 == 1MHz resolution timer
@@ -267,33 +267,33 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
 
-  if (p_dmx_obj[dmx_num] == NULL) {
+  if (dmx_driver[dmx_num] == NULL) {
     ESP_LOGI(TAG, "DMX driver already null");
     return ESP_OK;
   }
 
   // free uart isr
-  esp_err_t err = esp_intr_free(p_dmx_obj[dmx_num]->intr_handle);
+  esp_err_t err = esp_intr_free(dmx_driver[dmx_num]->intr_handle);
   if (err) return err;
 
   // deinit timer and free timer isr
-  if (p_dmx_obj[dmx_num]->timer_group != -1) {
-    timer_deinit(p_dmx_obj[dmx_num]->timer_group, 
-                 p_dmx_obj[dmx_num]->tx.timer_idx);
+  if (dmx_driver[dmx_num]->timer_group != -1) {
+    timer_deinit(dmx_driver[dmx_num]->timer_group, 
+                 dmx_driver[dmx_num]->tx.timer_idx);
   }
   
   // free sniffer isr
-  if (p_dmx_obj[dmx_num]->rx.intr_io_num != -1) dmx_sniffer_disable(dmx_num);
+  if (dmx_driver[dmx_num]->rx.intr_io_num != -1) dmx_sniffer_disable(dmx_num);
 
   // free driver resources
-  if (p_dmx_obj[dmx_num]->buffer[0]) free(p_dmx_obj[dmx_num]->buffer[0]);
-  if (p_dmx_obj[dmx_num]->queue) vQueueDelete(p_dmx_obj[dmx_num]->queue);
-  if (p_dmx_obj[dmx_num]->tx.done_sem)
-    vSemaphoreDelete(p_dmx_obj[dmx_num]->tx.done_sem);
+  if (dmx_driver[dmx_num]->buffer[0]) free(dmx_driver[dmx_num]->buffer[0]);
+  if (dmx_driver[dmx_num]->queue) vQueueDelete(dmx_driver[dmx_num]->queue);
+  if (dmx_driver[dmx_num]->tx.done_sem)
+    vSemaphoreDelete(dmx_driver[dmx_num]->tx.done_sem);
 
   // free driver
-  heap_caps_free(p_dmx_obj[dmx_num]);
-  p_dmx_obj[dmx_num] = NULL;
+  heap_caps_free(dmx_driver[dmx_num]);
+  dmx_driver[dmx_num] = NULL;
 
   // disable rtc clock (if using it) and uart peripheral module
 #if SOC_UART_SUPPORT_RTC_CLK
@@ -310,7 +310,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 }
 
 bool dmx_is_driver_installed(dmx_port_t dmx_num) {
-  return dmx_num < DMX_NUM_MAX && p_dmx_obj[dmx_num] != NULL;
+  return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
 esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
@@ -318,12 +318,12 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(dmx_mode >= 0 && dmx_mode < DMX_MODE_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_mode error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
 
   // if the driver is in the requested mode, do nothing
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  const dmx_mode_t current_dmx_mode = p_dmx_obj[dmx_num]->mode;
+  const dmx_mode_t current_dmx_mode = dmx_driver[dmx_num]->mode;
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (current_dmx_mode == dmx_mode) return ESP_OK;
 
@@ -333,9 +333,9 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
-    p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
-    p_dmx_obj[dmx_num]->buf_idx = 0;
-    p_dmx_obj[dmx_num]->mode = DMX_MODE_READ;
+    dmx_driver[dmx_num]->slot_idx = (uint16_t)-1;
+    dmx_driver[dmx_num]->buf_idx = 0;
+    dmx_driver[dmx_num]->mode = DMX_MODE_READ;
     dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
 
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -350,13 +350,13 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
     // disable sniffer if it is enabled
-    if (p_dmx_obj[dmx_num]->rx.intr_io_num != -1) dmx_sniffer_disable(dmx_num);
+    if (dmx_driver[dmx_num]->rx.intr_io_num != -1) dmx_sniffer_disable(dmx_num);
 
-    p_dmx_obj[dmx_num]->slot_idx = 0;
-    p_dmx_obj[dmx_num]->mode = DMX_MODE_WRITE;
-    xSemaphoreGive(p_dmx_obj[dmx_num]->tx.done_sem);
+    dmx_driver[dmx_num]->slot_idx = 0;
+    dmx_driver[dmx_num]->mode = DMX_MODE_WRITE;
+    xSemaphoreGive(dmx_driver[dmx_num]->tx.done_sem);
     dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
-    bzero(p_dmx_obj[dmx_num]->buffer[0], p_dmx_obj[dmx_num]->buf_size);
+    bzero(dmx_driver[dmx_num]->buffer[0], dmx_driver[dmx_num]->buf_size);
 
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 0);  // set rts high
@@ -372,11 +372,11 @@ esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(dmx_mode != NULL, ESP_ERR_INVALID_ARG, TAG,
                       "dmx_mode must not be null");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
 
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  *dmx_mode = p_dmx_obj[dmx_num]->mode;
+  *dmx_mode = dmx_driver[dmx_num]->mode;
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -390,27 +390,27 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(intr_io_num > -1 && GPIO_IS_VALID_GPIO(intr_io_num),
                       ESP_ERR_INVALID_ARG, TAG, "intr_io_num error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->mode == DMX_MODE_READ,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->mode == DMX_MODE_READ,
                       ESP_ERR_INVALID_STATE, TAG, "must be in read mode");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->queue != NULL, ESP_ERR_INVALID_STATE,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->queue != NULL, ESP_ERR_INVALID_STATE,
                       TAG, "queue is null");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->rx.intr_io_num == -1,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->rx.intr_io_num == -1,
                       ESP_ERR_INVALID_STATE, TAG, "sniffer already enabled");
 
   // add the isr handler
   esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_timing_intr_handler,
-                                       p_dmx_obj[dmx_num]);
+                                       dmx_driver[dmx_num]);
   if (err) return err;
 
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  p_dmx_obj[dmx_num]->rx.intr_io_num = intr_io_num;
+  dmx_driver[dmx_num]->rx.intr_io_num = intr_io_num;
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // set to known values to allow for graceful startup
-  p_dmx_obj[dmx_num]->rx.is_in_brk = false;
-  p_dmx_obj[dmx_num]->rx.last_neg_edge_ts = -1;
+  dmx_driver[dmx_num]->rx.is_in_brk = false;
+  dmx_driver[dmx_num]->rx.last_neg_edge_ts = -1;
 
   // enable interrupt
   gpio_set_intr_type(intr_io_num, GPIO_INTR_ANYEDGE);
@@ -421,14 +421,14 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->rx.intr_io_num != -1,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->rx.intr_io_num != -1,
                       ESP_ERR_INVALID_STATE, TAG, "sniffer not enabled");
 
   gpio_num_t intr_io_num;
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  intr_io_num = p_dmx_obj[dmx_num]->rx.intr_io_num;
+  intr_io_num = dmx_driver[dmx_num]->rx.intr_io_num;
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // disable the interrupt and remove the isr handler
@@ -437,7 +437,7 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   if (err) return err;
 
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  p_dmx_obj[dmx_num]->rx.intr_io_num = -1;
+  dmx_driver[dmx_num]->rx.intr_io_num = -1;
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -445,7 +445,7 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
 
 bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
   return dmx_is_driver_installed(dmx_num) &&
-         p_dmx_obj[dmx_num]->rx.intr_io_num != -1;
+         dmx_driver[dmx_num]->rx.intr_io_num != -1;
 }
 
 /// Hardware Configuration  ###################################################
@@ -501,11 +501,11 @@ esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   ESP_RETURN_ON_FALSE(DMX_TX_BRK_DURATION_IS_VALID(break_len), 
                       ESP_ERR_INVALID_ARG, TAG, "break_len error");
 
-  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
-      p_dmx_obj[dmx_num]->tx.timer_idx != -1) {
+  if (dmx_driver[dmx_num]->timer_group != -1 && 
+      dmx_driver[dmx_num]->tx.timer_idx != -1) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    p_dmx_obj[dmx_num]->tx.break_len = break_len;
+    dmx_driver[dmx_num]->tx.break_len = break_len;
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   } else {
     // driver is using uart hardware for reset sequence
@@ -531,10 +531,10 @@ esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
   ESP_RETURN_ON_FALSE(break_len != NULL, ESP_ERR_INVALID_ARG, TAG, 
                       "break_len is null");
 
-  if (p_dmx_obj[dmx_num]->timer_group != -1) {
+  if (dmx_driver[dmx_num]->timer_group != -1) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    *break_len = p_dmx_obj[dmx_num]->tx.break_len;
+    *break_len = dmx_driver[dmx_num]->tx.break_len;
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   } else {
     // driver is using uart hardware for reset sequence
@@ -560,11 +560,11 @@ esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   ESP_RETURN_ON_FALSE(DMX_TX_MAB_DURATION_IS_VALID(mab_len), 
                       ESP_ERR_INVALID_ARG, TAG, "mab_len error");
   
-  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
-      p_dmx_obj[dmx_num]->tx.timer_idx != -1) {
+  if (dmx_driver[dmx_num]->timer_group != -1 && 
+      dmx_driver[dmx_num]->tx.timer_idx != -1) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    p_dmx_obj[dmx_num]->tx.mab_len = mab_len;
+    dmx_driver[dmx_num]->tx.mab_len = mab_len;
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   } else {
     // driver is using uart hardware for reset sequence
@@ -590,10 +590,10 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
   ESP_RETURN_ON_FALSE(mab_len != NULL, ESP_ERR_INVALID_ARG, TAG,
                       "mab_len is null");
 
-  if (p_dmx_obj[dmx_num]->timer_group != -1) {
+  if (dmx_driver[dmx_num]->timer_group != -1) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    *mab_len = p_dmx_obj[dmx_num]->tx.mab_len;
+    *mab_len = dmx_driver[dmx_num]->tx.mab_len;
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   } else {
     // driver is using uart hardware for reset sequence
@@ -688,9 +688,9 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(buffer != NULL, ESP_ERR_INVALID_ARG, TAG,
                       "buffer is null");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
                       TAG, "size error");
 
   /* Reads can happen in either DMX_MODE_READ or DMX_MODE_WRITE. Reads while in
@@ -701,14 +701,14 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
 
   if (size == 0) return ESP_OK;
 
-  if (p_dmx_obj[dmx_num]->mode == DMX_MODE_READ) {
+  if (dmx_driver[dmx_num]->mode == DMX_MODE_READ) {
     uint8_t active_buffer;
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    active_buffer = p_dmx_obj[dmx_num]->buf_idx;
+    active_buffer = dmx_driver[dmx_num]->buf_idx;
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[!active_buffer], size);
+    memcpy(buffer, dmx_driver[dmx_num]->buffer[!active_buffer], size);
   } else {  // mode == DMX_MODE_WRITE
-    memcpy(buffer, p_dmx_obj[dmx_num]->buffer[0], size);
+    memcpy(buffer, dmx_driver[dmx_num]->buffer[0], size);
   }
 
   return ESP_OK;
@@ -718,9 +718,9 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(value != NULL, ESP_ERR_INVALID_ARG, TAG, "value is null");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->buf_size < slot_idx,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size < slot_idx,
                       ESP_ERR_INVALID_ARG, TAG, "slot_idx error");
 
   /* Reads can happen in either DMX_MODE_READ or DMX_MODE_WRITE. Reads while in
@@ -729,14 +729,14 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
   from buffer 0 whilst buffer 1 is used by the driver to write to the tx
   FIFO. */
 
-  if (p_dmx_obj[dmx_num]->mode == DMX_MODE_READ) {
+  if (dmx_driver[dmx_num]->mode == DMX_MODE_READ) {
     uint8_t active_buffer;
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    active_buffer = p_dmx_obj[dmx_num]->buf_idx;
+    active_buffer = dmx_driver[dmx_num]->buf_idx;
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    *value = p_dmx_obj[dmx_num]->buffer[!active_buffer][slot_idx];
+    *value = dmx_driver[dmx_num]->buffer[!active_buffer][slot_idx];
   } else {  // mode == DMX_MODE_WRITE
-    *value = p_dmx_obj[dmx_num]->buffer[0][slot_idx];
+    *value = dmx_driver[dmx_num]->buffer[0][slot_idx];
   }
 
   return ESP_OK;
@@ -748,11 +748,11 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(buffer != NULL, ESP_ERR_INVALID_ARG, TAG,
                       "buffer is null");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
                       TAG, "size error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->mode == DMX_MODE_WRITE,
                       ESP_ERR_INVALID_STATE, TAG, "not in write mode");
 
   /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0,
@@ -760,7 +760,7 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
 
   if (size == 0) return ESP_OK;
 
-  memcpy(p_dmx_obj[dmx_num]->buffer[0], buffer, size);
+  memcpy(dmx_driver[dmx_num]->buffer[0], buffer, size);
 
   return ESP_OK;
 }
@@ -769,17 +769,17 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
                          const uint8_t value) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->buf_size > slot_idx,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size > slot_idx,
                       ESP_ERR_INVALID_ARG, TAG, "slot_idx error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->mode == DMX_MODE_WRITE,
                       ESP_ERR_INVALID_STATE, TAG, "not in write mode");
 
   /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0,
   whilst buffer 1 is used by the driver to write to the tx FIFO. */
 
-  p_dmx_obj[dmx_num]->buffer[0][slot_idx] = value;
+  dmx_driver[dmx_num]->buffer[0][slot_idx] = value;
 
   return ESP_OK;
 }
@@ -787,16 +787,16 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
 esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->buf_size >= num_slots &&
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= num_slots &&
                       num_slots > 0, ESP_ERR_INVALID_ARG, TAG,
                       "num_slots error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num]->mode == DMX_MODE_WRITE,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->mode == DMX_MODE_WRITE,
                       ESP_ERR_INVALID_STATE, TAG, "not in write mode");
 
   // only tx when a frame is not being written
-  if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx.done_sem, 0) == pdFALSE)
+  if (xSemaphoreTake(dmx_driver[dmx_num]->tx.done_sem, 0) == pdFALSE)
     return ESP_FAIL;
 
   /* There are two modes in which this library can transmit DMX: reset-sequence
@@ -815,7 +815,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   around 30us if the task isn't preempted), but it can be used when the user 
   is unable to use one of the available hardware timers on the ESP32. */
 
-  dmx_obj_t *const driver = p_dmx_obj[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   if (driver->timer_group != -1 && driver->timer_group != -1) {
     // driver is using hardware timers for reset sequence
@@ -880,14 +880,14 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 esp_err_t dmx_wait_send_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
 
   /* Just try to take the "done" semaphore and give it back immediately. */
 
-  if (xSemaphoreTake(p_dmx_obj[dmx_num]->tx.done_sem, ticks_to_wait) == pdFALSE)
+  if (xSemaphoreTake(dmx_driver[dmx_num]->tx.done_sem, ticks_to_wait) == pdFALSE)
     return ESP_ERR_TIMEOUT;
-  xSemaphoreGive(p_dmx_obj[dmx_num]->tx.done_sem);
+  xSemaphoreGive(dmx_driver[dmx_num]->tx.done_sem);
 
   return ESP_OK;
 }

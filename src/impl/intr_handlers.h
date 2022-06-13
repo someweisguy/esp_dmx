@@ -37,7 +37,7 @@ extern "C" {
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
-  dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
+  dmx_driver_t *const p_dmx = (dmx_driver_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
   portBASE_TYPE task_awoken = pdFALSE;
 
@@ -209,7 +209,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
 static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
-  dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
+  dmx_driver_t *const p_dmx = (dmx_driver_t *)arg;
 
   /* If this ISR is called on a positive edge and the current DMX frame is in a
   break and a negative edge condition has already occurred, then the break has 
@@ -233,7 +233,7 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
 }
 
 static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
-  dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
+  dmx_driver_t *const p_dmx = (dmx_driver_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
 
   if (p_dmx->tx.step == 0) {
