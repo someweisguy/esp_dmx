@@ -50,13 +50,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // this interrupt is triggered when the tx FIFO is empty
 
       uint32_t bytes_written;
-      const uint32_t num_slots_to_read = p_dmx->send_size - p_dmx->slot_idx;
+      const uint32_t num_slots_to_read = p_dmx->tx.size - p_dmx->slot_idx;
       const uint8_t *next_slot = p_dmx->buffer[0] + p_dmx->slot_idx;
       dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, num_slots_to_read,
         &bytes_written);
       p_dmx->slot_idx += bytes_written;
 
-      if (p_dmx->slot_idx == p_dmx->send_size) {
+      if (p_dmx->slot_idx == p_dmx->tx.size) {
         // allow tx FIFO to empty - break and idle will be written
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
         dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TXFIFO_EMPTY);
@@ -69,8 +69,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       // switch buffers, signal end of frame, and track breaks
       memcpy(p_dmx->buffer[1], p_dmx->buffer[0], p_dmx->buf_size);
-      xSemaphoreGiveFromISR(p_dmx->tx_done_sem, &task_awoken);
-      p_dmx->tx_last_brk_ts = now;
+      xSemaphoreGiveFromISR(p_dmx->tx.done_sem, &task_awoken);
+      if (p_dmx->timer_group == -1) p_dmx->tx.last_break_ts = now;
 
       dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_DONE) {
@@ -167,26 +167,26 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           }
 
           // check if this is the first received packet
-          const int64_t rx_brk_to_brk = now - p_dmx->rx_last_brk_ts;
+          const int64_t rx_brk_to_brk = now - p_dmx->rx.last_break_ts;
           if (rx_brk_to_brk <= DMX_RX_MAX_BRK_TO_BRK_US) { 
             // only send event if received at least 1 full packet
-            event.timing.brk = p_dmx->rx_brk_len;
-            event.timing.mab = p_dmx->rx_mab_len;
+            event.timing.brk = p_dmx->rx.break_len;
+            event.timing.mab = p_dmx->rx.mab_len;
             event.duration = rx_brk_to_brk;
             xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
           }
 
           // reset expired data
-          p_dmx->rx_brk_len = -1;
-          p_dmx->rx_mab_len = -1;
+          p_dmx->rx.break_len = -1;
+          p_dmx->rx.mab_len = -1;
         }
 
         // do setup for next frame
         if (uart_intr_status & DMX_INTR_RX_BRK) {
-          p_dmx->rx_is_in_brk = true; // notify analyzer
+          p_dmx->rx.is_in_brk = true; // notify sniffer
           // switch buffers, set break timestamp, and reset slot counter
           p_dmx->buf_idx = !p_dmx->buf_idx;
-          p_dmx->rx_last_brk_ts = now;
+          p_dmx->rx.last_break_ts = now;
           p_dmx->slot_idx = 0;
         } else {
           // set frame error, don't switch buffers until break rx'd
@@ -220,15 +220,15 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   its duration. */
 
   if (dmx_hal_get_rx_level(&(dmx_context[p_dmx->dmx_num].hal))) {
-    if (p_dmx->rx_is_in_brk && p_dmx->rx_last_neg_edge_ts > -1) {
-      p_dmx->rx_brk_len = now - p_dmx->rx_last_neg_edge_ts;
-      p_dmx->rx_is_in_brk = false;
+    if (p_dmx->rx.is_in_brk && p_dmx->rx.last_neg_edge_ts > -1) {
+      p_dmx->rx.break_len = now - p_dmx->rx.last_neg_edge_ts;
+      p_dmx->rx.is_in_brk = false;
     }
-    p_dmx->rx_last_pos_edge_ts = now;
+    p_dmx->rx.last_pos_edge_ts = now;
   } else {
-    if (p_dmx->rx_mab_len == -1 && p_dmx->rx_brk_len != -1)
-      p_dmx->rx_mab_len = now - p_dmx->rx_last_pos_edge_ts;
-    p_dmx->rx_last_neg_edge_ts = now;
+    if (p_dmx->rx.mab_len == -1 && p_dmx->rx.break_len != -1)
+      p_dmx->rx.mab_len = now - p_dmx->rx.last_pos_edge_ts;
+    p_dmx->rx.last_neg_edge_ts = now;
   }
 }
 
@@ -236,25 +236,27 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_obj_t *const p_dmx = (dmx_obj_t *)arg;
   const dmx_port_t dmx_num = p_dmx->dmx_num;
 
-  if (p_dmx->rst_seq_step == 0) {
+  if (p_dmx->tx.step == 0) {
     // start break
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
-    timer_set_alarm_value(p_dmx->timer_group, p_dmx->timer_idx, p_dmx->brk_len);
-  } else if (p_dmx->rst_seq_step == 1) {
+    timer_set_alarm_value(p_dmx->timer_group, p_dmx->tx.timer_idx,
+                          p_dmx->tx.break_len);
+  } else if (p_dmx->tx.step == 1) {
     // start mab
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
-    timer_set_alarm_value(p_dmx->timer_group, p_dmx->timer_idx, p_dmx->mab_len);
+    timer_set_alarm_value(p_dmx->timer_group, p_dmx->tx.timer_idx,
+                          p_dmx->tx.mab_len);
   } else {
     // write data to tx FIFO
     uint32_t bytes_written;
     const uint32_t buf_idx = p_dmx->buf_idx;
     const uint8_t *zeroeth_slot = p_dmx->buffer[buf_idx];
     dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, 
-                         p_dmx->send_size, &bytes_written);
+                         p_dmx->tx.size, &bytes_written);
     p_dmx->slot_idx = bytes_written;
 
     // disable this interrupt
-    timer_pause(p_dmx->timer_group, p_dmx->timer_idx);
+    timer_pause(p_dmx->timer_group, p_dmx->tx.timer_idx);
 
     // enable tx interrupts
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -262,7 +264,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
   
-  ++(p_dmx->rst_seq_step);
+  ++(p_dmx->tx.step);
 
   return false;
 }

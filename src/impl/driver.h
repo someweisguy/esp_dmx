@@ -29,35 +29,44 @@ typedef struct {
 
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
   uint8_t *buffer[2];             // Used for reading or writing DMX data (double-buffered).
-  uint16_t send_size;             // The size of the number of slots to send.
+  uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd or tx'd.
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
-  uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd into.
   dmx_mode_t mode;                // The mode the driver is in - either RX or TX.
-
-  uint32_t brk_len;               // The length of the reset sequence break in microseconds.
-  uint32_t mab_len;               // The length of the reset sequence mark-after-break in microseconds.
-  uint8_t rst_seq_step;           // The current step in the reset sequence. 0 is BREAK, 1 is MARK-AFTER-BREAK, 2 is START CODE.
-  timer_group_t timer_group;      // The timer group being used for the reset sequence.
-  timer_idx_t timer_idx;          // The timer index being used for the reset sequence.
-
-  int64_t rx_last_brk_ts;         // Timestamp of the last rx'd break.
-  gpio_num_t intr_io_num;         // GPIO number of the rx analyzer interrupt pin.
-  int32_t rx_brk_len;             // Length in microseconds of the last rx'd break. Is always -1 unless rx timing analysis is enabled.
-  int32_t rx_mab_len;             // Length in microseconds of the last rx'd mark after break. Is always -1 unless rx timing analysis is enabled.
+  timer_group_t timer_group;      // The timer group being used for the reset sequence. Is -1 when using reset-sequence-first mode.
   
-  SemaphoreHandle_t tx_done_sem;  // Signals the frame has finished being tx'd.
+  /* These variables are used when transmitting DMX. */
+  struct {
+    SemaphoreHandle_t done_sem;   // Signals the frame has finished being tx'd.
+    uint16_t size;                // The size of the number of slots to send.
+    union {
+      /* This struct is used when sending DMX in reset-sequence-first mode. */
+      struct {
+        timer_idx_t timer_idx;    // The timer index being used for the reset sequence.
+        uint32_t break_len;       // Length in microseconds of the last transmitted break.
+        uint32_t mab_len;         // Length in microseconds of the last transmitted mark-after-break;
+        uint8_t step;             // The current step in the DMX reset sequence. 
+      };
+      /* This struct is used when sending DMX in reset-sequence-last mode.*/
+      struct {
+        int64_t last_break_ts;    // Timestamp of the last transmitted break.
+      };
+    };
+  } tx;
 
-  // TODO: add a semaphore that can be given/taken during the mab to ensure precise mab
+  /* These variables are used when receiving DMX. */
+  struct {
+    gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
+    int64_t last_break_ts;        // The timestamp of the last received break.
+    int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
+    int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
+    
+    /* The remaining variables are only used if the DMX sniffer is enabled. They
+    are uninitialized until dmx_sniffer_enable() is called. */
 
-  // TODO: add this to a union that includes brk_len, mab_len, and rst_seq_step
-  int64_t tx_last_brk_ts;         // Timestamp of the last tx'd break.
-
-  /* The remaining variables are only used if the DMX sniffer is enabled. They
-  are uninitialized until dmx_sniffer_enable() is called. */
-
-  bool rx_is_in_brk;              // True if the rx packet is currently in a break.
-  int64_t rx_last_pos_edge_ts;    // Timestamp of the last positive edge on the analyze pin.
-  int64_t rx_last_neg_edge_ts;    // Timestamp of the last negative edge on the analyze pin.
+    bool is_in_brk;               // True if the received DMX packet is currently in a break.
+    int64_t last_pos_edge_ts;     // Timestamp of the last positive edge on the sniffer pin.
+    int64_t last_neg_edge_ts;     // Timestamp of the last negative edge on the sniffer pin.
+  } rx;
 } dmx_obj_t;
 
 static IRAM_ATTR dmx_obj_t *p_dmx_obj[DMX_NUM_MAX] = {0};
