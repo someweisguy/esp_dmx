@@ -97,31 +97,28 @@ static void dmx_module_disable(dmx_port_t dmx_num) {
 }
 
 /// Driver Functions  #########################################################
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, 
-                             dmx_driver_config_t *dmx_driver_config, 
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config, 
                              uint32_t queue_size, QueueHandle_t *dmx_queue) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(dmx_driver_config != NULL, ESP_ERR_INVALID_ARG, TAG, 
-                      "dmx_driver_config is null");
-  ESP_RETURN_ON_FALSE(dmx_driver_config->buffer_size <= DMX_MAX_PACKET_SIZE, 
+  ESP_RETURN_ON_FALSE(p_dmx_obj[dmx_num] == NULL, ESP_ERR_INVALID_STATE, TAG, 
+                      "DMX driver is already installed");
+  ESP_RETURN_ON_FALSE(dmx_config != NULL, ESP_ERR_INVALID_ARG, TAG, 
+                      "dmx_config is null");
+  ESP_RETURN_ON_FALSE(dmx_config->buffer_size <= DMX_MAX_PACKET_SIZE, 
                       ESP_ERR_INVALID_ARG, TAG, "buffer_size error");
-  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_group == -1 || 
-                      dmx_driver_config->timer_group < TIMER_GROUP_MAX, 
+  ESP_RETURN_ON_FALSE(dmx_config->timer_group == -1 || 
+                      dmx_config->timer_group < TIMER_GROUP_MAX, 
                       ESP_ERR_INVALID_ARG, TAG, "timer_group error");
-  ESP_RETURN_ON_FALSE(dmx_driver_config->timer_idx == -1 || 
-                      dmx_driver_config->timer_idx < TIMER_MAX, 
+  ESP_RETURN_ON_FALSE(dmx_config->timer_idx < TIMER_MAX, 
                       ESP_ERR_INVALID_ARG, TAG, "timer_idx error");
 
   /* Driver ISR is in IRAM so intr_alloc_flags must include the
   ESP_INTR_FLAG_IRAM flag. */
-  if ((dmx_driver_config->intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
+  if ((dmx_config->intr_alloc_flags & ESP_INTR_FLAG_IRAM) == 0) {
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
-    dmx_driver_config->intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
+    dmx_config->intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
   }
-
-   // enable uart module
-  dmx_module_enable(dmx_num);
 
 // TODO: move this to dmx_config function
 // #if SOC_UART_SUPPORT_RTC_CLK
@@ -131,124 +128,114 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num,
 // #endif
     
   // configure the uart hardware
+  dmx_module_enable(dmx_num);
   uint8_t brk_num = 0;
   uint16_t idle_num = 0;
-  if (dmx_driver_config->timer_group == -1 ||
-      dmx_driver_config->timer_idx == -1) {
+  if (dmx_config->timer_group == -1) {
     // user is not using a hardware timer for the reset sequence
     brk_num = 44;
     idle_num = 3;
   }
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_init(&(dmx_context[dmx_num].hal));
-  dmx_hal_set_sclk(&(dmx_context[dmx_num].hal), UART_SCLK_APB);
-  dmx_hal_set_baudrate(&(dmx_context[dmx_num].hal), DMX_TYP_BAUD_RATE);
-  dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), brk_num);
-  dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  dmx_context_t hardware_ctx = dmx_context[dmx_num];
+  portENTER_CRITICAL(&(hardware_ctx.spinlock));
+  dmx_hal_init(&(hardware_ctx.hal));
+  dmx_hal_set_sclk(&(hardware_ctx.hal), UART_SCLK_APB);
+  dmx_hal_set_baudrate(&(hardware_ctx.hal), DMX_TYP_BAUD_RATE);
+  dmx_hal_set_tx_break_num(&(hardware_ctx.hal), brk_num);
+  dmx_hal_set_tx_idle_num(&(hardware_ctx.hal), idle_num);
+  portEXIT_CRITICAL(&(hardware_ctx.spinlock));
 
   // flush both fifos
-  dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
-  dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
+  dmx_hal_rxfifo_rst(&(hardware_ctx.hal));
+  dmx_hal_txfifo_rst(&(hardware_ctx.hal));
 
-
+  // allocate the dmx driver
+  p_dmx_obj[dmx_num] = (dmx_obj_t *)heap_caps_calloc(1, sizeof(dmx_obj_t), 
+      MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   if (p_dmx_obj[dmx_num] == NULL) {
-    // allocate the dmx driver
-    p_dmx_obj[dmx_num] = (dmx_obj_t *)heap_caps_calloc(1, sizeof(dmx_obj_t), 
-        MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    if (p_dmx_obj[dmx_num] == NULL) {
-      ESP_LOGE(TAG, "DMX driver malloc error");
-      return ESP_ERR_NO_MEM;
-    }
+    ESP_LOGE(TAG, "DMX driver malloc error");
+    return ESP_ERR_NO_MEM;
+  }
+  dmx_obj_t *const driver = p_dmx_obj[dmx_num];
 
-    // initialize the driver to default values
-    p_dmx_obj[dmx_num]->dmx_num = dmx_num;
-    if (dmx_queue) {
-      p_dmx_obj[dmx_num]->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
-      *dmx_queue = p_dmx_obj[dmx_num]->queue;
-      ESP_LOGI(TAG, "queue free spaces: %d",
-               uxQueueSpacesAvailable(p_dmx_obj[dmx_num]->queue));
-    } else {
-      p_dmx_obj[dmx_num]->queue = NULL;
-    }
-    p_dmx_obj[dmx_num]->buf_size = dmx_driver_config->buffer_size;
-#ifdef ARDUINO
-    /* Arduino only allocates 4-byte aligned memory on the heap. If the size of
-    the double-buffer isn't divisible by 4, when it is later freed by calling
-    dmx_driver_delete() the heap will appear corrupted and the ESP32 will
-    crash. As a workaround for Arduino, we allocate extra bytes until the total
-    allocation is divisible by 4. These extra bytes are left unused. */
-    const int alloc_size = 2 * dmx_driver_config->buffer_size +
-                           (2 * dmx_driver_config->buffer_size % 4);
-#else
-    const int alloc_size = dmx_driver_config->buffer_size * 2;
-#endif
-    p_dmx_obj[dmx_num]->buffer[0] = malloc(sizeof(uint8_t) * alloc_size);
-    if (p_dmx_obj[dmx_num]->buffer[0] == NULL) {
-      ESP_LOGE(TAG, "DMX driver buffer malloc error");
-      dmx_driver_delete(dmx_num);
-      return ESP_ERR_NO_MEM;
-    }
-    p_dmx_obj[dmx_num]->buffer[1] = p_dmx_obj[dmx_num]->buffer[0] + 
-                                    dmx_driver_config->buffer_size;
-    if (dmx_driver_config->timer_group == -1 || 
-        dmx_driver_config->timer_idx == -1) {
-      p_dmx_obj[dmx_num]->timer_group = -1;
-    } else {
-      p_dmx_obj[dmx_num]->timer_group = dmx_driver_config->timer_group;
-      p_dmx_obj[dmx_num]->tx.timer_idx = dmx_driver_config->timer_idx;
-    }
-
-    p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
-    p_dmx_obj[dmx_num]->buf_idx = 0;
-    p_dmx_obj[dmx_num]->mode = DMX_MODE_READ;
-    p_dmx_obj[dmx_num]->tx.break_len = DMX_TX_TYP_SPACE_FOR_BRK_US;
-    p_dmx_obj[dmx_num]->tx.mab_len = DMX_TX_MIN_MRK_AFTER_BRK_US;
-
-    p_dmx_obj[dmx_num]->rx.last_break_ts = -DMX_RX_MAX_BRK_TO_BRK_US;
-    p_dmx_obj[dmx_num]->rx.intr_io_num = -1;
-    p_dmx_obj[dmx_num]->rx.break_len = -1;
-    p_dmx_obj[dmx_num]->rx.mab_len = -1;
-
-    // TODO: check if reset last
-    //p_dmx_obj[dmx_num]->tx.last_break_ts = -DMX_TX_MAX_BRK_TO_BRK_US;
-    p_dmx_obj[dmx_num]->tx.done_sem = xSemaphoreCreateBinary();
-    xSemaphoreGive(p_dmx_obj[dmx_num]->tx.done_sem);
-
+  // initialize the driver to default values
+  driver->dmx_num = dmx_num;
+  if (dmx_queue) {
+    driver->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
+    *dmx_queue = driver->queue;
+    ESP_LOGI(TAG, "queue free spaces: %d",
+             uxQueueSpacesAvailable(driver->queue));
   } else {
-    ESP_LOGE(TAG, "DMX driver already installed");
-    return ESP_ERR_INVALID_STATE;
+    driver->queue = NULL;
+  }
+  driver->buf_size = dmx_config->buffer_size;
+  int alloc_size = 2 * dmx_config->buffer_size;
+#ifdef ARDUINO
+  /* Arduino only allocates 4-byte aligned memory on the heap. If the size of
+  the double-buffer isn't divisible by 4, when it is later freed by calling
+  dmx_driver_delete() the heap will appear corrupted and the ESP32 will
+  crash. As a workaround for Arduino, we allocate extra bytes until the total
+  allocation is divisible by 4. These extra bytes are left unused. */
+  alloc_size += (2 * dmx_config->buffer_size % 4);
+#endif
+  driver->buffer[0] = malloc(sizeof(uint8_t) * alloc_size);
+  if (driver->buffer[0] == NULL) {
+    ESP_LOGE(TAG, "DMX driver buffer malloc error");
+    dmx_driver_delete(dmx_num);
+    return ESP_ERR_NO_MEM;
+  }
+  driver->buffer[1] = driver->buffer[0] + dmx_config->buffer_size;
+  if (dmx_config->timer_group == -1) {
+    driver->timer_group = -1;
+  } else {
+    driver->timer_group = dmx_config->timer_group;
+    driver->tx.timer_idx = dmx_config->timer_idx;
   }
 
+  driver->slot_idx = (uint16_t)-1;
+  driver->buf_idx = 0;
+  driver->mode = DMX_MODE_READ;
+  driver->tx.break_len = DMX_TX_TYP_SPACE_FOR_BRK_US;
+  driver->tx.mab_len = DMX_TX_MIN_MRK_AFTER_BRK_US;
+
+  driver->rx.last_break_ts = -DMX_RX_MAX_BRK_TO_BRK_US;
+  driver->rx.intr_io_num = -1;
+  driver->rx.break_len = -1;
+  driver->rx.mab_len = -1;
+
+  // TODO: check if reset last
+  //driver->tx.last_break_ts = -DMX_TX_MAX_BRK_TO_BRK_US;
+  driver->tx.done_sem = xSemaphoreCreateBinary();
+  xSemaphoreGive(driver->tx.done_sem);
+
   // install uart interrupt
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
+  portENTER_CRITICAL(&(hardware_ctx.spinlock));
+  dmx_hal_disable_intr_mask(&(hardware_ctx.hal), DMX_ALL_INTR_MASK);
+  portEXIT_CRITICAL(&(hardware_ctx.spinlock));
+  dmx_hal_clr_intsts_mask(&(hardware_ctx.hal), DMX_ALL_INTR_MASK);
   esp_err_t err = esp_intr_alloc(uart_periph_signal[dmx_num].irq, 
-                                 dmx_driver_config->intr_alloc_flags, 
-                                 &dmx_intr_handler, p_dmx_obj[dmx_num],
-                                 &p_dmx_obj[dmx_num]->intr_handle);
+                                 dmx_config->intr_alloc_flags, 
+                                 &dmx_intr_handler, driver, &driver->intr_handle);
   if (err) {
     dmx_driver_delete(dmx_num);
     return err;
   }
-  const dmx_intr_config_t dmx_intr = {
+  const dmx_intr_config_t dmx_intr_conf = {
       .rxfifo_full_thresh = DMX_UART_FULL_DEFAULT,
       .rx_timeout_thresh = DMX_UART_TIMEOUT_DEFAULT,
       .txfifo_empty_intr_thresh = DMX_UART_EMPTY_DEFAULT,
   };
-  err = dmx_intr_config(dmx_num, &dmx_intr);
+  err = dmx_intr_config(dmx_num, &dmx_intr_conf);
   if (err) {
     dmx_driver_delete(dmx_num);
     return err;
   }
 
   // enable rx interrupts and set rts
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_RX_ALL);
-  dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 1);  // set rts low
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  portENTER_CRITICAL(&(hardware_ctx.spinlock));
+  dmx_hal_ena_intr_mask(&(hardware_ctx.hal), DMX_INTR_RX_ALL);
+  dmx_hal_set_rts(&(hardware_ctx.hal), 1);  // set rts low
+  portEXIT_CRITICAL(&(hardware_ctx.spinlock));
 
   // install timer interrupts
   if (p_dmx_obj[dmx_num]->timer_group != -1) {
@@ -260,18 +247,17 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num,
         .alarm_en = true,
         .auto_reload = true,
     };
-    timer_init(dmx_driver_config->timer_group, dmx_driver_config->timer_idx,
+    timer_init(dmx_config->timer_group, dmx_config->timer_idx,
                &timer_conf);
-    timer_set_counter_value(dmx_driver_config->timer_group, 
-                            dmx_driver_config->timer_idx, 0);
-    timer_set_alarm_value(dmx_driver_config->timer_group, 
-                          dmx_driver_config->timer_idx, 0);
-    timer_isr_callback_add(dmx_driver_config->timer_group, 
-                           dmx_driver_config->timer_idx, dmx_timer_intr_handler, 
-                           p_dmx_obj[dmx_num], 
-                           dmx_driver_config->intr_alloc_flags);
-    timer_enable_intr(dmx_driver_config->timer_group, 
-                      dmx_driver_config->timer_idx);
+    timer_set_counter_value(dmx_config->timer_group, 
+                            dmx_config->timer_idx, 0);
+    timer_set_alarm_value(dmx_config->timer_group, 
+                          dmx_config->timer_idx, 0);
+    timer_isr_callback_add(dmx_config->timer_group, 
+                           dmx_config->timer_idx, dmx_timer_intr_handler, 
+                           driver, dmx_config->intr_alloc_flags);
+    timer_enable_intr(dmx_config->timer_group, 
+                      dmx_config->timer_idx);
   }
 
   return ESP_OK;
@@ -829,25 +815,25 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   around 30us if the task isn't preempted), but it can be used when the user 
   is unable to use one of the available hardware timers on the ESP32. */
 
-  dmx_obj_t *const p_dmx = p_dmx_obj[dmx_num];
+  dmx_obj_t *const driver = p_dmx_obj[dmx_num];
 
-  if (p_dmx->timer_group != -1 && p_dmx->timer_group != -1) {
+  if (driver->timer_group != -1 && driver->timer_group != -1) {
     // driver is using hardware timers for reset sequence
 
     // ready the dmx driver to send a reset sequence
-    p_dmx->tx.size = num_slots;
-    p_dmx->tx.step = 0;
+    driver->tx.size = num_slots;
+    driver->tx.step = 0;
 
     // ready and start the hardware timer for a reset sequence
-    timer_set_alarm_value(p_dmx->timer_group, p_dmx->tx.timer_idx, 0);
-    timer_set_counter_value(p_dmx->timer_group, p_dmx->tx.timer_idx, 0);
-    timer_start(p_dmx->timer_group, p_dmx->tx.timer_idx);
+    timer_set_alarm_value(driver->timer_group, driver->tx.timer_idx, 0);
+    timer_set_counter_value(driver->timer_group, driver->tx.timer_idx, 0);
+    timer_start(driver->timer_group, driver->tx.timer_idx);
   } else {
     // driver is using uart hardware for reset sequence
     const int64_t now = esp_timer_get_time();
 
     // check if a simulated reset sequence must be sent
-    if (now - p_dmx->tx.last_break_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
+    if (now - driver->tx.last_break_ts >= DMX_TX_MAX_BRK_TO_BRK_US) {
       // get break and mark time in microseconds
       uint32_t baud_rate, break_num, idle_num;
       portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -871,16 +857,16 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
       dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
       ets_delay_us(mab_us);
 
-      p_dmx->tx.last_break_ts = now;
+      driver->tx.last_break_ts = now;
     }
 
     // write data to tx FIFO
     uint32_t bytes_written;
-    p_dmx->tx.size = num_slots;
-    const uint8_t *zeroeth_slot = p_dmx->buffer[p_dmx->buf_idx];
+    driver->tx.size = num_slots;
+    const uint8_t *zeroeth_slot = driver->buffer[driver->buf_idx];
     dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
                          &bytes_written);
-    p_dmx->slot_idx = bytes_written;
+    driver->slot_idx = bytes_written;
 
     // enable tx interrupts
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));

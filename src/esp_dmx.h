@@ -47,8 +47,7 @@ extern "C" {
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
 // TODO: update documentation
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, 
-                             dmx_driver_config_t *dmx_driver_config, 
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config, 
                              uint32_t queue_size, QueueHandle_t *dmx_queue);
 
 /**

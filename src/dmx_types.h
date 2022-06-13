@@ -10,15 +10,6 @@ extern "C" {
 
 typedef int dmx_port_t;             // DMX port type.
 
-// TODO: documentation! This struct contains DMX config information that CAN be
-//  changed without deleting the driver
-typedef struct {
-  uint32_t baud_rate;
-  uint32_t brk_len;
-  uint32_t mab_len;
-  uart_sclk_t source_clock;
-} dmx_config_t;
-
 // TODO: documentation! This struct contains driver config information that
 //  cannot be changed without first deleting the driver
 typedef struct {
@@ -26,7 +17,7 @@ typedef struct {
   timer_group_t timer_group;        // The timer group to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
   timer_idx_t timer_idx;            // The timer index to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
   int intr_alloc_flags;             // Interrupt allocation flags as specified in esp_intr_alloc.h.
-} dmx_driver_config_t;
+} dmx_config_t;
 
 /**
  * @brief DMX modes of operation.
