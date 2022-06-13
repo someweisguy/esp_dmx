@@ -201,8 +201,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num,
     }
     p_dmx_obj[dmx_num]->buffer[1] = p_dmx_obj[dmx_num]->buffer[0] + 
                                     dmx_driver_config->buffer_size;
-    p_dmx_obj[dmx_num]->timer_group = dmx_driver_config->timer_group;
-    p_dmx_obj[dmx_num]->tx.timer_idx = dmx_driver_config->timer_idx;
+    if (dmx_driver_config->timer_group == -1 || 
+        dmx_driver_config->timer_idx == -1) {
+      p_dmx_obj[dmx_num]->timer_group = -1;
+    } else {
+      p_dmx_obj[dmx_num]->timer_group = dmx_driver_config->timer_group;
+      p_dmx_obj[dmx_num]->tx.timer_idx = dmx_driver_config->timer_idx;
+    }
 
     p_dmx_obj[dmx_num]->slot_idx = (uint16_t)-1;
     p_dmx_obj[dmx_num]->buf_idx = 0;
@@ -256,8 +261,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num,
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   // install timer interrupts
-  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
-      p_dmx_obj[dmx_num]->tx.timer_idx != -1) {
+  if (p_dmx_obj[dmx_num]->timer_group != -1) {
     // setup the timer
     const timer_config_t timer_conf = {
         .divider = 80,  // 80MHz / 80 == 1MHz resolution timer
@@ -297,8 +301,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (err) return err;
 
   // deinit timer and free timer isr
-  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
-      p_dmx_obj[dmx_num]->tx.timer_idx != -1) {
+  if (p_dmx_obj[dmx_num]->timer_group != -1) {
     timer_deinit(p_dmx_obj[dmx_num]->timer_group, 
                  p_dmx_obj[dmx_num]->tx.timer_idx);
   }
@@ -552,8 +555,7 @@ esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
   ESP_RETURN_ON_FALSE(break_len != NULL, ESP_ERR_INVALID_ARG, TAG, 
                       "break_len is null");
 
-  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
-      p_dmx_obj[dmx_num]->tx.timer_idx != -1) {
+  if (p_dmx_obj[dmx_num]->timer_group != -1) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     *break_len = p_dmx_obj[dmx_num]->tx.break_len;
@@ -612,8 +614,7 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
   ESP_RETURN_ON_FALSE(mab_len != NULL, ESP_ERR_INVALID_ARG, TAG,
                       "mab_len is null");
 
-  if (p_dmx_obj[dmx_num]->timer_group != -1 &&
-      p_dmx_obj[dmx_num]->tx.timer_idx != -1) {
+  if (p_dmx_obj[dmx_num]->timer_group != -1) {
     // driver is using hardware timers for reset sequence
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     *mab_len = p_dmx_obj[dmx_num]->tx.mab_len;
