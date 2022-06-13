@@ -40,16 +40,6 @@
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-static inline int get_brk_us(int baud_rate, int break_num) {
-  // get break in microseconds
-  return (int)ceil(break_num * (1000000.0 / baud_rate));
-}
-
-static inline int get_mab_us(int baud_rate, int idle_num) {
-  // get mark-after-break in microseconds
-  return (int)ceil(idle_num * (1000000.0 / baud_rate));
-}
-
 #if SOC_UART_SUPPORT_RTC_CLK
 static uint8_t rtc_enabled = 0;
 static portMUX_TYPE rtc_num_spinlock = portMUX_INITIALIZER_UNLOCKED;
@@ -537,7 +527,7 @@ esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_get_baud_rate(dmx_num, &baud_rate);
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    const uint32_t break_num = ceil(break_len / (1000000 / baud_rate));
+    const uint32_t break_num = ceil(break_len / (1000000.0 / baud_rate));
     ESP_RETURN_ON_FALSE(break_num < 256, ESP_ERR_INVALID_STATE, TAG, 
                         "break_len error (reset-sequence-last mode)");
 
@@ -572,7 +562,7 @@ esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
     dmx_get_baud_rate(dmx_num, &baud_rate);
     break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    *break_len = (1000000 / baud_rate) * break_num;
+    *break_len = (1000000.0 / baud_rate) * break_num;
   }
 
   return ESP_OK;
@@ -596,7 +586,7 @@ esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_get_baud_rate(dmx_num, &baud_rate);
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    const uint32_t idle_num = ceil(mab_len / (1000000 / baud_rate));
+    const uint32_t idle_num = ceil(mab_len / (1000000.0 / baud_rate));
     ESP_RETURN_ON_FALSE(idle_num < 1024, ESP_ERR_INVALID_STATE, TAG, 
                         "mab_len error (reset-sequence-last mode)");
 
@@ -631,7 +621,7 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
     dmx_get_baud_rate(dmx_num, &baud_rate);
     idle_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    *mab_len = (1000000 / baud_rate) * idle_num;
+    *mab_len = (1000000.0 / baud_rate) * idle_num;
   }
 
   return ESP_OK;
@@ -865,8 +855,8 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
       break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
       idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
       portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-      const int brk_us = get_brk_us(baud_rate, break_num);
-      const int mab_us = get_mab_us(baud_rate, idle_num);
+      const int brk_us = (int)ceil(break_num * (1000000.0 / baud_rate));
+      const int mab_us = (int)ceil(idle_num * (1000000.0 / baud_rate));
 
       /* This library assumes that all UART signals are un-inverted. This means
       that if the user inverts, for example, the RTS pin, these next two calls
