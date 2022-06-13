@@ -515,86 +515,126 @@ esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate) {
   return ESP_OK;
 }
 
-esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num) {
+esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(DMX_TX_BRK_DURATION_IS_VALID(break_len), 
+                      ESP_ERR_INVALID_ARG, TAG, "break_len error");
 
-  // ensure the new break is within DMX specification
-  uint32_t baud_rate;
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  const int brk_us = get_brk_us(baud_rate, break_num);
-  if (brk_us < DMX_TX_MIN_SPACE_FOR_BRK_US) {
-    ESP_LOGE(TAG, "break must be at least %ius (was set to %ius)",
-             DMX_TX_MIN_SPACE_FOR_BRK_US, brk_us);
-    return ESP_ERR_INVALID_ARG;
+  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
+      p_dmx_obj[dmx_num]->timer_idx != -1) {
+    // driver is using hardware timers for reset sequence
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    p_dmx_obj[dmx_num]->brk_len = break_len;
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  } else {
+    // driver is using uart hardware for reset sequence
+    uint32_t baud_rate;
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_get_baud_rate(dmx_num, &baud_rate);
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    const uint32_t break_num = ceil(break_len / (1000000 / baud_rate));
+    ESP_RETURN_ON_FALSE(break_num < 256, ESP_ERR_INVALID_STATE, TAG, 
+                        "break_len error (reset-sequence-last mode)");
+
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), break_num);
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
-
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_set_tx_break_num(&(dmx_context[dmx_num].hal), break_num);
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
 
-esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num) {
-#ifdef DMX_GET_BREAK_NUM_NOT_SUPPORTED
-  DMX_FUNCTION_NOT_SUPPORTED();
+esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
+  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
+                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(break_len != NULL, ESP_ERR_INVALID_ARG, TAG, 
+                      "break_len is null");
+
+  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
+      p_dmx_obj[dmx_num]->timer_idx != -1) {
+    // driver is using hardware timers for reset sequence
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    *break_len = p_dmx_obj[dmx_num]->brk_len;
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  } else {
+    // driver is using uart hardware for reset sequence
+#ifdef DMX_GET_BREAK_NUM_NOT_IMPLEMENTED
+    DMX_FUNCTION_NOT_SUPPORTED();
 #endif
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(break_num != NULL, ESP_ERR_INVALID_ARG, TAG,
-                      "break_num is null");
 
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  *break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num) {
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(idle_num <= 0x3ff, ESP_ERR_INVALID_ARG, TAG,
-                      "idle_num error");
-
-  // ensure the new mark-after-break is within DMX specification
-  uint32_t baud_rate;
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  baud_rate = dmx_hal_get_baudrate(&(dmx_context[dmx_num].hal));
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  const int mab_us = get_mab_us(baud_rate, idle_num);
-  if (!DMX_TX_MAB_DURATION_IS_VALID(mab_us)) {
-    ESP_LOGE(TAG, "mark-after-break must be between %ius and %ius (was set to "
-             "%ius)", DMX_TX_MIN_MRK_AFTER_BRK_US, DMX_TX_MAX_MRK_AFTER_BRK_US,
-             mab_us);
-    return ESP_ERR_INVALID_ARG;
+    uint32_t baud_rate;
+    uint8_t break_num;
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_get_baud_rate(dmx_num, &baud_rate);
+    break_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    *break_len = (1000000 / baud_rate) * break_num;
   }
 
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  return ESP_OK;
+}
+
+esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
+  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
+                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(DMX_TX_MAB_DURATION_IS_VALID(mab_len), 
+                      ESP_ERR_INVALID_ARG, TAG, "mab_len error");
+  
+  if (p_dmx_obj[dmx_num]->timer_group != -1 && 
+      p_dmx_obj[dmx_num]->timer_idx != -1) {
+    // driver is using hardware timers for reset sequence
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    p_dmx_obj[dmx_num]->mab_len = mab_len;
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  } else {
+    // driver is using uart hardware for reset sequence
+    uint32_t baud_rate;
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_get_baud_rate(dmx_num, &baud_rate);
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    const uint32_t idle_num = ceil(mab_len / (1000000 / baud_rate));
+    ESP_RETURN_ON_FALSE(idle_num < 1024, ESP_ERR_INVALID_STATE, TAG, 
+                        "mab_len error (reset-sequence-last mode)");
+
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_hal_set_tx_idle_num(&(dmx_context[dmx_num].hal), idle_num);
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  }
 
   return ESP_OK;
 }
 
-esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num) {
+esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
+  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
+                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(mab_len != NULL, ESP_ERR_INVALID_ARG, TAG,
+                      "mab_len is null");
+
+  if (p_dmx_obj[dmx_num]->timer_group != -1 &&
+      p_dmx_obj[dmx_num]->timer_idx != -1) {
+    // driver is using hardware timers for reset sequence
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    *mab_len = p_dmx_obj[dmx_num]->mab_len;
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  } else {
+    // driver is using uart hardware for reset sequence
 #ifdef DMX_GET_IDLE_NUM_NOT_IMPLEMENTED
-  DMX_FUNCTION_NOT_SUPPORTED();
+    DMX_FUNCTION_NOT_SUPPORTED();
 #endif
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(idle_num != NULL, ESP_ERR_INVALID_ARG, TAG,
-                      "idle_num is null");
 
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  *idle_num = dmx_hal_get_idle_num(&(dmx_context[dmx_num].hal));
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    uint32_t baud_rate;
+    uint8_t idle_num;
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    dmx_get_baud_rate(dmx_num, &baud_rate);
+    idle_num = dmx_hal_get_break_num(&(dmx_context[dmx_num].hal));
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    *mab_len = (1000000 / baud_rate) * idle_num;
+  }
 
   return ESP_OK;
 }
+
 
 /// Interrupt Configuration  ##################################################
 esp_err_t dmx_intr_config(dmx_port_t dmx_num,

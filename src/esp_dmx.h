@@ -148,16 +148,6 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num);
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
                       int rts_io_num);
 
-/**
- * @brief Set DMX configuration parameters.
- *
- * @param dmx_num The DMX port number.
- * @param[in] dmx_config A pointer to a dmx_config_t structure to assign
- * configuration parameters.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- */
-esp_err_t dmx_param_config(dmx_port_t dmx_num, const dmx_config_t *dmx_config);
 
 /**
  * @brief Set the DMX baud rate.
@@ -187,7 +177,7 @@ esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate);
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
-esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num);
+// esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num);
 
 /**
  * @brief Get the DMX break time.
@@ -198,7 +188,7 @@ esp_err_t dmx_set_break_num(dmx_port_t dmx_num, uint8_t break_num);
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
-esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num);
+// esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num);
 
 /**
  * @brief Set the DMX idle time. The idle time is equivalent to mark after
@@ -212,7 +202,7 @@ esp_err_t dmx_get_break_num(dmx_port_t dmx_num, uint8_t *break_num);
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
-esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
+//esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
 
 /**
  * @brief Get the DMX idle time. The idle time is equivalent to mark after
@@ -223,7 +213,16 @@ esp_err_t dmx_set_idle_num(dmx_port_t dmx_num, uint16_t idle_num);
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
-esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
+// esp_err_t dmx_get_idle_num(dmx_port_t dmx_num, uint16_t *idle_num);
+
+// TODO: documentation
+esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len);
+
+esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len);
+
+esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
+
+esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len);
 
 /// Interrupt Configuration  ##################################################
 /**

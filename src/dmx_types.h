@@ -22,10 +22,10 @@ typedef struct {
 // TODO: documentation! This struct contains driver config information that
 //  cannot be changed without first deleting the driver
 typedef struct {
-  uint16_t buffer_size;
-  timer_group_t timer_group;
-  timer_idx_t timer_idx;
-  int intr_alloc_flags;
+  uint16_t buffer_size;             // The buffer size of the DMX driver.
+  timer_group_t timer_group;        // The timer group to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
+  timer_idx_t timer_idx;            // The timer index to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
+  int intr_alloc_flags;             // Interrupt allocation flags as specified in esp_intr_alloc.h.
 } dmx_driver_config_t;
 
 /**
