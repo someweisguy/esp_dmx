@@ -26,13 +26,12 @@ typedef struct {
   dmx_port_t dmx_num;             // The driver's DMX port.
   QueueHandle_t queue;            // The queue to report DMX received events.
   intr_handle_t intr_handle;      // The handle to the DMX rx/tx ISR.
-
+  dmx_mode_t mode;                // The mode the driver is in - either RX or TX.
+  timer_group_t timer_group;      // The timer group being used for the reset sequence. Is -1 when using reset-sequence-first mode.
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
   uint8_t *buffer[2];             // Used for reading or writing DMX data (double-buffered).
   uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd or tx'd.
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
-  dmx_mode_t mode;                // The mode the driver is in - either RX or TX.
-  timer_group_t timer_group;      // The timer group being used for the reset sequence. Is -1 when using reset-sequence-first mode.
   
   /* These variables are used when transmitting DMX. */
   struct {
@@ -46,6 +45,7 @@ typedef struct {
         uint32_t mab_len;         // Length in microseconds of the last transmitted mark-after-break;
         uint8_t step;             // The current step in the DMX reset sequence. 
       };
+
       /* This struct is used when sending DMX in reset-sequence-last mode.*/
       struct {
         int64_t last_break_ts;    // Timestamp of the last transmitted break.
@@ -60,9 +60,8 @@ typedef struct {
     int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
     int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
     
-    /* The remaining variables are only used if the DMX sniffer is enabled. They
+    /* These variables are only used if the DMX sniffer is enabled. They
     are uninitialized until dmx_sniffer_enable() is called. */
-
     bool is_in_brk;               // True if the received DMX packet is currently in a break.
     int64_t last_pos_edge_ts;     // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;     // Timestamp of the last negative edge on the sniffer pin.
