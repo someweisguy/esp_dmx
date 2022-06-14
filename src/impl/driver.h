@@ -42,8 +42,8 @@ typedef struct {
       /* This struct is used when sending DMX in reset-sequence-first mode. */
       struct {
         timer_idx_t timer_idx;    // The timer index being used for the reset sequence.
-        uint32_t break_len;       // Length in microseconds of the last transmitted break.
-        uint32_t mab_len;         // Length in microseconds of the last transmitted mark-after-break;
+        uint32_t break_len;       // Length in microseconds of the transmitted break.
+        uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
         uint8_t step;             // The current step in the DMX reset sequence. 
       };
 
@@ -58,9 +58,10 @@ typedef struct {
   struct {
     QueueHandle_t queue;          // The queue to report DMX received events.
     gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
-    int64_t last_break_ts;        // The timestamp of the last received break.
     int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
     int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
+    int64_t last_break_ts;        // The timestamp of the last received break.
+    // TODO: uint16_t pkt_size_guess;  // The guess of the incoming packet size
     
     /* These variables are only used if the DMX sniffer is enabled. They
     are uninitialized until dmx_sniffer_enable() is called. */
