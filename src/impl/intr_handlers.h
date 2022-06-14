@@ -59,11 +59,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       if (p_dmx->slot_idx == p_dmx->tx.size) {
         // allow tx FIFO to empty - break and idle will be written
         DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_TXFIFO_EMPTY);
+        dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), 
+                                  UART_INTR_TXFIFO_EMPTY);
         DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
       }
 
-      dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TXFIFO_EMPTY);
+      dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal),
+                              UART_INTR_TXFIFO_EMPTY);
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
 

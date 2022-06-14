@@ -27,7 +27,6 @@ typedef struct {
   rst_seq_hw_t rst_seq_hw;        // The hardware being used to transmit the DMX reset sequence. Can be either the UART or an ESP32 timer group.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
-  // TODO: swap slot_idx for a slot pointer? may necessitate changing what DMX events look like
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
   uint8_t *buffer;                // Used for reading or writing DMX data.
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
@@ -37,7 +36,7 @@ typedef struct {
   /* These variables are used when transmitting DMX. */
   struct {
     // TODO: convert to static semaphore
-    SemaphoreHandle_t done_sem;   // Signals the frame has finished being tx'd.
+    SemaphoreHandle_t done_sem;   // Signals the frame has finished being transmitted.
     uint16_t size;                // The size of the number of slots to send.
     union {
       /* This struct is used when sending DMX in reset-sequence-first mode. */
