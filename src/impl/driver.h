@@ -27,7 +27,6 @@ typedef struct {
   rst_seq_hw_t rst_seq_hw;        // The hardware being used to transmit the DMX reset sequence. Can be either the UART or an ESP32 timer group.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
-  // TODO: remove the double buffer for a single buffer and remove buf_idx
   // TODO: swap slot_idx for a slot pointer? may necessitate changing what DMX events look like
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
   uint8_t *buffer;                // Used for reading or writing DMX data.
