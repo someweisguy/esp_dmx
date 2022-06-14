@@ -195,7 +195,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   portEXIT_CRITICAL(&(hardware_ctx.spinlock));
   dmx_hal_clr_intsts_mask(&(hardware_ctx.hal), DMX_ALL_INTR_MASK);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags, 
-                 &dmx_intr_handler, driver, &driver->intr_handle);
+                 &dmx_intr_handler, driver, &driver->uart_isr_handle);
   const dmx_intr_config_t dmx_intr_conf = {
       .rxfifo_full_thresh = DMX_UART_FULL_DEFAULT,
       .rx_timeout_thresh = DMX_UART_TIMEOUT_DEFAULT,
@@ -239,7 +239,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // free uart interrupt
-  esp_err_t err = esp_intr_free(driver->intr_handle);
+  esp_err_t err = esp_intr_free(driver->uart_isr_handle);
   if (err) return err;
 
   // deinit timer and free timer isr

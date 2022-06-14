@@ -31,8 +31,8 @@ typedef struct {
   uint8_t *buffer[2];             // Used for reading or writing DMX data (double-buffered).
   uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd or tx'd.
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
-  
-  intr_handle_t intr_handle;      // The handle to the DMX rx/tx ISR.
+
+  intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
   
   /* These variables are used when transmitting DMX. */
   struct {
