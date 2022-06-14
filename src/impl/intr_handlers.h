@@ -62,6 +62,16 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), 
                                   UART_INTR_TXFIFO_EMPTY);
         DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+
+        /* Users can block a task until a DMX packet is sent by calling 
+        dmx_wait_send_done(). However, it's not necessary to wait until the DMX
+        packet is transmitted onto the DMX bus. Users need only wait until the 
+        DMX packet is written to the UART hardware. This ensures synchronicity 
+        because the data, once written to the UART, cannot be changed by the
+        user. It can also give up to 5.6ms of task time back to the task! */
+        
+        xSemaphoreGiveFromISR(p_dmx->tx.done_sem, &task_awoken);
+
       }
 
       dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal),
@@ -69,8 +79,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
 
-      // switch buffers, signal end of frame, and track breaks
-      xSemaphoreGiveFromISR(p_dmx->tx.done_sem, &task_awoken);
+      // track breaks if using uart hardware for reset sequence
       if (p_dmx->rst_seq_hw == DMX_USE_UART) p_dmx->tx.last_break_ts = now;
 
       dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
