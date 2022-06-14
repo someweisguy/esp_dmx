@@ -21,9 +21,6 @@ extern "C" {
 // Constant for dmx_set_pin() which indicates the pin should not be changed.
 #define DMX_PIN_NO_CHANGE (UART_PIN_NO_CHANGE)
 
-// Constant for dmx_config_t which tells the DMX driver to use the UART for the reset sequence.
-#define DMX_USE_UART_RESET_SEQUENCE (-1)
-
 /**
  * @brief The default configuration for DMX. This macro may be used to
  * initialize a dmx_config_t to the standard's defined typical values.
