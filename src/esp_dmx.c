@@ -147,15 +147,15 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
 
   // allocate driver rx queue
   if (dmx_queue != NULL) {
-    driver->queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
-    if (driver->queue == NULL) {
+    driver->rx.queue = xQueueCreate(queue_size, sizeof(dmx_event_t));
+    if (driver->rx.queue == NULL) {
       ESP_LOGE(TAG, "DMX driver queue malloc error");
       dmx_driver_delete(dmx_num);
       return ESP_ERR_NO_MEM;
     }
-    *dmx_queue = driver->queue;
+    *dmx_queue = driver->rx.queue;
   } 
-  driver->queue = dmx_queue;
+  driver->rx.queue = dmx_queue;
 
   // allocate semaphores
   driver->tx.done_sem = xSemaphoreCreateBinary();
@@ -252,7 +252,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // free driver resources
   if (driver->buffer[0]) free(driver->buffer[0]);
-  if (driver->queue) vQueueDelete(dmx_driver[dmx_num]->queue);
+  if (driver->rx.queue) vQueueDelete(dmx_driver[dmx_num]->rx.queue);
   if (driver->tx.done_sem) vSemaphoreDelete(driver->tx.done_sem);
 
   // free driver
@@ -358,8 +358,8 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
                       "driver not installed");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->mode == DMX_MODE_READ,
                       ESP_ERR_INVALID_STATE, TAG, "must be in read mode");
-  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->queue != NULL, ESP_ERR_INVALID_STATE,
-                      TAG, "queue is null");
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->rx.queue != NULL, 
+                      ESP_ERR_INVALID_STATE, TAG, "queue is null");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->rx.intr_io_num == -1,
                       ESP_ERR_INVALID_STATE, TAG, "sniffer already enabled");
 

@@ -141,7 +141,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       if (uart_intr_status & (DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
         // handle end-of-frame conditions
-        if (p_dmx->queue && !rx_frame_err) {
+        if (p_dmx->rx.queue && !rx_frame_err) {
           // report end-of-frame to event queue
           dmx_event_t event = { .size = p_dmx->slot_idx };
           if (uart_intr_status & UART_INTR_RXFIFO_OVF) {
@@ -173,7 +173,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             event.timing.brk = p_dmx->rx.break_len;
             event.timing.mab = p_dmx->rx.mab_len;
             event.duration = rx_brk_to_brk;
-            xQueueSendFromISR(p_dmx->queue, (void *)&event, &task_awoken);
+            xQueueSendFromISR(p_dmx->rx.queue, (void *)&event, &task_awoken);
           }
 
           // reset expired data

@@ -24,14 +24,15 @@ including the double-buffer used as an intermediary to store reads/writes on
 the UART bus. */
 typedef struct {
   dmx_port_t dmx_num;             // The driver's DMX port.
-  QueueHandle_t queue;            // The queue to report DMX received events.
-  intr_handle_t intr_handle;      // The handle to the DMX rx/tx ISR.
   dmx_mode_t mode;                // The mode the driver is in - either RX or TX.
   timer_group_t timer_group;      // The timer group being used for the reset sequence. Is -1 when using reset-sequence-first mode.
+
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
   uint8_t *buffer[2];             // Used for reading or writing DMX data (double-buffered).
   uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd or tx'd.
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
+  
+  intr_handle_t intr_handle;      // The handle to the DMX rx/tx ISR.
   
   /* These variables are used when transmitting DMX. */
   struct {
@@ -55,6 +56,7 @@ typedef struct {
 
   /* These variables are used when receiving DMX. */
   struct {
+    QueueHandle_t queue;          // The queue to report DMX received events.
     gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
     int64_t last_break_ts;        // The timestamp of the last received break.
     int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
