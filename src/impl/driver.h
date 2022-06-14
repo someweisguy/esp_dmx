@@ -58,13 +58,13 @@ typedef struct {
   struct {
     QueueHandle_t queue;          // The queue to report DMX received events.
     gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
-    int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
-    int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
     int64_t last_break_ts;        // The timestamp of the last received break.
     // TODO: uint16_t pkt_size_guess;  // The guess of the incoming packet size
     
-    /* These variables are only used if the DMX sniffer is enabled. They
-    are uninitialized until dmx_sniffer_enable() is called. */
+    /* The remaining variables are only used if the DMX sniffer is enabled.
+    They are uninitialized until dmx_sniffer_enable is called. */
+    int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
+    int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
     bool is_in_brk;               // True if the received DMX packet is currently in a break.
     int64_t last_pos_edge_ts;     // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;     // Timestamp of the last negative edge on the sniffer pin.
