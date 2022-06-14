@@ -127,23 +127,22 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // allocate driver double-buffer
-  int alloc_size = 2 * dmx_config->buffer_size;
+  int alloc_size = dmx_config->buffer_size;
 #ifdef ARDUINO
   /* Arduino only allocates 4-byte aligned memory on the heap. If the size of
   the double-buffer isn't divisible by 4, when it is later freed by calling
   dmx_driver_delete() the heap will appear corrupted and the ESP32 will
   crash. As a workaround for Arduino, we allocate extra bytes until the total
   allocation is divisible by 4. These extra bytes are left unused. */
-  alloc_size += (2 * dmx_config->buffer_size % 4);
+  alloc_size += (dmx_config->buffer_size % 4);
 #endif
   // TODO: try to heaps_cap_malloc the buffer to 8BIT to see if arduino still crashes
-  driver->buffer[0] = malloc(sizeof(uint8_t) * alloc_size);
-  if (driver->buffer[0] == NULL) {
+  driver->buffer = malloc(sizeof(uint8_t) * alloc_size);
+  if (driver->buffer == NULL) {
     ESP_LOGE(TAG, "DMX driver buffer malloc error");
     dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
   }
-  driver->buffer[1] = driver->buffer[0] + dmx_config->buffer_size;
 
   // allocate driver rx queue
   if (dmx_queue != NULL) {
@@ -154,8 +153,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
       return ESP_ERR_NO_MEM;
     }
     *dmx_queue = driver->rx.queue;
+  } else {
+    driver->rx.queue = NULL;
   } 
-  driver->rx.queue = dmx_queue;
+  
 
   // allocate semaphores
   driver->tx.done_sem = xSemaphoreCreateBinary();
@@ -169,7 +170,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   // initialize general driver variables
   driver->dmx_num = dmx_num;
   driver->buf_size = dmx_config->buffer_size;
-  driver->buf_idx = 0;
   driver->slot_idx = (uint16_t)-1;
   driver->mode = DMX_MODE_READ;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
@@ -251,7 +251,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (driver->rx.intr_io_num != -1) dmx_sniffer_disable(dmx_num);
 
   // free driver resources
-  if (driver->buffer[0]) free(driver->buffer[0]);
+  if (driver->buffer[0]) free(driver->buffer);
   if (driver->rx.queue) vQueueDelete(dmx_driver[dmx_num]->rx.queue);
   if (driver->tx.done_sem) vSemaphoreDelete(driver->tx.done_sem);
 
@@ -298,7 +298,6 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
     dmx_driver[dmx_num]->slot_idx = (uint16_t)-1;
-    dmx_driver[dmx_num]->buf_idx = 0;
     dmx_driver[dmx_num]->mode = DMX_MODE_READ;
     dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
 
@@ -320,7 +319,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     dmx_driver[dmx_num]->mode = DMX_MODE_WRITE;
     xSemaphoreGive(dmx_driver[dmx_num]->tx.done_sem);
     dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
-    bzero(dmx_driver[dmx_num]->buffer[0], dmx_driver[dmx_num]->buf_size);
+    bzero(dmx_driver[dmx_num]->buffer, dmx_driver[dmx_num]->buf_size);
 
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_set_rts(&(dmx_context[dmx_num].hal), 0);  // set rts high
@@ -655,23 +654,9 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
                       TAG, "size error");
 
-  /* Reads can happen in either DMX_MODE_READ or DMX_MODE_WRITE. Reads while in
-  DMX_MODE_READ are made from the inactive buffer while the active buffer is
-  being used to collect data from the rx FIFO. Reads in DMX_MODE_WRITE are made
-  from buffer 0 whilst buffer 1 is used by the driver to write to the tx
-  FIFO. */
+  if (size == 0) return ESP_OK; // TODO: can we remove this line? 
 
-  if (size == 0) return ESP_OK;
-
-  if (dmx_driver[dmx_num]->mode == DMX_MODE_READ) {
-    uint8_t active_buffer;
-    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    active_buffer = dmx_driver[dmx_num]->buf_idx;
-    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    memcpy(buffer, dmx_driver[dmx_num]->buffer[!active_buffer], size);
-  } else {  // mode == DMX_MODE_WRITE
-    memcpy(buffer, dmx_driver[dmx_num]->buffer[0], size);
-  }
+  memcpy(buffer, dmx_driver[dmx_num]->buffer, size);
 
   return ESP_OK;
 }
@@ -685,21 +670,7 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size < slot_idx,
                       ESP_ERR_INVALID_ARG, TAG, "slot_idx error");
 
-  /* Reads can happen in either DMX_MODE_READ or DMX_MODE_WRITE. Reads while in
-  DMX_MODE_READ are made from the inactive buffer while the active buffer is
-  being used to collect data from the rx FIFO. Reads in DMX_MODE_WRITE are made
-  from buffer 0 whilst buffer 1 is used by the driver to write to the tx
-  FIFO. */
-
-  if (dmx_driver[dmx_num]->mode == DMX_MODE_READ) {
-    uint8_t active_buffer;
-    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    active_buffer = dmx_driver[dmx_num]->buf_idx;
-    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    *value = dmx_driver[dmx_num]->buffer[!active_buffer][slot_idx];
-  } else {  // mode == DMX_MODE_WRITE
-    *value = dmx_driver[dmx_num]->buffer[0][slot_idx];
-  }
+  *value = dmx_driver[dmx_num]->buffer[slot_idx];
 
   return ESP_OK;
 }
@@ -722,7 +693,7 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
 
   if (size == 0) return ESP_OK;
 
-  memcpy(dmx_driver[dmx_num]->buffer[0], buffer, size);
+  memcpy(dmx_driver[dmx_num]->buffer, buffer, size);
 
   return ESP_OK;
 }
@@ -741,7 +712,7 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
   /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0,
   whilst buffer 1 is used by the driver to write to the tx FIFO. */
 
-  dmx_driver[dmx_num]->buffer[0][slot_idx] = value;
+  dmx_driver[dmx_num]->buffer[slot_idx] = value;
 
   return ESP_OK;
 }
@@ -824,10 +795,8 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
     // write data to tx FIFO
     uint32_t bytes_written;
-    driver->tx.size = num_slots;
-    const uint8_t *zeroeth_slot = driver->buffer[driver->buf_idx];
-    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, num_slots,
-                         &bytes_written);
+    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), driver->buffer, 
+                         driver->tx.size, &bytes_written);
     driver->slot_idx = bytes_written;
 
     // enable tx interrupts

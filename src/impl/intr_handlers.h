@@ -51,9 +51,9 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       uint32_t bytes_written;
       const uint32_t num_slots_to_read = p_dmx->tx.size - p_dmx->slot_idx;
-      const uint8_t *next_slot = p_dmx->buffer[0] + p_dmx->slot_idx;
-      dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, num_slots_to_read,
-        &bytes_written);
+      const uint8_t *next_slot = p_dmx->buffer + p_dmx->slot_idx;
+      dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, 
+                           num_slots_to_read, &bytes_written);
       p_dmx->slot_idx += bytes_written;
 
       if (p_dmx->slot_idx == p_dmx->tx.size) {
@@ -68,9 +68,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // this interrupt is triggered when the last byte in tx fifo is written
 
       // switch buffers, signal end of frame, and track breaks
-      memcpy(p_dmx->buffer[1], p_dmx->buffer[0], p_dmx->buf_size);
       xSemaphoreGiveFromISR(p_dmx->tx.done_sem, &task_awoken);
-      if (p_dmx->rst_seq_hw == -1) p_dmx->tx.last_break_ts = now;
+      if (p_dmx->rst_seq_hw == DMX_USE_UART) p_dmx->tx.last_break_ts = now;
 
       dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_DONE) {
@@ -109,7 +108,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           if (num_slots_to_read > rxfifo_len) num_slots_to_read = rxfifo_len;
 
           // read data from rx FIFO into the buffer
-          uint8_t *next_slot = p_dmx->buffer[p_dmx->buf_idx] + p_dmx->slot_idx;
+          uint8_t *next_slot = p_dmx->buffer + p_dmx->slot_idx;
           dmx_hal_read_rxfifo(&(dmx_context[dmx_num].hal), next_slot, 
             num_slots_to_read);
           p_dmx->slot_idx += num_slots_to_read;
@@ -159,11 +158,11 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           } else if (p_dmx->slot_idx > p_dmx->buf_size) {
             // buffer overflowed
             event.status = DMX_ERR_BUFFER_SIZE;
-            event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
+            event.start_code = p_dmx->buffer[0];
           } else {
             // dmx ok
             event.status = DMX_OK;
-            event.start_code = p_dmx->buffer[p_dmx->buf_idx][0];
+            event.start_code = p_dmx->buffer[0];
           }
 
           // check if this is the first received packet
@@ -184,8 +183,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // do setup for next frame
         if (uart_intr_status & DMX_INTR_RX_BRK) {
           p_dmx->rx.is_in_brk = true; // notify sniffer
-          // switch buffers, set break timestamp, and reset slot counter
-          p_dmx->buf_idx = !p_dmx->buf_idx;
+          // set break timestamp, and reset slot counter
           p_dmx->rx.last_break_ts = now;
           p_dmx->slot_idx = 0;
         } else {
@@ -249,9 +247,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   } else {
     // write data to tx FIFO
     uint32_t bytes_written;
-    const uint32_t buf_idx = p_dmx->buf_idx;
-    const uint8_t *zeroeth_slot = p_dmx->buffer[buf_idx];
-    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), zeroeth_slot, 
+    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), p_dmx->buffer, 
                          p_dmx->tx.size, &bytes_written);
     p_dmx->slot_idx = bytes_written;
 

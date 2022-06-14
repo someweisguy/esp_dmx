@@ -30,8 +30,7 @@ typedef struct {
   // TODO: remove the double buffer for a single buffer and remove buf_idx
   // TODO: swap slot_idx for a slot pointer? may necessitate changing what DMX events look like
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
-  uint8_t *buffer[2];             // Used for reading or writing DMX data (double-buffered).
-  uint8_t buf_idx;                // Index of the currently active buffer that is being rx'd or tx'd.
+  uint8_t *buffer;                // Used for reading or writing DMX data.
   uint16_t slot_idx;              // Index of the current slot that is being rx'd or tx'd.
 
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
