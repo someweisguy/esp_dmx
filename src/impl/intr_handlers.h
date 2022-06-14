@@ -70,7 +70,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // switch buffers, signal end of frame, and track breaks
       memcpy(p_dmx->buffer[1], p_dmx->buffer[0], p_dmx->buf_size);
       xSemaphoreGiveFromISR(p_dmx->tx.done_sem, &task_awoken);
-      if (p_dmx->timer_group == -1) p_dmx->tx.last_break_ts = now;
+      if (p_dmx->rst_seq_hw == -1) p_dmx->tx.last_break_ts = now;
 
       dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_DONE) {
@@ -239,12 +239,12 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   if (p_dmx->tx.step == 0) {
     // start break
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
-    timer_set_alarm_value(p_dmx->timer_group, p_dmx->tx.timer_idx,
+    timer_set_alarm_value(p_dmx->rst_seq_hw, p_dmx->tx.timer_idx,
                           p_dmx->tx.break_len);
   } else if (p_dmx->tx.step == 1) {
     // start mab
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
-    timer_set_alarm_value(p_dmx->timer_group, p_dmx->tx.timer_idx,
+    timer_set_alarm_value(p_dmx->rst_seq_hw, p_dmx->tx.timer_idx,
                           p_dmx->tx.mab_len);
   } else {
     // write data to tx FIFO
@@ -256,7 +256,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     p_dmx->slot_idx = bytes_written;
 
     // disable this interrupt
-    timer_pause(p_dmx->timer_group, p_dmx->tx.timer_idx);
+    timer_pause(p_dmx->rst_seq_hw, p_dmx->tx.timer_idx);
 
     // enable tx interrupts
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
