@@ -168,16 +168,6 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         }
       }
 
-      // disable or reenable the rx fifo timeout interrupt
-      if (uart_intr_status & UART_INTR_RXFIFO_TOUT) {
-        DMX_ENTER_CRITICAL_ISR(&hardware->spinlock);
-        dmx_hal_disable_intr_mask(&hardware->hal, UART_INTR_RXFIFO_TOUT);
-        DMX_EXIT_CRITICAL_ISR(&hardware->spinlock);
-      } else {
-        DMX_ENTER_CRITICAL_ISR(&hardware->spinlock);
-        dmx_hal_ena_intr_mask(&hardware->hal, UART_INTR_RXFIFO_TOUT);
-        DMX_EXIT_CRITICAL_ISR(&hardware->spinlock);
-      }
 
       dmx_hal_clr_intsts_mask(&hardware->hal, (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT));
     } else if (uart_intr_status & DMX_INTR_RX_FRAMING_ERR) {
