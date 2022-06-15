@@ -139,6 +139,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
     dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
   }
+  bzero(driver->buffer, dmx_config->buffer_size);
 
   // allocate driver rx queue
   if (dmx_queue != NULL) {
@@ -166,7 +167,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   // initialize general driver variables
   driver->dmx_num = dmx_num;
   driver->buf_size = dmx_config->buffer_size;
-  driver->slot_idx = (uint16_t)-1;
+  driver->slot_idx = -1;
   driver->mode = DMX_MODE_READ;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
 
@@ -293,7 +294,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
     dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
 
-    dmx_driver[dmx_num]->slot_idx = (uint16_t)-1;
+    dmx_driver[dmx_num]->slot_idx = -1;
     dmx_driver[dmx_num]->mode = DMX_MODE_READ;
     dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
 
@@ -652,7 +653,9 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
 
   if (size == 0) return ESP_OK; // TODO: can we remove this line? 
 
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   memcpy(buffer, dmx_driver[dmx_num]->buffer, size);
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }

@@ -37,12 +37,13 @@ extern "C" {
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
-  dmx_driver_t *const p_dmx = (dmx_driver_t *)arg;
-  const dmx_port_t dmx_num = p_dmx->dmx_num;
+  dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  const dmx_port_t dmx_num = driver->dmx_num;
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
   portBASE_TYPE task_awoken = pdFALSE;
 
   while (true) {
-    const uint32_t uart_intr_status = dmx_hal_get_intsts_mask(&(dmx_context[dmx_num].hal));
+    const uint32_t uart_intr_status = dmx_hal_get_intsts_mask(&hardware->hal);
     if (uart_intr_status == 0) break;
 
     // DMX Transmit #####################################################
@@ -50,18 +51,18 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // this interrupt is triggered when the tx FIFO is empty
 
       uint32_t bytes_written;
-      const uint32_t num_slots_to_read = p_dmx->tx.size - p_dmx->slot_idx;
-      const uint8_t *next_slot = p_dmx->buffer + p_dmx->slot_idx;
+      const uint32_t num_slots_to_read = driver->tx.size - driver->slot_idx;
+      const uint8_t *next_slot = driver->buffer + driver->slot_idx;
       dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), next_slot, 
                            num_slots_to_read, &bytes_written);
-      p_dmx->slot_idx += bytes_written;
+      driver->slot_idx += bytes_written;
 
-      if (p_dmx->slot_idx == p_dmx->tx.size) {
+      if (driver->slot_idx == driver->tx.size) {
         // allow tx FIFO to empty - break and idle will be written
-        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        DMX_ENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), 
                                   UART_INTR_TXFIFO_EMPTY);
-        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        DMX_EXIT_CRITICAL_ISR(&hardware->spinlock);
 
         /* Users can block a task until a DMX packet is sent by calling 
         dmx_wait_send_done(). However, it's not necessary to wait until the DMX
@@ -70,90 +71,137 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         because the data, once written to the UART, cannot be changed by the
         user. It can also give up to 5.6ms of task time back to the task! */
         
-        xSemaphoreGiveFromISR(p_dmx->tx.done_sem, &task_awoken);
+        xSemaphoreGiveFromISR(driver->tx.done_sem, &task_awoken);
 
       }
 
-      dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal),
-                              UART_INTR_TXFIFO_EMPTY);
+      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TXFIFO_EMPTY);
     } else if (uart_intr_status & UART_INTR_TX_DONE) {
       // this interrupt is triggered when the last byte in tx fifo is written
 
       // track breaks if using uart hardware for reset sequence
-      if (p_dmx->rst_seq_hw == DMX_USE_UART) p_dmx->tx.last_break_ts = now;
+      if (driver->rst_seq_hw == DMX_USE_UART) driver->tx.last_break_ts = now;
 
-      dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_DONE);
+      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_DONE) {
       // this interrupt is triggered when the break is done
 
-      dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_DONE);
+      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_BRK_DONE);
     } else if (uart_intr_status & UART_INTR_TX_BRK_IDLE) {
       // this interrupt is triggered when the mark after break is done
 
-      dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_TX_BRK_IDLE);
+      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_BRK_IDLE);
     } else if (uart_intr_status & UART_INTR_RS485_CLASH) {
       // this interrupt is triggered if there is a bus collision
       // this code should only run when using RDM
+      // TODO: move this to the receive side
 
-      dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), UART_INTR_RS485_CLASH);
+      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_RS485_CLASH);
     }
 
     // DMX Receive ####################################################
-    else if (uart_intr_status & DMX_INTR_RX_ALL) {
-      // this interrupt is triggered when any rx event occurs
-      
-      const bool rx_frame_err = (p_dmx->slot_idx == (uint16_t)-1);
+    else if (uart_intr_status & UART_INTR_RXFIFO_OVF) {
+      // the uart overflowed
+      dmx_event_t event = {
+          .status = DMX_ERR_DATA_OVERFLOW,
+          .start_code = -1,
+          .size = driver->slot_idx
+      };
+      //xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+      driver->slot_idx = -1;
 
-      /* Check if there is data in the rx FIFO and if there is, it either reads
-      the data into the driver buffer, or if there is not enough space in the
-      buffer, discards it. In either case, the slot counter is incremented by
-      the number of bytes received. Breaks are received as null slots so in the
-      event of a break the slot counter is decremented by one. If there is a 
-      frame error, discard the data and do not increment the slot counter. */
+      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_RXFIFO_OVF);
 
-      const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&(dmx_context[dmx_num].hal));
-      if (rxfifo_len) {
-        if (p_dmx->slot_idx < p_dmx->buf_size) {
-          // determine number of slots to read
-          uint16_t num_slots_to_read = p_dmx->buf_size - p_dmx->slot_idx + 1;
-          if (num_slots_to_read > rxfifo_len) num_slots_to_read = rxfifo_len;
+    } else if (uart_intr_status & DMX_INTR_RX_BRK) {
+      // break detected
 
-          // read data from rx FIFO into the buffer
-          uint8_t *next_slot = p_dmx->buffer + p_dmx->slot_idx;
-          dmx_hal_read_rxfifo(&(dmx_context[dmx_num].hal), next_slot, 
-            num_slots_to_read);
-          p_dmx->slot_idx += num_slots_to_read;
-          if (uart_intr_status & DMX_INTR_RX_BRK) 
-            --p_dmx->slot_idx; // break is not a slot
+      driver->rx.is_in_brk = true; // notify sniffer
+
+      // TODO: servicing the fifo here fixes the frame sync problems
+      //  I have no idea why :(
+      //  breaks are read into the fifo as a 0 byte so ignore it
+
+      if (driver->slot_idx != -1) {
+        dmx_event_t event = {
+            .status = DMX_OK,
+            .start_code = driver->buffer[0],
+            .size = driver->slot_idx,
+            .duration = 22760 // FIXME
+        };
+        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+      }
+
+      driver->slot_idx = 0;
+      dmx_hal_rxfifo_rst(&hardware->hal);
+
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BRK);
+
+    } else if (uart_intr_status & (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT)) {
+      // service the rx fifo
+      const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
+      if (rxfifo_len > 0) {
+        const uint16_t slots_rem = driver->buf_size - driver->slot_idx;
+        const int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
+        if (slots_rem > 0 && driver->slot_idx != -1) {
+          // read data into dmx buffer
+          uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
+          dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, rd_len);
         } else {
-          // discard bytes that can't be read into the buffer
-          dmx_hal_rxfifo_rst(&(dmx_context[dmx_num].hal));
-          if (!rx_frame_err) {
-            p_dmx->slot_idx += rxfifo_len;
-            if (uart_intr_status & DMX_INTR_RX_BRK)
-              --p_dmx->slot_idx; // break is not a slot
-          }
+          // not enough buffer space left - discard fifo
+          dmx_hal_rxfifo_rst(&hardware->hal);
+        }
+        driver->slot_idx += rd_len;
+
+        // check if we are ready to send a queue event
+        if (driver->slot_idx == driver->buf_size) { // TODO: || driver->slot_idx == driver->guessed_pkt_size
+          dmx_event_t event = {
+              .status = DMX_OK,
+              .start_code = driver->buffer[0],
+              .size = driver->slot_idx,
+              .duration = 22760 // FIXME
+          };
+          xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+
+
+          // indicates queue event has been published
+          driver->slot_idx = -1;
         }
       }
-      
-      // handle data received condition
+
+      // disable or reenable the rx fifo timeout interrupt
       if (uart_intr_status & UART_INTR_RXFIFO_TOUT) {
-        // disable the rxfifo tout interrupt
-        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        dmx_hal_disable_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
-        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        DMX_ENTER_CRITICAL_ISR(&hardware->spinlock);
+        dmx_hal_disable_intr_mask(&hardware->hal, UART_INTR_RXFIFO_TOUT);
+        DMX_EXIT_CRITICAL_ISR(&hardware->spinlock);
       } else {
-        // enable the rxfifo tout interrupt
-        DMX_ENTER_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
-        dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), UART_INTR_RXFIFO_TOUT);
-        DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
+        DMX_ENTER_CRITICAL_ISR(&hardware->spinlock);
+        dmx_hal_ena_intr_mask(&hardware->hal, UART_INTR_RXFIFO_TOUT);
+        DMX_EXIT_CRITICAL_ISR(&hardware->spinlock);
       }
+
+      dmx_hal_clr_intsts_mask(&hardware->hal, (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT));
+    } else if (uart_intr_status & DMX_INTR_RX_FRAMING_ERR) {
+        // TODO 
+
+    } else {
+        // disable interrupts that shouldn't be handled
+        DMX_ENTER_CRITICAL_ISR(&hardware->spinlock);
+        dmx_hal_disable_intr_mask(&hardware->hal, uart_intr_status);
+        DMX_EXIT_CRITICAL_ISR(&hardware->spinlock);
+        dmx_hal_clr_intsts_mask(&hardware->hal, uart_intr_status);
+    }
+
+    
+    
+    /*
+
+      
 
       if (uart_intr_status & (DMX_INTR_RX_BRK | DMX_INTR_RX_ERR)) {
         // handle end-of-frame conditions
-        if (p_dmx->rx.queue && !rx_frame_err) {
+        if (driver->rx.queue && !rx_frame_err) {
           // report end-of-frame to event queue
-          dmx_event_t event = { .size = p_dmx->slot_idx };
+          dmx_event_t event = { .size = driver->slot_idx };
           if (uart_intr_status & UART_INTR_RXFIFO_OVF) {
             // FIFO overflowed
             event.status = DMX_ERR_DATA_OVERFLOW;
@@ -162,44 +210,44 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             // improperly framed slot
             event.status = DMX_ERR_IMPROPER_SLOT;
             event.start_code = -1;
-          } else if (p_dmx->slot_idx < 1 || p_dmx->slot_idx > DMX_MAX_PACKET_SIZE) {
+          } else if (driver->slot_idx < 1 || driver->slot_idx > DMX_MAX_PACKET_SIZE) {
             // invalid packet length
             event.status = DMX_ERR_PACKET_SIZE;
             event.start_code = -1;
-          } else if (p_dmx->slot_idx > p_dmx->buf_size) {
+          } else if (driver->slot_idx > driver->buf_size) {
             // buffer overflowed
             event.status = DMX_ERR_BUFFER_SIZE;
-            event.start_code = p_dmx->buffer[0];
+            event.start_code = driver->buffer[0];
           } else {
             // dmx ok
             event.status = DMX_OK;
-            event.start_code = p_dmx->buffer[0];
+            event.start_code = driver->buffer[0];
           }
 
           // check if this is the first received packet
-          const int64_t rx_brk_to_brk = now - p_dmx->rx.last_break_ts;
+          const int64_t rx_brk_to_brk = now - driver->rx.last_break_ts;
           if (rx_brk_to_brk <= DMX_RX_MAX_BRK_TO_BRK_US) { 
             // only send event if received at least 1 full packet
-            event.timing.brk = p_dmx->rx.break_len;
-            event.timing.mab = p_dmx->rx.mab_len;
+            event.timing.brk = driver->rx.break_len;
+            event.timing.mab = driver->rx.mab_len;
             event.duration = rx_brk_to_brk;
-            xQueueSendFromISR(p_dmx->rx.queue, (void *)&event, &task_awoken);
+            xQueueSendFromISR(driver->rx.queue, (void *)&event, &task_awoken);
           }
 
           // reset expired data
-          p_dmx->rx.break_len = -1;
-          p_dmx->rx.mab_len = -1;
+          driver->rx.break_len = -1;
+          driver->rx.mab_len = -1;
         }
 
         // do setup for next frame
         if (uart_intr_status & DMX_INTR_RX_BRK) {
-          p_dmx->rx.is_in_brk = true; // notify sniffer
+          driver->rx.is_in_brk = true; // notify sniffer
           // set break timestamp, and reset slot counter
-          p_dmx->rx.last_break_ts = now;
-          p_dmx->slot_idx = 0;
+          driver->rx.last_break_ts = now;
+          driver->slot_idx = 0;
         } else {
           // set frame error, don't switch buffers until break rx'd
-          p_dmx->slot_idx = (uint16_t)-1;
+          driver->slot_idx = (uint16_t)-1;
         }
       }
 
@@ -211,6 +259,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       DMX_EXIT_CRITICAL_ISR(&(dmx_context[dmx_num].spinlock));
       dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), uart_intr_status);
     }
+    */
   }
   
   if (task_awoken == pdTRUE) portYIELD_FROM_ISR();
@@ -218,7 +267,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
 static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
-  dmx_driver_t *const p_dmx = (dmx_driver_t *)arg;
+  dmx_driver_t *const driver = (dmx_driver_t *)arg;
 
   /* If this ISR is called on a positive edge and the current DMX frame is in a
   break and a negative edge condition has already occurred, then the break has 
@@ -228,42 +277,42 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   then we know that the mark-after-break has just completed so we should record
   its duration. */
 
-  if (dmx_hal_get_rx_level(&(dmx_context[p_dmx->dmx_num].hal))) {
-    if (p_dmx->rx.is_in_brk && p_dmx->rx.last_neg_edge_ts > -1) {
-      p_dmx->rx.break_len = now - p_dmx->rx.last_neg_edge_ts;
-      p_dmx->rx.is_in_brk = false;
+  if (dmx_hal_get_rx_level(&(dmx_context[driver->dmx_num].hal))) {
+    if (driver->rx.is_in_brk && driver->rx.last_neg_edge_ts > -1) {
+      driver->rx.break_len = now - driver->rx.last_neg_edge_ts;
+      driver->rx.is_in_brk = false;
     }
-    p_dmx->rx.last_pos_edge_ts = now;
+    driver->rx.last_pos_edge_ts = now;
   } else {
-    if (p_dmx->rx.mab_len == -1 && p_dmx->rx.break_len != -1)
-      p_dmx->rx.mab_len = now - p_dmx->rx.last_pos_edge_ts;
-    p_dmx->rx.last_neg_edge_ts = now;
+    if (driver->rx.mab_len == -1 && driver->rx.break_len != -1)
+      driver->rx.mab_len = now - driver->rx.last_pos_edge_ts;
+    driver->rx.last_neg_edge_ts = now;
   }
 }
 
 static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
-  dmx_driver_t *const p_dmx = (dmx_driver_t *)arg;
-  const dmx_port_t dmx_num = p_dmx->dmx_num;
+  dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  const dmx_port_t dmx_num = driver->dmx_num;
 
-  if (p_dmx->tx.step == 0) {
+  if (driver->tx.step == 0) {
     // start break
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
-    timer_set_alarm_value(p_dmx->rst_seq_hw, p_dmx->tx.timer_idx,
-                          p_dmx->tx.break_len);
-  } else if (p_dmx->tx.step == 1) {
+    timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
+                          driver->tx.break_len);
+  } else if (driver->tx.step == 1) {
     // start mab
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
-    timer_set_alarm_value(p_dmx->rst_seq_hw, p_dmx->tx.timer_idx,
-                          p_dmx->tx.mab_len);
+    timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
+                          driver->tx.mab_len);
   } else {
     // write data to tx FIFO
     uint32_t bytes_written;
-    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), p_dmx->buffer, 
-                         p_dmx->tx.size, &bytes_written);
-    p_dmx->slot_idx = bytes_written;
+    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), driver->buffer, 
+                         driver->tx.size, &bytes_written);
+    driver->slot_idx = bytes_written;
 
     // disable this interrupt
-    timer_pause(p_dmx->rst_seq_hw, p_dmx->tx.timer_idx);
+    timer_pause(driver->rst_seq_hw, driver->tx.timer_idx);
 
     // enable tx interrupts
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -271,7 +320,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
   
-  ++(p_dmx->tx.step);
+  ++(driver->tx.step);
 
   return false;
 }
