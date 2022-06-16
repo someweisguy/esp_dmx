@@ -240,7 +240,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
 
   if (driver->tx.step == 0) {
     // start break
-    dmx_hal_inverse_signal(&hardware->hal1=, UART_SIGNAL_TXD_INV);
+    dmx_hal_inverse_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
     timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
                           driver->tx.break_len);
   } else if (driver->tx.step == 1) {
