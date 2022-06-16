@@ -117,10 +117,6 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       driver->rx.is_in_brk = true; // notify sniffer
 
-      // TODO: servicing the fifo here fixes the frame sync problems
-      //  I have no idea why :(
-      //  breaks are read into the fifo as a 0 byte so ignore it
-
       if (driver->slot_idx != -1) {
         dmx_event_t event = {
             .status = DMX_OK,
@@ -131,6 +127,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
       }
 
+      // signal that data is ready to be read into the buffer
       driver->slot_idx = 0;
       dmx_hal_rxfifo_rst(&hardware->hal);
 
