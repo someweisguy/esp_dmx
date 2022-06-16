@@ -148,7 +148,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           // .status = DMX_ERR_BUFFER_SIZE
         }
 
-        const int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
+        int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
         if (slots_rem > 0 && driver->slot_idx != -1) {
           // read data into dmx buffer
           uint8_t *slot_ptr = driver->buffer + driver->slot_idx;

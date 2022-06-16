@@ -127,8 +127,8 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * 
  * @return The number of characters read
  */
-IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int num) {
-  uart_hal_read_rxfifo(hal, buf, &num);
+IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf, int *num) {
+  uart_hal_read_rxfifo(hal, buf, num);
 }
 
 /**
