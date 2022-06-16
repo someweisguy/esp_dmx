@@ -236,35 +236,35 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
 
 static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  const dmx_port_t dmx_num = driver->dmx_num;
+  dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
 
   if (driver->tx.step == 0) {
     // start break
-    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
+    dmx_hal_inverse_signal(&hardware->hal1=, UART_SIGNAL_TXD_INV);
     timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
                           driver->tx.break_len);
   } else if (driver->tx.step == 1) {
     // start mab
-    dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
+    dmx_hal_inverse_signal(&hardware->hal, 0);
     timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
                           driver->tx.mab_len);
   } else {
     // write data to tx FIFO
-    uint32_t bytes_written;
-    dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), driver->buffer, 
-                         driver->tx.size, &bytes_written);
-    driver->slot_idx = bytes_written;
+    uint32_t written;
+    dmx_hal_write_txfifo(&hardware->hal, driver->buffer, driver->tx.size, 
+                         &written);
+    driver->slot_idx = written;
 
     // disable this interrupt
     timer_pause(driver->rst_seq_hw, driver->tx.timer_idx);
 
     // enable tx interrupts
-    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-    dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL_TIMER);
-    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    portENTER_CRITICAL(&hardware->spinlock);
+    dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_TX_ALL_TIMER);
+    portEXIT_CRITICAL(&hardware->spinlock);
   }
   
-  ++(driver->tx.step);
+  ++(driver->tx.step); // TODO: replace tx.step with slot_idx?
 
   return false;
 }
