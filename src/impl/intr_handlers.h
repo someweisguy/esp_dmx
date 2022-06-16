@@ -52,11 +52,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     if (uart_intr_status & UART_INTR_TXFIFO_EMPTY) {
       // this interrupt is triggered when the tx FIFO is empty
 
-      uint32_t written;
-      const uint32_t wr_len = driver->tx.size - driver->slot_idx;
+      uint32_t wr_len = driver->tx.size - driver->slot_idx;
       const uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
-      dmx_hal_write_txfifo(&hardware->hal, slot_ptr, wr_len, &written);
-      driver->slot_idx += written;
+      dmx_hal_write_txfifo(&hardware->hal, slot_ptr, wr_len, &wr_len);
+      driver->slot_idx += wr_len;
 
       if (driver->slot_idx == driver->tx.size) {
         // allow tx FIFO to empty - break and idle will be written
