@@ -9,31 +9,6 @@ extern "C" {
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 
-// UART level interupt masks
-//#define UART_INTR_RXFIFO_FULL           (1 << 0) // Interrupt that triggers
-// when the RX FIFO is full. #define UART_INTR_TXFIFO_EMPTY          (1 << 1) //
-// Interrupt that triggers when the TX FIFO is empty. #define
-// UART_INTR_PARITY_ERR            (1 << 2) // Interrupt that triggers when
-// there is a parity bit error. #define UART_INTR_FRAME_ERR             (1 << 3)
-// // Interrupt that triggers when there is a data bit framing error. #define
-// UART_INTR_RXFIFO_OVF            (1 << 4) // Interrupt that triggers when the
-// RX FIFO overflows. #define UART_INTR_BRK_DET               (1 << 7) //
-// Interrupt that triggers when a break is detected (break bit occurs for longer
-// than a frame length). #define UART_INTR_RXFIFO_TOUT           (1 << 8) //
-// Interrupt that triggers when the RX FIFO times out waiting for a new frame
-//(mark bit occurs longer than the RX timeout duration). #define
-// UART_INTR_TX_BRK_DONE           (1 << 12) // Interrupt that triggers when the
-// TX break is finished transmitting. #define UART_INTR_TX_BRK_IDLE           (1
-//<< 13) // Interrupt that triggers when done TX'ing data, but before the break
-// is finished transmitting. #define UART_INTR_TX_DONE               (1 << 14)
-// // Interrupt that triggers when finished transmitting data, usually used to
-// indicate a break is ready to be transmitted. #define
-// UART_INTR_RS485_PARITY_ERR      (1 << 15) // Interrupt that triggers when a
-// RS485 mode parity error occurs. #define UART_INTR_RS485_FRM_ERR         (1 <<
-// 16) // Interrupt that triggers when a RS485 mode frame error occurs. #define
-// UART_INTR_RS485_CLASH           (1 << 17) // Interrupt that triggers when a
-// RS485 bus smashing event occurs.
-
 // Interrupt mask that triggers when the UART overflows.
 #define DMX_INTR_RX_FIFO_OVERFLOW (UART_INTR_RXFIFO_OVF)
 
@@ -52,7 +27,7 @@ extern "C" {
 #define DMX_INTR_RX_CLASH (UART_INTR_RS485_CLASH)
 
 // Interrupt mask that represents all rx conditions.
-#define DMX_INTR_RX_ALL                                              \
+#define DMX_INTR_RX_ALL                                                \
   (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BREAK | \
    DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR)
 
