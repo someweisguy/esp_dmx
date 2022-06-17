@@ -17,7 +17,7 @@
 #include "soc/uart_periph.h"
 
 // The default value for the RX FIFO full interrupt threshold.
-#define DMX_UART_FULL_DEFAULT (120)
+#define DMX_UART_FULL_DEFAULT (1)
 // The default value for the TX FIFO empty interrupt threshold.
 #define DMX_UART_EMPTY_DEFAULT (8)
 // The default value for the UART timeout interrupt.
