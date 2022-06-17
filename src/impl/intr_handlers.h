@@ -152,7 +152,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         if (slots_rem > 0 && driver->slot_idx != -1) {
           // read data into dmx buffer
           uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
-          dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, rd_len);
+          dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, &rd_len);
         } else {
           // not enough buffer space left - discard fifo
           dmx_hal_rxfifo_rst(&hardware->hal);
