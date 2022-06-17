@@ -48,6 +48,9 @@ extern "C" {
   (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | \
    UART_INTR_RS485_FRM_ERR)
 
+// Interrupt mask that is called when a DMX clash occurs.
+#define DMX_INTR_RX_CLASH (UART_INTR_RS485_CLASH)
+
 // Interrupt mask that represents all rx conditions.
 #define DMX_INTR_RX_ALL                                              \
   (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BREAK | \
@@ -173,7 +176,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_rxfifo_rst(&hardware->hal);
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
-    } 
+    } else if (intr_flags & DMX_INTR_RX_CLASH) {
+      // this interrupt is triggered if there is a bus collision
+      // this code should only run when using RDM
+      // TODO: move this to the receive side
+
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_CLASH);
+    }
     
     // DMX Transmit #####################################################
     else if (intr_flags & UART_INTR_TXFIFO_EMPTY) {
@@ -216,14 +225,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // this interrupt is triggered when the mark after break is done
 
       dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_BRK_IDLE);
-    } else if (intr_flags & UART_INTR_RS485_CLASH) {
-      // this interrupt is triggered if there is a bus collision
-      // this code should only run when using RDM
-      // TODO: move this to the receive side
+    }
 
-      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_RS485_CLASH);
-    }    
-    
     // disable interrupts that shouldn't be handled
     else {
       // this code shouldn't be called but it can prevent crashes
