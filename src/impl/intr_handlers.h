@@ -179,7 +179,6 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     } else if (intr_flags & DMX_INTR_RX_CLASH) {
       // this interrupt is triggered if there is a bus collision
       // this code should only run when using RDM
-      // TODO: move this to the receive side
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_CLASH);
     }
