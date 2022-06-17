@@ -69,7 +69,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_RXFIFO_OVF);
     } else if (intr_flags & DMX_INTR_RX_BREAK) {
-      // break detected
+      // a DMX break was received
 
       driver->rx.is_in_brk = true;  // notify sniffer
 
@@ -77,11 +77,12 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // haven't sent a queue event yet
         dmx_event_t event = {
             .status = DMX_OK,
-            .start_code = driver->buffer[0],
             .size = driver->slot_idx,
-            .duration = 22760  // FIXME
+            .start_code = driver->buffer[0], // TODO: remove member?
+            .duration = 22760  // TODO: remove member?
         };
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+        // slot_idx is set to 0 on DMX break
 
         // TODO: update best guess packet size
       }
@@ -93,35 +94,51 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
 
     } else if (intr_flags & DMX_INTR_RX_DATA) {
-      // service the rx fifo
+      // data was received or timed out waiting for new data
       const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
-      if (rxfifo_len > 0) {
-        const int16_t slots_rem = driver->buf_size - driver->slot_idx;
+      const int16_t slots_rem = driver->buf_size - driver->slot_idx;
 
-        // TODO: check if packet size is too big for buffer
-        if (slots_rem < rxfifo_len) {
-          // .status = DMX_ERR_BUFFER_SIZE
-        }
+      if (driver->slot_idx > DMX_MAX_PACKET_SIZE) {
+        // handle case where incoming data is longer than is allowed
+        dmx_event_t event = {
+            .status = DMX_ERR_PACKET_SIZE,
+            .size = driver->slot_idx + rxfifo_len,
+        };
+        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+        dmx_hal_rxfifo_rst(&hardware->hal);
+        driver->slot_idx = -1;  // event sent
 
+      } else if (slots_rem < rxfifo_len) {
+        // handle case where buffer is too small for incoming data
+        dmx_event_t event = {
+            .status = DMX_ERR_BUFFER_SIZE,
+            .size = driver->slot_idx + rxfifo_len,
+        };
+        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+        dmx_hal_rxfifo_rst(&hardware->hal);
+        driver->slot_idx = -1;  // event sent
+
+      } else if (rxfifo_len > 0) {
+        // handle normal case where buffer can store incoming data
         int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
-        if (slots_rem > 0 && driver->slot_idx != -1) {
-          // read data into dmx buffer
+        if (driver->slot_idx > -1) {
+          // driver is in a normal state
           uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
           dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, &rd_len);
         } else {
-          // not enough buffer space left - discard fifo
+          // driver is in an error state or event has already been sent
           dmx_hal_rxfifo_rst(&hardware->hal);
         }
-        driver->slot_idx += rd_len;
+        driver->slot_idx += rd_len;  // increments even in error state
 
-        // check if we are ready to send a queue event
         if (driver->slot_idx == driver->buf_size) {
+          // driver is ready to send a queue event
           // TODO: || driver->slot_idx == driver->guessed_pkt_size
           dmx_event_t event = {
               .status = DMX_OK,
-              .start_code = driver->buffer[0],
+              .start_code = driver->buffer[0], // TODO: remove start code?
               .size = driver->slot_idx,
-              .duration = 22760  // FIXME
+              .duration = 22760,  // TODO: remove member?
           };
 
           // TODO: handle sniffer
@@ -130,30 +147,26 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           // event.duration = rx_brk_to_brk; // TODO: get rid of duration
 
           xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-
-          // indicates queue event has been published
-          driver->slot_idx = -1;
-        } else if (driver->slot_idx > DMX_MAX_PACKET_SIZE) {
-          // TODO: handle error
-          // .status = DMX_ERR_PACKET_SIZE
+          driver->slot_idx = -1;  // event sent
         }
       }
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);
     } else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
-      // report frame error
+      // a malformed slot was received
       dmx_event_t event = {
           .status = DMX_ERR_IMPROPER_SLOT,
+          .size = driver->slot_idx,
           .start_code = -1,
-          .size = driver->slot_idx
       };
       xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
       dmx_hal_rxfifo_rst(&hardware->hal);
+      driver->slot_idx = -1;  // event sent
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
     } else if (intr_flags & DMX_INTR_RX_CLASH) {
-      // this interrupt is triggered if there is a bus collision
-      // this code should only run when using RDM
+      // there was a clash on the DMX bus (multiple devices talking at once)
+      // TODO: this code should only run when using RDM
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_CLASH);
     }
