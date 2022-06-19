@@ -35,7 +35,6 @@ typedef struct {
   
   /* These variables are used when transmitting DMX. */
   struct {
-    // TODO: convert to static semaphore
     SemaphoreHandle_t done_sem;   // Signals the frame has finished being transmitted.
     StaticSemaphore_t done_sem_buf; 
     uint16_t size;                // The size of the number of slots to send.
@@ -58,9 +57,10 @@ typedef struct {
   /* These variables are used when receiving DMX. */
   struct {
     QueueHandle_t queue;          // The queue to report DMX received events.
+    bool event_sent;              // True if a queue event has been sent.
     gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
     int64_t last_break_ts;        // The timestamp of the last received break.
-    // TODO: uint16_t pkt_size_guess;  // The guess of the incoming packet size
+    int16_t size_guess;           // The guess of the size of the packet. Can reduce latency in reporting new data.
     
     /* The remaining variables are only used if the DMX sniffer is enabled.
     They are uninitialized until dmx_sniffer_enable is called. */

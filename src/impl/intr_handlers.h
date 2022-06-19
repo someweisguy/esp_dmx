@@ -9,6 +9,13 @@ extern "C" {
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 
+
+#define DMX_EVENT_SENT (-3)
+#define DMX_BREAK (-2)
+#define DMX_MAB (-1)
+#define DMX_START (0)
+#define DMX_MAX (DMX_MAX_PACKET_SIZE)
+
 // Interrupt mask that triggers when the UART overflows.
 #define DMX_INTR_RX_FIFO_OVERFLOW (UART_INTR_RXFIFO_OVF)
 
@@ -27,9 +34,9 @@ extern "C" {
 #define DMX_INTR_RX_CLASH (UART_INTR_RS485_CLASH)
 
 // Interrupt mask that represents all rx conditions.
-#define DMX_INTR_RX_ALL                                                \
-  (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT | DMX_INTR_RX_BREAK | \
-   DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR)
+#define DMX_INTR_RX_ALL                                               \
+  (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_FIFO_OVERFLOW | \
+   DMX_INTR_RX_FRAMING_ERR)
 
 // Interrupt mask that represents all tx conditions.
 #define DMX_INTR_TX_ALL                                                 \
@@ -64,16 +71,16 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
 
       // stop accepting data and clear the fifo
-      driver->slot_idx = -1;
+      driver->slot_idx = DMX_EVENT_SENT;
       dmx_hal_rxfifo_rst(&hardware->hal);
 
-      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_RXFIFO_OVF);
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
     } else if (intr_flags & DMX_INTR_RX_BREAK) {
       // a DMX break was received
 
       driver->rx.is_in_brk = true;  // notify sniffer
 
-      if (driver->slot_idx >= 0) {
+      if (!driver->rx.event_sent) {
         // haven't sent a queue event yet
         dmx_event_t event = {
             .status = DMX_OK,
@@ -85,11 +92,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // slot_idx is set to 0 on DMX break
 
         // TODO: update best guess packet size
+        driver->rx.size_guess = driver->slot_idx;
       }
 
       // signal that data is ready to be read into the buffer
-      driver->slot_idx = 0;
+      driver->rx.event_sent = false;
       dmx_hal_rxfifo_rst(&hardware->hal);
+      driver->slot_idx = 0;
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
 
@@ -106,7 +115,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         };
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         dmx_hal_rxfifo_rst(&hardware->hal);
-        driver->slot_idx = -1;  // event sent
+        driver->rx.event_sent = true;
 
       } else if (slots_rem < rxfifo_len) {
         // handle case where buffer is too small for incoming data
@@ -116,24 +125,26 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         };
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         dmx_hal_rxfifo_rst(&hardware->hal);
-        driver->slot_idx = -1;  // event sent
+        driver->rx.event_sent = true;
 
       } else if (rxfifo_len > 0) {
         // handle normal case where buffer can store incoming data
-        int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
-        if (driver->slot_idx > -1) {
-          // driver is in a normal state
+        if (driver->slot_idx >= 0) {
+          // driver is ready to receive data slots
+          int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
           uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
           dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, &rd_len);
+          driver->slot_idx += rd_len;
         } else {
           // driver is in an error state or event has already been sent
           dmx_hal_rxfifo_rst(&hardware->hal);
+          driver->slot_idx += rxfifo_len;
         }
-        driver->slot_idx += rd_len;  // increments even in error state
 
-        if (driver->slot_idx == driver->buf_size) {
+        if (!driver->rx.event_sent &&
+            (driver->slot_idx == driver->buf_size ||
+             driver->slot_idx == driver->rx.size_guess)) {
           // driver is ready to send a queue event
-          // TODO: || driver->slot_idx == driver->guessed_pkt_size
           dmx_event_t event = {
               .status = DMX_OK,
               .start_code = driver->buffer[0], // TODO: remove start code?
@@ -147,7 +158,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           // event.duration = rx_brk_to_brk; // TODO: get rid of duration
 
           xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-          driver->slot_idx = -1;  // event sent
+          driver->rx.event_sent = true;
         }
       }
 
@@ -161,7 +172,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       };
       xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
       dmx_hal_rxfifo_rst(&hardware->hal);
-      driver->slot_idx = -1;  // event sent
+      driver->rx.event_sent = true;
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
     } else if (intr_flags & DMX_INTR_RX_CLASH) {
@@ -175,7 +186,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     else if (intr_flags & UART_INTR_TXFIFO_EMPTY) {
       // this interrupt is triggered when the tx FIFO is empty
 
-      uint32_t wr_len = driver->tx.size - driver->slot_idx;
+      uint16_t wr_len = driver->tx.size - driver->slot_idx;
       const uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
       dmx_hal_write_txfifo(&hardware->hal, slot_ptr, wr_len, &wr_len);
       driver->slot_idx += wr_len;
