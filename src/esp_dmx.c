@@ -97,18 +97,18 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
     brk_num = 44;
     idle_num = 3;
   }
-  dmx_context_t *const hardware_ctx = &dmx_context[dmx_num];
-  portENTER_CRITICAL(&(hardware_ctx->spinlock));
-  dmx_hal_init(&(hardware_ctx->hal));
-  dmx_hal_set_sclk(&(hardware_ctx->hal), UART_SCLK_APB);
-  dmx_hal_set_baudrate(&(hardware_ctx->hal), DMX_TYP_BAUD_RATE);
-  dmx_hal_set_tx_break_num(&(hardware_ctx->hal), brk_num);
-  dmx_hal_set_tx_idle_num(&(hardware_ctx->hal), idle_num);
-  portEXIT_CRITICAL(&(hardware_ctx->spinlock));
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  portENTER_CRITICAL(&hardware->spinlock);
+  dmx_hal_init(&hardware->hal);
+  dmx_hal_set_sclk(&hardware->hal, UART_SCLK_APB);
+  dmx_hal_set_baudrate(&hardware->hal, DMX_TYP_BAUD_RATE);
+  dmx_hal_set_tx_break_num(&hardware->hal, brk_num);
+  dmx_hal_set_tx_idle_num(&hardware->hal, idle_num);
+  portEXIT_CRITICAL(&hardware->spinlock);
 
   // flush both fifos
-  dmx_hal_rxfifo_rst(&(hardware_ctx->hal));
-  dmx_hal_txfifo_rst(&(hardware_ctx->hal));
+  dmx_hal_rxfifo_rst(&hardware->hal);
+  dmx_hal_txfifo_rst(&hardware->hal);
 
   // allocate the dmx driver
   const uint32_t mem_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
@@ -159,7 +159,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   // initialize general driver variables
   driver->dmx_num = dmx_num;
   driver->buf_size = dmx_config->buffer_size;
-  driver->slot_idx = -1;
+  driver->slot_idx = DMX_EVENT_SENT;
   driver->mode = DMX_MODE_READ;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
 
@@ -179,10 +179,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->rx.mab_len = -1;
 
   // install uart interrupt
-  portENTER_CRITICAL(&(hardware_ctx->spinlock));
-  dmx_hal_disable_intr_mask(&(hardware_ctx->hal), DMX_ALL_INTR_MASK);
-  portEXIT_CRITICAL(&(hardware_ctx->spinlock));
-  dmx_hal_clr_intsts_mask(&(hardware_ctx->hal), DMX_ALL_INTR_MASK);
+  portENTER_CRITICAL(&hardware->spinlock);
+  dmx_hal_disable_intr_mask(&hardware->hal, DMX_ALL_INTR_MASK);
+  portEXIT_CRITICAL(&hardware->spinlock);
+  dmx_hal_clr_intsts_mask(&hardware->hal, DMX_ALL_INTR_MASK);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags, 
                  &dmx_intr_handler, driver, &driver->uart_isr_handle);
   const dmx_intr_config_t dmx_intr_conf = {
@@ -193,13 +193,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   dmx_intr_config(dmx_num, &dmx_intr_conf);
 
   // enable rx interrupt and set rts
-  portENTER_CRITICAL(&(hardware_ctx->spinlock));
-  dmx_hal_ena_intr_mask(&(hardware_ctx->hal), DMX_INTR_RX_ALL);
-  dmx_hal_set_rts(&(hardware_ctx->hal), 1);  // set rts low
-  portEXIT_CRITICAL(&(hardware_ctx->spinlock));
+  portENTER_CRITICAL(&hardware->spinlock);
+  dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
+  dmx_hal_set_rts(&hardware->hal, 1);  // set rts low
+  portEXIT_CRITICAL(&hardware->spinlock);
 
   // install timer interrupt
-  if (dmx_driver[dmx_num]->rst_seq_hw != DMX_USE_UART) {
+  if (driver->rst_seq_hw != DMX_USE_UART) {
     const timer_config_t timer_conf = {
         .divider = 80,  // 80MHz / 80 == 1MHz resolution timer
         .counter_dir = TIMER_COUNT_UP,
