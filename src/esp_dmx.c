@@ -159,7 +159,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   // initialize general driver variables
   driver->dmx_num = dmx_num;
   driver->buf_size = dmx_config->buffer_size;
-  driver->slot_idx = DMX_EVENT_SENT;
   driver->mode = DMX_MODE_READ;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
 
@@ -173,6 +172,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   }
 
   // initialize driver rx variables
+  driver->rx.event_sent = true;  // don't send event until first break rx'd
   driver->rx.last_break_ts = -DMX_RX_MAX_BRK_TO_BRK_US;
   driver->rx.intr_io_num = -1;
   driver->rx.break_len = -1;
