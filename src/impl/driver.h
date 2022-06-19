@@ -37,6 +37,7 @@ typedef struct {
   struct {
     // TODO: convert to static semaphore
     SemaphoreHandle_t done_sem;   // Signals the frame has finished being transmitted.
+    StaticSemaphore_t done_sem_buf; 
     uint16_t size;                // The size of the number of slots to send.
     union {
       /* This struct is used when sending DMX in reset-sequence-first mode. */

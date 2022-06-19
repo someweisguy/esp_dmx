@@ -153,12 +153,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   
 
   // allocate semaphores
-  driver->tx.done_sem = xSemaphoreCreateBinary();
-  if (driver->tx.done_sem == NULL) {
-    ESP_LOGE(TAG, "DMX driver semaphore malloc error");
-    dmx_driver_delete(dmx_num);
-    return ESP_ERR_NO_MEM;
-  }
+  driver->tx.done_sem = xSemaphoreCreateBinaryStatic(&driver->tx.done_sem_buf);
   xSemaphoreGive(driver->tx.done_sem);
 
   // initialize general driver variables
