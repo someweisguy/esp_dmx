@@ -15,17 +15,14 @@
 #include "soc/io_mux_reg.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/uart_periph.h"
+#include "soc/uart_reg.h"
 
 // The default value for the RX FIFO full interrupt threshold.
 #define DMX_UART_FULL_DEFAULT (1)
 // The default value for the TX FIFO empty interrupt threshold.
 #define DMX_UART_EMPTY_DEFAULT (8)
 // The default value for the UART timeout interrupt.
-#define DMX_UART_TIMEOUT_DEFAULT (126)
-// The max value for the RX FIFO full interrupt threshold.
-#define DMX_RXFIFO_FULL_THRESHOLD_MAX (0x7F)
-// The max value for the TX FIFO empty interrupt threshold.
-#define DMX_TXFIFO_EMPTY_THRESHOLD_MAX (0x7F)
+#define DMX_UART_TIMEOUT_DEFAULT (63)
 
 #define DMX_ALL_INTR_MASK (-1)
 
@@ -596,8 +593,7 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num,
 esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(threshold > 0 && 
-                      threshold < DMX_RXFIFO_FULL_THRESHOLD_MAX,
+  ESP_RETURN_ON_FALSE(threshold > 0 && threshold < UART_RXFIFO_FULL_THRHD,
                       ESP_ERR_INVALID_ARG, TAG, 
                       "rx fifo full threshold value error");
 
@@ -613,8 +609,7 @@ esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
 esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(threshold > 0 &&
-                      threshold < DMX_TXFIFO_EMPTY_THRESHOLD_MAX,
+  ESP_RETURN_ON_FALSE(threshold > 0 && threshold < UART_TXFIFO_EMPTY_THRHD,
                       ESP_ERR_INVALID_ARG, TAG,
                       "tx fifo empty threshold value error");
 
