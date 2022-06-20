@@ -13,7 +13,6 @@
 #include "impl/driver.h"
 #include "impl/intr_handlers.h"
 #include "soc/io_mux_reg.h"
-#include "soc/rtc_cntl_reg.h"
 #include "soc/uart_periph.h"
 #include "soc/uart_reg.h"
 
