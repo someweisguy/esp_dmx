@@ -134,12 +134,11 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
     } else if (intr_flags & DMX_INTR_RX_DATA) {
       // data was received or timed out waiting for new data
-      const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
-      const int16_t slots_rem = driver->buf_size - driver->slot_idx;
-
       // service the uart fifo
       if (driver->slot_idx > -1) {
         // driver is not in error state
+        const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
+        const int16_t slots_rem = driver->buf_size - driver->slot_idx;
         if (driver->slot_idx < driver->buf_size) {
           // there are slots remaining to be read
           int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
@@ -149,7 +148,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         } else {
           // no slots remaining to be read
           dmx_hal_rxfifo_rst(&hardware->hal);
-          driver->slot_idx += rxfifo_len;  // track data rx'd for error checking
+          driver->slot_idx += rxfifo_len;  // track for error reporting
         }
       } else {
         // driver is in error state
