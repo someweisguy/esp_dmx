@@ -25,6 +25,7 @@ the UART bus. */
 typedef struct {
   dmx_port_t dmx_num;             // The driver's DMX port number.
   rst_seq_hw_t rst_seq_hw;        // The hardware being used to transmit the DMX reset sequence. Can be either the UART or an ESP32 timer group.
+  timer_idx_t timer_idx;          // The timer index being used for the reset sequence.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
   uint16_t buf_size;              // Size of the DMX buffer in bytes.
@@ -39,26 +40,30 @@ typedef struct {
     StaticSemaphore_t sync_sem_buf; 
     SemaphoreHandle_t sent_sem;
     StaticSemaphore_t sent_sem_buf;
-    uint16_t size;                // The size of the number of slots to send.
 
-    timer_idx_t timer_idx;    // The timer index being used for the reset sequence.
     uint32_t break_len;       // Length in microseconds of the transmitted break.
     uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
+
+    // TODO: every tx variable below this comment can be unionized with rx variables
+
+    uint16_t size;            // The size of the number of slots to send.
   } tx;
 
   /* These variables are used when receiving DMX. */
   struct {
     QueueHandle_t queue;          // The queue to report DMX received events.
-    bool event_sent;              // True if a queue event has been sent.
-    gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
-    int64_t last_break_ts;        // The timestamp of the last received break.
     int16_t size_guess;           // The guess of the size of the packet. Can reduce latency in reporting new data.
+
+    // TODO: every rx variable below this comment can be unionized with tx variables
+
+    gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
+    bool event_sent;              // True if a queue event has been sent.
     
     /* The remaining variables are only used if the DMX sniffer is enabled.
     They are uninitialized until dmx_sniffer_enable is called. */
+    bool is_in_brk;               // True if the received DMX packet is currently in a break.
     int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
     int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
-    bool is_in_brk;               // True if the received DMX packet is currently in a break.
     int64_t last_pos_edge_ts;     // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;     // Timestamp of the last negative edge on the sniffer pin.
   } rx;

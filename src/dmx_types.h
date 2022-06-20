@@ -11,14 +11,6 @@ extern "C" {
 typedef int dmx_port_t;             // DMX port type.
 
 
-// TODO: documentation! This struct contains driver config information that
-//  cannot be changed without first deleting the driver
-typedef struct {
-  uint16_t buffer_size;             // The buffer size of the DMX driver.
-  int8_t rst_seq_hw;               // The timer group to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
-  uint8_t timer_idx;                // The timer index to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
-  int intr_alloc_flags;             // Interrupt allocation flags as specified in esp_intr_alloc.h.
-} dmx_config_t;
 
 /**
  * @brief DMX modes of operation.
@@ -38,6 +30,15 @@ typedef enum {
 #endif
   DMX_RESET_SEQUENCE_MAX
 } rst_seq_hw_t;
+
+// TODO: documentation! This struct contains driver config information that
+//  cannot be changed without first deleting the driver
+typedef struct {
+  uint16_t buffer_size;             // The buffer size of the DMX driver.
+  rst_seq_hw_t rst_seq_hw;          // The timer group to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
+  uint8_t timer_idx;                // The timer index to use to generate the reset sequence. Can be set to -1 to use reset-sequence-last mode.
+  int intr_alloc_flags;             // Interrupt allocation flags as specified in esp_intr_alloc.h.
+} dmx_config_t;
 
 /**
  * @brief DMX packet status types reported to the event queue when a packet is received.

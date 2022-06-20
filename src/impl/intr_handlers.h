@@ -276,13 +276,13 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   if (driver->slot_idx == -2) {
     // start break
     dmx_hal_inverse_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
-    timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
+    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
                           driver->tx.break_len);
     ++driver->slot_idx;
   } else if (driver->slot_idx == -1) {
     // start mab
     dmx_hal_inverse_signal(&hardware->hal, 0);
-    timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
+    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
                           driver->tx.mab_len);
     ++driver->slot_idx;
   } else {
@@ -296,7 +296,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
                          &driver->slot_idx);
 
     // disable this interrupt
-    timer_pause(driver->rst_seq_hw, driver->tx.timer_idx);
+    timer_pause(driver->rst_seq_hw, driver->timer_idx);
 
     // enable tx interrupts
     portENTER_CRITICAL(&hardware->spinlock);

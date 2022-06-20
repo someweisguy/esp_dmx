@@ -162,15 +162,14 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->mode = DMX_MODE_READ;
   driver->slot_idx = -1;  // driver starts in error state
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
+  driver->timer_idx = dmx_config->timer_idx;
 
   // initialize driver tx variables
   driver->tx.break_len = DMX_TX_TYP_SPACE_FOR_BRK_US;
   driver->tx.mab_len = DMX_TX_MIN_MRK_AFTER_BRK_US;
-  driver->tx.timer_idx = dmx_config->timer_idx;
 
   // initialize driver rx variables
   driver->rx.event_sent = true;  // don't send event until first break rx'd
-  driver->rx.last_break_ts = -DMX_RX_MAX_BRK_TO_BRK_US;
   driver->rx.intr_io_num = -1;
   driver->rx.break_len = -1;
   driver->rx.mab_len = -1;
@@ -230,7 +229,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // deinit timer and free timer isr
   if (driver->rst_seq_hw != DMX_USE_UART) {
-    timer_deinit(driver->rst_seq_hw, driver->tx.timer_idx);
+    timer_deinit(driver->rst_seq_hw, driver->timer_idx);
   }
   
   // free sniffer isr
@@ -678,9 +677,9 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     driver->slot_idx = -2; // -2 == DMX_BREAK, -1 == DMX_MAB
 
     // ready and start the hardware timer for a reset sequence
-    timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx, 0);
-    timer_set_counter_value(driver->rst_seq_hw, driver->tx.timer_idx, 0);
-    timer_start(driver->rst_seq_hw, driver->tx.timer_idx);
+    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, 0);
+    timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
+    timer_start(driver->rst_seq_hw, driver->timer_idx);
   } else {
     // driver is using uart hardware for reset sequence
     // TODO: remove uart hardware mode entirely and replace with busy_wait
