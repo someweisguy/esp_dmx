@@ -534,10 +534,8 @@ esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
                       "buffer is null");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
-                      TAG, "size error");
-
-  if (size == 0) return ESP_OK; // TODO: can we remove this line? 
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= size,
+                      ESP_ERR_INVALID_ARG, TAG, "size error");
 
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   memcpy(buffer, dmx_driver[dmx_num]->buffer, size);
