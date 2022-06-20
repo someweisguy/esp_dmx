@@ -153,7 +153,7 @@ typedef struct {
    */
   uint8_t rx_timeout_threshold;
   /**
-   * @brief DMX TX empty interrupt threshold. This the maximum number of bytes 
+   * @brief DMX TX empty interrupt threshold. This the maximum number of bytes
    * that are needed in the UART TX FIFO for the "FIFO empty" interrupt to fire.
    */
   uint8_t txfifo_empty_threshold;
