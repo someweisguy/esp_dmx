@@ -655,7 +655,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     xSemaphoreTake(driver->tx.sync_sem, 0);
 
     // write data to tx FIFO
-    uint32_t wr_len;
+    int16_t wr_len;
     dmx_hal_write_txfifo(&(dmx_context[dmx_num].hal), driver->buffer, 
                          driver->tx.size, &wr_len);
     driver->slot_idx = wr_len;
