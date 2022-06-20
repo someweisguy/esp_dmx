@@ -675,7 +675,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
     // ready the dmx driver to send a reset sequence
     driver->tx.size = num_slots;
-    driver->tx.step = 0;
+    driver->slot_idx = -2; // -2 == DMX_BREAK, -1 == DMX_MAB
 
     // ready and start the hardware timer for a reset sequence
     timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx, 0);

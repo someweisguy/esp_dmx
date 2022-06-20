@@ -273,16 +273,18 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   bool task_awoken = false;
 
-  if (driver->tx.step == 0) {
+  if (driver->slot_idx == -2) {
     // start break
     dmx_hal_inverse_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
     timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
                           driver->tx.break_len);
-  } else if (driver->tx.step == 1) {
+    ++driver->slot_idx;
+  } else if (driver->slot_idx == -1) {
     // start mab
     dmx_hal_inverse_signal(&hardware->hal, 0);
     timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
                           driver->tx.mab_len);
+    ++driver->slot_idx;
   } else {
     // block tasks until fifo is written
     // TODO: does this actually do anything having this here? (as opposed to 
@@ -301,8 +303,6 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
     portEXIT_CRITICAL(&hardware->spinlock);
   }
-
-  ++(driver->tx.step);  // TODO: replace tx.step with slot_idx?
 
   return task_awoken;
 }

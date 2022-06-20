@@ -40,11 +40,10 @@ typedef struct {
     SemaphoreHandle_t sent_sem;
     StaticSemaphore_t sent_sem_buf;
     uint16_t size;                // The size of the number of slots to send.
-    
+
     timer_idx_t timer_idx;    // The timer index being used for the reset sequence.
     uint32_t break_len;       // Length in microseconds of the transmitted break.
     uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
-    uint8_t step;             // The current step in the DMX reset sequence. 
   } tx;
 
   /* These variables are used when receiving DMX. */
