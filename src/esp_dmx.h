@@ -342,6 +342,9 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
  */
 esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots);
 
+// TODO: documentation
+esp_err_t dmx_wait_write_sync(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+
 /**
  * @brief Wait until the DMX port is done transmitting. This function blocks
  * the current task until the DMX port is finished with transmission.
@@ -353,7 +356,8 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots);
  * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
  * @retval ESP_ERR_TIMEOUT on timeout.
  */
-esp_err_t dmx_wait_send_done(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+// TODO: documentation
+esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
 #ifdef __cplusplus
 }

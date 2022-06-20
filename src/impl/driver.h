@@ -35,8 +35,10 @@ typedef struct {
   
   /* These variables are used when transmitting DMX. */
   struct {
-    SemaphoreHandle_t done_sem;   // Signals the frame has finished being transmitted.
-    StaticSemaphore_t done_sem_buf; 
+    SemaphoreHandle_t sync_sem;   // Signals the frame has been written to the UART FIFO.
+    StaticSemaphore_t sync_sem_buf; 
+    SemaphoreHandle_t sent_sem;
+    StaticSemaphore_t sent_sem_buf;
     uint16_t size;                // The size of the number of slots to send.
     union {
       /* This struct is used when sending DMX in reset-sequence-first mode. */

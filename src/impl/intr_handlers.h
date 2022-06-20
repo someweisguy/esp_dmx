@@ -15,7 +15,7 @@ extern "C" {
 // Interrupt mask that is triggered when it is time to service the receive FIFO.
 #define DMX_INTR_RX_DATA (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT)
 
-// Interrupt mask that represents a DMX break.
+// Interrupt mask that trigger when a DMX break is received.
 #define DMX_INTR_RX_BREAK (UART_INTR_BRK_DET)
 
 // Interrupt mask that represents a byte framing error.
@@ -26,19 +26,23 @@ extern "C" {
 // Interrupt mask that is called when a DMX clash occurs.
 #define DMX_INTR_RX_CLASH (UART_INTR_RS485_CLASH)
 
-// Interrupt mask that represents all rx conditions.
+// Interrupt mask that represents all receive conditions.
 #define DMX_INTR_RX_ALL                                               \
   (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_FIFO_OVERFLOW | \
-   DMX_INTR_RX_FRAMING_ERR)
+   DMX_INTR_RX_FRAMING_ERR | DMX_INTR_RX_CLASH)
 
-// Interrupt mask that represents all tx conditions.
-#define DMX_INTR_TX_ALL                                                 \
-  (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_BRK_IDLE | UART_INTR_TX_DONE | \
-   UART_INTR_TX_BRK_DONE | UART_INTR_RS485_CLASH)
+// Interrupt mask that is triggered when the UART is ready to send data.
+#define DMX_INTR_TX_DATA (UART_INTR_TXFIFO_EMPTY)
 
-// Interrupt mask that represents all tx conditions.
-#define DMX_INTR_TX_ALL_TIMER \
-  (UART_INTR_TXFIFO_EMPTY | UART_INTR_TX_DONE | UART_INTR_RS485_CLASH)
+// Interrupt mask that is triggered when the UART has finished writing data.
+#define DMX_INTR_TX_DONE (UART_INTR_TX_DONE)
+
+// Interrupt mask that is triggered when the UART idle-after-packet is done.
+#define DMX_INTR_TX_IDLE_DONE (UART_INTR_TX_BRK_IDLE)
+
+// Interrupt mask that represents all send conditions.
+#define DMX_INTR_TX_ALL \
+  (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE | DMX_INTR_TX_IDLE_DONE)
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
@@ -137,7 +141,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
     } else if (intr_flags & DMX_INTR_RX_DATA) {
       // data was received or timed out waiting for new data
-      // service the uart fifo
+
+      // read from the uart fifo
       if (driver->slot_idx > -1) {
         // driver is not in error state
         const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
@@ -145,7 +150,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         if (driver->slot_idx < driver->buf_size) {
           // there are slots remaining to be read
           int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
-          uint8_t *const slot_ptr = driver->buffer + driver->slot_idx;
+          uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
           dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, &rd_len);
           driver->slot_idx += rd_len;
         } else {
@@ -186,46 +191,45 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     }
 
     // DMX Transmit #####################################################
-    else if (intr_flags & UART_INTR_TXFIFO_EMPTY) {
-      // this interrupt is triggered when the tx FIFO is empty
+    else if (intr_flags & DMX_INTR_TX_DATA) {
+      // handle condition when UART is ready to send more data
 
-      uint16_t wr_len = driver->tx.size - driver->slot_idx;
+      // write slots
+      int16_t wr_len = driver->tx.size - driver->slot_idx;
       const uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
       dmx_hal_write_txfifo(&hardware->hal, slot_ptr, wr_len, &wr_len);
       driver->slot_idx += wr_len;
 
+      // check if done writing data
       if (driver->slot_idx == driver->tx.size) {
-        // allow tx FIFO to empty - break and idle will be written
+        // allow UART to empty and unblock tasks
         portENTER_CRITICAL_ISR(&hardware->spinlock);
-        dmx_hal_disable_intr_mask(&hardware->hal, UART_INTR_TXFIFO_EMPTY);
+        dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_DATA);
         portEXIT_CRITICAL_ISR(&hardware->spinlock);
-
-        /* Users can block a task until a DMX packet is sent by calling
-        dmx_wait_send_done(). However, it's not necessary to wait until the DMX
-        packet is transmitted onto the DMX bus. Users need only wait until the
-        DMX packet is written to the UART hardware. This ensures synchronicity
-        because the data, once written to the UART, cannot be changed by the
-        user. It can also give up to 5.6ms of task time back to the task! */
-
-        xSemaphoreGiveFromISR(driver->tx.done_sem, &task_awoken);
+        xSemaphoreGiveFromISR(driver->tx.sync_sem, &task_awoken);
       }
 
-      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TXFIFO_EMPTY);
-    } else if (intr_flags & UART_INTR_TX_DONE) {
-      // this interrupt is triggered when the last byte in tx fifo is written
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DATA);
+    } else if (intr_flags & DMX_INTR_TX_DONE) {
+      // handle condition when packet has finished being sent
 
-      // track breaks if using uart hardware for reset sequence
-      if (driver->rst_seq_hw == DMX_USE_UART) driver->tx.last_break_ts = now;
+      // disable interrupt and unblock tasks
+      portENTER_CRITICAL(&hardware->spinlock);
+      dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_DONE);
+      portEXIT_CRITICAL(&hardware->spinlock);
+      xSemaphoreGiveFromISR(driver->tx.sent_sem, &task_awoken);
 
-      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_DONE);
-    } else if (intr_flags & UART_INTR_TX_BRK_DONE) {
-      // this interrupt is triggered when the break is done
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DONE);
+    } else if (intr_flags & DMX_INTR_TX_IDLE_DONE) {
+      // handle RDM turnaround condition
+      // TODO
 
-      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_BRK_DONE);
-    } else if (intr_flags & UART_INTR_TX_BRK_IDLE) {
-      // this interrupt is triggered when the mark after break is done
+      // disable interrupt
+      portENTER_CRITICAL(&hardware->spinlock);
+      dmx_hal_disable_intr_mask(&hardware->hal,DMX_INTR_TX_IDLE_DONE);
+      portEXIT_CRITICAL(&hardware->spinlock);
 
-      dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_BRK_IDLE);
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_IDLE_DONE);
     }
 
     else {
@@ -234,7 +238,6 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       portENTER_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_disable_intr_mask(&hardware->hal, intr_flags);
       portEXIT_CRITICAL_ISR(&hardware->spinlock);
-
       dmx_hal_clr_intsts_mask(&hardware->hal, intr_flags);
     }
   }
@@ -270,6 +273,7 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
 static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
+  bool task_awoken = false;
 
   if (driver->tx.step == 0) {
     // start break
@@ -282,6 +286,11 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     timer_set_alarm_value(driver->rst_seq_hw, driver->tx.timer_idx,
                           driver->tx.mab_len);
   } else {
+    // block tasks until fifo is written
+    // TODO: does this actually do anything having this here? (as opposed to 
+    //  having it in the dmx_send_packet() function)
+    xSemaphoreTakeFromISR(driver->tx.sync_sem, &task_awoken);
+
     // write data to tx FIFO
     dmx_hal_write_txfifo(&hardware->hal, driver->buffer, driver->tx.size,
                          &driver->slot_idx);
@@ -291,13 +300,13 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
 
     // enable tx interrupts
     portENTER_CRITICAL(&hardware->spinlock);
-    dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_TX_ALL_TIMER);
+    dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
     portEXIT_CRITICAL(&hardware->spinlock);
   }
 
   ++(driver->tx.step);  // TODO: replace tx.step with slot_idx?
 
-  return false;
+  return task_awoken;
 }
 
 #ifdef __cplusplus

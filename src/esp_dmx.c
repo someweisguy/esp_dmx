@@ -153,8 +153,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   
 
   // allocate semaphores
-  driver->tx.done_sem = xSemaphoreCreateBinaryStatic(&driver->tx.done_sem_buf);
-  xSemaphoreGive(driver->tx.done_sem);
+  driver->tx.sync_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sync_sem_buf);
+  driver->tx.sent_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sent_sem_buf);
 
   // initialize general driver variables
   driver->dmx_num = dmx_num;
@@ -243,7 +243,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // free driver resources
   if (driver->buffer[0]) free(driver->buffer);
   if (driver->rx.queue) vQueueDelete(dmx_driver[dmx_num]->rx.queue);
-  if (driver->tx.done_sem) vSemaphoreDelete(driver->tx.done_sem);
+  if (driver->tx.sent_sem) vSemaphoreDelete(driver->tx.sent_sem);
+  if (driver->tx.sync_sem) vSemaphoreDelete(driver->tx.sync_sem);
 
   // free driver
   heap_caps_free(driver);
@@ -307,7 +308,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
     dmx_driver[dmx_num]->slot_idx = 0;
     dmx_driver[dmx_num]->mode = DMX_MODE_WRITE;
-    xSemaphoreGive(dmx_driver[dmx_num]->tx.done_sem);
+    xSemaphoreGive(dmx_driver[dmx_num]->tx.sent_sem);
+    xSemaphoreGive(dmx_driver[dmx_num]->tx.sync_sem);
     dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
     bzero(dmx_driver[dmx_num]->buffer, dmx_driver[dmx_num]->buf_size);
 
@@ -719,7 +721,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
                       ESP_ERR_INVALID_STATE, TAG, "not in write mode");
 
   // only tx when a frame is not being written
-  if (xSemaphoreTake(dmx_driver[dmx_num]->tx.done_sem, 0) == pdFALSE)
+  if (xSemaphoreTake(dmx_driver[dmx_num]->tx.sent_sem, 0) == pdFALSE)
     return ESP_FAIL;
 
   /* There are two modes in which this library can transmit DMX: reset-sequence
@@ -798,7 +800,23 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   return ESP_OK;
 }
 
-esp_err_t dmx_wait_send_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+esp_err_t dmx_wait_write_sync(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
+                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+                      "driver not installed");
+  
+  // TODO: warn if ticks_to_wait <= portTICK_PERIOD_MS
+
+  if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sync_sem, ticks_to_wait))
+    return ESP_ERR_TIMEOUT;
+  xSemaphoreGive(dmx_driver[dmx_num]->tx.sync_sem);
+
+
+  return ESP_OK;
+}
+
+esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
@@ -806,9 +824,11 @@ esp_err_t dmx_wait_send_done(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
   /* Just try to take the "done" semaphore and give it back immediately. */
 
-  if (xSemaphoreTake(dmx_driver[dmx_num]->tx.done_sem, ticks_to_wait) == pdFALSE)
+  // TODO: warn if ticks_to_wait <= portTICK_PERIOD_MS
+
+  if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sent_sem, ticks_to_wait))
     return ESP_ERR_TIMEOUT;
-  xSemaphoreGive(dmx_driver[dmx_num]->tx.done_sem);
+  xSemaphoreGive(dmx_driver[dmx_num]->tx.sent_sem);
 
   return ESP_OK;
 }
