@@ -44,6 +44,9 @@ extern "C" {
 #define DMX_INTR_TX_ALL \
   (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE | DMX_INTR_TX_IDLE_DONE)
 
+// Interrupt mask for all interrupts.
+#define DMX_ALL_INTR_MASK (-1)
+
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   // initialize pointer consts - may be optimized away by compiler
   dmx_driver_t *const driver = (dmx_driver_t *)arg;

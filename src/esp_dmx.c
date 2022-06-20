@@ -23,8 +23,6 @@
 // The default value for the UART timeout interrupt.
 #define DMX_UART_TIMEOUT_DEFAULT (63)
 
-#define DMX_ALL_INTR_MASK (-1)
-
 #define DMX_FUNCTION_NOT_SUPPORTED()                         \
   ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, \
            CONFIG_IDF_TARGET);                               \
