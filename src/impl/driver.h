@@ -36,9 +36,9 @@ typedef struct {
   
   /* These variables are used when transmitting DMX. */
   struct {
-    SemaphoreHandle_t sync_sem;   // Signals the frame has been written to the UART FIFO.
+    SemaphoreHandle_t sync_sem;     // Signals the frame has been written to the UART FIFO. The DMX buffer may be synchronously written when this semaphore is given.
     StaticSemaphore_t sync_sem_buf; 
-    SemaphoreHandle_t sent_sem;
+    SemaphoreHandle_t sent_sem;     // Signals that the packet has been fully sent. The DMX driver is ready to send another.
     StaticSemaphore_t sent_sem_buf;
 
     uint32_t break_len;       // Length in microseconds of the transmitted break.
