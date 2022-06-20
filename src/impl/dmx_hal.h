@@ -225,12 +225,12 @@ IRAM_ATTR uint32_t dmx_hal_get_baudrate(uart_hal_context_t *hal) {
  * RX timeout interrupt.
  *
  * @param hal Pointer to a UART HAL context.
- * @param rx_timeout_thresh The RX timeout duration (unit: time of sending one
+ * @param rx_timeout_threshold The RX timeout duration (unit: time of sending one
  * byte).
  */
 IRAM_ATTR void dmx_hal_set_rx_timeout(uart_hal_context_t *hal,
-                                      const uint8_t rx_timeout_thresh) {
-  uart_hal_set_rx_timeout(hal, rx_timeout_thresh);
+                                      const uint8_t rx_timeout_threshold) {
+  uart_hal_set_rx_timeout(hal, rx_timeout_threshold);
 }
 
 /**
@@ -238,12 +238,12 @@ IRAM_ATTR void dmx_hal_set_rx_timeout(uart_hal_context_t *hal,
  * FIFO full interrupt.
  *
  * @param hal Pointer to a UART HAL context.
- * @param rxfifo_full_thresh The number of bytes needed to trigger an RX FIFO
+ * @param rxfifo_full_threshold The number of bytes needed to trigger an RX FIFO
  * full interrupt.
  */
 IRAM_ATTR void dmx_hal_set_rxfifo_full_thr(uart_hal_context_t *hal,
-                                           uint8_t rxfifo_full_thresh) {
-  uart_hal_set_rxfifo_full_thr(hal, rxfifo_full_thresh);
+                                           uint8_t rxfifo_full_threshold) {
+  uart_hal_set_rxfifo_full_thr(hal, rxfifo_full_threshold);
 }
 
 /**
