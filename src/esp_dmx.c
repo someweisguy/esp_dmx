@@ -553,7 +553,9 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size < slot_idx,
                       ESP_ERR_INVALID_ARG, TAG, "slot_idx error");
 
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   *value = dmx_driver[dmx_num]->buffer[slot_idx];
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -566,17 +568,17 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
                       "buffer is null");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= size, ESP_ERR_INVALID_ARG,
-                      TAG, "size error");
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->buf_size >= size,
+                      ESP_ERR_INVALID_ARG, TAG, "size error");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->mode == DMX_MODE_WRITE,
                       ESP_ERR_INVALID_STATE, TAG, "not in write mode");
 
   /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0,
   whilst buffer 1 is used by the driver to write to the tx FIFO. */
 
-  if (size == 0) return ESP_OK;
-
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   memcpy(dmx_driver[dmx_num]->buffer, buffer, size);
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -595,7 +597,9 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
   /* Writes can only happen in DMX_MODE_WRITE. Writes are made to buffer 0,
   whilst buffer 1 is used by the driver to write to the tx FIFO. */
 
+  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_driver[dmx_num]->buffer[slot_idx] = value;
+  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
 }
@@ -630,7 +634,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     timer_start(driver->rst_seq_hw, driver->timer_idx);
 
   } else {
-    // driver is using uart hardware for reset sequence
+    // driver is using busy-waits for reset sequence
     uint32_t break_len;
     uint32_t mab_len;
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -645,7 +649,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     desired, the below code will cause problems. 
     */
 
-    // invert, busy-wait, un-invert, busy-wait, take semaphore
+    // send DMX break and mark-after-break
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
     ets_delay_us(break_len);
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
@@ -672,8 +676,6 @@ esp_err_t dmx_wait_write_sync(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-  
-  // TODO: should we warn if ticks_to_wait <= portTICK_PERIOD_MS?
 
   if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sync_sem, ticks_to_wait))
     return ESP_ERR_TIMEOUT;
@@ -688,10 +690,6 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
-
-  /* Just try to take the "done" semaphore and give it back immediately. */
-
-  // TODO: should we warn if ticks_to_wait <= portTICK_PERIOD_MS?
 
   if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sent_sem, ticks_to_wait))
     return ESP_ERR_TIMEOUT;
