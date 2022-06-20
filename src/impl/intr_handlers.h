@@ -130,6 +130,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // ready driver to read data into the buffer
       driver->slot_idx = 0;
       driver->rx.event_sent = false;
+      driver->rx.break_len = -1;
+      driver->rx.mab_len = -1;
       dmx_hal_rxfifo_rst(&hardware->hal);
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
