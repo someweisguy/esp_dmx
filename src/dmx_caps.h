@@ -5,10 +5,10 @@ extern "C" {
 #endif
 
 /* DMX shared parameters */
-#define DMX_MIN_BAUD_RATE           (245000)        // DMX minimum baud rate.
-#define DMX_TYP_BAUD_RATE           (250000)        // DMX typical baud rate.
-#define DMX_MAX_BAUD_RATE           (255000)        // DMX maximum baud rate.
-#define DMX_MAX_PACKET_SIZE         (513)           // DMX maximum packet size.
+#define DMX_MIN_BAUD_RATE (245000)  // DMX minimum baud rate.
+#define DMX_TYP_BAUD_RATE (250000)  // DMX typical baud rate.
+#define DMX_MAX_BAUD_RATE (255000)  // DMX maximum baud rate.
+#define DMX_MAX_PACKET_SIZE (513)   // DMX maximum packet size.
 
 /* DMX client/receive timing parameters */
 #define DMX_RX_MIN_SPACE_FOR_BRK_US (88)            // DMX minimum receivable break length in microseconds.
@@ -42,16 +42,17 @@ extern "C" {
 /**
  * @brief Evaluates to true if the start code is a start code permitted in a
  * non-prototype DMX device.
- * 
+ *
  * Several alternate start codes are reserved for special purposes or for
  * future development of the standard. No equipment shall be manufactured that
- * generates alternate start codes 0x92-0xA9 or 0xAB-0xCD until their use is 
+ * generates alternate start codes 0x92-0xA9 or 0xAB-0xCD until their use is
  * defined by the standard or by the E1 Accredited Standards Committee.
  * Manufacturers shall not advertise or sell products or devices that use
  * alternate start codes 0xF0-0xF7.
  */
-#define DMX_START_CODE_IS_VALID(sc) \
-  (!(sc >= 0x92 && sc <= 0xa9) && !(sc >= 0xab && sc <= 0xcd) && !(sc >= 0xf0 && sc <= 0xf7))
+#define DMX_START_CODE_IS_VALID(sc)                              \
+  (!(sc >= 0x92 && sc <= 0xa9) && !(sc >= 0xab && sc <= 0xcd) && \
+   !(sc >= 0xf0 && sc <= 0xf7))
 
 /**
  * @brief Evaluates to true if the received packet duration is within DMX
@@ -64,8 +65,7 @@ extern "C" {
  * @brief Evaluates to true if the received break duration is within DMX
  * specification.
  */
-#define DMX_RX_BRK_DURATION_IS_VALID(brk) \
-    (brk >= DMX_RX_MIN_SPACE_FOR_BRK_US)
+#define DMX_RX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_RX_MIN_SPACE_FOR_BRK_US)
 
 /**
  * @brief Evaluates to true if the received mark-after-break duration is within
@@ -79,19 +79,18 @@ extern "C" {
  * specification.
  */
 #define DMX_TX_PKT_DURATION_IS_VALID(pkt) \
- (pkt >= DMX_TX_MIN_BRK_TO_BRK_US && pkt <= DMX_TX_MAX_BRK_TO_BRK_US)
+  (pkt >= DMX_TX_MIN_BRK_TO_BRK_US && pkt <= DMX_TX_MAX_BRK_TO_BRK_US)
 
 /**
  * @brief Evaluates to true if the transmitted break duration is within DMX
  * specification.
  */
-#define DMX_TX_BRK_DURATION_IS_VALID(brk) \
-  (brk >= DMX_TX_MIN_SPACE_FOR_BRK_US)
+#define DMX_TX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_TX_MIN_SPACE_FOR_BRK_US)
 
 /**
  * @brief Evaluates to true of the transmitted mark-after-break duration is
  * within DMX specification.
- * 
+ *
  */
 #define DMX_TX_MAB_DURATION_IS_VALID(mab) \
   (mab >= DMX_TX_MIN_MRK_AFTER_BRK_US && mab <= DMX_TX_MAX_MRK_AFTER_BRK_US)
@@ -100,10 +99,10 @@ extern "C" {
 /**
  * @brief DMX default NULL start code. A NULL start code identifies subsequent
  * data slots as a block of untyped sequential 8-bit information. Packets
- * identified by a NULL start code are the default packets sent on DMX 
+ * identified by a NULL start code are the default packets sent on DMX
  * networks.
  */
-#define DMX_SC     (0x00)
+#define DMX_SC (0x00)
 
 /**
  * @brief Remote Device Management (RDM) start code. RDM is an extension to
@@ -111,17 +110,17 @@ extern "C" {
  * DMX receiving devices in mixed systems with new RDM equipment and to provide
  * a straightforward path to upgrade existing DMX distribution systems for
  * support of the RDM protocol. The use of RDM devices in a DMX system will not
- * compromise any DMX functionality. 
+ * compromise any DMX functionality.
  */
-#define RDM_SC     (0xcc)
+#define RDM_SC (0xcc)
 
 /**
  * @brief ASCII Text alternate start code. Alternate start code 0x17 designates
  * a special packet of between 3 and 512 data slots. The purpose of the ASCII
  * text packet is to allow equipment to send diagnostic information coded per
- * the American Standard Code for Information Interchange and formatted for 
+ * the American Standard Code for Information Interchange and formatted for
  * display.
- * 
+ *
  * Slot allocation is as follows:
  *   Slot 1: Page number of one of the possible 256 text pages.
  *   Slot 2: Characters per line. Indicates the number of characters per line
@@ -130,14 +129,14 @@ extern "C" {
  *   Slots 3-512: Consecutive display characters in ASCII format. All
  *     characters are allowed and where a DMX512 text viewer is capable, it
  *     shall display the data using the ISO/IEC 646 standard character set. A
- *     slot value of zero shall terminate the ASCII string. Slots transmitted 
+ *     slot value of zero shall terminate the ASCII string. Slots transmitted
  *     after this null terminator up to the reset sequence shall be ignored.
  */
-#define DMX_TEXT_ASC     (0x17) 
+#define DMX_TEXT_ASC (0x17)
 
 /**
- * @brief Test Packet alternate start code. Alternate start code 0x55 designates a
- * special test packet of 512 data slots, where all data slots carry the value
+ * @brief Test Packet alternate start code. Alternate start code 0x55 designates
+ * a special test packet of 512 data slots, where all data slots carry the value
  * 0x55. Test packets shall be sent so that the time from the start of the
  * break until the stop bit of the 513th slot shall be no more than 25
  * milliseconds. When test packets are sent back to back, the mark-before-break
@@ -146,7 +145,7 @@ extern "C" {
  * equal to 120 microseconds. The mark-after-break time shall be greater than
  * or equal to 8 microseconds and less than or equal to 16 microseconds.
  */
-#define DMX_TEST_ASC     (0x55)
+#define DMX_TEST_ASC (0x55)
 
 /**
  * @brief UTF-8 Text Packet alternate start code. Alternate start code 0x90
@@ -155,7 +154,7 @@ extern "C" {
  * coded per UTF-8 as described in Unicode 5.0 published by The Unicode
  * Consortium and formatted for display. UTF-8 should only be used when the
  * text packet cannot be expressed in ASCII using the DMX_TEXT_ASC start code.
- * 
+ *
  * Slot allocation is as follows:
  *   Slot 1: Page number of one of the possible 256 text pages.
  *   Slot 2: Characters per Line. Indicates the number of characters per line
@@ -167,29 +166,29 @@ extern "C" {
  *     of zero shall terminate the UTF-8 text string. Slots transmitted after
  *     this null terminator up to the reset sequence shall be ignored.
  */
-#define DMX_UTF8_ASC     (0x90)
+#define DMX_UTF8_ASC (0x90)
 
 /**
  * @brief Manufacturer/Organization ID alternate start code. Alternate start
- * code 0x91 followed by a 2 byte manufacturer ID field is reserved for 
+ * code 0x91 followed by a 2 byte manufacturer ID field is reserved for
  * Manufacturer/Organization specific use, transmitted byte order is MSB, LSB.
  * The next byte after the manufacturers ID would normally be a manufacturer’s
  * sub-code
  */
-#define DMX_ORG_ID_ASC   (0x91)
+#define DMX_ORG_ID_ASC (0x91)
 
 /**
  * @brief System Information Packet alternate start code. Alternate startcode
  * 0xCF is reserved for a System Information Packet (SIP). The SIP includes a
  * method of sending checksum data relating to the previous NULL start code
  * packet on the data link and other control information. No other packet shall
- * be sent between the NULL start code packet and the SIP that carries its 
+ * be sent between the NULL start code packet and the SIP that carries its
  * checksum.
- * 
+ *
  * For more information on the System Information Packet alternate start code,
  * see annex D5 in the ANSI-ESTA E1.11 DMX512-A standards document.
  */
-#define DMX_SIP_ASC      (0xcf)
+#define DMX_SIP_ASC (0xcf)
 
 #ifdef __cplusplus
 }
