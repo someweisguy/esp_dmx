@@ -160,6 +160,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->dmx_num = dmx_num;
   driver->buf_size = dmx_config->buffer_size;
   driver->mode = DMX_MODE_READ;
+  driver->slot_idx = -1;  // driver starts in error state
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
 
   // initialize driver tx variables

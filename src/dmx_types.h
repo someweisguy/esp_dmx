@@ -55,13 +55,12 @@ typedef enum {
  */
 typedef struct {
   dmx_event_status_t status;        // The status of DMX packet.
-  int start_code;                   // The start code (slot 0) of the DMX packet, or -1 on error (except for DMX_ERR_BUFFER_SIZE).
   size_t size;                      // The size of the received DMX packet in bytes.
-  int32_t duration;                 // The duration of the received DMX packet in microseconds.
   struct {
     int32_t brk;                    // Duration of the break in microseconds.
     int32_t mab;                    // Duration of the mark-after-break in microseconds.
   } timing;                         // Timing values received from the DMX sniffer.
+  bool packet_late;                 // True if the event was sent to the event queue late.
 } dmx_event_t;
 
 /**
