@@ -278,11 +278,13 @@ IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
   return uart_hal_get_txfifo_len(hal);
 }
 
+// TODO: documentation
 IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
                                     uint32_t data_size, int16_t *write_size) {
   uart_hal_write_txfifo(hal, buf, data_size, (uint32_t *)write_size);
 }
 
+// TODO: documentation
 IRAM_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
   uart_hal_txfifo_rst(hal);
 }
