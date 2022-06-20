@@ -755,6 +755,8 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     timer_start(driver->rst_seq_hw, driver->tx.timer_idx);
   } else {
     // driver is using uart hardware for reset sequence
+    // TODO: remove uart hardware mode entirely and replace with busy_wait
+
     const int64_t now = esp_timer_get_time();
 
     // check if a simulated reset sequence must be sent
