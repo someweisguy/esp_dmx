@@ -461,8 +461,7 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
 
 
 /// Interrupt Configuration  ##################################################
-esp_err_t dmx_intr_config(dmx_port_t dmx_num,
-                          const dmx_intr_config_t *intr_conf) {
+esp_err_t dmx_intr_config(dmx_port_t dmx_num, dmx_intr_config_t *intr_conf) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(intr_conf != NULL, ESP_ERR_INVALID_ARG, TAG,
