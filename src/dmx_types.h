@@ -60,7 +60,7 @@ typedef struct {
     int32_t brk;                    // Duration of the break in microseconds.
     int32_t mab;                    // Duration of the mark-after-break in microseconds.
   } timing;                         // Timing values received from the DMX sniffer.
-  bool packet_late;                 // True if the event was sent to the event queue late.
+  bool is_late;                     // True if the event was sent to the event queue during the next DMX packet's reset sequence.
 } dmx_event_t;
 
 /**

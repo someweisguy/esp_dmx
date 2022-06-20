@@ -104,7 +104,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
                 .brk = driver->rx.break_len,
                 .mab = driver->rx.mab_len
             },
-            .packet_late = true
+            .is_late = true
         };
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.size_guess = driver->slot_idx;  // update guess
