@@ -37,7 +37,7 @@ extern "C" {
  * ISR handler will be attached to the same CPU core that this function is
  * running on. The default configuration sets the DMX break to 176 microseconds
  * and the DMX mark-after-break to 12 microseconds.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param[in] dmx_config A pointer to a dmx_config_t.
  * @param queue_size The size of the DMX event queue.
@@ -47,7 +47,7 @@ extern "C" {
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config, 
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
                              uint32_t queue_size, QueueHandle_t *dmx_queue);
 
 /**
@@ -150,6 +150,11 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
 /**
  * @brief Set the DMX baud rate.
  *
+ * @note The baud rate must be within DMX specification. The lowest value is
+ * DMX_MIN_BAUD_RATE and the highest value is DMX_MAX_BAUD_RATE (inclusive). The
+ * macro DMX_BAUD_RATE_IS_VALID() may be used to check if a baud rate is to DMX
+ * specification.
+ *
  * @param dmx_num The DMX port number.
  * @param baud_rate The baud rate to set the DMX port to.
  * @retval ESP_OK on success.
@@ -166,9 +171,16 @@ esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate);
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
 esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate);
- 
+
 /**
  * @brief Set the DMX break length.
+ *
+ * @note The break length must be within DMX specification. The lowest value is
+ * DMX_TX_MIN_SPACE_FOR_BRK_US. The macro DMX_TX_BRK_DURATION_IS_VALID() may be
+ * used to check if a break length is to DMX specification. It should also be
+ * noted that there are different timing requirements depending on whether the
+ * DMX devices acts as a transmitter or receiver. When checking whether a
+ * received break length is valid, use DMX_RX_BRK_DURATION_IS_VALID() instead.
  *
  * @param dmx_num The DMX port number.
  * @param break_num The length in microseconds of the DMX break.
@@ -189,6 +201,15 @@ esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len);
 
 /**
  * @brief Set the DMX mark-after-break length.
+ *
+ * @note The mark-after-break length must be within DMX specification. The
+ * lowest value is DMX_TX_MIN_MRK_AFTER_BRK_US and the highest value is
+ * DMX_TX_MAX_MRK_AFTER_BRK_US (inclusive). The macro
+ * DMX_TX_MAB_DURATION_IS_VALID() may be used to check if a mark-after-break
+ * length is to DMX specification. It should also be noted that there are
+ * different timing requirements depending on whether the DMX
+ * devices acts as a transmitter or receiver. When checking whether a received
+ * mark-after-break length is valid, use DMX_RX_MAB_DURATION_IS_VALID() instead.
  *
  * @param dmx_num The DMX port number.
  * @param break_num The length in microseconds of the DMX mark-after-break.
@@ -327,10 +348,10 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
 esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots);
 
 /**
- * @brief Wait until the DMX port is done writing data to the UART peripheral. 
+ * @brief Wait until the DMX port is done writing data to the UART peripheral.
  * This function blocks the current task until the DMX port is finished writing
- * the DMX buffer. Calling dmx_write_packet() without calling this function 
- * results in an asynchronous write. This means that writing to the DMX buffer 
+ * the DMX buffer. Calling dmx_write_packet() without calling this function
+ * results in an asynchronous write. This means that writing to the DMX buffer
  * may result in a partial packet being overwritten as it is being transmitted.
  *
  * @param dmx_num The DMX port number.
