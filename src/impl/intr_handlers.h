@@ -158,9 +158,9 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       // check if an event needs to be sent to the queue
       if (!driver->rx.event_sent) {
-        if (driver->slot_idx == driver->rx.size_guess) {
-          // TODO: check if this is a DMX frame, not RDM
-          // send an event to the queue
+        if (driver->buffer[0] == DMX_SC &&
+            driver->slot_idx == driver->rx.size_guess) {
+          // send a DMX event to the queue
           dmx_event_t event = {
               .status = DMX_OK,
               .size = driver->slot_idx,
@@ -172,6 +172,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
           driver->rx.event_sent = true;
         }
+        // TODO: handle RDM events
       }
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);
