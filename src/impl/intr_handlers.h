@@ -273,14 +273,8 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   bool task_awoken = false;
 
-  if (driver->slot_idx == -2) {
-    // start break
-    dmx_hal_inverse_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
-    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
-                          driver->tx.break_len);
-    ++driver->slot_idx;
-  } else if (driver->slot_idx == -1) {
-    // start mab
+  if (driver->slot_idx == -1) {
+    // end break, start mab
     dmx_hal_inverse_signal(&hardware->hal, 0);
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
                           driver->tx.mab_len);
