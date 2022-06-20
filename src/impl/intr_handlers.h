@@ -145,7 +145,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         if (driver->slot_idx < driver->buf_size) {
           // there are slots remaining to be read
           int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
-          uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
+          uint8_t *const slot_ptr = driver->buffer + driver->slot_idx;
           dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, &rd_len);
           driver->slot_idx += rd_len;
         } else {
@@ -228,9 +228,9 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clr_intsts_mask(&hardware->hal, UART_INTR_TX_BRK_IDLE);
     }
 
-    // disable interrupts that shouldn't be handled
     else {
-      // this code shouldn't be called but it can prevent crashes
+      // disable interrupts that shouldn't be handled
+      // this code shouldn't be called but it can prevent crashes when it is
       portENTER_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_disable_intr_mask(&hardware->hal, intr_flags);
       portEXIT_CRITICAL_ISR(&hardware->spinlock);
