@@ -25,8 +25,11 @@ extern "C" {
  * @brief The default configuration for DMX. This macro may be used to
  * initialize a dmx_config_t to the standard's defined typical values.
  */
-//#define DMX_DEFAULT_CONFIG 
-//  { .baud_rate = DMX_TYP_BAUD_RATE, .break_num = 44, .idle_num = 3, }
+#define DMX_DEFAULT_CONFIG                                                   \
+  {                                                                          \
+    .buffer_size = DMX_MAX_PACKET_SIZE, .rst_seq_hw = DMX_USE_TIMER_GROUP_0, \
+    .timer_idx = 0, .intr_alloc_flags = ESP_INTR_FLAG_IRAM                   \
+  }
 
 /// Driver Functions  #########################################################
 /**
