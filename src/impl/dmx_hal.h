@@ -225,8 +225,8 @@ IRAM_ATTR uint32_t dmx_hal_get_baudrate(uart_hal_context_t *hal) {
  * RX timeout interrupt.
  *
  * @param hal Pointer to a UART HAL context.
- * @param rx_timeout_threshold The RX timeout duration (unit: time of sending one
- * byte).
+ * @param rx_timeout_threshold The RX timeout duration (unit: time of sending
+ * one byte).
  */
 IRAM_ATTR void dmx_hal_set_rx_timeout(uart_hal_context_t *hal,
                                       const uint8_t rx_timeout_threshold) {
