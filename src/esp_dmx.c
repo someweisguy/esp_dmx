@@ -626,7 +626,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
     // ready and start the hardware timer for a reset sequence
 
-    driver->slot_idx = -1; // -1 == DMX_MAB
+    driver->slot_idx = -1;
     timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
                           driver->tx.break_len);
