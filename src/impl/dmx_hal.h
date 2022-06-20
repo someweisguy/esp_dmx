@@ -69,26 +69,6 @@ IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
 }
 
 /**
- * @brief Gets the number of bits the UART remains idle after transmitting data.
- * 
- * @param hal Pointer to a UART HAL context.
- * @return The number of bits the UART is idle after transmitting data. 
- */
-uint16_t dmx_hal_get_idle_num(uart_hal_context_t *hal) {
-  return dmx_ll_get_idle_num(hal->dev);
-}
-
-/**
- * @brief Gets the number of bits the UART sends as break.
- * 
- * @param hal Pointer to a UART HAL context.
- * @return The number of bits the UART sends as a break after transmitting.
- */
-uint8_t dmx_hal_get_break_num(uart_hal_context_t *hal) {
-  return dmx_ll_get_break_num(hal->dev);
-}
-
-/**
  * @brief Gets the UART rx timeout (unit: time it takes for one word to be sent at current baud_rate).
  * 
  * @param hal Pointer to a UART HAL context.

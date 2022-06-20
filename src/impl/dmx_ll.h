@@ -20,44 +20,6 @@ extern "C" {
  * 
  * */
 
-FORCE_INLINE_ATTR uint16_t dmx_ll_get_idle_num(uart_dev_t *hw) {
-#if defined(CONFIG_IDF_TARGET_ESP32)
-  return hw->idle_conf.tx_idle_num;
-// #elif defined(CONFIG_IDF_TARGET_ESP32C2)
-  // TODO: Not supported yet
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  return hw->idle_conf.tx_idle_num;
-// #elif defined(CONFIG_IDF_TARGET_ESP32H2)
-  // TODO: Not supported yet
-#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-  return hw->idle_conf.tx_idle_num;
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  return hw->uart_idle_conf_reg_t.tx_idle_num;
-#else
-#define DMX_GET_IDLE_NUM_NOT_IMPLEMENTED
-#endif
-  return 5; // default 20 microseconds (assuming 250k baud)
-}
-
-FORCE_INLINE_ATTR uint8_t dmx_ll_get_break_num(uart_dev_t *hw) {
-#if defined(CONFIG_IDF_TARGET_ESP32)
-  return hw->idle_conf.tx_brk_num;
-// #elif defined(CONFIG_IDF_TARGET_ESP32C2)
-  // TODO: Not supported yet
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  return hw->txbrk_conf.tx_brk_num;
-// #elif defined(CONFIG_IDF_TARGET_ESP32H2)
-  // TODO: Not supported yet
-#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-  return hw->idle_conf.tx_brk_num;
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  return hw->uart_txbrk_conf_reg_t.tx_brk_num;
-#else
-#define DMX_GET_BREAK_NUM_NOT_IMPLEMENTED
-#endif
-  return 45; // default 180 microseconds (assuming 250k baud)
-}
-
 FORCE_INLINE_ATTR uint32_t dmx_ll_get_rx_level(uart_dev_t *hw) {
   #if defined(CONFIG_IDF_TARGET_ESP32)
   return hw->status.rxd;
