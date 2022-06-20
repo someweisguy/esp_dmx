@@ -806,7 +806,7 @@ esp_err_t dmx_wait_write_sync(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
                       "driver not installed");
   
-  // TODO: warn if ticks_to_wait <= portTICK_PERIOD_MS
+  // TODO: should we warn if ticks_to_wait <= portTICK_PERIOD_MS?
 
   if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sync_sem, ticks_to_wait))
     return ESP_ERR_TIMEOUT;
@@ -824,7 +824,7 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
   /* Just try to take the "done" semaphore and give it back immediately. */
 
-  // TODO: warn if ticks_to_wait <= portTICK_PERIOD_MS
+  // TODO: should we warn if ticks_to_wait <= portTICK_PERIOD_MS?
 
   if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sent_sem, ticks_to_wait))
     return ESP_ERR_TIMEOUT;
