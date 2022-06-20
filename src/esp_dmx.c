@@ -234,20 +234,10 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (driver->tx.sent_sem) vSemaphoreDelete(driver->tx.sent_sem);
   if (driver->tx.sync_sem) vSemaphoreDelete(driver->tx.sync_sem);
 
-  // free driver
+  // free driver and disable module
   heap_caps_free(driver);
   dmx_driver[dmx_num] = NULL;
-
-  // disable rtc clock (if using it) and uart peripheral module
-#if SOC_UART_SUPPORT_RTC_CLK
-  uart_sclk_t sclk = 0;
-  dmx_hal_get_sclk(&(dmx_context[dmx_num].hal), &sclk);
-  if (sclk == UART_SCLK_RTC) {
-    rtc_clk_disable(dmx_num);
-  }
-#endif
   dmx_module_disable(dmx_num);
-
 
   return ESP_OK;
 }
