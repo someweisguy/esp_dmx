@@ -61,7 +61,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_event_t event = {
             .status = DMX_ERR_DATA_OVERFLOW,
             .size = driver->slot_idx + rxfifo_len,
-            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}
+            .timing = {
+                .brk = driver->rx.break_len,
+                .mab = driver->rx.mab_len
+            }
           };
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
