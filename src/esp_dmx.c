@@ -107,18 +107,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   }
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // allocate driver double-buffer
-  int alloc_size = dmx_config->buffer_size;
-#ifdef ARDUINO
-  /* Arduino only allocates 4-byte aligned memory on the heap. If the size of
-  the double-buffer isn't divisible by 4, when it is later freed by calling
-  dmx_driver_delete() the heap will appear corrupted and the ESP32 will
-  crash. As a workaround for Arduino, we allocate extra bytes until the total
-  allocation is divisible by 4. These extra bytes are left unused. */
-  alloc_size += (dmx_config->buffer_size % 4);
-#endif
-  // TODO: try to heaps_cap_malloc the buffer to 8BIT to see if arduino still crashes
-  driver->buffer = malloc(sizeof(uint8_t) * alloc_size);
+  // allocate driver buffer
+  driver->buffer = heap_caps_malloc(dmx_config->buffer_size, mem_caps);
   if (driver->buffer == NULL) {
     ESP_LOGE(TAG, "DMX driver buffer malloc error");
     dmx_driver_delete(dmx_num);
