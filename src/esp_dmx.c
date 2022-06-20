@@ -145,9 +145,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
 
   // allocate semaphores
   driver->tx.sync_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sync_sem_buf);
-  xSemaphoreGive(dmx_driver[dmx_num]->tx.sync_sem);
+  xSemaphoreGive(driver->tx.sync_sem);
   driver->tx.sent_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sent_sem_buf);
-  xSemaphoreGive(dmx_driver[dmx_num]->tx.sent_sem);
+  xSemaphoreGive(driver->tx.sent_sem);
 
   // initialize general driver variables
   driver->dmx_num = dmx_num;
