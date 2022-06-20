@@ -72,7 +72,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
                       "dmx_config is null");
   ESP_RETURN_ON_FALSE(dmx_config->buffer_size <= DMX_MAX_PACKET_SIZE, 
                       ESP_ERR_INVALID_ARG, TAG, "buffer_size error");
-  ESP_RETURN_ON_FALSE(dmx_config->rst_seq_hw == DMX_USE_UART || 
+  ESP_RETURN_ON_FALSE(dmx_config->rst_seq_hw == DMX_USE_BUSY_WAIT || 
                       dmx_config->rst_seq_hw < DMX_RESET_SEQUENCE_MAX, 
                       ESP_ERR_INVALID_ARG, TAG, "rst_seq_hw error");
   ESP_RETURN_ON_FALSE(dmx_config->timer_idx < TIMER_MAX, 
@@ -162,9 +162,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags, 
                  &dmx_intr_handler, driver, &driver->uart_isr_handle);
   const dmx_intr_config_t dmx_intr_conf = {
-      .rxfifo_full_thresh = DMX_UART_FULL_DEFAULT,
-      .rx_timeout_thresh = DMX_UART_TIMEOUT_DEFAULT,
-      .txfifo_empty_intr_thresh = DMX_UART_EMPTY_DEFAULT,
+      .rxfifo_full_threshold = DMX_UART_FULL_DEFAULT,
+      .rx_timeout_threshold = DMX_UART_TIMEOUT_DEFAULT,
+      .txfifo_empty_threshold = DMX_UART_EMPTY_DEFAULT,
   };
   dmx_intr_config(dmx_num, &dmx_intr_conf);
 
@@ -175,7 +175,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   portEXIT_CRITICAL(&hardware->spinlock);
 
   // install timer interrupt
-  if (driver->rst_seq_hw != DMX_USE_UART) {
+  if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
     const timer_config_t timer_conf = {
         .divider = 80,  // 80MHz / 80 == 1MHz resolution timer
         .counter_dir = TIMER_COUNT_UP,
@@ -208,7 +208,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (err) return err;
 
   // deinit timer and free timer isr
-  if (driver->rst_seq_hw != DMX_USE_UART) {
+  if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
     timer_deinit(driver->rst_seq_hw, driver->timer_idx);
   }
   
@@ -461,7 +461,8 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
 
 
 /// Interrupt Configuration  ##################################################
-esp_err_t dmx_intr_config(dmx_port_t dmx_num, dmx_intr_config_t *intr_conf) {
+esp_err_t dmx_intr_config(dmx_port_t dmx_num,
+                          const dmx_intr_config_t *intr_conf) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
   ESP_RETURN_ON_FALSE(intr_conf != NULL, ESP_ERR_INVALID_ARG, TAG,
@@ -470,11 +471,11 @@ esp_err_t dmx_intr_config(dmx_port_t dmx_num, dmx_intr_config_t *intr_conf) {
   dmx_hal_clr_intsts_mask(&(dmx_context[dmx_num].hal), DMX_ALL_INTR_MASK);
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_hal_set_rx_timeout(&(dmx_context[dmx_num].hal),
-                         intr_conf->rx_timeout_thresh);
+                         intr_conf->rx_timeout_threshold);
   dmx_hal_set_rxfifo_full_thr(&(dmx_context[dmx_num].hal),
-                              intr_conf->rxfifo_full_thresh);
+                              intr_conf->rxfifo_full_threshold);
   dmx_hal_set_txfifo_empty_thr(&(dmx_context[dmx_num].hal),
-                               intr_conf->txfifo_empty_intr_thresh);
+                               intr_conf->txfifo_empty_threshold);
   portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 
   return ESP_OK;
@@ -620,7 +621,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   driver->tx.size = num_slots;
 
-  if (driver->rst_seq_hw != DMX_USE_UART) {
+  if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
     // ready and start the hardware timer for a reset sequence
 
     driver->slot_idx = -1; // -1 == DMX_MAB
