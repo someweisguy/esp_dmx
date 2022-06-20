@@ -45,8 +45,6 @@ extern "C" {
   (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE | DMX_INTR_TX_IDLE_DONE)
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
-  const int64_t now = esp_timer_get_time();
-
   // initialize pointer consts - may be optimized away by compiler
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
