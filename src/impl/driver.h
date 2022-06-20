@@ -12,16 +12,16 @@ extern "C" {
 #include "hal/uart_hal.h"
 #include "soc/uart_struct.h"
 
-#define DMX_CONTEX_INIT_DEF(uart_num) {\
-    .hal.dev = UART_LL_GET_HW(uart_num),\
-    .spinlock = portMUX_INITIALIZER_UNLOCKED,\
-    .hw_enabled = false,\
-}
+#define DMX_CONTEX_INIT_DEF(uart_num)                              \
+  {                                                                \
+    .hal.dev = UART_LL_GET_HW(uart_num),                           \
+    .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
+  }
 
 /* This is the DMX driver object used to handle tx'ing and rx'ing DMX data on
 the UART port. It stores all the information needed to run and analyze DMX
-including the double-buffer used as an intermediary to store reads/writes on
-the UART bus. */
+including the buffer used as an intermediary to store reads/writes on the UART
+bus. */
 typedef struct {
   dmx_port_t dmx_num;             // The driver's DMX port number.
   rst_seq_hw_t rst_seq_hw;        // The hardware being used to transmit the DMX reset sequence. Can be either the UART or an ESP32 timer group.
