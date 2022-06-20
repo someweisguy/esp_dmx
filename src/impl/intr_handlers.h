@@ -274,7 +274,7 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
 static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
-  bool task_awoken = false;
+  int task_awoken = false;
 
   if (driver->slot_idx == -1) {
     // end break, start mab
