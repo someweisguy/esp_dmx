@@ -163,8 +163,8 @@ void dmx_hal_init(uart_hal_context_t *hal) {
   uart_ll_set_parity(hal->dev, UART_PARITY_DISABLE);
   uart_ll_set_data_bit_num(hal->dev, UART_DATA_8_BITS);
   uart_ll_set_stop_bits(hal->dev, UART_STOP_BITS_2);
-  uart_ll_tx_break(hal->dev, 45); // 45 == 180us
-  uart_ll_set_tx_idle_num(hal->dev, 5); // 20 == 20us
+  uart_ll_tx_break(hal->dev, 0);
+  uart_ll_set_tx_idle_num(hal->dev, 0);
   uart_ll_set_hw_flow_ctrl(hal->dev, UART_HW_FLOWCTRL_DISABLE, 100);
 
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
