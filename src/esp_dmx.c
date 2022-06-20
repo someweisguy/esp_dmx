@@ -90,20 +90,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
     
   // configure the uart hardware
   dmx_module_enable(dmx_num);
-  uint8_t brk_num = 0;
-  uint16_t idle_num = 0;
-  if (dmx_config->rst_seq_hw == DMX_USE_UART) {
-    // user is not using a hardware timer for the reset sequence
-    brk_num = 44;
-    idle_num = 3;
-  }
   dmx_context_t *const hardware = &dmx_context[dmx_num];
   portENTER_CRITICAL(&hardware->spinlock);
   dmx_hal_init(&hardware->hal);
   dmx_hal_set_sclk(&hardware->hal, UART_SCLK_APB);
   dmx_hal_set_baudrate(&hardware->hal, DMX_TYP_BAUD_RATE);
-  dmx_hal_set_tx_break_num(&hardware->hal, brk_num);
-  dmx_hal_set_tx_idle_num(&hardware->hal, idle_num);
   portEXIT_CRITICAL(&hardware->spinlock);
 
   // flush both fifos
@@ -154,7 +145,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
 
   // allocate semaphores
   driver->tx.sync_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sync_sem_buf);
+  xSemaphoreGive(dmx_driver[dmx_num]->tx.sync_sem);
   driver->tx.sent_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sent_sem_buf);
+  xSemaphoreGive(dmx_driver[dmx_num]->tx.sent_sem);
 
   // initialize general driver variables
   driver->dmx_num = dmx_num;
@@ -301,10 +294,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     // disable sniffer if it is enabled
     if (dmx_driver[dmx_num]->rx.intr_io_num != -1) dmx_sniffer_disable(dmx_num);
 
-    dmx_driver[dmx_num]->slot_idx = 0;
     dmx_driver[dmx_num]->mode = DMX_MODE_WRITE;
-    xSemaphoreGive(dmx_driver[dmx_num]->tx.sent_sem);
-    xSemaphoreGive(dmx_driver[dmx_num]->tx.sync_sem);
     dmx_hal_txfifo_rst(&(dmx_context[dmx_num].hal));
     bzero(dmx_driver[dmx_num]->buffer, dmx_driver[dmx_num]->buf_size);
 
@@ -651,40 +641,18 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     return ESP_FAIL;
   }
 
-  /* There are two modes in which this library can transmit DMX: reset-sequence
-  first mode or reset-sequence last mode. The default is reset-sequence first
-  mode. This mode uses one of the ESP32's hardware timers to precisely send a 
-  break and mark-after-break to DMX listener devices before sending the DMX data
-  packet. Reset-sequence last mode takes advantage of the ESP32 UART hardware to 
-  send a break and mark-after-break after the data packet is sent. When using 
-  this library "correctly," there shouldn't be any issues because the data 
-  stream will be continuous - even though the hardware sends the break and 
-  mark-after-break after the packet, it will LOOK like it is being sent before 
-  the packet. However if the byte stream isn't continuous, we need to send a 
-  break and mark-after-break before we send the packet. This is done by 
-  inverting the line, busy waiting, un-inverting the line and busy waiting 
-  again. The busy waiting isn't very accurate (it's usually accurate within
-  around 30us if the task isn't preempted), but it can be used when the user 
-  is unable to use one of the available hardware timers on the ESP32. */
-
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+  driver->tx.size = num_slots;
 
   if (driver->rst_seq_hw != DMX_USE_UART) {
-    // driver is using hardware timers for reset sequence
-
-    // ready the dmx driver to send a reset sequence
-    driver->tx.size = num_slots;
-    driver->slot_idx = -2; // -2 == DMX_BREAK, -1 == DMX_MAB
-
     // ready and start the hardware timer for a reset sequence
+    driver->slot_idx = -2; // -2 == DMX_BREAK, -1 == DMX_MAB
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, 0);
     timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
     timer_start(driver->rst_seq_hw, driver->timer_idx);
+
   } else {
     // driver is using uart hardware for reset sequence
-    // TODO: remove uart hardware mode entirely and replace with busy_wait
-
-
     uint32_t break_len;
     uint32_t mab_len;
     portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
@@ -699,14 +667,11 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     desired, the below code will cause problems. 
     */
 
-    // invert the tx line and busy wait...
+    // invert, busy-wait, un-invert, busy-wait, take semaphore
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), UART_SIGNAL_TXD_INV);
     ets_delay_us(break_len);
-
-    // un-invert the tx line and busy wait...
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
     ets_delay_us(mab_len);
-
     xSemaphoreTake(driver->tx.sync_sem, 0);
 
     // write data to tx FIFO
