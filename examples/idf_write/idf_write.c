@@ -3,8 +3,8 @@
   ESP-IDF DMX Write
 
   Writes data to the DMX bus. The value of every byte in the DMX packet (except
-  the start code) is incremented by 1 every 1 second. After the twentieth packet
-  update, the DMX driver will be uninstalled and the program will terminate.
+  the start code) is incremented by 1 every 1 second. After packet update 
+  thirty, the DMX driver will be uninstalled and the program will terminate.
 
   Note: this example is for use with the ESP-IDF. It will not work on Arduino!
 
