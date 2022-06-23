@@ -616,6 +616,10 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sent_sem, 0)) {
     return ESP_FAIL;
   }
+  if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sync_sem, 0)) {
+    // this code should never be called
+    return ESP_FAIL;
+  }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   driver->tx.size = num_slots;

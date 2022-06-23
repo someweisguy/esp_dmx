@@ -283,11 +283,6 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
                           driver->tx.mab_len);
     ++driver->slot_idx;
   } else {
-    // block tasks until fifo is written
-    // TODO: does this actually do anything having this here? (as opposed to 
-    //  having it in the dmx_send_packet() function)
-    xSemaphoreTakeFromISR(driver->tx.sync_sem, &task_awoken);
-
     // write data to tx FIFO
     dmx_hal_write_txfifo(&hardware->hal, driver->buffer, driver->tx.size,
                          &driver->slot_idx);
