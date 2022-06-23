@@ -26,7 +26,7 @@
 static const char* TAG = "main";
 
 // declare the user buffer to read in DMX data
-static uint8_t data[DMX_MAX_PACKET_SIZE] = {0xaa};
+static uint8_t data[DMX_MAX_PACKET_SIZE] = {};
 
 void app_main() {
   // use DMX port 2
