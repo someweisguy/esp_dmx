@@ -21,7 +21,7 @@
 // The default value for the TX FIFO empty interrupt threshold.
 #define DMX_UART_EMPTY_DEFAULT (8)
 // The default value for the UART timeout interrupt.
-#define DMX_UART_TIMEOUT_DEFAULT (63)
+#define DMX_UART_TIMEOUT_DEFAULT (45)
 
 #define DMX_FUNCTION_NOT_SUPPORTED()                         \
   ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, \
