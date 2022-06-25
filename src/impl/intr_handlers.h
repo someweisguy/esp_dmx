@@ -164,23 +164,37 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_hal_rxfifo_rst(&hardware->hal);
       }
 
-      // check if an event needs to be sent to the queue
+      // Check if an event needs to be sent
       if (!driver->rx.event_sent) {
-        if (driver->buffer[0] == DMX_SC &&
-            driver->slot_idx == driver->rx.size_guess) {
-          // send a DMX event to the queue
-          dmx_event_t event = {
-              .status = DMX_OK,
-              .size = driver->slot_idx,
-              .timing = {
-                  .brk = driver->rx.break_len,
-                  .mab = driver->rx.mab_len
-              }
-          };
+        const uint8_t sc = driver->buffer[0];
+        if (sc == RDM_SC && driver->slot_idx > 20) {
+          // Received a standard RDM packet
+
+        } else if ((sc == RDM_PREAMBLE || sc == RDM_DELIMITER) &&
+                   driver->slot_idx > RDM_DISCOVERY_RESP_LEN) {
+          // Received an RDM DISC_UNIQUE_BRANCH response
+          // Find the length of the preamble (can be 0-7 bytes)
+          int preamble_len = 0;
+          for (; preamble_len <= RDM_PREAMBLE_MAX_LEN; ++preamble_len) {
+            if (driver->buffer[preamble_len] == RDM_DELIMITER) break;
+          }
+          // Send an event if we've received a full response
+          if (driver->slot_idx == preamble_len + RDM_DISCOVERY_RESP_LEN) {
+            dmx_event_t event = {.status = DMX_OK,
+                                 .size = driver->slot_idx,
+                                 .timing = {.brk = 0, .mab = 0}};
+            xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+            driver->rx.event_sent = true;
+          }
+        } else if (driver->slot_idx == driver->rx.size_guess) {
+          // Received a non-RDM packet (we can assume it's DMX)
+          dmx_event_t event = {.status = DMX_OK,
+                               .size = driver->slot_idx,
+                               .timing = {.brk = driver->rx.break_len,
+                                          .mab = driver->rx.mab_len}};
           xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
           driver->rx.event_sent = true;
         }
-        // TODO: handle RDM events
       }
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);

@@ -4,6 +4,12 @@
 extern "C" {
 #endif
 
+/* RDM discovery packet descriptors */
+#define RDM_DISCOVERY_RESP_LEN (17)  // Length of the RDM DISC_UNIQUE_BRANCH response after the preamble.
+#define RDM_PREAMBLE_MAX_LEN (7)  // Maximum length of the RDM DISC_UNIQUE_BRANCH response preamble.
+#define RDM_DELIMITER (0xaa)  // RDM DISC_UNIQUE_BRANCH response delimiter.
+#define RDM_PREAMBLE  (0xfe)  // RDM DISC_UNIQUE_BRANCH response preamble byte.
+
 /* DMX shared parameters */
 #define DMX_MIN_BAUD_RATE (245000)  // DMX minimum baud rate.
 #define DMX_TYP_BAUD_RATE (250000)  // DMX typical baud rate.
