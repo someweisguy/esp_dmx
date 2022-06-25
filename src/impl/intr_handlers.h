@@ -278,8 +278,11 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   if (driver->slot_idx == -1) {
     // end break, start mab
     dmx_hal_inverse_signal(&hardware->hal, 0);
-    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
-                          driver->tx.mab_len);
+    uint32_t mab_len;
+    portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    mab_len = driver->tx.mab_len;
+    portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, mab_len);
     ++driver->slot_idx;
   } else {
     // write data to tx FIFO
