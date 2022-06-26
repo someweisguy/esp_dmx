@@ -4,6 +4,8 @@
 extern "C" {
 #endif
 
+#define RDM_MESSAGE_LEN_INDEX (2)  // Index of a standard RDM packet message length byte.
+
 /* RDM discovery packet descriptors */
 #define RDM_DISCOVERY_RESP_LEN (17)  // Length of the RDM DISC_UNIQUE_BRANCH response after the preamble.
 #define RDM_PREAMBLE_MAX_LEN (7)  // Maximum length of the RDM DISC_UNIQUE_BRANCH response preamble.
