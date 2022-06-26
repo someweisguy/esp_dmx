@@ -167,9 +167,18 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // Check if an event needs to be sent
       if (!driver->rx.event_sent) {
         const uint8_t sc = driver->buffer[0];
-        if (sc == RDM_SC && driver->slot_idx > 20) {
-          // Received a standard RDM packet
-
+        if (sc == RDM_SC && driver->slot_idx > RDM_MESSAGE_LEN_INDEX) {
+          // Received a standard RDM packet and its message length
+          // TODO: verify this works
+          // The RDM message length does not include the checksum
+          if (driver->slot_idx == driver->buffer[RDM_MESSAGE_LEN_INDEX] + 2) {
+            dmx_event_t event = {.status = DMX_OK,
+                                 .size = driver->slot_idx,
+                                 .timing = {.brk = driver->rx.break_len,
+                                            .mab = driver->rx.mab_len}};
+            xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+            driver->rx.event_sent = true;
+          }
         } else if ((sc == RDM_PREAMBLE || sc == RDM_DELIMITER) &&
                    driver->slot_idx > RDM_DISCOVERY_RESP_LEN) {
           // Received an RDM DISC_UNIQUE_BRANCH response
