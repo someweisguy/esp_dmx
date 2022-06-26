@@ -32,6 +32,7 @@ typedef struct {
   uint8_t *buffer;                // Used for reading or writing DMX data.
   int16_t slot_idx;               // Index of the current slot that is being rx'd or tx'd.
 
+  // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
   
   /* These variables are used when transmitting DMX. */
