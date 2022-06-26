@@ -4,6 +4,14 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Takes a UID from a big-Endian buffer and converts it to a
+ * little-Endian 64-bit integer. The buffer must be at least 6 bytes long.
+ */
+#define RDM_UID_BUFFER_TO_UINT64(buf)                              \
+  ((uint64_t)(buf[5] | buf[4] << 8 | buf[3] << 16 | buf[2] << 24 | \
+              (uint64_t)buf[1] << 32 | (uint64_t)buf[0] << 40))
+
 #define RDM_MESSAGE_LEN_INDEX (2)  // Index of a standard RDM packet message length byte.
 
 /* RDM discovery packet descriptors */

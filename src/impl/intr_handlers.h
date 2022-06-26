@@ -188,14 +188,33 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           for (; preamble_len <= RDM_PREAMBLE_MAX_LEN; ++preamble_len) {
             if (driver->buffer[preamble_len] == RDM_DELIMITER) break;
           }
-          // Send an event if we've received a full response
+          // Send an event if a full response is received
           if (driver->slot_idx == preamble_len + RDM_DISCOVERY_RESP_LEN) {
-            dmx_event_t event = {.status = DMX_OK,
-                                 .is_rdm = true,
-                                 .size = driver->slot_idx,
-                                 .timing = {.brk = 0, .mab = 0}};
-            xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-            driver->rx.event_sent = true;
+            // Decode the RDM discovery data
+            uint8_t decoded_data[8];  // 6 bytes for UID, 2 for checksum
+            const int data_start = preamble_len + 1;
+            for (int i = data_start, j = 0; i < driver->slot_idx; i += 2, ++j) {
+              decoded_data[j] = ((driver->buffer[i] & ~0xaa) |
+                                 (driver->buffer[i + 1] & ~0x55));
+            }
+            // Calculate the checksum (sum the first 12 bytes) and compare
+            uint16_t calculated_sum = 0;
+            for (int i = data_start; i < data_start + 12; ++i) {
+              calculated_sum += driver->buffer[i];
+            }
+            const uint16_t checksum = decoded_data[6] << 8 | decoded_data[7];
+            if (calculated_sum == checksum) {
+              const uint64_t uid = RDM_UID_BUFFER_TO_UINT64(decoded_data);
+              dmx_event_t event = {.status = DMX_OK,
+                                   .is_rdm = true,
+                                   .size = driver->slot_idx,
+                                   .rdm = {.source_uid = uid}};
+              xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+              driver->rx.event_sent = true;
+            } else {
+              // The checksum could not be verified
+              // TODO: send event with checksum error status
+            }
           }
         } else if (driver->slot_idx == driver->rx.size_guess) {
           // Received a non-RDM packet (we can assume it's DMX)

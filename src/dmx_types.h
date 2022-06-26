@@ -125,6 +125,7 @@ typedef struct {
    * @brief The size of the received DMX packet in bytes.
    */
   size_t size;
+
   /**
    * @brief Timing values received from the DMX sniffer.
    */
@@ -139,6 +140,10 @@ typedef struct {
      */
     int32_t mab;
   } timing;
+  struct {
+    uint64_t source_uid;
+    uint64_t destination_uid;
+  } rdm;
   /**
    * @brief True if the event was sent to the event queue during the next DMX
    * packet's reset sequence.
