@@ -173,6 +173,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           // The RDM message length does not include the checksum
           if (driver->slot_idx == driver->buffer[RDM_MESSAGE_LEN_INDEX] + 2) {
             dmx_event_t event = {.status = DMX_OK,
+                                 .is_rdm = true,
                                  .size = driver->slot_idx,
                                  .timing = {.brk = driver->rx.break_len,
                                             .mab = driver->rx.mab_len}};
@@ -190,6 +191,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           // Send an event if we've received a full response
           if (driver->slot_idx == preamble_len + RDM_DISCOVERY_RESP_LEN) {
             dmx_event_t event = {.status = DMX_OK,
+                                 .is_rdm = true,
                                  .size = driver->slot_idx,
                                  .timing = {.brk = 0, .mab = 0}};
             xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
@@ -198,6 +200,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         } else if (driver->slot_idx == driver->rx.size_guess) {
           // Received a non-RDM packet (we can assume it's DMX)
           dmx_event_t event = {.status = DMX_OK,
+                               .is_rdm = false,
                                .size = driver->slot_idx,
                                .timing = {.brk = driver->rx.break_len,
                                           .mab = driver->rx.mab_len}};
@@ -208,7 +211,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);
     } else if (intr_flags & DMX_INTR_RX_CLASH) {
-      // there was a clash on the DMX bus (multiple devices talking at once)
+      // Multiple devices sent data at once (typical of RDM discovery)
       // TODO: this code should only run when using RDM
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_CLASH);

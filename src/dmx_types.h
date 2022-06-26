@@ -118,6 +118,10 @@ typedef struct {
    */
   dmx_event_status_t status;
   /**
+   * @brief Is true if the packet is an RDM packet.
+   */
+  bool is_rdm;
+  /**
    * @brief The size of the received DMX packet in bytes.
    */
   size_t size;
