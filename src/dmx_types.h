@@ -106,7 +106,11 @@ typedef enum {
   /**
    * @brief The UART overflowed causing loss of data.
    */
-  DMX_ERR_DATA_OVERFLOW
+  DMX_ERR_DATA_OVERFLOW,
+  /**
+   * @brief Timed out waiting for a DMX or RDM packet.
+   */
+  DMX_ERR_TIMEOUT
 } dmx_event_status_t;
 
 /**

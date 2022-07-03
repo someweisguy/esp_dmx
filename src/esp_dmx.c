@@ -130,8 +130,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   }
 
   // allocate semaphores
-  driver->tx.sync_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sync_sem_buf);
-  xSemaphoreGive(driver->tx.sync_sem);
   driver->tx.sent_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sent_sem_buf);
   xSemaphoreGive(driver->tx.sent_sem);
 
@@ -142,6 +140,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->slot_idx = -1;  // driver starts in error state
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
+
+  driver->timeout_running = false;
 
   // initialize driver tx variables
   driver->tx.break_len = DMX_TX_TYP_SPACE_FOR_BRK_US;
@@ -218,7 +218,6 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   if (driver->buffer[0]) free(driver->buffer);
   if (driver->rx.queue) vQueueDelete(dmx_driver[dmx_num]->rx.queue);
   if (driver->tx.sent_sem) vSemaphoreDelete(driver->tx.sent_sem);
-  if (driver->tx.sync_sem) vSemaphoreDelete(driver->tx.sync_sem);
 
   // free driver and disable module
   heap_caps_free(driver);
@@ -616,10 +615,6 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sent_sem, 0)) {
     return ESP_FAIL;
   }
-  if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sync_sem, 0)) {
-    // this code should never be called
-    return ESP_FAIL;
-  }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   driver->tx.size = num_slots;
@@ -658,7 +653,6 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     ets_delay_us(break_len);
     dmx_hal_inverse_signal(&(dmx_context[dmx_num].hal), 0);
     ets_delay_us(mab_len);
-    xSemaphoreTake(driver->tx.sync_sem, 0);
 
     // write data to tx FIFO
     int16_t wr_len;
@@ -671,19 +665,6 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
     dmx_hal_ena_intr_mask(&(dmx_context[dmx_num].hal), DMX_INTR_TX_ALL);
     portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
   }
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_wait_write_sync(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
-                      "driver not installed");
-
-  if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.sync_sem, ticks_to_wait))
-    return ESP_ERR_TIMEOUT;
-  xSemaphoreGive(dmx_driver[dmx_num]->tx.sync_sem);
 
   return ESP_OK;
 }

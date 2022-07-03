@@ -349,22 +349,6 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
 esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots);
 
 /**
- * @brief Wait until the DMX port is done writing data to the UART peripheral.
- * This function blocks the current task until the DMX port is finished writing
- * the DMX buffer. Calling dmx_write_packet() without calling this function
- * results in an asynchronous write. This means that writing to the DMX buffer
- * may result in a partial packet being overwritten as it is being transmitted.
- *
- * @param dmx_num The DMX port number.
- * @param ticks_to_wait The number of FreeRTOS ticks to wait.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- * @retval ESP_ERR_TIMEOUT on timeout.
- */
-esp_err_t dmx_wait_write_sync(dmx_port_t dmx_num, TickType_t ticks_to_wait);
-
-/**
  * @brief Wait until the DMX port is done transmitting. This function blocks
  * the current task until the DMX port is finished with data transmission.
  *

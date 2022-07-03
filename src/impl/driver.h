@@ -34,11 +34,10 @@ typedef struct {
 
   // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
+  bool timeout_running;
   
   /* These variables are used when transmitting DMX. */
   struct {
-    SemaphoreHandle_t sync_sem;     // Signals the frame has been written to the UART FIFO. The DMX buffer may be synchronously written when this semaphore is given.
-    StaticSemaphore_t sync_sem_buf; 
     SemaphoreHandle_t sent_sem;     // Signals that the packet has been fully sent. The DMX driver is ready to send another.
     StaticSemaphore_t sent_sem_buf;
 

@@ -37,12 +37,9 @@ extern "C" {
 // Interrupt mask that is triggered when the UART has finished writing data.
 #define DMX_INTR_TX_DONE (UART_INTR_TX_DONE)
 
-// Interrupt mask that is triggered when the UART idle-after-packet is done.
-#define DMX_INTR_TX_IDLE_DONE (UART_INTR_TX_BRK_IDLE)
-
 // Interrupt mask that represents all send conditions.
 #define DMX_INTR_TX_ALL \
-  (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE | DMX_INTR_TX_IDLE_DONE)
+  (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE)
 
 // Interrupt mask for all interrupts.
 #define DMX_ALL_INTR_MASK (-1)
@@ -168,10 +165,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       if (!driver->rx.event_sent) {
         const uint8_t sc = driver->buffer[0];
         if (sc == RDM_SC && driver->slot_idx > RDM_MESSAGE_LEN_INDEX) {
-          // Received a standard RDM packet and its message length
-          // TODO: verify this works
-          // The RDM message length does not include the checksum
+          // Received a standard RDM packet and its message length slot. The
+          // message length does not include the checksum bytes.
           if (driver->slot_idx == driver->buffer[RDM_MESSAGE_LEN_INDEX] + 2) {
+            // TODO: verify checksum
             dmx_event_t event = {.status = DMX_OK,
                                  .is_rdm = true,
                                  .size = driver->slot_idx,
@@ -179,10 +176,19 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
                                             .mab = driver->rx.mab_len}};
             xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
             driver->rx.event_sent = true;
+            if (driver->mode == DMX_MODE_WRITE) {
+              // Turn bus around to write mode after receiving RDM response
+              portENTER_CRITICAL(&hardware->spinlock);
+              dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
+              dmx_hal_set_rts(&hardware->hal, 0);  // set rts high
+              // Transmit interrupts are enabled when data is transmitted
+              portEXIT_CRITICAL(&hardware->spinlock);
+              dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_ALL);
+            }
           }
         } else if ((sc == RDM_PREAMBLE || sc == RDM_DELIMITER) &&
                    driver->slot_idx > RDM_DISCOVERY_RESP_LEN) {
-          // Received an RDM DISC_UNIQUE_BRANCH response
+          // Received an RDM DISC_UNIQUE_BRANCH response.
           // Find the length of the preamble (can be 0-7 bytes)
           int preamble_len = 0;
           for (; preamble_len <= RDM_PREAMBLE_MAX_LEN; ++preamble_len) {
@@ -214,6 +220,15 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             } else {
               // The checksum could not be verified
               // TODO: send event with checksum error status
+            }
+            if (driver->mode == DMX_MODE_WRITE) {
+              // Turn bus around to write mode after receiving RDM response
+              portENTER_CRITICAL(&hardware->spinlock);
+              dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
+              dmx_hal_set_rts(&hardware->hal, 0);  // set rts high
+              // Transmit interrupts are enabled when data is transmitted
+              portEXIT_CRITICAL(&hardware->spinlock);
+              dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_ALL);
             }
           }
         } else if (driver->slot_idx == driver->rx.size_guess) {
@@ -252,30 +267,43 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         portENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_DATA);
         portEXIT_CRITICAL_ISR(&hardware->spinlock);
-        xSemaphoreGiveFromISR(driver->tx.sync_sem, &task_awoken);
       }
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DATA);
     } else if (intr_flags & DMX_INTR_TX_DONE) {
       // handle condition when packet has finished being sent
+        if (driver->buffer[0] == RDM_SC) {
+        // Turn the bus around to receive RDM response
+        // FIXME: There should be 176us-2.8ms between the controller sending a
+        // discovery packet and a response; AND 5.8ms-1s between the controller
+        // sending a discovery packet and the controller sending another packet.
 
-      // disable interrupt and unblock tasks
-      portENTER_CRITICAL(&hardware->spinlock);
-      dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_DONE);
-      portEXIT_CRITICAL(&hardware->spinlock);
+        const uint64_t discovery_timeout = 2800;
+        timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, 
+                              discovery_timeout);
+        timer_start(driver->rst_seq_hw, driver->timer_idx);
+        driver->timeout_running = true;
+
+        portENTER_CRITICAL(&hardware->spinlock);
+        dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
+        portEXIT_CRITICAL(&hardware->spinlock);
+        dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_ALL);
+        driver->slot_idx = -1;
+        driver->rx.event_sent = true;
+        dmx_hal_rxfifo_rst(&hardware->hal);
+        portENTER_CRITICAL(&hardware->spinlock);
+        dmx_hal_set_rts(&hardware->hal, 1);  // set rts low
+        dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
+        portEXIT_CRITICAL(&hardware->spinlock);
+      } else {
+        // disable interrupt and unblock tasks
+        portENTER_CRITICAL(&hardware->spinlock);
+        dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_DONE);
+        portEXIT_CRITICAL(&hardware->spinlock);
+      }
       xSemaphoreGiveFromISR(driver->tx.sent_sem, &task_awoken);
 
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DONE);
-    } else if (intr_flags & DMX_INTR_TX_IDLE_DONE) {
-      // handle RDM turnaround condition
-      // TODO
-
-      // disable interrupt
-      portENTER_CRITICAL(&hardware->spinlock);
-      dmx_hal_disable_intr_mask(&hardware->hal,DMX_INTR_TX_IDLE_DONE);
-      portEXIT_CRITICAL(&hardware->spinlock);
-
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_IDLE_DONE);
     }
 
     else {
@@ -319,8 +347,21 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
 static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
+  bool task_awoken = false;
 
-  if (driver->slot_idx == -1) {
+  if (driver->timeout_running) {
+    // Handle DMX timeouts
+    // send timeout event to event queue
+    dmx_event_t event = {
+        .status = DMX_ERR_TIMEOUT,
+        .is_rdm = true,
+        .size = driver->slot_idx,
+    };
+    xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+    driver->rx.event_sent = true;
+    driver->timeout_running = false;
+    timer_pause(driver->rst_seq_hw, driver->timer_idx);
+  } else if (driver->slot_idx == -1) {
     // end break, start mab
     dmx_hal_inverse_signal(&hardware->hal, 0);
     uint32_t mab_len;
@@ -343,7 +384,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     portEXIT_CRITICAL(&hardware->spinlock);
   }
 
-  return false;
+  return task_awoken;
 }
 
 #ifdef __cplusplus
