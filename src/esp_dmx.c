@@ -141,7 +141,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
 
-  driver->timeout_running = false;
+  driver->awaiting_response = false;
 
   // initialize driver tx variables
   driver->tx.break_len = DMX_TX_TYP_SPACE_FOR_BRK_US;

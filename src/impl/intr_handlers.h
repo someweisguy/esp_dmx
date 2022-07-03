@@ -282,7 +282,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, 
                               rdm_timeout);
         timer_start(driver->rst_seq_hw, driver->timer_idx);
-        driver->timeout_running = true;
+        driver->awaiting_response = true;
         portENTER_CRITICAL(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
         portEXIT_CRITICAL(&hardware->spinlock);
@@ -350,7 +350,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   bool task_awoken = false;
 
-  if (driver->timeout_running) {
+  if (driver->awaiting_response) {
     // Handle DMX timeouts
     // send timeout event to event queue
     dmx_event_t event = {
@@ -360,7 +360,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     };
     xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
     driver->rx.event_sent = true;
-    driver->timeout_running = false;
+    driver->awaiting_response = false;
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
   } else if (driver->slot_idx == -1) {
     // end break, start mab

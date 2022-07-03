@@ -34,7 +34,7 @@ typedef struct {
 
   // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
-  bool timeout_running;
+  bool awaiting_response;
   
   /* These variables are used when transmitting DMX. */
   struct {
