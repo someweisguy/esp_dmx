@@ -278,20 +278,17 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // handle condition when packet has finished being sent
         if (driver->buffer[0] == RDM_SC) {
         // Turn the bus around to receive RDM response
-        // FIXME: There should be 176us-2.8ms between the controller sending a
-        // discovery packet and a response; AND 5.8ms-1s between the controller
-        // sending a discovery packet and the controller sending another packet.
-
-        const uint64_t discovery_timeout = 2800;
+        const uint64_t rdm_timeout = 2800; // TODO: replace with macro
         timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, 
-                              discovery_timeout);
+                              rdm_timeout);
         timer_start(driver->rst_seq_hw, driver->timer_idx);
         driver->timeout_running = true;
-
         portENTER_CRITICAL(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
         portEXIT_CRITICAL(&hardware->spinlock);
         dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_ALL);
+        // RDM turnaround appears as a break. The slot_idx and event_sent will 
+        // be reset when the break is received.
         driver->slot_idx = -1;
         driver->rx.event_sent = true;
         dmx_hal_rxfifo_rst(&hardware->hal);
