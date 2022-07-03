@@ -110,7 +110,11 @@ typedef enum {
   /**
    * @brief Timed out waiting for a DMX or RDM packet.
    */
-  DMX_ERR_TIMEOUT
+  DMX_ERR_TIMEOUT,
+  /**
+   * @brief The RDM checksum is invalid.
+   */
+  DMX_ERR_INVALID_CHECKSUM
 } dmx_event_status_t;
 
 /**

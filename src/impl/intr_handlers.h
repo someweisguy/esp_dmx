@@ -219,7 +219,11 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
               driver->rx.event_sent = true;
             } else {
               // The checksum could not be verified
-              // TODO: send event with checksum error status
+              dmx_event_t event = {.status = DMX_ERR_INVALID_CHECKSUM,
+                                   .is_rdm = true,
+                                   .size = driver->slot_idx};
+              xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+              driver->rx.event_sent = true;
             }
             if (driver->mode == DMX_MODE_WRITE) {
               // Turn bus around to write mode after receiving RDM response
