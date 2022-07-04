@@ -730,7 +730,6 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
   }
   data[36] = checksum >> 8;
   data[37] = checksum;
-  MAC2STR()
 
   return dmx_write_packet(dmx_num, data, sizeof(data));
 }
