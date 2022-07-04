@@ -682,12 +682,17 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   return ESP_OK;
 }
 
-static void *uid_to_buf(const uint64_t uid, void *buf) {
-  // TODO: move this somewhere accessible to the user
-  for (int i = 0, bits = 40; i < 6; ++i, bits -= 8) {
-    ((uint8_t *)buf)[i] = uid >> bits;
-  }
-  return buf + 6;
+uint64_t buf_to_uid(const void *buf) {
+    uint64_t uid = 0;
+    const uint8_t *b = (uint8_t *)buf;
+    for (int bits = 40; bits >= 0; ++b, bits -= 8) uid = uid << 8 | *b;
+    return uid;
+}
+
+void *uid_to_buf(const uint64_t uid, void *buf) {
+    uint8_t *b = (uint8_t *)buf;
+    for (int bits = 40; bits >= 0; ++b, bits -= 8) *b = uid >> bits;
+    return b;
 }
 
 esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid, 
