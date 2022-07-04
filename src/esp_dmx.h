@@ -361,6 +361,9 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots);
  */
 esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
+esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid, 
+                              uint64_t upper_uid);
+
 #ifdef __cplusplus
 }
 #endif

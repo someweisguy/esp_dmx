@@ -681,3 +681,56 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
   return ESP_OK;
 }
+
+static void *uid_to_buf(const uint64_t uid, void *buf) {
+  // TODO: move this somewhere accessible to the user
+  for (int i = 0, bits = 40; i < 6; ++i, bits -= 8) {
+    ((uint8_t *)buf)[i] = uid >> bits;
+  }
+  return buf + 6;
+}
+
+esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid, 
+                              uint64_t upper_uid) {
+  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
+                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num] != NULL, ESP_ERR_INVALID_STATE, TAG,
+                      "driver not installed");
+  ESP_RETURN_ON_FALSE(dmx_driver[dmx_num]->mode == DMX_MODE_WRITE,
+                      ESP_ERR_INVALID_STATE, TAG, "not in write mode");
+  ESP_RETURN_ON_FALSE(lower_uid <= RDM_MAX_UID && upper_uid <= RDM_MAX_UID,
+                      ESP_ERR_INVALID_ARG, TAG,
+                      "uid must be lower than RDM_MAX_UID");
+  ESP_RETURN_ON_FALSE(lower_uid <= upper_uid, ESP_ERR_INVALID_ARG, TAG,
+                      "lower_uid must be less than or equal to upper_uid");
+
+  // Build the discovery packet
+  uint8_t data[38] = {
+      RDM_SC, RDM_SC_SUB,                  // RDM start code and sub-start code
+      0x24,                                // Message length (excludes checksum)
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  // Destination UID (broadcast)
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Source UID
+      0x00,                                // Transaction number (TN)
+      0x00,                                // Port ID
+      0x00,                                // Message count
+      0x00, 0x00,                          // Sub-device
+      0x10,                                // Command class (CC)
+      0x00, 0x01,                          // Parameter ID (PID)
+      0x0c,                                // Parameter data length (PDL)
+  };
+  // TODO: replace with actual device UID based on MAC
+  uid_to_buf(0xdeadbeef1234, &data[9]);  // Source UID
+  uid_to_buf(lower_uid, &data[24]);      // Lower UID
+  uid_to_buf(upper_uid, &data[30]);      // Upper UID
+
+  // Compute the checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < sizeof(data) - 2; ++i) {
+    checksum += data[i];
+  }
+  data[36] = checksum >> 8;
+  data[37] = checksum;
+  MAC2STR()
+
+  return dmx_write_packet(dmx_num, data, sizeof(data));
+}

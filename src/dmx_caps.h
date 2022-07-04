@@ -4,6 +4,10 @@
 extern "C" {
 #endif
 
+#define RDM_MAX_UID (0xfffffffffffe)  // The highest UID possible in RDM.
+
+#define RDM_SC_SUB (0x01)  // The RDM sub-start code.
+
 /**
  * @brief Takes a UID from a big-Endian buffer and converts it to a
  * little-Endian 64-bit integer. The buffer must be at least 6 bytes long.
