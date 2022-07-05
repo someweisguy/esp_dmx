@@ -45,6 +45,7 @@ extern "C" {
 #define DMX_ALL_INTR_MASK (-1)
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
+  const int64_t now = esp_timer_get_time();
   // initialize pointer consts - may be optimized away by compiler
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
@@ -276,6 +277,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DATA);
     } else if (intr_flags & DMX_INTR_TX_DONE) {
       // handle condition when packet has finished being sent
+        driver->tx.last_data = now;
         if (driver->buffer[0] == RDM_SC) {
         // Turn the bus around to receive RDM response
         const uint64_t rdm_timeout = 2800; // TODO: replace with macro

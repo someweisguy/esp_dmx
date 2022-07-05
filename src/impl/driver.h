@@ -43,6 +43,7 @@ typedef struct {
 
     uint32_t break_len;       // Length in microseconds of the transmitted break.
     uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
+    int64_t last_data;
 
     // TODO: every tx variable below this comment can be unionized with rx variables
 
