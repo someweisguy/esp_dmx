@@ -44,6 +44,16 @@ extern "C" {
 // Interrupt mask for all interrupts.
 #define DMX_ALL_INTR_MASK (-1)
 
+static inline uint16_t read16(const uint8_t *buf) { 
+  return buf[0] << 8 | buf[1];
+}
+
+static inline uint64_t read48(const uint8_t *buf) {
+  uint64_t uid = 0;
+  for (int bits = 40; bits >= 0; ++buf, bits -= 8) uid = uid << 8 | *buf;
+  return uid;
+}
+
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
   // initialize pointer consts - may be optimized away by compiler
@@ -209,14 +219,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             for (int i = data_start; i < data_start + 12; ++i) {
               calculated_sum += driver->buffer[i];
             }
-            const uint16_t checksum = decoded_data[6] << 8 | decoded_data[7];
+            const uint16_t checksum = read16(&decoded_data[6]);
             if (calculated_sum == checksum) {
-              const uint64_t uid = RDM_UID_BUFFER_TO_UINT64(decoded_data);
               dmx_event_t event = {
                   .status = DMX_OK,
                   .is_rdm = true,
                   .size = driver->slot_idx,
-                  .rdm = {.source_uid = uid,
+                  .rdm = {.source_uid = read48(decoded_data),
                           .command_class = DISCOVERY_COMMAND_RESPONSE}};
               xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
               driver->rx.event_sent = true;
