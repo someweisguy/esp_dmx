@@ -60,6 +60,23 @@ typedef enum {
   DMX_ERR_INVALID_CHECKSUM  // The RDM checksum is invalid.
 } dmx_event_status_t;
 
+
+typedef enum {
+  GET_COMMAND = 0x10,
+  GET_COMMAND_RESPONSE = 0x11,
+  SET_COMMAND = 0x20,
+  SET_COMMAND_RESPONSE = 0x21,
+  DISCOVERY_COMMAND = 0x30,
+  DISCOVERY_COMMAND_RESPONSE = 0x31
+} rdm_command_class_t;
+
+typedef enum {
+  RESPONSE_TYPE_ACK = 0x00,
+  RESPONSE_TYPE_ACK_TIMER = 0x01,
+  RESPONSE_TYPE_NACK_REASON = 0x02,
+  RESPONSE_TYPE_ACK_OVERFLOW = 0x03
+} rdm_response_type_t;
+
 /**
  * @brief DMX data events reported to the event queue when a packet is received.
  */
@@ -77,14 +94,14 @@ typedef struct {
     uint8_t transaction_num;
     union {
       uint8_t port_id;
-      uint8_t response_type;
+      rdm_response_type_t response_type;
     };
     uint8_t message_count;
     uint16_t sub_device;
-    uint8_t command_class;  // TODO: replace with enum?
+    rdm_command_class_t command_class;
     uint16_t parameter_id;  // TODO: replace with enum?
     uint8_t parameter_data_len;
-    bool checksum_is_valid;
+    void *parameter_data;
   } rdm;
   bool is_late;                // True if the event was sent to the event queue during the next DMX packet's reset sequence.
 } dmx_event_t;
