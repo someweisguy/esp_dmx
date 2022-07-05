@@ -17,18 +17,9 @@ typedef int dmx_port_t;
  * @brief DMX modes of operation.
  */
 typedef enum {
-  /**
-   * @brief DMX receive mode.
-   */
-  DMX_MODE_READ,
-  /**
-   * @brief DMX transmit mode.
-   */
-  DMX_MODE_WRITE,
-  /**
-   * @brief Maximum DMX mode value. Used for error checking.
-   */
-  DMX_MODE_MAX
+  DMX_MODE_READ,   // DMX receive mode.
+  DMX_MODE_WRITE,  // DMX transmit mode.
+  DMX_MODE_MAX     // Maximum DMX mode value. Used for error checking.
 } dmx_mode_t;
 
 /**
@@ -36,26 +27,12 @@ typedef enum {
  * to send the DMX reset sequence.
  */
 typedef enum {
-  /**
-   * @brief Use busy-waits to send the DMX reset sequence. Can be significantly
-   * less precise than using a hardware timer if there are multiple tasks to
-   * execute.
-   */
-  DMX_USE_BUSY_WAIT = -1,
-  /**
-   * @brief Use hardware timer group 0 to send the DMX reset sequence.
-   */
-  DMX_USE_TIMER_GROUP_0 = TIMER_GROUP_0,
+  DMX_USE_BUSY_WAIT = -1,                 // Use busy-waits to send the DMX reset sequence. Can be significantly less precise than using a hardware timer if there are multiple tasks to execute.
+  DMX_USE_TIMER_GROUP_0 = TIMER_GROUP_0,  // Use hardware timer group 0 to send the DMX reset sequence.
 #if SOC_TIMER_GROUPS > 1
-  /**
-   * @brief Use hardware timer group 1 to send the DMX reset sequence.
-   */
-  DMX_USE_TIMER_GROUP_1 = TIMER_GROUP_1,
+  DMX_USE_TIMER_GROUP_1 = TIMER_GROUP_1,  // Use hardware timer group 1 to send the DMX reset sequence.
 #endif
-  /**
-   * @brief Maximum DMX reset sequence hardware value. Used for error checking.
-   */
-  DMX_RESET_SEQUENCE_MAX
+  DMX_RESET_SEQUENCE_MAX                  // Maximum DMX reset sequence hardware value. Used for error checking.
 } rst_seq_hw_t;
 
 /**
@@ -63,23 +40,10 @@ typedef enum {
  * without first deleting the driver.
  */
 typedef struct {
-  /**
-   * @brief The data buffer size of the DMX driver.
-   */
-  uint16_t buffer_size;
-  /**
-   * @brief The hardware to use to generate the DMX reset sequence. Can be set
-   * to -1 to use busy-wait mode.
-   */
-  int8_t rst_seq_hw;
-  /**
-   * @brief The timer index to use to generate the DMX reset sequence.
-   */
-  uint8_t timer_idx;
-  /**
-   * @brief Interrupt allocation flags as specified in esp_intr_alloc.h
-   */
-  int intr_alloc_flags;
+  uint16_t buffer_size;  // The data buffer size of the DMX driver.
+  int8_t rst_seq_hw;     // The hardware to use to generate the DMX reset sequence. Can be set to -1 to use busy-wait mode.
+  uint8_t timer_idx;     // The timer index to use to generate the DMX reset sequence.
+  int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
 } dmx_config_t;
 
 /**
@@ -87,98 +51,40 @@ typedef struct {
  * received.
  */
 typedef enum {
-  /**
-   * @brief The DMX packet is valid.
-   */
-  DMX_OK = 0,
-  /**
-   * @brief The user defined buffer is too small for the received packet.
-   */
-  DMX_ERR_BUFFER_SIZE,
-  /**
-   * @brief A slot in the packet was improperly framed (missing stop bits).
-   */
-  DMX_ERR_IMPROPER_SLOT,
-  /**
-   * @brief The packet size is 0 or longer than the DMX standard allows.
-   */
-  DMX_ERR_PACKET_SIZE,
-  /**
-   * @brief The UART overflowed causing loss of data.
-   */
-  DMX_ERR_DATA_OVERFLOW,
-  /**
-   * @brief Timed out waiting for a DMX or RDM packet.
-   */
-  DMX_ERR_TIMEOUT,
-  /**
-   * @brief The RDM checksum is invalid.
-   */
-  DMX_ERR_INVALID_CHECKSUM
+  DMX_OK = 0,               // The DMX packet is valid.
+  DMX_ERR_BUFFER_SIZE,      // The user defined buffer is too small for the received packet.
+  DMX_ERR_IMPROPER_SLOT,    // A slot in the packet was improperly framed (missing stop bits).
+  DMX_ERR_PACKET_SIZE,      // The packet size is 0 or longer than the DMX standard allows.
+  DMX_ERR_DATA_OVERFLOW,    // The UART overflowed causing loss of data.
+  DMX_ERR_TIMEOUT,          // Timed out waiting for a DMX or RDM packet.
+  DMX_ERR_INVALID_CHECKSUM  // The RDM checksum is invalid.
 } dmx_event_status_t;
 
 /**
  * @brief DMX data events reported to the event queue when a packet is received.
  */
 typedef struct {
-  /**
-   * @brief The status of the received DMX packet.
-   */
-  dmx_event_status_t status;
-  /**
-   * @brief Is true if the packet is an RDM packet.
-   */
-  bool is_rdm;
-  /**
-   * @brief The size of the received DMX packet in bytes.
-   */
-  size_t size;
-
-  /**
-   * @brief Timing values received from the DMX sniffer.
-   */
+  dmx_event_status_t status;   // The status of the received DMX packet.
+  bool is_rdm;                 // True if the packet is an RDM packet.
+  size_t size;                 // The size of the received DMX packet in bytes.
   struct {
-    /**
-     * @brief Duration of the DMX break in microseconds.
-     */
-    int32_t brk;
-    /**
-     * @brief Duration of the DMX mark-after-break in microseconds.
-     *
-     */
-    int32_t mab;
-  } timing;
+    int32_t brk;               // Duration of the DMX break in microseconds.
+    int32_t mab;               // Duration of the DMX mark-after-break in microseconds.
+  } timing;                    // Timing values received from the DMX sniffer.
   struct {
-    uint64_t source_uid;
-    uint64_t destination_uid;
+    uint64_t source_uid;       // TODO
+    uint64_t destination_uid;  // TODO
   } rdm;
-  /**
-   * @brief True if the event was sent to the event queue during the next DMX
-   * packet's reset sequence.
-   */
-  bool is_late;
+  bool is_late;                // True if the event was sent to the event queue during the next DMX packet's reset sequence.
 } dmx_event_t;
 
 /**
  * @brief Interrupt configuration used to configure the DMX hardware ISR.
  */
 typedef struct {
-  /**
-   * @brief DMX timeout interrupt threshold. This sets the amount of time after
-   * receiving data that it takes for the "RX FIFO timeout" interrupt to fire.
-   * Unit: time of sending one byte.
-   */
-  uint8_t rx_timeout_threshold;
-  /**
-   * @brief DMX TX empty interrupt threshold. This the maximum number of bytes
-   * that are needed in the UART TX FIFO for the "FIFO empty" interrupt to fire.
-   */
-  uint8_t txfifo_empty_threshold;
-  /**
-   * @brief DMX RX full interrupt threshold. This is the minimum number of bytes
-   * that are needed in the UART RX FIFO for the "FIFO full" interrupt to fire.
-   */
-  uint8_t rxfifo_full_threshold;
+  uint8_t rx_timeout_threshold;    // DMX timeout interrupt threshold. This sets the amount of time after receiving data that it takes for the "RX FIFO timeout" interrupt to fire. Unit: time of sending one byte.
+  uint8_t txfifo_empty_threshold;  // DMX TX empty interrupt threshold. This the maximum number of bytes that are needed in the UART TX FIFO for the "FIFO empty" interrupt to fire.
+  uint8_t rxfifo_full_threshold;   // DMX RX full interrupt threshold. This is the minimum number of bytes that are needed in the UART RX FIFO for the "FIFO full" interrupt to fire.
 } dmx_intr_config_t;
 
 #ifdef __cplusplus
