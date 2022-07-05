@@ -212,10 +212,12 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             const uint16_t checksum = decoded_data[6] << 8 | decoded_data[7];
             if (calculated_sum == checksum) {
               const uint64_t uid = RDM_UID_BUFFER_TO_UINT64(decoded_data);
-              dmx_event_t event = {.status = DMX_OK,
-                                   .is_rdm = true,
-                                   .size = driver->slot_idx,
-                                   .rdm = {.source_uid = uid}};
+              dmx_event_t event = {
+                  .status = DMX_OK,
+                  .is_rdm = true,
+                  .size = driver->slot_idx,
+                  .rdm = {.source_uid = uid,
+                          .command_class = DISCOVERY_COMMAND_RESPONSE}};
               xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
               driver->rx.event_sent = true;
             } else {
