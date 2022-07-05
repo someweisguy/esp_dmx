@@ -65,15 +65,26 @@ typedef enum {
  */
 typedef struct {
   dmx_event_status_t status;   // The status of the received DMX packet.
-  bool is_rdm;                 // True if the packet is an RDM packet.
+  bool is_rdm;                 // True if the packet is an RDM packet (start code == RDM_SC and sub-start code == RDM_SUB_SC).
   size_t size;                 // The size of the received DMX packet in bytes.
   struct {
     int32_t brk;               // Duration of the DMX break in microseconds.
     int32_t mab;               // Duration of the DMX mark-after-break in microseconds.
   } timing;                    // Timing values received from the DMX sniffer.
   struct {
-    uint64_t source_uid;       // TODO
     uint64_t destination_uid;  // TODO
+    uint64_t source_uid;       // TODO
+    uint8_t transaction_num;
+    union {
+      uint8_t port_id;
+      uint8_t response_type;
+    };
+    uint8_t message_count;
+    uint16_t sub_device;
+    uint8_t command_class;  // TODO: replace with enum?
+    uint16_t parameter_id;  // TODO: replace with enum?
+    uint8_t parameter_data_len;
+    bool checksum_is_valid;
   } rdm;
   bool is_late;                // True if the event was sent to the event queue during the next DMX packet's reset sequence.
 } dmx_event_t;
