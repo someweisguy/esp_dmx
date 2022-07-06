@@ -58,7 +58,7 @@ extern "C" {
  * @param buf A pointer to an RDM buffer.
  * @return uint64_t The properly formatted RDM UID.
  */
-static FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
+FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
   uint64_t val;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
