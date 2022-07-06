@@ -93,9 +93,9 @@ enum {
    * @brief When an RDM device responds to a DISC_UNIQUE_BRANCH command, it
    * responds with a special response packet. Seven extra slots of preamble have
    * been added to the start of the response packet to allow for inline devices
-   * that must shorten the packet for turning around transceivers. If the 
+   * that must shorten the packet for turning around transceivers. If the
    * in-line device shortens the response packet, it shall shorten by exactly
-   * one slot time. The controller shall be able to process response packets 
+   * one slot time. The controller shall be able to process response packets
    * with 0-7 bytes of preamble.
    */
   RDM_PREAMBLE = 0xfe,
