@@ -235,13 +235,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             for (int i = data_start; i < data_start + 12; ++i) {
               calculated_sum += driver->buffer[i];
             }
-            const uint16_t checksum = read16(&decoded_data[6]);
+            const uint16_t checksum = SWAP16((uint16_t)decoded_data[6]);
             if (calculated_sum == checksum) {
               dmx_event_t event = {
                   .status = DMX_OK,
                   .is_rdm = true,
                   .size = driver->slot_idx,
-                  .rdm = {.source_uid = read48(decoded_data),
+                  .rdm = {.source_uid = uidcpy(decoded_data),
                           .command_class = DISCOVERY_COMMAND_RESPONSE}};
               xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
               driver->rx.event_sent = true;
