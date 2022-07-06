@@ -10,6 +10,7 @@ extern "C" {
 #include "impl/driver.h"
 
 #define SWAP16(x) ((uint16_t)x << 8 | (uint16_t)x >> 8)
+#define GET_CHECKSUM(x) (*x << 8 | *(x + 1))
 
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
@@ -214,7 +215,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             for (int i = data_start; i < data_start + 12; ++i) {
               calculated_sum += driver->buffer[i];
             }
-            const uint16_t checksum = SWAP16((uint16_t)decoded_data[6]);
+            const uint16_t checksum = GET_CHECKSUM(&decoded_data[6]);
             if (calculated_sum == checksum) {
               dmx_event_t event = {
                   .status = DMX_OK,
