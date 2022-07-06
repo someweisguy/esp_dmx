@@ -44,15 +44,31 @@ extern "C" {
 // Interrupt mask for all interrupts.
 #define DMX_ALL_INTR_MASK (-1)
 
-static inline uint16_t read16(const uint8_t *buf) { 
-  return buf[0] << 8 | buf[1];
+#define SWAP16(x) ((uint16_t)x << 8 | (uint16_t)x >> 8)
+
+/**
+ * @brief Helper function that takes an RDM UID from a most-significant-byte
+ * first buffer and copies it to least-significant-byte first endianness, which
+ * is what ESP32 uses.
+ * 
+ * @note This function looks horrible, but it is the most efficient way to swap
+ * endianness of a 6-byte number on the Xtensa compiler, which is important
+ * because it will be used exclusively in an interrupt handler.
+ *
+ * @param buf A pointer to an RDM buffer.
+ * @return uint64_t The properly formatted RDM UID.
+ */
+static FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
+  uint64_t val;
+  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
+  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
+  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
+  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
+  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
+  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];  
+  return val;
 }
 
-static inline uint64_t read48(const uint8_t *buf) {
-  uint64_t uid = 0;
-  for (int bits = 40; bits >= 0; ++buf, bits -= 8) uid = uid << 8 | *buf;
-  return uid;
-}
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
