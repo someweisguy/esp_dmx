@@ -118,7 +118,7 @@ IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
  * @param set 1 to enable the RTS line (set low), 0 to disable the RTS line (set
  * high).
  */
-void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
+IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
   uart_hal_set_rts(hal, set);
 }
 
