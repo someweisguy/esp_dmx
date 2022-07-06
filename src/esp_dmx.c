@@ -713,7 +713,7 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
 
   // Build the discovery packet
   uint8_t data[38] = {
-      RDM_SC, RDM_SC_SUB,                  // RDM start code and sub-start code
+      RDM_SC, RDM_SUB_SC,                  // RDM start code and sub-start code
       0x24,                                // Message length (excludes checksum)
       0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  // Destination UID (broadcast)
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Source UID
@@ -755,7 +755,7 @@ esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid) {
 
   // Build the mute packet
   uint8_t data[26] = {
-      RDM_SC, RDM_SC_SUB,                  // RDM start code and sub-start code
+      RDM_SC, RDM_SUB_SC,                  // RDM start code and sub-start code
       0x18,                                // Message length (excludes checksum)
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //! Destination UID
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Source UID
