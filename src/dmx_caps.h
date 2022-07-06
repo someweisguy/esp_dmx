@@ -7,9 +7,6 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 
 #define RDM_MAX_UID (0xfffffffffffe)  // The highest UID possible in RDM.
-
-
-
 #define RDM_MESSAGE_LEN_INDEX (2)  // Index of a standard RDM packet message length byte.
 
 /* RDM discovery packet descriptors */
@@ -18,44 +15,44 @@ extern "C" {
 
 // General DMX parameters
 enum {
-    DMX_BAUD_RATE = 250000,
-    DMX_MIN_BAUD_RATE = 245000,
-    DMX_MAX_BAUD_RATE = 255000,
- 
-    DMX_BREAK_LEN_US = 176,
- 
-    DMX_PACKET_SIZE = 513,
-    DMX_MAX_PACKET_SIZE = 513
+  DMX_BAUD_RATE = 250000,      // The typical baud rate of DMX.
+  DMX_MIN_BAUD_RATE = 245000,  // The minimum baud rate of DMX.
+  DMX_MAX_BAUD_RATE = 255000,  // The maximum baud rate of DMX.
+
+  DMX_BREAK_LEN_US = 176,  // The typical break length of DMX in microseconds.
+
+  DMX_PACKET_SIZE = 513,     // The typical packet size of DMX.
+  DMX_MAX_PACKET_SIZE = 513  // The maximum packet size of DMX.
 };
 
-// DMX read timing parameters
+// DMX Read timing parameters
 enum {
-    DMX_READ_MIN_BREAK_LEN_US = 88,
-    // No maximum break is specified. Generally, DMX_READ_MAX_PACKET_LEN_US should be used instead.
-   
-    DMX_READ_MIN_MAB_LEN_US = 8,
-    DMX_READ_MAX_MAB_LEN_US = 999999,
- 
-    DMX_READ_MIN_PACKET_LEN_US = 1196,
-    DMX_READ_MAX_PACKET_LEN_US = 1250000,
-   
-    DMX_READ_TIMEOUT_US = 1250000,
-    DMX_READ_TIMEOUT_TICK = DMX_READ_TIMEOUT_US / 1000 / portTICK_PERIOD_MS
+  DMX_READ_MIN_BREAK_LEN_US = 88,                          // The minimum DMX responder break length in microseconds.
+  DMX_READ_MAX_BREAK_LEN_US = DMX_READ_MAX_PACKET_LEN_US,  // The maximum DMX responder break length in microseconds. This value isn't specified in the DMX standard, so DMX_READ_MAX_PACKET_LEN_US is used instead.
+
+  DMX_READ_MIN_MAB_LEN_US = 8,       // The minimum DMX responder mark-after-break length in microseconds.
+  DMX_READ_MAX_MAB_LEN_US = 999999,  // The maximum DMX responder mark-after-break length in microseconds.
+
+  DMX_READ_MIN_PACKET_LEN_US = 1196,     // The minimum DMX responder packet length in microseconds.
+  DMX_READ_MAX_PACKET_LEN_US = 1250000,  // The maximum DMX responder packet length in microseconds.
+
+  DMX_READ_TIMEOUT_US = 1250000,                                           // The DMX responder timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
+  DMX_READ_TIMEOUT_TICK = DMX_READ_TIMEOUT_US / 1000 / portTICK_PERIOD_MS  // The DMX responder timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
 };
- 
- // DMX write timing parameters
+
+// DMX Write timing parameters
 enum {
-    DMX_WRITE_MIN_BREAK_LEN_US = 92,
-    // No maximum break is specified. Generally, DMX_WRITE_MAX_PACKET_LEN_US should be used instead.
- 
-    DMX_WRITE_MIN_MAB_LEN_US = 12,
-    DMX_WRITE_MAX_MAB_LEN_US = 999999,
- 
-    DMX_WRITE_MIN_PACKET_LEN_US = 1204,
-    DMX_WRITE_MAX_PACKET_LEN_US = 1000000,
- 
-    DMX_WRITE_TIMEOUT_US = 1000000,
-    DMX_WRITE_TIMEOUT_TICK = DMX_WRITE_TIMEOUT_US / 1000 / portTICK_PERIOD_MS
+  DMX_WRITE_MIN_BREAK_LEN_US = 92,                           // The minimum DMX controller break length in microseconds.
+  DMX_WRITE_MAX_BREAK_LEN_US = DMX_WRITE_MAX_PACKET_LEN_US,  // The maximum DMX controller break length in microseconds. This value isn't specified in the DMX standard, so DMX_WRITE_MAX_PACKET_LEN_US is used instead.
+
+  DMX_WRITE_MIN_MAB_LEN_US = 12,      // The minimum DMX controller mark-after-break length in microseconds.
+  DMX_WRITE_MAX_MAB_LEN_US = 999999,  // The maximum DMX controller mark-after-break length in microseconds.
+
+  DMX_WRITE_MIN_PACKET_LEN_US = 1204,     // The minimum DMX controller packet length in microseconds.
+  DMX_WRITE_MAX_PACKET_LEN_US = 1000000,  // The maximum DMX controller packet length in microseconds.
+
+  DMX_WRITE_TIMEOUT_US = 1000000,                                            // The DMX controller timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
+  DMX_WRITE_TIMEOUT_TICK = DMX_WRITE_TIMEOUT_US / 1000 / portTICK_PERIOD_MS  // The DMX controller timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
 };
 
 // DMX start codes
