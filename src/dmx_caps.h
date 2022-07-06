@@ -13,6 +13,10 @@ extern "C" {
 #define RDM_DISCOVERY_RESP_LEN (17)  // Length of the RDM DISC_UNIQUE_BRANCH response after the preamble.
 #define RDM_PREAMBLE_MAX_LEN (7)  // Maximum length of the RDM DISC_UNIQUE_BRANCH response preamble.
 
+enum {
+  DISCOVERY_COMMAND_RESPONSE_SIZE = 16  // The size of an RDM DISCOVERY_COMMAND_RESPONSE excluding the preamble and delimiter byte.
+};
+
 // General DMX parameters
 enum {
   DMX_BAUD_RATE = 250000,      // The typical baud rate of DMX.
