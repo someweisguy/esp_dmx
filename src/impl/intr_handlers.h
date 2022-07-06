@@ -194,49 +194,48 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             }
           }
         } else if ((sc == RDM_PREAMBLE || sc == RDM_DELIMITER) &&
-                   driver->slot_idx > 16) {
+                   driver->slot_idx > DISCOVERY_COMMAND_RESPONSE_SIZE) {
           /*
           Received an RDM DISCOVERY_COMMAND_RESPONSE and we've read the minimum
           number of bytes that would be considered a full response.
           */
           // Find the length of the preamble (can be 0-7 bytes, plus delimiter)
-
-          int data_start_idx = 0;
-          for (; data_start_idx <= 7; ++data_start_idx) {
-            if (driver->buffer[data_start_idx] == RDM_DELIMITER) {
-              data_start_idx += 1;  // account for delimiter
+          int start_idx = 0;
+          for (; start_idx <= 7; ++start_idx) {
+            if (driver->buffer[start_idx] == RDM_DELIMITER) {
+              start_idx += 1;  // account for delimiter
               break;
             }
           }
 
-          if (driver->slot_idx == data_start_idx + 16) {
-            /*
-            A full RDM DISCOVERY_COMMAND_RESPONSE has been received.
-            */
-            uint8_t *response = &driver->buffer[data_start_idx];
-            // Read the EUID to a 64-bit unsigned integer
+          if (driver->slot_idx == start_idx + DISCOVERY_COMMAND_RESPONSE_SIZE) {
+            // A full RDM DISCOVERY_COMMAND_RESPONSE has been received.
+            const uint8_t *response = &driver->buffer[start_idx];
+
+            // Decode the 6-byte UID and get the packet sum
             uint64_t uid;
+            uint16_t sum = 0;
             for (int i = 5, j = 0; i >= 0; --i, j += 2) {
               ((uint8_t *)&uid)[i] = response[j] & 0x55;
               ((uint8_t *)&uid)[i] |= response[j + 1] & 0xaa;
+              sum += ((uint8_t *)&uid)[i] + 0xff;
             }
 
-            // Calculate the checksum (sum the first 12 bytes) and compare
+            // Decode the checksum received in the response
             uint16_t checksum;
             for (int i = 1, j = 12; i >= 0; --i, j += 2) {
               ((uint8_t *)&checksum)[i] = response[j] & 0x55;
               ((uint8_t *)&checksum)[i] |= response[j + 1] & 0xaa;
             }
-            uint16_t calculated = 0;
-            for (int i = 0; i < 12; ++i) calculated += response[i];
 
+            // Send an event to the event queue
             dmx_event_t event = {
                 .status = DMX_OK,
                 .is_rdm = true,
                 .size = driver->slot_idx,
                 .rdm = {.source_uid = uid,
                         .command_class = DISCOVERY_COMMAND_RESPONSE,
-                        .checksum_is_valid = (calculated == checksum)}};
+                        .checksum_is_valid = (sum == checksum)}};
             xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
             driver->rx.event_sent = true;
 
