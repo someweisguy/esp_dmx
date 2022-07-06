@@ -194,45 +194,52 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             }
           }
         } else if ((sc == RDM_PREAMBLE || sc == RDM_DELIMITER) &&
-                   driver->slot_idx > RDM_DISCOVERY_RESP_LEN) {
-          // Received an RDM DISC_UNIQUE_BRANCH response.
-          // Find the length of the preamble (can be 0-7 bytes)
-          int preamble_len = 0;
-          for (; preamble_len <= RDM_PREAMBLE_MAX_LEN; ++preamble_len) {
-            if (driver->buffer[preamble_len] == RDM_DELIMITER) break;
+                   driver->slot_idx > 16) {
+          /*
+          Received an RDM DISCOVERY_COMMAND_RESPONSE and we've read the minimum
+          number of bytes that would be considered a full response.
+          */
+          // Find the length of the preamble (can be 0-7 bytes, plus delimiter)
+
+          int data_start_idx = 0;
+          for (; data_start_idx <= 7; ++data_start_idx) {
+            if (driver->buffer[data_start_idx] == RDM_DELIMITER) {
+              data_start_idx += 1;  // account for delimiter
+              break;
+            }
           }
-          // Send an event if a full response is received
-          if (driver->slot_idx == preamble_len + RDM_DISCOVERY_RESP_LEN) {
-            // Decode the RDM discovery data
-            uint8_t decoded_data[8];  // 6 bytes for UID, 2 for checksum
-            const int data_start = preamble_len + 1;
-            for (int i = data_start, j = 0; i < driver->slot_idx; i += 2, ++j) {
-              decoded_data[j] = ((driver->buffer[i] & ~0xaa) |
-                                 (driver->buffer[i + 1] & ~0x55));
+
+          if (driver->slot_idx == data_start_idx + 16) {
+            /*
+            A full RDM DISCOVERY_COMMAND_RESPONSE has been received.
+            */
+            uint8_t *response = &driver->buffer[data_start_idx];
+            // Read the EUID to a 64-bit unsigned integer
+            uint64_t uid;
+            for (int i = 5, j = 0; i >= 0; --i, j += 2) {
+              ((uint8_t *)&uid)[i] = response[j] & 0x55;
+              ((uint8_t *)&uid)[i] |= response[j + 1] & 0xaa;
             }
+
             // Calculate the checksum (sum the first 12 bytes) and compare
-            uint16_t calculated_sum = 0;
-            for (int i = data_start; i < data_start + 12; ++i) {
-              calculated_sum += driver->buffer[i];
+            uint16_t checksum;
+            for (int i = 1, j = 12; i >= 0; --i, j += 2) {
+              ((uint8_t *)&checksum)[i] = response[j] & 0x55;
+              ((uint8_t *)&checksum)[i] |= response[j + 1] & 0xaa;
             }
-            const uint16_t checksum = GET_CHECKSUM(&decoded_data[6]);
-            if (calculated_sum == checksum) {
-              dmx_event_t event = {
-                  .status = DMX_OK,
-                  .is_rdm = true,
-                  .size = driver->slot_idx,
-                  .rdm = {.source_uid = uidcpy(decoded_data),
-                          .command_class = DISCOVERY_COMMAND_RESPONSE}};
-              xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-              driver->rx.event_sent = true;
-            } else {
-              // The checksum could not be verified
-              dmx_event_t event = {.status = DMX_ERR_INVALID_CHECKSUM,
-                                   .is_rdm = true,
-                                   .size = driver->slot_idx};
-              xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-              driver->rx.event_sent = true;
-            }
+            uint16_t calculated = 0;
+            for (int i = 0; i < 12; ++i) calculated += response[i];
+
+            dmx_event_t event = {
+                .status = DMX_OK,
+                .is_rdm = true,
+                .size = driver->slot_idx,
+                .rdm = {.source_uid = uid,
+                        .command_class = DISCOVERY_COMMAND_RESPONSE,
+                        .checksum_is_valid = (calculated == checksum)}};
+            xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+            driver->rx.event_sent = true;
+
             if (driver->mode == DMX_MODE_WRITE) {
               // Turn bus around to write mode after receiving RDM response
               portENTER_CRITICAL(&hardware->spinlock);
@@ -371,6 +378,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     driver->rx.event_sent = true;
     driver->awaiting_response = false;
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
+    // FIXME: turn line around if necessary
   } else if (driver->slot_idx == -1) {
     // end break, start mab
     dmx_hal_inverse_signal(&hardware->hal, 0);

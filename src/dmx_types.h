@@ -57,7 +57,6 @@ typedef enum {
   DMX_ERR_PACKET_SIZE,      // The packet size is 0 or longer than the DMX standard allows.
   DMX_ERR_DATA_OVERFLOW,    // The UART overflowed causing loss of data.
   DMX_ERR_TIMEOUT,          // Timed out waiting for a DMX or RDM packet.
-  DMX_ERR_INVALID_CHECKSUM  // The RDM checksum is invalid.
 } dmx_event_status_t;
 
 
@@ -101,6 +100,7 @@ typedef struct {
     rdm_command_class_t command_class;
     uint16_t parameter_id;  // TODO: replace with enum?
     uint8_t parameter_data_len;
+    bool checksum_is_valid;
     void *parameter_data;
   } rdm;
   bool is_late;                // True if the event was sent to the event queue during the next DMX packet's reset sequence.
