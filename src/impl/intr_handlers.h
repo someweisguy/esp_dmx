@@ -9,41 +9,6 @@ extern "C" {
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 
-// Interrupt mask that triggers when the UART overflows.
-#define DMX_INTR_RX_FIFO_OVERFLOW (UART_INTR_RXFIFO_OVF)
-
-// Interrupt mask that is triggered when it is time to service the receive FIFO.
-#define DMX_INTR_RX_DATA (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT)
-
-// Interrupt mask that trigger when a DMX break is received.
-#define DMX_INTR_RX_BREAK (UART_INTR_BRK_DET)
-
-// Interrupt mask that represents a byte framing error.
-#define DMX_INTR_RX_FRAMING_ERR                                             \
-  (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | \
-   UART_INTR_RS485_FRM_ERR)
-
-// Interrupt mask that is called when a DMX clash occurs.
-#define DMX_INTR_RX_CLASH (UART_INTR_RS485_CLASH)
-
-// Interrupt mask that represents all receive conditions.
-#define DMX_INTR_RX_ALL                                               \
-  (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_FIFO_OVERFLOW | \
-   DMX_INTR_RX_FRAMING_ERR | DMX_INTR_RX_CLASH)
-
-// Interrupt mask that is triggered when the UART is ready to send data.
-#define DMX_INTR_TX_DATA (UART_INTR_TXFIFO_EMPTY)
-
-// Interrupt mask that is triggered when the UART has finished writing data.
-#define DMX_INTR_TX_DONE (UART_INTR_TX_DONE)
-
-// Interrupt mask that represents all send conditions.
-#define DMX_INTR_TX_ALL \
-  (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE)
-
-// Interrupt mask for all interrupts.
-#define DMX_ALL_INTR_MASK (-1)
-
 #define SWAP16(x) ((uint16_t)x << 8 | (uint16_t)x >> 8)
 
 /**
@@ -69,6 +34,20 @@ FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
   return val;
 }
 
+enum {
+  DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,  // Interrupt mask that triggers when the UART overflows.
+  DMX_INTR_RX_DATA = (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT),  // Interrupt mask that is triggered when it is time to service the receive FIFO.
+  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,  // Interrupt mask that trigger when a DMX break is received.
+  DMX_INTR_RX_FRAMING_ERR = (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR),  // Interrupt mask that represents a byte framing error.
+  DMX_INTR_RX_CLASH = UART_INTR_RS485_CLASH,  // Interrupt mask that represents a DMX collision.
+  DMX_INTR_RX_ALL = (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR | DMX_INTR_RX_CLASH),  // Interrupt mask that represents all receive conditions.
+
+  DMX_INTR_TX_DATA = UART_INTR_TXFIFO_EMPTY,  // Interrupt mask that is triggered when the UART is ready to send data.
+  DMX_INTR_TX_DONE = UART_INTR_TX_DONE,  // Interrupt mask that is triggered when the UART has finished writing data.
+  DMX_INTR_TX_ALL = (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE),  // Interrupt mask that represents all send conditions.
+
+  DMX_ALL_INTR_MASK = -1  // Interrupt mask for all interrupts.
+};
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
