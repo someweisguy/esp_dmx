@@ -4,6 +4,8 @@
 extern "C" {
 #endif
 
+#include "freertos/FreeRTOS.h"
+
 #define RDM_MAX_UID (0xfffffffffffe)  // The highest UID possible in RDM.
 
 #define RDM_SC_SUB (0x01)  // The RDM sub-start code.
@@ -24,33 +26,45 @@ extern "C" {
 #define RDM_DELIMITER (0xaa)  // RDM DISC_UNIQUE_BRANCH response delimiter.
 #define RDM_PREAMBLE  (0xfe)  // RDM DISC_UNIQUE_BRANCH response preamble byte.
 
-/* DMX shared parameters */
-#define DMX_MIN_BAUD_RATE (245000)  // DMX minimum baud rate.
-#define DMX_TYP_BAUD_RATE (250000)  // DMX typical baud rate.
-#define DMX_MAX_BAUD_RATE (255000)  // DMX maximum baud rate.
-#define DMX_MAX_PACKET_SIZE (513)   // DMX maximum packet size.
+enum {
+    DMX_BAUD_RATE = 250000,
+    DMX_MIN_BAUD_RATE = 245000,
+    DMX_MAX_BAUD_RATE = 255000,
+ 
+    DMX_BREAK_LEN_US = 176,
+ 
+    DMX_PACKET_SIZE = 513,
+    DMX_MAX_PACKET_SIZE = 513
+};
+ 
+enum {
+    DMX_READ_MIN_BREAK_LEN_US = 88,
+    // No maximum break is specified. Generally, DMX_READ_MAX_PACKET_LEN_US should be used instead.
+   
+    DMX_READ_MIN_MAB_LEN_US = 8,
+    DMX_READ_MAX_MAB_LEN_US = 999999,
+ 
+    DMX_READ_MIN_PACKET_LEN_US = 1196,
+    DMX_READ_MAX_PACKET_LEN_US = 1250000,
+   
+    DMX_READ_TIMEOUT_MS = 1250,
+    DMX_READ_TIMEOUT_TICK = DMX_READ_TIMEOUT_MS / portTICK_PERIOD_MS
+};
+ 
+enum {
+    DMX_WRITE_MIN_BREAK_LEN_US = 92,
+    // No maximum break is specified. Generally, DMX_WRITE_MAX_PACKET_LEN_US should be used instead.
+ 
+    DMX_WRITE_MIN_MAB_LEN_US = 12,
+    DMX_WRITE_MAX_MAB_LEN_US = 999999,
+ 
+    DMX_WRITE_MIN_PACKET_LEN_US = 1204,
+    DMX_WRITE_MAX_PACKET_LEN_US = 1000000,
+ 
+    DMX_WRITE_TIMEOUT_MS = 1000,
+    DMX_WRITE_TIMEOUT_TICK = DMX_WRITE_TIMEOUT_MS / portTICK_PERIOD_MS
+};
 
-/* DMX client/receive timing parameters */
-#define DMX_RX_MIN_SPACE_FOR_BRK_US (88)            // DMX minimum receivable break length in microseconds.
-#define DMX_RX_TYP_SPACE_FOR_BRK_US (176)           // DMX typical receivable break length in microseconds.
-#define DMX_RX_MIN_MRK_AFTER_BRK_US (8)             // DMX minimum receivable mark after break length in microseconds.
-#define DMX_RX_MAX_MRK_AFTER_BRK_US (999999)        // DMX maximum receivable mark after break length in microseconds.
-#define DMX_RX_MIN_BRK_TO_BRK_US    (1196)          // DMX minimum receivable break-to-break length in microseconds.
-#define DMX_RX_MAX_BRK_TO_BRK_US    (1250000)       // DMX maximum receivable break-to-break length in microseconds.
-#define DMX_RX_PACKET_TOUT_MS       (1250)          // DMX client packet timeout in milliseconds.
-#define DMX_RX_PACKET_TOUT_TICK     ((TickType_t)DMX_RX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX client packet timeout in FreeRTOS ticks.
-
-/* DMX host/transmit timing parameters */
-#define DMX_TX_MIN_SPACE_FOR_BRK_US (92)            // DMX minimum transmittable break length in microseconds.
-#define DMX_TX_TYP_SPACE_FOR_BRK_US (176)           // DMX typical transmittable break length in microseconds.
-#define DMX_TX_MIN_MRK_AFTER_BRK_US (12)            // DMX minimum transmittable mark after break length in microseconds.
-#define DMX_TX_MAX_MRK_AFTER_BRK_US (999999)        // DMX maximum transmittable mark after break length in microseconds.
-#define DMX_TX_MIN_BRK_TO_BRK_US    (1204)          // DMX minimum transmittable break-to-break length in microseconds.
-#define DMX_TX_MAX_BRK_TO_BRK_US    (1000000)       // DMX maximum transmittable break-to-break length in microseconds.
-#define DMX_TX_PACKET_TOUT_MS       (1000)          // DMX host packet timeout in milliseconds.
-#define DMX_TX_PACKET_TOUT_TICK     ((TickType_t)DMX_TX_PACKET_TOUT_MS / portTICK_PERIOD_MS) // DMX host packet timeout in FreeRTOS ticks.
-
-#define DMX_PACKET_TIMEOUT_TICK     (DMX_TX_PACKET_TOUT_TICK)  // DMX host packet timeout in FreeRTOS ticks.
 
 /* DMX parameter checking macros */
 /**
@@ -78,42 +92,38 @@ extern "C" {
  * @brief Evaluates to true if the received packet duration is within DMX
  * specification.
  */
-#define DMX_RX_PKT_DURATION_IS_VALID(pkt) \
-  (pkt >= DMX_RX_MIN_BRK_TO_BRK_US && pkt <= DMX_RX_MAX_BRK_TO_BRK_US)
+// #define DMX_RX_PKT_DURATION_IS_VALID(pkt)  (pkt >= DMX_RX_MIN_BRK_TO_BRK_US && pkt <= DMX_RX_MAX_BRK_TO_BRK_US)
 
 /**
  * @brief Evaluates to true if the received break duration is within DMX
  * specification.
  */
-#define DMX_RX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_RX_MIN_SPACE_FOR_BRK_US)
+// #define DMX_RX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_RX_MIN_SPACE_FOR_BRK_US)
 
 /**
  * @brief Evaluates to true if the received mark-after-break duration is within
  * DMX specification.
  */
-#define DMX_RX_MAB_DURATION_IS_VALID(mab) \
-  (mab >= DMX_RX_MIN_MRK_AFTER_BRK_US && mab <= DMX_RX_MAX_MRK_AFTER_BRK_US)
+// #define DMX_RX_MAB_DURATION_IS_VALID(mab)    (mab >= DMX_RX_MIN_MRK_AFTER_BRK_US && mab <= DMX_RX_MAX_MRK_AFTER_BRK_US)
 
 /**
  * @brief Evaluates to true if the transmitted packet duration is within DMX
  * specification.
  */
-#define DMX_TX_PKT_DURATION_IS_VALID(pkt) \
-  (pkt >= DMX_TX_MIN_BRK_TO_BRK_US && pkt <= DMX_TX_MAX_BRK_TO_BRK_US)
+// #define DMX_TX_PKT_DURATION_IS_VALID(pkt)    (pkt >= DMX_TX_MIN_BRK_TO_BRK_US && pkt <= DMX_TX_MAX_BRK_TO_BRK_US)
 
 /**
  * @brief Evaluates to true if the transmitted break duration is within DMX
  * specification.
  */
-#define DMX_TX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_TX_MIN_SPACE_FOR_BRK_US)
+//#define DMX_TX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_TX_MIN_SPACE_FOR_BRK_US)
 
 /**
  * @brief Evaluates to true of the transmitted mark-after-break duration is
  * within DMX specification.
  *
  */
-#define DMX_TX_MAB_DURATION_IS_VALID(mab) \
-  (mab >= DMX_TX_MIN_MRK_AFTER_BRK_US && mab <= DMX_TX_MAX_MRK_AFTER_BRK_US)
+//#define DMX_TX_MAB_DURATION_IS_VALID(mab)   (mab >= DMX_TX_MIN_MRK_AFTER_BRK_US && mab <= DMX_TX_MAX_MRK_AFTER_BRK_US)
 
 /* DMX start codes */
 /**

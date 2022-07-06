@@ -139,7 +139,7 @@ uint32_t dmx_hal_get_intr_ena_status(uart_hal_context_t *hal) {
  */
 void dmx_hal_init(uart_hal_context_t *hal) {
   uart_ll_set_sclk(hal->dev, UART_SCLK_APB);
-  uart_ll_set_baudrate(hal->dev, DMX_TYP_BAUD_RATE);
+  uart_ll_set_baudrate(hal->dev, DMX_BAUD_RATE);
   uart_ll_set_mode(hal->dev, UART_MODE_RS485_HALF_DUPLEX);
   uart_ll_set_parity(hal->dev, UART_PARITY_DISABLE);
   uart_ll_set_data_bit_num(hal->dev, UART_DATA_8_BITS);

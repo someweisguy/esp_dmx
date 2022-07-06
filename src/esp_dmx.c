@@ -91,7 +91,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   portENTER_CRITICAL(&hardware->spinlock);
   dmx_hal_init(&hardware->hal);
   dmx_hal_set_sclk(&hardware->hal, UART_SCLK_APB);
-  dmx_hal_set_baudrate(&hardware->hal, DMX_TYP_BAUD_RATE);
+  dmx_hal_set_baudrate(&hardware->hal, DMX_BAUD_RATE);
   portEXIT_CRITICAL(&hardware->spinlock);
 
   // flush both fifos
@@ -144,8 +144,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->awaiting_response = false;
 
   // initialize driver tx variables
-  driver->tx.break_len = DMX_TX_TYP_SPACE_FOR_BRK_US;
-  driver->tx.mab_len = DMX_TX_MIN_MRK_AFTER_BRK_US;
+  driver->tx.break_len = DMX_BREAK_LEN_US;
+  driver->tx.mab_len = DMX_WRITE_MIN_MAB_LEN_US;
 
   // initialize driver rx variables
   driver->rx.event_sent = true;  // don't send event until first break rx'd
@@ -408,8 +408,9 @@ esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate) {
 esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(DMX_TX_BRK_DURATION_IS_VALID(break_len),
-                      ESP_ERR_INVALID_ARG, TAG, "break_len error");
+  // FIXME
+  //ESP_RETURN_ON_FALSE(DMX_TX_BRK_DURATION_IS_VALID(break_len),
+  //                    ESP_ERR_INVALID_ARG, TAG, "break_len error");
 
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_driver[dmx_num]->tx.break_len = break_len;
@@ -434,8 +435,9 @@ esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
 esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
                       ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(DMX_TX_MAB_DURATION_IS_VALID(mab_len),
-                      ESP_ERR_INVALID_ARG, TAG, "mab_len error");
+  // FIXME
+  // ESP_RETURN_ON_FALSE(DMX_TX_MAB_DURATION_IS_VALID(mab_len),
+                      // ESP_ERR_INVALID_ARG, TAG, "mab_len error");
 
   portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   dmx_driver[dmx_num]->tx.mab_len = mab_len;
@@ -735,6 +737,48 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
   }
   data[36] = checksum >> 8;
   data[37] = checksum;
+
+  return dmx_write_packet(dmx_num, data, sizeof(data));
+}
+
+void *memcpyswap(void *dest, const void *src, size_t n) {
+  char *chrsrc = (char *)src;
+  char *const chrdest = (char *)dest;
+  for (; n > 0; --n, chrsrc++) {
+    chrdest[n - 1] = *chrsrc;
+  }
+  return dest;
+}
+
+esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid) {
+  // TODO: check args
+
+  // Build the mute packet
+  uint8_t data[26] = {
+      RDM_SC, RDM_SC_SUB,                  // RDM start code and sub-start code
+      0x18,                                // Message length (excludes checksum)
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //! Destination UID
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Source UID
+      0x00,                                // Transaction number (TN)
+      0x00,                                //! Port ID
+      0x00,                                //! Message count
+      0x00, 0x00,                          // Sub-device
+      0x10,                                //! Command class (CC)
+      0x00, 0x02,                          //! Parameter ID (PID)
+      0x00,                                //! Parameter data length (PDL)
+  };
+  memcpyswap(mute_uid, &data[3], 6);
+  memcpyswap(0xdeadbeef1234, &data[9], 6);
+
+  // Compute the checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < sizeof(data) - 2; ++i) {
+    checksum += data[i];
+  }
+  data[24] = checksum >> 8;
+  data[25] = checksum;
+
+  //ESP_LOG_BUFFER_HEX("dmx", data, sizeof(data));
 
   return dmx_write_packet(dmx_num, data, sizeof(data));
 }

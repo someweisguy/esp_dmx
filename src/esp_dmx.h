@@ -367,9 +367,14 @@ inline uint64_t buf_to_uid(const void *buf);
 // TODO: docs
 inline void *uid_to_buf(const uint64_t uid, void *buf);
 
+void *memcpyswap(void *dest, const void *src, size_t n);
+
 // TODO: docs
 esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid, 
                               uint64_t upper_uid);
+
+// TODO: docs
+esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid);
 
 #ifdef __cplusplus
 }
