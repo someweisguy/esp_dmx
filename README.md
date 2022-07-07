@@ -447,4 +447,4 @@ Support for RDM is currently in progress.
 
 ## To Do
 
-- Allow user to place ISR in IRAM optionally
+For a list of planned features, see the [esp_dmx GitHub Projects](https://github.com/users/someweisguy/projects/5) page.
