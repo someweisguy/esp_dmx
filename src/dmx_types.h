@@ -89,8 +89,8 @@ typedef enum {
 } rdm_response_type_t;
 
 enum {
-  DMX_DATA_CLASS = DMX_SC,
-  RDM_DATA_CLASS = RDM_SC
+  DMX_DATA_CLASS = DMX_SC,  // DMX class data. A packet is a DMX packet if it begins with a null start code.
+  RDM_DATA_CLASS = RDM_SC   // RDM class data. A packet is an RDM packet if it begins with an RDM start code and an RDM sub-start code.
 };
 
 /**
