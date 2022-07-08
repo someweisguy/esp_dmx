@@ -7,11 +7,6 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 
 #define RDM_MAX_UID (0xfffffffffffe)  // The highest UID possible in RDM.
-#define RDM_MESSAGE_LEN_INDEX (2)  // Index of a standard RDM packet message length byte.
-
-/* RDM discovery packet descriptors */
-#define RDM_DISCOVERY_RESP_LEN (17)  // Length of the RDM DISC_UNIQUE_BRANCH response after the preamble.
-#define RDM_PREAMBLE_MAX_LEN (7)  // Maximum length of the RDM DISC_UNIQUE_BRANCH response preamble.
 
 enum {
   DISCOVERY_COMMAND_RESPONSE_SIZE = 16  // The size of an RDM DISCOVERY_COMMAND_RESPONSE excluding the preamble and delimiter byte.
