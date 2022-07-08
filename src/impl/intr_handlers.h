@@ -229,8 +229,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
             .status = DMX_OK,
             .size = driver->slot_idx,
             .data_class = RDM_DATA_CLASS,
-            .timing = {.break_len = driver->rx.break_len,
-                       .mab_len = driver->rx.mab_len},
+            .timing = {.break_len = 0, .mab_len = 0},  // No break or mab
             .rdm = {.source_uid = uid,
                     .command_class = DISCOVERY_COMMAND_RESPONSE,
                     .checksum_is_valid = (sum == checksum)}};
