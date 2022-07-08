@@ -120,7 +120,6 @@ typedef struct {
     void *parameter_data;
     bool checksum_is_valid;
   } rdm;
-  bool is_late;                // True if the event was sent to the event queue during the next DMX packet's reset sequence.
 } dmx_event_t;
 
 /**

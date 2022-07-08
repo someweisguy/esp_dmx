@@ -106,8 +106,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_event_t event = {.status = DMX_OK,
                              .size = driver->slot_idx,
                              .timing = {.break_len = driver->rx.break_len,
-                                        .mab_len = driver->rx.mab_len},
-                             .is_late = true};
+                                        .mab_len = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.size_guess = driver->slot_idx;  // update guess
       } else if (driver->slot_idx > -1) {
