@@ -158,12 +158,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_hal_rxfifo_rst(&hardware->hal);
       }
 
-      if (driver->rx.event_sent) {
-        // Don't process incoming data more than once
-        continue;
-      }
-
       // Process received data
+      if (driver->rx.event_sent) continue; // Only process data once
       const uint8_t sc = driver->buffer[0];  // Packet start-code.
       if (sc == DMX_SC) {
         if (driver->slot_idx < driver->rx.size_guess)
