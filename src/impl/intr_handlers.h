@@ -232,8 +232,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
       }
-      // TODO: clean me up!
-      if (driver->mode == DMX_MODE_WRITE) {
+      if (driver->rx.event_sent && driver->mode == DMX_MODE_WRITE) {
         // Turn bus around to write mode after receiving RDM response
         portENTER_CRITICAL(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
