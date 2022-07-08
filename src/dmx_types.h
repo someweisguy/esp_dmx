@@ -76,13 +76,18 @@ typedef enum {
   RESPONSE_TYPE_ACK_OVERFLOW = 0x03
 } rdm_response_type_t;
 
+enum {
+  DMX_DATA_CLASS = DMX_SC,
+  RDM_DATA_CLASS = RDM_SC
+};
+
 /**
  * @brief DMX data events reported to the event queue when a packet is received.
  */
 typedef struct {
   dmx_event_status_t status;   // The status of the received DMX packet.
-  bool is_rdm;                 // True if the packet is an RDM packet (start code == RDM_SC and sub-start code == RDM_SUB_SC).
   size_t size;                 // The size of the received DMX packet in bytes.
+  uint8_t data_class;          // The type of packet received. 
   struct {
     int32_t break_len;         // Duration of the DMX break in microseconds.
     int32_t mab_len;           // Duration of the DMX mark-after-break in microseconds.
@@ -93,15 +98,15 @@ typedef struct {
     uint8_t transaction_num;
     union {
       uint8_t port_id;
-      rdm_response_type_t response_type;
+      uint8_t response_type;
     };
     uint8_t message_count;
     uint16_t sub_device;
-    rdm_command_class_t command_class;
+    uint8_t command_class;
     uint16_t parameter_id;  // TODO: replace with enum?
     uint8_t parameter_data_len;
-    bool checksum_is_valid;
     void *parameter_data;
+    bool checksum_is_valid;
   } rdm;
   bool is_late;                // True if the event was sent to the event queue during the next DMX packet's reset sequence.
 } dmx_event_t;

@@ -167,6 +167,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // Send a DMX event to the event queue
         dmx_event_t event = {.status = DMX_OK,
                              .size = driver->slot_idx,
+                             .data_class = DMX_DATA_CLASS,
                              .timing = {.break_len = driver->rx.break_len,
                                         .mab_len = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
@@ -178,7 +179,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // TODO: check for sub start code
         // TODO: decode the rest of the RDM packet
         dmx_event_t event = {.status = DMX_OK,
-                             .is_rdm = true,
+                             .size = driver->slot_idx,
+                             .data_class = RDM_DATA_CLASS,
                              .timing = {.break_len = driver->rx.break_len,
                                         .mab_len = driver->rx.mab_len},
                              .rdm = {
@@ -225,7 +227,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // Send a discovery response event to the event queue
         dmx_event_t event = {
             .status = DMX_OK,
-            .is_rdm = true,
+            .size = driver->slot_idx,
+            .data_class = RDM_DATA_CLASS,
             .timing = {.break_len = driver->rx.break_len,
                        .mab_len = driver->rx.mab_len},
             .rdm = {.source_uid = uid,
@@ -352,7 +355,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     // send timeout event to event queue
     dmx_event_t event = {
         .status = DMX_ERR_TIMEOUT,
-        .is_rdm = true,
+        .data_class = RDM_DATA_CLASS,
         .size = driver->slot_idx,
     };
     xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
