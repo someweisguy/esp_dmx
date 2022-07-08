@@ -744,7 +744,7 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
 void *memcpyswap(void *dest, const void *src, size_t n) {
   char *chrsrc = (char *)src;
   char *const chrdest = (char *)dest;
-  for (; n > 0; --n, chrsrc++) {
+  for (; n > 0; --n, chrsrc++) { // FIXME: use pointer addition/subtraction
     chrdest[n - 1] = *chrsrc;
   }
   return dest;
