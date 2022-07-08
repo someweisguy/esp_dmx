@@ -174,92 +174,65 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         continue;
       }
 
-      const uint8_t sc = driver->buffer[0];
-      bool ready_to_send = false;
-      int data_slot_idx = 0;
-
-      // Check to see if an event is ready to be sent
-      if (sc == DMX_SC) {
-        if (driver->slot_idx == driver->rx.size_guess) {
-          // An entire packet of DMX has been received
-          ready_to_send = true;
-        }
-      } else if (sc == RDM_SC && driver->slot_idx > 26) {
-        if (driver->slot_idx >= driver->buffer[2] + 2) {
-          // An entire packet of RDM has been received
-          ready_to_send = true;
-        }
-      } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
-        if (driver->slot_idx > 16) {
-          // Find the length of the discovery response preamble
-          for (; data_slot_idx < 7; ++data_slot_idx) {
-            if (driver->buffer[data_slot_idx] == RDM_DELIMITER) {
-              data_slot_idx += 1;  // Account for delimiter
-              break;
-            }
-          }
-          if (driver->buffer[data_slot_idx] != RDM_DELIMITER) {
-            // Could not find a valid discovery response preamble
-            continue;
-          } else if (driver->slot_idx == data_slot_idx + 17) {
-            // An entire RDM discovery response has been received
-            data_slot_idx += 1;  // Set to start of data
-            ready_to_send = true;
-          }
-        }
-      }
-      if (!ready_to_send) continue;
-
-      // Process the packet and send an event to the queue
+      // TODO: move me inside the next if statements
       dmx_event_t event = {
           .status = DMX_OK,
           .size = driver->slot_idx,
           .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
+
+      // Check to see if an event is ready to be sent
+      const uint8_t sc = driver->buffer[0];  // Packet start-code.
       if (sc == DMX_SC) {
-        event.is_rdm = false;
+        if (driver->slot_idx < driver->rx.size_guess)
+          continue;  // Haven't yet received a full DMX packet
+        // Send a DMX event to the event queue
+        event.is_rdm = false;  // TODO: remove this line
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
-      } else if (sc == RDM_SC) {
+      } else if (sc == RDM_SC && driver->slot_idx > 26) {
+        if (driver->slot_idx < driver->buffer[2] + 2)
+          continue;  // Haven't yet received a full RDM packet
         // TODO: verify checksum
+        // TODO: check for sub start code
         event.is_rdm = true,
         // TODO: decode the rest of the RDM packet
-        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+            xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
-        if (driver->mode == DMX_MODE_WRITE) {
-          // Turn bus around to write mode after receiving RDM response
-          portENTER_CRITICAL(&hardware->spinlock);
-          dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
-          dmx_hal_set_rts(&hardware->hal, 0);  // set rts high
-          // Transmit interrupts are enabled when data is transmitted
-          portEXIT_CRITICAL(&hardware->spinlock);
-          dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_ALL);
-        }
       } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
-        const uint8_t *response = &driver->buffer[data_slot_idx];
+        if (driver->slot_idx < 17)
+          continue;  // Haven't yet received a full RDM discovery response
+        // Find the length of the discovery response preamble (0-7 bytes)
+        int delimiter_idx = 0;
+        for (; delimiter_idx < 7; ++delimiter_idx) {
+          if (driver->buffer[delimiter_idx] == RDM_DELIMITER) break;
+        }
+        if (driver->buffer[delimiter_idx] != RDM_DELIMITER ||
+            driver->slot_idx < delimiter_idx + 17)
+          continue;  // No valid response or full packet not yet received
         // Decode the 6-byte UID and get the packet sum
         uint64_t uid;
         uint16_t sum = 0;
+        const uint8_t *response = &driver->buffer[delimiter_idx + 1];
         for (int i = 5, j = 0; i >= 0; --i, j += 2) {
           ((uint8_t *)&uid)[i] = response[j] & 0x55;
           ((uint8_t *)&uid)[i] |= response[j + 1] & 0xaa;
           sum += ((uint8_t *)&uid)[i] + 0xff;
         }
-
         // Decode the checksum received in the response
         uint16_t checksum;
         for (int i = 1, j = 12; i >= 0; --i, j += 2) {
           ((uint8_t *)&checksum)[i] = response[j] & 0x55;
           ((uint8_t *)&checksum)[i] |= response[j + 1] & 0xaa;
         }
-
-        // Send an event to the event queue
+        // Send a discovery response event to the event queue
         event.is_rdm = true;
         event.rdm.source_uid = uid;
         event.rdm.command_class = DISCOVERY_COMMAND_RESPONSE;
         event.rdm.checksum_is_valid = (sum == checksum);
-      xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-      driver->rx.event_sent = true;
-
+        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+        driver->rx.event_sent = true;
+      }
+      // TODO: clean me up!
       if (driver->mode == DMX_MODE_WRITE) {
         // Turn bus around to write mode after receiving RDM response
         portENTER_CRITICAL(&hardware->spinlock);
@@ -268,9 +241,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // Transmit interrupts are enabled when data is transmitted
         portEXIT_CRITICAL(&hardware->spinlock);
         dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_ALL);
-        }
       }
-
     } else if (intr_flags & DMX_INTR_RX_CLASH) {
       // Multiple devices sent data at once (typical of RDM discovery)
       // TODO: this code should only run when using RDM
