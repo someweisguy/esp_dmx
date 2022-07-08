@@ -766,9 +766,10 @@ esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid) {
       0x10,                                //! Command class (CC)
       0x00, 0x02,                          //! Parameter ID (PID)
       0x00,                                //! Parameter data length (PDL)
-  };
-  memcpyswap(mute_uid, &data[3], 6);
-  memcpyswap(0xdeadbeef1234, &data[9], 6);
+  };  
+  const uint64_t my_uid = 0xdeadbeef1234;
+  memcpyswap(&data[3], &mute_uid, 6);
+  memcpyswap(&data[9], &my_uid,  6);
 
   // Compute the checksum
   uint16_t checksum = 0;
