@@ -65,6 +65,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
       // handle a UART overflow
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
+
       if (driver->slot_idx > -1) {
         const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
         dmx_event_t event = {
@@ -80,10 +82,12 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         driver->slot_idx = -1;  // set error state
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
-
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
-    } else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
+    }
+    
+    else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
       // handle situation where a malformed slot is received
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
+
       if (driver->slot_idx > -1) {
         const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
         dmx_event_t event = {
@@ -99,10 +103,12 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         driver->slot_idx = -1;  // set error state
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
-
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
-    } else if (intr_flags & DMX_INTR_RX_BREAK) {
+    }
+    
+    else if (intr_flags & DMX_INTR_RX_BREAK) {
       // handle receiving the DMX break
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
+
       driver->rx.is_in_brk = true;  // notify sniffer
       if (!driver->rx.event_sent) {
         // haven't sent a queue event yet
@@ -142,11 +148,11 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       driver->rx.break_len = -1;
       driver->rx.mab_len = -1;
       dmx_hal_rxfifo_rst(&hardware->hal);
-
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
-    } else if (intr_flags & DMX_INTR_RX_DATA) {
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);
+    }
+    
+    else if (intr_flags & DMX_INTR_RX_DATA) {
       // data was received or timed out waiting for new data
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);
 
       // read from the uart fifo
       if (driver->slot_idx > -1) {
@@ -241,16 +247,18 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         portEXIT_CRITICAL(&hardware->spinlock);
         dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_ALL);
       }
-    } else if (intr_flags & DMX_INTR_RX_CLASH) {
+    } 
+    
+    else if (intr_flags & DMX_INTR_RX_CLASH) {
       // Multiple devices sent data at once (typical of RDM discovery)
-      // TODO: this code should only run when using RDM
-
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_CLASH);
+      // TODO: this code should only run when using RDM
     }
 
     // DMX Transmit #####################################################
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // handle condition when UART is ready to send more data
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DATA);
 
       // write slots
       int16_t wr_len = driver->tx.size - driver->slot_idx;
@@ -266,9 +274,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         portEXIT_CRITICAL_ISR(&hardware->spinlock);
       }
 
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DATA);
     } else if (intr_flags & DMX_INTR_TX_DONE) {
       // handle condition when packet has finished being sent
+      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DONE);
+
         driver->tx.last_data = now;
         if (driver->buffer[0] == RDM_SC) {
         // Turn the bus around to receive RDM response
@@ -297,10 +306,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         portEXIT_CRITICAL(&hardware->spinlock);
       }
       xSemaphoreGiveFromISR(driver->tx.sent_sem, &task_awoken);
-
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DONE);
-    }
-
+    } 
+    
     else {
       // disable interrupts that shouldn't be handled
       // this code shouldn't be called but it can prevent crashes when it is
