@@ -98,7 +98,7 @@ enum {
  */
 typedef struct {
   dmx_event_status_t status;   // The status of the received DMX packet.
-  size_t size;                 // The size of the received DMX packet in bytes.
+  int16_t size;                // The size of the received DMX packet in bytes.
   uint8_t data_class;          // The type of packet received. 
   struct {
     int32_t break_len;         // Duration of the DMX break in microseconds.
