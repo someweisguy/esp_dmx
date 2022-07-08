@@ -52,7 +52,6 @@ enum {
 
 static void IRAM_ATTR dmx_intr_handler(void *arg) {
   const int64_t now = esp_timer_get_time();
-  // initialize pointer consts - may be optimized away by compiler
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
 
@@ -164,19 +163,16 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         continue;
       }
 
-      // TODO: move me inside the next if statements
-      dmx_event_t event = {
-          .status = DMX_OK,
-          .size = driver->slot_idx,
-          .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
-
-      // Check to see if an event is ready to be sent
+      // Process received data
       const uint8_t sc = driver->buffer[0];  // Packet start-code.
       if (sc == DMX_SC) {
         if (driver->slot_idx < driver->rx.size_guess)
           continue;  // Haven't yet received a full DMX packet
         // Send a DMX event to the event queue
-        event.is_rdm = false;  // TODO: remove this line
+        dmx_event_t event = {
+            .status = DMX_OK,
+            .size = driver->slot_idx,
+            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
       } else if (sc == RDM_SC && driver->slot_idx > 26) {
@@ -184,9 +180,25 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           continue;  // Haven't yet received a full RDM packet
         // TODO: verify checksum
         // TODO: check for sub start code
-        event.is_rdm = true,
         // TODO: decode the rest of the RDM packet
-            xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
+        dmx_event_t event = {
+            .status = DMX_OK,
+            .is_rdm = true,
+            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len},
+            .rdm = {
+                // .destination_uid =  // TODO
+                // .source_uid = // TODO
+                // .transaction_num = // TODO
+                // .port_id = // TODO
+                // .message_count = // TODO
+                // .sub_device = // TODO
+                // .command_class = // TODO
+                // .parameter_id = // TODO
+                // .parameter_data_len = // TODO
+                // .parameter_data = // TODO
+                .checksum_is_valid = false  // TODO
+            }};
+        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
       } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
         if (driver->slot_idx < 17)
@@ -215,10 +227,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
           ((uint8_t *)&checksum)[i] |= response[j + 1] & 0xaa;
         }
         // Send a discovery response event to the event queue
-        event.is_rdm = true;
-        event.rdm.source_uid = uid;
-        event.rdm.command_class = DISCOVERY_COMMAND_RESPONSE;
-        event.rdm.checksum_is_valid = (sum == checksum);
+        dmx_event_t event = {
+            .status = DMX_OK,
+            .is_rdm = true,
+            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len},
+            .rdm = {.source_uid = uid,
+                    .command_class = DISCOVERY_COMMAND_RESPONSE,
+                    .checksum_is_valid = (sum == checksum)}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
       }
