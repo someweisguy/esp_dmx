@@ -72,18 +72,14 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_event_t event = {
             .status = DMX_ERR_DATA_OVERFLOW,
             .size = driver->slot_idx + rxfifo_len,
-            .timing = {
-                .brk = driver->rx.break_len,
-                .mab = driver->rx.mab_len
-            }
-          };
+            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
         driver->slot_idx = -1;  // set error state
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
     }
-    
+
     else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
       // handle situation where a malformed slot is received
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
@@ -93,18 +89,14 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_event_t event = {
             .status = DMX_ERR_IMPROPER_SLOT,
             .size = driver->slot_idx + rxfifo_len,
-            .timing = {
-                .brk = driver->rx.break_len,
-                .mab = driver->rx.mab_len
-            }
-        };
+            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
         driver->slot_idx = -1;  // set error state
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
     }
-    
+
     else if (intr_flags & DMX_INTR_RX_BREAK) {
       // handle receiving the DMX break
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
@@ -115,29 +107,21 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_event_t event = {
             .status = DMX_OK,
             .size = driver->slot_idx,
-            .timing = {
-                .brk = driver->rx.break_len,
-                .mab = driver->rx.mab_len
-            },
-            .is_late = true
-        };
+            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len},
+            .is_late = true};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.size_guess = driver->slot_idx;  // update guess
       } else if (driver->slot_idx > -1) {
         // check for errors that haven't been reported yet
         if (driver->slot_idx > DMX_MAX_PACKET_SIZE) {
           // packet length is longer than is allowed
-          dmx_event_t event = {
-              .status = DMX_ERR_PACKET_SIZE,
-              .size = driver->slot_idx
-          };
+          dmx_event_t event = {.status = DMX_ERR_PACKET_SIZE,
+                               .size = driver->slot_idx};
           xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         } else if (driver->slot_idx > driver->buf_size) {
           // packet length is longer than the driver buffer
-          dmx_event_t event = {
-              .status = DMX_ERR_BUFFER_SIZE,
-              .size = driver->slot_idx
-          };
+          dmx_event_t event = {.status = DMX_ERR_BUFFER_SIZE,
+                               .size = driver->slot_idx};
           xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         }
       }
@@ -149,7 +133,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       driver->rx.mab_len = -1;
       dmx_hal_rxfifo_rst(&hardware->hal);
     }
-    
+
     else if (intr_flags & DMX_INTR_RX_DATA) {
       // data was received or timed out waiting for new data
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);
@@ -247,8 +231,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         portEXIT_CRITICAL(&hardware->spinlock);
         dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_ALL);
       }
-    } 
-    
+    }
+
     else if (intr_flags & DMX_INTR_RX_CLASH) {
       // Multiple devices sent data at once (typical of RDM discovery)
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_CLASH);
@@ -278,11 +262,11 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // handle condition when packet has finished being sent
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DONE);
 
-        driver->tx.last_data = now;
-        if (driver->buffer[0] == RDM_SC) {
+      driver->tx.last_data = now;
+      if (driver->buffer[0] == RDM_SC) {
         // Turn the bus around to receive RDM response
-        const uint64_t rdm_timeout = 2800; // TODO: replace with macro
-        timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, 
+        const uint64_t rdm_timeout = 2800;  // TODO: replace with macro
+        timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
                               rdm_timeout);
         timer_start(driver->rst_seq_hw, driver->timer_idx);
         driver->awaiting_response = true;
@@ -290,7 +274,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
         portEXIT_CRITICAL(&hardware->spinlock);
         dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_ALL);
-        // RDM turnaround appears as a break. The slot_idx and event_sent will 
+        // RDM turnaround appears as a break. The slot_idx and event_sent will
         // be reset when the break is received.
         driver->slot_idx = -1;
         driver->rx.event_sent = true;
@@ -306,8 +290,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         portEXIT_CRITICAL(&hardware->spinlock);
       }
       xSemaphoreGiveFromISR(driver->tx.sent_sem, &task_awoken);
-    } 
-    
+    }
+
     else {
       // disable interrupts that shouldn't be handled
       // this code shouldn't be called but it can prevent crashes when it is
