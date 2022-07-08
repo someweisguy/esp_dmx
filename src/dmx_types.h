@@ -46,6 +46,18 @@ typedef struct {
   int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
 } dmx_config_t;
 
+/*
+TODO
+new dmx_event_status_t types
+ok == ESP_OK
+packet_size/buffer_size == ESP_ERR_INVALID_SIZE
+  but the user should know the size of the buffer, so they can figure it out 
+  based on the event.size that is returned
+
+timeout == ESP_ERR_TIMEOUT
+overflow/improper_slot == ESP_FAIL
+  on overflow, set the event.size to -1 so user can figure out which happened
+*/
 /**
  * @brief DMX packet status types reported to the event queue when a packet is
  * received.
