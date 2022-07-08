@@ -68,10 +68,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       if (driver->slot_idx > -1) {
         const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
-        dmx_event_t event = {
-            .status = DMX_ERR_DATA_OVERFLOW,
-            .size = driver->slot_idx + rxfifo_len,
-            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
+        dmx_event_t event = {.status = DMX_ERR_DATA_OVERFLOW,
+                             .size = driver->slot_idx + rxfifo_len,
+                             .timing = {.break_len = driver->rx.break_len,
+                                        .mab_len = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
         driver->slot_idx = -1;  // set error state
@@ -85,10 +85,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       if (driver->slot_idx > -1) {
         const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
-        dmx_event_t event = {
-            .status = DMX_ERR_IMPROPER_SLOT,
-            .size = driver->slot_idx + rxfifo_len,
-            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
+        dmx_event_t event = {.status = DMX_ERR_IMPROPER_SLOT,
+                             .size = driver->slot_idx + rxfifo_len,
+                             .timing = {.break_len = driver->rx.break_len,
+                                        .mab_len = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
         driver->slot_idx = -1;  // set error state
@@ -103,11 +103,11 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       driver->rx.is_in_brk = true;  // notify sniffer
       if (!driver->rx.event_sent) {
         // haven't sent a queue event yet
-        dmx_event_t event = {
-            .status = DMX_OK,
-            .size = driver->slot_idx,
-            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len},
-            .is_late = true};
+        dmx_event_t event = {.status = DMX_OK,
+                             .size = driver->slot_idx,
+                             .timing = {.break_len = driver->rx.break_len,
+                                        .mab_len = driver->rx.mab_len},
+                             .is_late = true};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.size_guess = driver->slot_idx;  // update guess
       } else if (driver->slot_idx > -1) {
@@ -165,10 +165,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         if (driver->slot_idx < driver->rx.size_guess)
           continue;  // Haven't yet received a full DMX packet
         // Send a DMX event to the event queue
-        dmx_event_t event = {
-            .status = DMX_OK,
-            .size = driver->slot_idx,
-            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len}};
+        dmx_event_t event = {.status = DMX_OK,
+                             .size = driver->slot_idx,
+                             .timing = {.break_len = driver->rx.break_len,
+                                        .mab_len = driver->rx.mab_len}};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
       } else if (sc == RDM_SC && driver->slot_idx > 26) {
@@ -177,23 +177,23 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         // TODO: verify checksum
         // TODO: check for sub start code
         // TODO: decode the rest of the RDM packet
-        dmx_event_t event = {
-            .status = DMX_OK,
-            .is_rdm = true,
-            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len},
-            .rdm = {
-                // .destination_uid =  // TODO
-                // .source_uid = // TODO
-                // .transaction_num = // TODO
-                // .port_id = // TODO
-                // .message_count = // TODO
-                // .sub_device = // TODO
-                // .command_class = // TODO
-                // .parameter_id = // TODO
-                // .parameter_data_len = // TODO
-                // .parameter_data = // TODO
-                .checksum_is_valid = false  // TODO
-            }};
+        dmx_event_t event = {.status = DMX_OK,
+                             .is_rdm = true,
+                             .timing = {.break_len = driver->rx.break_len,
+                                        .mab_len = driver->rx.mab_len},
+                             .rdm = {
+                                 // .destination_uid =  // TODO
+                                 // .source_uid = // TODO
+                                 // .transaction_num = // TODO
+                                 // .port_id = // TODO
+                                 // .message_count = // TODO
+                                 // .sub_device = // TODO
+                                 // .command_class = // TODO
+                                 // .parameter_id = // TODO
+                                 // .parameter_data_len = // TODO
+                                 // .parameter_data = // TODO
+                                 .checksum_is_valid = false  // TODO
+                             }};
         xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
         driver->rx.event_sent = true;
       } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
@@ -226,7 +226,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         dmx_event_t event = {
             .status = DMX_OK,
             .is_rdm = true,
-            .timing = {.brk = driver->rx.break_len, .mab = driver->rx.mab_len},
+            .timing = {.break_len = driver->rx.break_len,
+                       .mab_len = driver->rx.mab_len},
             .rdm = {.source_uid = uid,
                     .command_class = DISCOVERY_COMMAND_RESPONSE,
                     .checksum_is_valid = (sum == checksum)}};

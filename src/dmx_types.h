@@ -84,8 +84,8 @@ typedef struct {
   bool is_rdm;                 // True if the packet is an RDM packet (start code == RDM_SC and sub-start code == RDM_SUB_SC).
   size_t size;                 // The size of the received DMX packet in bytes.
   struct {
-    int32_t brk;               // Duration of the DMX break in microseconds.
-    int32_t mab;               // Duration of the DMX mark-after-break in microseconds.
+    int32_t break_len;         // Duration of the DMX break in microseconds.
+    int32_t mab_len;           // Duration of the DMX mark-after-break in microseconds.
   } timing;                    // Timing values received from the DMX sniffer.
   struct {
     uint64_t destination_uid;  // TODO
