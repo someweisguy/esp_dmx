@@ -684,6 +684,14 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   return ESP_OK;
 }
 
+uint64_t dmx_get_uid() {
+  uint64_t uid;
+  esp_efuse_mac_get_default(&uid);
+  // TODO: get a real manufacturer ID
+  uid = ((uint64_t)0xbeef << 32) | (uid & 0xffffffff);
+  return uid;
+}
+
 uint64_t buf_to_uid(const void *buf) {
     uint64_t uid = 0;
     const uint8_t *b = (uint8_t *)buf;
