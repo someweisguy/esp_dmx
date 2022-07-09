@@ -686,7 +686,7 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
 uint64_t dmx_get_uid() {
   uint64_t uid;
-  esp_efuse_mac_get_default(&uid);
+  esp_efuse_mac_get_default((uint8_t *)&uid);
   // TODO: get a real manufacturer ID
   uid = ((uint64_t)0xbeef << 32) | (uid & 0xffffffff);
   return uid;
