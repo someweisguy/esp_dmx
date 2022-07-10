@@ -247,11 +247,11 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         xSemaphoreTakeFromISR(driver->tx.turn_sem, &task_awoken);
         driver->awaiting_response = false;
         // Turn bus around to write mode after receiving RDM response
-        portENTER_CRITICAL(&hardware->spinlock);
+        portENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
         dmx_hal_set_rts(&hardware->hal, 0);  // set rts high
         // Transmit interrupts are enabled when data is transmitted
-        portEXIT_CRITICAL(&hardware->spinlock);
+        portEXIT_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_ALL);
       }
     }
@@ -304,19 +304,19 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         timer_start(driver->rst_seq_hw, driver->timer_idx);
 
         // Turn the bus around to receive RDM response
-        portENTER_CRITICAL(&hardware->spinlock);
+        portENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
-        portEXIT_CRITICAL(&hardware->spinlock);
+        portEXIT_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_ALL);
         // RDM turnaround appears as a break. The slot_idx and event_sent will
         // be reset when the break is received.
         driver->slot_idx = -1;
         driver->rx.event_sent = true;
         dmx_hal_rxfifo_rst(&hardware->hal);
-        portENTER_CRITICAL(&hardware->spinlock);
+        portENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_set_rts(&hardware->hal, 1);  // set rts low
         dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
-        portEXIT_CRITICAL(&hardware->spinlock);
+        portEXIT_CRITICAL_ISR(&hardware->spinlock);
       } else {
         // The packet that was just sent was a DMX packet
         driver->tx.last_cc = DMX_DIMMER_PACKET;
@@ -395,9 +395,9 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     // end break, start mab
     dmx_hal_inverse_signal(&hardware->hal, 0);
     uint32_t mab_len;
-    portENTER_CRITICAL(&hardware->spinlock);
+    portENTER_CRITICAL_ISR(&hardware->spinlock);
     mab_len = driver->tx.mab_len;
-    portEXIT_CRITICAL(&hardware->spinlock);
+    portEXIT_CRITICAL_ISR(&hardware->spinlock);
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, mab_len);
     ++driver->slot_idx;
   } else {
@@ -409,9 +409,9 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
 
     // enable tx interrupts
-    portENTER_CRITICAL(&hardware->spinlock);
+    portENTER_CRITICAL_ISR(&hardware->spinlock);
     dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
-    portEXIT_CRITICAL(&hardware->spinlock);
+    portEXIT_CRITICAL_ISR(&hardware->spinlock);
   }
 
   return task_awoken;
