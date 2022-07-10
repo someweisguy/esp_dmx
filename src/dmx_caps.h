@@ -12,6 +12,15 @@ enum {
   DISCOVERY_COMMAND_RESPONSE_SIZE = 16  // The size of an RDM DISCOVERY_COMMAND_RESPONSE excluding the preamble and delimiter byte.
 };
 
+enum {
+  RDM_REQUEST_MIN_TURNAROUND = 176,
+  RDM_REQUEST_MAX_TURNAROUND = 2800,
+
+  RDM_REQUEST_TIMEOUT = 3000,
+  RDM_DISCOVERY_TIMEOUT = 5800
+};
+
+
 // General DMX parameters
 enum {
   DMX_BAUD_RATE = 250000,      // The typical baud rate of DMX.

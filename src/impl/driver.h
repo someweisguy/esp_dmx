@@ -35,15 +35,19 @@ typedef struct {
   // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
   bool awaiting_response;
+  bool awaiting_turnaround;
   
   /* These variables are used when transmitting DMX. */
   struct {
     SemaphoreHandle_t sent_sem;     // Signals that the packet has been fully sent. The DMX driver is ready to send another.
     StaticSemaphore_t sent_sem_buf;
+    SemaphoreHandle_t turn_sem;     // Signals that the RDM turnaround has fully completed.
+    StaticSemaphore_t turn_sem_buf;
 
     uint32_t break_len;       // Length in microseconds of the transmitted break.
     uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
-    int64_t last_data;
+    int64_t last_data_ts;
+    uint8_t last_cc;
 
     // TODO: every tx variable below this comment can be unionized with rx variables
 
@@ -54,6 +58,8 @@ typedef struct {
   struct {
     QueueHandle_t queue;          // The queue to report DMX received events.
     int16_t size_guess;           // The guess of the size of the packet. Can reduce latency in reporting new data.
+    int64_t last_data_ts;
+    uint8_t last_cc;
 
     // TODO: every rx variable below this comment can be unionized with tx variables
 

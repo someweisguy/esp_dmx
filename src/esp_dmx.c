@@ -132,6 +132,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   // allocate semaphores
   driver->tx.sent_sem = xSemaphoreCreateBinaryStatic(&driver->tx.sent_sem_buf);
   xSemaphoreGive(driver->tx.sent_sem);
+  driver->tx.turn_sem = xSemaphoreCreateBinaryStatic(&driver->tx.turn_sem_buf);
+  xSemaphoreGive(driver->tx.turn_sem);
 
   // initialize general driver variables
   driver->dmx_num = dmx_num;
@@ -142,6 +144,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->timer_idx = dmx_config->timer_idx;
 
   driver->awaiting_response = false;
+  driver->awaiting_turnaround = false;
 
   // initialize driver tx variables
   driver->tx.break_len = DMX_BREAK_LEN_US;
@@ -787,7 +790,49 @@ esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid) {
   data[24] = checksum >> 8;
   data[25] = checksum;
 
-  //ESP_LOG_BUFFER_HEX("dmx", data, sizeof(data));
-
   return dmx_write_packet(dmx_num, data, sizeof(data));
+}
+
+esp_err_t dmx_wait_turnaround(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+  // TODO: check args
+
+  // if (xSemaphoreTake(dmx_driver[dmx_num]->tx.turn_sem, 0)) {
+  //   return ESP_OK;
+  // }
+
+  // FIXME: enter critical section
+  vTaskSuspendAll();
+  const int64_t now = esp_timer_get_time();
+  const int64_t elapsed = now - dmx_driver[dmx_num]->tx.last_data_ts;
+
+  dmx_driver[dmx_num]->awaiting_turnaround = true;
+  if (dmx_driver[dmx_num]->mode == DMX_MODE_WRITE) {
+    if (dmx_driver[dmx_num]->tx.last_cc == RDM_DISCOVERY_COMMAND) {
+      if (elapsed >= RDM_DISCOVERY_TIMEOUT) return ESP_OK;
+      timer_set_counter_value(dmx_driver[dmx_num]->rst_seq_hw,
+                            dmx_driver[dmx_num]->timer_idx,
+                            0);
+      timer_set_alarm_value(dmx_driver[dmx_num]->rst_seq_hw,
+                            dmx_driver[dmx_num]->timer_idx,
+                            RDM_DISCOVERY_TIMEOUT - elapsed);
+      
+    } else {
+      // TODO
+    }
+  } else {
+    // TODO
+  }
+  timer_start(dmx_driver[dmx_num]->rst_seq_hw, dmx_driver[dmx_num]->timer_idx);
+  xTaskResumeAll();
+  // FIXME: exit critical section
+
+  if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.turn_sem, ticks_to_wait)) {
+    return ESP_ERR_TIMEOUT;
+  }
+  int64_t end = esp_timer_get_time();
+  // ESP_LOGI(TAG, "start: %lli, end: %lli, waited: %lli, last slot: %lli, time since last slot: %lli", now, 
+  //    end, end - now, dmx_driver[dmx_num]->tx.last_data_ts, 
+  //    (int64_t)(end - dmx_driver[dmx_num]->tx.last_data_ts));
+
+  return ESP_OK;
 }

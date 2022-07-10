@@ -379,6 +379,8 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
 // TODO: docs
 esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid);
 
+esp_err_t dmx_wait_turnaround(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+
 #ifdef __cplusplus
 }
 #endif

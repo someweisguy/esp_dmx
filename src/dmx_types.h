@@ -94,6 +94,25 @@ enum {
   RDM_DATA_CLASS = RDM_SC   // RDM class data. A packet is an RDM packet if it begins with an RDM start code and an RDM sub-start code.
 };
 
+typedef struct {
+    uint8_t sc;
+    uint8_t sub_sc;
+    uint8_t size;
+    uint8_t destination_uid[6];
+    uint8_t source_uid[6];
+    uint8_t transaction_num;
+    union {
+      uint8_t port_id;
+      uint8_t response_type;
+    };
+    uint8_t message_count;
+    uint16_t sub_device;
+    uint8_t command_class;
+    uint16_t parameter_id; 
+    uint8_t parameter_data_len;
+    void *parameter_data;
+} rdm_packet_t;
+
 /**
  * @brief DMX data events reported to the event queue when a packet is received.
  */
