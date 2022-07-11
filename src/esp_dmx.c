@@ -145,6 +145,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
 
   driver->awaiting_response = false;
   driver->awaiting_turnaround = false;
+  driver->tx.rdm_tn = 0;
+  driver->uid = dmx_get_uid();
 
   // initialize driver tx variables
   driver->tx.break_len = DMX_BREAK_LEN_US;
@@ -753,12 +755,12 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
 }
 
 void *memcpyswap(void *dest, const void *src, size_t n) {
-  char *chrsrc = (char *)src;
-  char *const chrdest = (char *)dest;
-  for (; n > 0; --n, chrsrc++) { // FIXME: use pointer addition/subtraction
-    chrdest[n - 1] = *chrsrc;
+  char *chrdest = (char *)dest;
+  char *chrsrc = (char *)src + n - 1;
+  for (; (void *)chrsrc >= src; --chrsrc, chrdest++) {
+    *chrdest = *chrsrc;
   }
-  return dest;
+  return chrdest;
 }
 
 esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid) {
