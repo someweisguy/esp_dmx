@@ -36,6 +36,7 @@ typedef struct {
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
   bool awaiting_response;
   bool awaiting_turnaround;
+  uint64_t uid;
   
   /* These variables are used when transmitting DMX. */
   struct {
@@ -48,6 +49,7 @@ typedef struct {
     uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
     int64_t last_data_ts;
     uint8_t last_cc;
+    uint8_t rdm_tn;
 
     // TODO: every tx variable below this comment can be unionized with rx variables
 

@@ -364,12 +364,6 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 // TODO: docs
 uint64_t dmx_get_uid();
 
-// TODO: docs
-inline uint64_t buf_to_uid(const void *buf);
-
-// TODO: docs
-inline void *uid_to_buf(const uint64_t uid, void *buf);
-
 void *memcpyswap(void *dest, const void *src, size_t n);
 
 // TODO: docs

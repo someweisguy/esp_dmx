@@ -7,6 +7,7 @@
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
 #include "driver/uart.h"
+#include "endian.h"
 #include "esp_check.h"
 #include "esp_log.h"
 #include "impl/dmx_hal.h"
@@ -143,6 +144,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config,
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
 
+  // TODO: reorganize these inits
   driver->awaiting_response = false;
   driver->awaiting_turnaround = false;
   driver->tx.rdm_tn = 0;
@@ -697,19 +699,6 @@ uint64_t dmx_get_uid() {
   return uid;
 }
 
-uint64_t buf_to_uid(const void *buf) {
-    uint64_t uid = 0;
-    const uint8_t *b = (uint8_t *)buf;
-    for (int bits = 40; bits >= 0; ++b, bits -= 8) uid = uid << 8 | *b;
-    return uid;
-}
-
-void *uid_to_buf(const uint64_t uid, void *buf) {
-    uint8_t *b = (uint8_t *)buf;
-    for (int bits = 40; bits >= 0; ++b, bits -= 8) *b = uid >> bits;
-    return b;
-}
-
 esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid, 
                               uint64_t upper_uid) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
@@ -725,33 +714,31 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
                       "lower_uid must be less than or equal to upper_uid");
 
   // Build the discovery packet
-  uint8_t data[38] = {
-      RDM_SC, RDM_SUB_SC,                  // RDM start code and sub-start code
-      0x24,                                // Message length (excludes checksum)
-      0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  // Destination UID (broadcast)
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Source UID
-      0x00,                                // Transaction number (TN)
-      0x00,                                // Port ID
-      0x00,                                // Message count
-      0x00, 0x00,                          // Sub-device
-      0x10,                                // Command class (CC)
-      0x00, 0x01,                          // Parameter ID (PID)
-      0x0c,                                // Parameter data length (PDL)
-  };
-  // TODO: replace with actual device UID based on MAC
-  uid_to_buf(0xdeadbeef1234, &data[9]);  // Source UID
-  uid_to_buf(lower_uid, &data[24]);      // Lower UID
-  uid_to_buf(upper_uid, &data[30]);      // Upper UID
+  rdm_packet_t *packet = (rdm_packet_t *)dmx_driver[dmx_num]->buffer;
+  packet->sc = RDM_SC;
+  packet->sub_sc = RDM_SUB_SC;
+  packet->size = 36;
+  memcpyswap(&packet->destination_uid, &RDM_BROADCAST_UID, 6);
+  memcpyswap(&packet->source_uid, &dmx_driver[dmx_num]->uid, 6);
+  packet->transaction_num = dmx_driver[dmx_num]->tx.rdm_tn;
+  packet->port_id = dmx_num + 1;
+  packet->message_count = 0;
+  packet->sub_device = bswap16(0);
+  packet->command_class = RDM_DISCOVERY_COMMAND;
+  packet->parameter_id = bswap16(1);  // FIXME: use enum
+  packet->parameter_data_len = 12;
+
+  // Assemble the parameter data
+  void *ptr = &packet->parameter_data;
+  ptr = memcpyswap(ptr, &lower_uid, 6);
+  ptr = memcpyswap(ptr, &upper_uid, 6);
 
   // Compute the checksum
   uint16_t checksum = 0;
-  for (int i = 0; i < sizeof(data) - 2; ++i) {
-    checksum += data[i];
-  }
-  data[36] = checksum >> 8;
-  data[37] = checksum;
+  for (uint8_t *i = (uint8_t *)packet; i != ptr; ++i) checksum += *i;
+  *(uint16_t *)ptr = bswap16(checksum);
 
-  return dmx_write_packet(dmx_num, data, sizeof(data));
+  return ESP_OK;
 }
 
 void *memcpyswap(void *dest, const void *src, size_t n) {
@@ -817,7 +804,6 @@ esp_err_t dmx_wait_turnaround(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
       timer_set_alarm_value(dmx_driver[dmx_num]->rst_seq_hw,
                             dmx_driver[dmx_num]->timer_idx,
                             RDM_DISCOVERY_TIMEOUT - elapsed);
-      
     } else {
       // TODO
     }
@@ -831,10 +817,6 @@ esp_err_t dmx_wait_turnaround(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   if (!xSemaphoreTake(dmx_driver[dmx_num]->tx.turn_sem, ticks_to_wait)) {
     return ESP_ERR_TIMEOUT;
   }
-  int64_t end = esp_timer_get_time();
-  // ESP_LOGI(TAG, "start: %lli, end: %lli, waited: %lli, last slot: %lli, time since last slot: %lli", now, 
-  //    end, end - now, dmx_driver[dmx_num]->tx.last_data_ts, 
-  //    (int64_t)(end - dmx_driver[dmx_num]->tx.last_data_ts));
 
   return ESP_OK;
 }

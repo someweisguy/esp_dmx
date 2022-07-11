@@ -94,7 +94,9 @@ enum {
   RDM_DATA_CLASS = RDM_SC   // RDM class data. A packet is an RDM packet if it begins with an RDM start code and an RDM sub-start code.
 };
 
-typedef struct {
+static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
+
+typedef struct __attribute__((__packed__)) {
     uint8_t sc;
     uint8_t sub_sc;
     uint8_t size;
