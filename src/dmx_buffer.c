@@ -8,6 +8,7 @@ typedef struct {
   uint16_t head;
   uint16_t triggerLevel;
   TaskHandle_t task_waiting;
+  TaskHandle_t calling_task;
   uint8_t data[DMX_MAX_PACKET_SIZE];
   uint8_t completed;
   portMUX_TYPE mux;
@@ -29,6 +30,7 @@ DMXBufferHandle_t DMXBufferCreate(size_t triggerLevel) {
   dmx_buf->head = 0;
   dmx_buf->triggerLevel = triggerLevel;
   dmx_buf->task_waiting = NULL;
+  dmx_buf->calling_task = xTaskGetCurrentTaskHandle();
   bzero(dmx_buf->data, DMX_MAX_PACKET_SIZE);
   dmx_buf->completed = false;
   portMUX_INITIALIZE(&dmx_buf->mux);
@@ -118,8 +120,8 @@ size_t DMXBufferReceiveToFIFOFromISR(DMXBufferHandle_t DMXBufferHandle,
   dmx_buf->head += size;
 
   // Notify tasks when trigger has been reached
-  if (dmx_buf->triggerLevel > dmx_buf->head && dmx_buf->task_waiting) {
-    xTaskNotifyFromISR(dmx_buf->task_waiting, 0, eSetValueWithOverwrite,
+  if (dmx_buf->triggerLevel > dmx_buf->head) {
+    xTaskNotifyFromISR(dmx_buf->calling_task, 0, eSetValueWithOverwrite,
                        higherPriorityTaskAwoken);
     dmx_buf->task_waiting = NULL;
   }
@@ -152,7 +154,7 @@ size_t DMXBufferPeek(DMXBufferHandle_t DMXBufferHandle, void *data, size_t size,
     taskEXIT_CRITICAL(&dmx_buf->mux);
 
     if (bytes_available <= dmx_buf->triggerLevel) {
-      xTaskNotifyWait(ULONG_MAX, 0, notificationValue, ticksToWait);
+      xTaskNotifyWait(ULONG_MAX, ULONG_MAX, notificationValue, ticksToWait);
       dmx_buf->task_waiting = NULL;
 
       // Recheck the data available after blocking
@@ -179,10 +181,13 @@ void DMXBufferSendCompletedFromISR(DMXBufferHandle_t DMXBufferHandle,
 
   DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
 
+  xTaskNotifyFromISR(dmx_buf->calling_task, notificationValue,
+                     eSetValueWithOverwrite, higherPriorityTaskAwoken);
+
   // Notify task if required
   if (dmx_buf->task_waiting) {
     xTaskNotifyFromISR(dmx_buf->task_waiting, notificationValue,
-                      eSetValueWithOverwrite, higherPriorityTaskAwoken);
+                       eSetValueWithOverwrite, higherPriorityTaskAwoken);
     dmx_buf->task_waiting = NULL;
   }
   dmx_buf->completed = true;
