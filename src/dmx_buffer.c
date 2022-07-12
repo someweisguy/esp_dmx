@@ -58,8 +58,10 @@ size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
     size = DMX_MAX_PACKET_SIZE;
   }
 
-  // TODO: block if (!dmx_buf->completed)
   // Ensures writes to the buffer are synchronized
+  if (!dmx_buf->completed) {
+    // TODO
+  }
 
   memcpy(dmx_buf->data, data, size);
 
