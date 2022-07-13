@@ -46,6 +46,15 @@ void DMXBufferDelete(DMXBufferHandle_t DMXBufferHandle) {
   heap_caps_free(dmx_buf);
 }
 
+void DMXBufferClear(DMXBufferHandle_t DMXBufferHandle) {
+  configASSERT(DMXBufferHandle);
+
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
+
+  dmx_buf->head = 0;
+  bzero(dmx_buf->data, DMX_MAX_PACKET_SIZE);
+}
+
 size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
                           size_t size, TickType_t ticksToWait) {
   configASSERT(DMXBufferHandle);

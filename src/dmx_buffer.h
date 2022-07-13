@@ -15,6 +15,8 @@ DMXBufferHandle_t DMXBufferCreate(size_t triggerLevel);
 
 void DMXBufferDelete(DMXBufferHandle_t DMXBufferHandle);
 
+void DMXBufferClear(DMXBufferHandle_t DMXBufferHandle);
+
 size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
                           size_t size, TickType_t ticksToWait);
 
