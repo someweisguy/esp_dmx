@@ -53,6 +53,8 @@ size_t DMXBufferSpacesAvailable(DMXBufferHandle_t DMXBufferHandle);
 
 // TODO: find delimiter
 
+bool DMXBufferIsCompleted(DMXBufferHandle_t DMXBufferHandle);
+
 #ifdef __cplusplus
 }
 #endif

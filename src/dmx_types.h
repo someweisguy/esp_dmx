@@ -17,8 +17,8 @@ typedef int dmx_port_t;
  * @brief DMX modes of operation.
  */
 typedef enum {
-  DMX_MODE_READ,   // DMX receive mode.
   DMX_MODE_WRITE,  // DMX transmit mode.
+  DMX_MODE_READ,   // DMX receive mode.
   DMX_MODE_MAX     // Maximum DMX mode value. Used for error checking.
 } dmx_mode_t;
 
@@ -40,7 +40,7 @@ typedef enum {
  * without first deleting the driver.
  */
 typedef struct {
-  uint16_t buffer_size;  // The data buffer size of the DMX driver.
+  uint16_t buffer_size;  // The data buffer size of the DMX driver. // FIXME
   int8_t rst_seq_hw;     // The hardware to use to generate the DMX reset sequence. Can be set to -1 to use busy-wait mode.
   uint8_t timer_idx;     // The timer index to use to generate the DMX reset sequence.
   int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
@@ -64,6 +64,7 @@ overflow/improper_slot == ESP_FAIL
  */
 typedef enum {
   DMX_OK = 0,               // The DMX packet is valid.
+  DMX_MODE_SWITCH,
   DMX_ERR_BUFFER_SIZE,      // The user defined buffer is too small for the received packet.
   DMX_ERR_IMPROPER_SLOT,    // A slot in the packet was improperly framed (missing stop bits).
   DMX_ERR_PACKET_SIZE,      // The packet size is 0 or longer than the DMX standard allows.
@@ -152,6 +153,14 @@ typedef struct {
   uint8_t txfifo_empty_threshold;  // DMX TX empty interrupt threshold. This the maximum number of bytes that are needed in the UART TX FIFO for the "FIFO empty" interrupt to fire.
   uint8_t rxfifo_full_threshold;   // DMX RX full interrupt threshold. This is the minimum number of bytes that are needed in the UART RX FIFO for the "FIFO full" interrupt to fire.
 } dmx_intr_config_t;
+
+
+enum {
+  DMX_SENT = 1,
+  DMX_IS_IN_BREAK = 2,
+  DMX_TURNAROUND_COMPLETE = 4,
+};
+
 
 #ifdef __cplusplus
 }

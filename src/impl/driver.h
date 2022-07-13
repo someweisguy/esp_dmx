@@ -4,11 +4,13 @@
 extern "C" {
 #endif
 
+#include "dmx_buffer.h"
 #include "driver/gpio.h"
 #include "driver/timer.h"
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"
 #include "freertos/semphr.h"
+#include "freertos/event_groups.h"
 #include "hal/uart_hal.h"
 #include "soc/uart_struct.h"
 
@@ -28,28 +30,18 @@ typedef struct {
   timer_idx_t timer_idx;          // The timer index being used for the reset sequence.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
-  uint16_t buf_size;              // Size of the DMX buffer in bytes.
-  uint8_t *buffer;                // Used for reading or writing DMX data.
-  int16_t slot_idx;               // Index of the current slot that is being rx'd or tx'd.
+  DMXBufferHandle_t buffer;
+
+  EventGroupHandle_t state;
 
   // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
-  bool awaiting_response;
-  bool awaiting_turnaround;
   uint64_t uid;
   
   /* These variables are used when transmitting DMX. */
   struct {
-    SemaphoreHandle_t sent_sem;     // Signals that the packet has been fully sent. The DMX driver is ready to send another.
-    StaticSemaphore_t sent_sem_buf;
-    SemaphoreHandle_t turn_sem;     // Signals that the RDM turnaround has fully completed.
-    StaticSemaphore_t turn_sem_buf;
-
     uint32_t break_len;       // Length in microseconds of the transmitted break.
     uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
-    int64_t last_data_ts;
-    uint8_t last_cc;
-    uint8_t rdm_tn;
 
     // TODO: every tx variable below this comment can be unionized with rx variables
 
@@ -58,7 +50,6 @@ typedef struct {
 
   /* These variables are used when receiving DMX. */
   struct {
-    QueueHandle_t queue;          // The queue to report DMX received events.
     int16_t size_guess;           // The guess of the size of the packet. Can reduce latency in reporting new data.
     int64_t last_data_ts;
     uint8_t last_cc;
@@ -66,7 +57,6 @@ typedef struct {
     // TODO: every rx variable below this comment can be unionized with tx variables
 
     gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
-    bool event_sent;              // True if a queue event has been sent.
     
     /* The remaining variables are only used if the DMX sniffer is enabled.
     They are uninitialized until dmx_sniffer_enable is called. */

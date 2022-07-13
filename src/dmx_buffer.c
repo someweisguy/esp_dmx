@@ -123,7 +123,7 @@ size_t DMXBufferReceiveToFIFOFromISR(DMXBufferHandle_t DMXBufferHandle,
 
   // Write data to the FIFO, whose pointer does change
   uint8_t *data_head = &dmx_buf->data[dmx_buf->head];
-  for (int i = 0; i < size; ++i) *(uint8_t *)data = data_head[i];
+  for (int i = 0; i < size; ++i) *(volatile uint32_t *)data = data_head[i];
   dmx_buf->head += size;
 
   // Notify tasks when trigger has been reached
@@ -267,9 +267,5 @@ bool DMXBufferIsCompleted(DMXBufferHandle_t DMXBufferHandle) {
 
   DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
-  taskENTER_CRITICAL(&dmx_buf->mux);
-  const bool completed = dmx_buf->completed;
-  taskEXIT_CRITICAL(&dmx_buf->mux);
-
-  return completed;
+  return dmx_buf->completed;
 }
