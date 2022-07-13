@@ -50,9 +50,11 @@ void DMXBufferClear(DMXBufferHandle_t DMXBufferHandle) {
   configASSERT(DMXBufferHandle);
 
   DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
-
+  
+  taskENTER_CRITICAL(&dmx_buf->mux);
   dmx_buf->head = 0;
   bzero(dmx_buf->data, DMX_MAX_PACKET_SIZE);
+  taskEXIT_CRITICAL(&dmx_buf->mux);
 }
 
 size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
