@@ -50,7 +50,7 @@ void DMXBufferClear(DMXBufferHandle_t DMXBufferHandle) {
   configASSERT(DMXBufferHandle);
 
   DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
-  
+
   taskENTER_CRITICAL(&dmx_buf->mux);
   dmx_buf->head = 0;
   bzero(dmx_buf->data, DMX_MAX_PACKET_SIZE);
@@ -70,11 +70,6 @@ size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
   // Clamp size to the size of the buffer  
   if (size > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE;
-  }
-
-  // Ensures writes to the buffer are synchronized
-  if (!dmx_buf->completed) {
-    // TODO
   }
 
   memcpy(dmx_buf->data, data, size);
@@ -135,7 +130,7 @@ size_t DMXBufferReceiveToFIFOFromISR(DMXBufferHandle_t DMXBufferHandle,
   if (dmx_buf->triggerLevel > dmx_buf->head) {
     xTaskNotifyFromISR(dmx_buf->calling_task, 0, eSetValueWithOverwrite,
                        higherPriorityTaskAwoken);
-    dmx_buf->task_waiting = NULL;
+    dmx_buf->completed = true;
   }
 
   return size;
@@ -265,4 +260,16 @@ size_t DMXBufferSpacesAvailable(DMXBufferHandle_t DMXBufferHandle) {
   DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
   return DMX_MAX_PACKET_SIZE - dmx_buf->head;
+}
+
+bool DMXBufferIsCompleted(DMXBufferHandle_t DMXBufferHandle) {
+  configASSERT(DMXBufferHandle);
+
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
+
+  taskENTER_CRITICAL(&dmx_buf->mux);
+  const bool completed = dmx_buf->completed;
+  taskEXIT_CRITICAL(&dmx_buf->mux);
+
+  return completed;
 }
