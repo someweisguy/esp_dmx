@@ -4,7 +4,7 @@
 #include "esp_system.h"
 #include "freertos/task.h"
 
-typedef struct {
+typedef struct DMXBufferDef_t {
   uint16_t head;
   uint16_t triggerLevel;
   TaskHandle_t task_waiting;
@@ -12,7 +12,7 @@ typedef struct {
   uint8_t data[DMX_MAX_PACKET_SIZE];
   uint8_t completed;
   portMUX_TYPE mux;
-} DMXBufferDef_t;
+} DMXBuffer_t;
 
 DMXBufferHandle_t DMXBufferCreate(size_t triggerLevel) {
   if (triggerLevel == 0) {
@@ -22,7 +22,7 @@ DMXBufferHandle_t DMXBufferCreate(size_t triggerLevel) {
   }
 
   // Initialize struct to default values
-  DMXBufferDef_t *dmx_buf = heap_caps_malloc(sizeof(DMXBufferDef_t), 
+  DMXBuffer_t *dmx_buf = heap_caps_malloc(sizeof(DMXBuffer_t), 
       (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
   if (dmx_buf == NULL) {
     return NULL;
@@ -41,7 +41,7 @@ DMXBufferHandle_t DMXBufferCreate(size_t triggerLevel) {
 void DMXBufferDelete(DMXBufferHandle_t DMXBufferHandle) {
   configASSERT(DMXBufferHandle);
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
   heap_caps_free(dmx_buf);
 }
@@ -54,7 +54,7 @@ size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
     return 0;
   }
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
   
   if (size > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE;
@@ -79,7 +79,7 @@ size_t DMXBufferSendFromFIFOFromISR(DMXBufferHandle_t DMXBufferHandle,
     return 0;
   }
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
   
   // Clamp the send size to the number of spaces available
   const size_t spaces_available = DMXBufferSpacesAvailable(DMXBufferHandle);
@@ -106,7 +106,7 @@ size_t DMXBufferReceiveToFIFOFromISR(DMXBufferHandle_t DMXBufferHandle,
     return 0;
   }
   
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
   // Clamp the receive size to the number of bytes available
   const size_t bytes_available = DMXBufferBytesAvailable(DMXBufferHandle);
@@ -137,7 +137,7 @@ size_t DMXBufferPeek(DMXBufferHandle_t DMXBufferHandle, void *data, size_t size,
     return 0;
   }
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
   
   // Block task if required
   size_t bytes_available;
@@ -174,13 +174,24 @@ size_t DMXBufferPeek(DMXBufferHandle_t DMXBufferHandle, void *data, size_t size,
   return size;
 }
 
+void DMXBufferSendCompleted(DMXBufferHandle_t DMXBufferHandle,
+                             uint32_t notificationValue) {
+  configASSERT(DMXBufferHandle);
+
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
+
+  dmx_buf->completed = true;
+  xTaskNotify(dmx_buf->calling_task, notificationValue, eSetValueWithOverwrite);
+}
+
 void DMXBufferSendCompletedFromISR(DMXBufferHandle_t DMXBufferHandle,
                                    uint32_t notificationValue,
                                    BaseType_t *higherPriorityTaskAwoken) {
   configASSERT(DMXBufferHandle);
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
+  dmx_buf->completed = true;
   xTaskNotifyFromISR(dmx_buf->calling_task, notificationValue,
                      eSetValueWithOverwrite, higherPriorityTaskAwoken);
 
@@ -190,7 +201,6 @@ void DMXBufferSendCompletedFromISR(DMXBufferHandle_t DMXBufferHandle,
                        eSetValueWithOverwrite, higherPriorityTaskAwoken);
     dmx_buf->task_waiting = NULL;
   }
-  dmx_buf->completed = true;
 }
 
 BaseType_t DMXBufferSetTriggerLevel(DMXBufferHandle_t DMXBufferHandle,
@@ -200,7 +210,7 @@ BaseType_t DMXBufferSetTriggerLevel(DMXBufferHandle_t DMXBufferHandle,
     return pdFALSE;
   }
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
   if (triggerLevel == 0) {
     triggerLevel = 1;
@@ -214,7 +224,7 @@ BaseType_t DMXBufferSetTriggerLevel(DMXBufferHandle_t DMXBufferHandle,
 BaseType_t DMXBufferReset(DMXBufferHandle_t DMXBufferHandle) {
   configASSERT(DMXBufferHandle);
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
   BaseType_t reset = pdFALSE;
 
@@ -232,7 +242,7 @@ BaseType_t DMXBufferReset(DMXBufferHandle_t DMXBufferHandle) {
 size_t DMXBufferBytesAvailable(DMXBufferHandle_t DMXBufferHandle) {
   configASSERT(DMXBufferHandle);
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
   return dmx_buf->head;
 }
@@ -240,7 +250,7 @@ size_t DMXBufferBytesAvailable(DMXBufferHandle_t DMXBufferHandle) {
 size_t DMXBufferSpacesAvailable(DMXBufferHandle_t DMXBufferHandle) {
   configASSERT(DMXBufferHandle);
 
-  DMXBufferDef_t *dmx_buf = (DMXBufferDef_t *)DMXBufferHandle;
+  DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
 
   return DMX_MAX_PACKET_SIZE - dmx_buf->head;
 }

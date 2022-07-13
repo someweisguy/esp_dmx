@@ -8,8 +8,8 @@ extern "C" {
 #include <stdint.h>
 #include <string.h>
 
-struct DMXBufferDef_t;
-typedef struct DMXBufferDef_t *DMXBufferHandle_t;
+struct DMXBuffer_t;
+typedef struct DMXBuffer_t *DMXBufferHandle_t;
 
 DMXBufferHandle_t DMXBufferCreate(size_t triggerLevel);
 
@@ -25,13 +25,16 @@ size_t DMXBufferSendFromFIFOFromISR(DMXBufferHandle_t DMXBufferHandle,
                                     BaseType_t *higherPriorityTaskAwoken);
 
 size_t DMXBufferReceiveToFIFOFromISR(DMXBufferHandle_t DMXBufferHandle,
-                                     void *const data, size_t size, 
+                                     void *const data, size_t size,
                                      BaseType_t *higherPriorityTaskAwoken);
 
 size_t DMXBufferPeek(DMXBufferHandle_t DMXBufferHandle, void *data, size_t size,
                      uint32_t *notificationValue, TickType_t ticksToWait);
 
 // TODO: peek slot
+
+void DMXBufferSendCompleted(DMXBufferHandle_t DMXBufferHandle,
+                            uint32_t notificationValue);
 
 void DMXBufferSendCompletedFromISR(DMXBufferHandle_t DMXBufferHandle,
                                    uint32_t notificationValue,
