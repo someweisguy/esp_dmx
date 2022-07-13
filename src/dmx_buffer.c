@@ -58,7 +58,7 @@ void DMXBufferClear(DMXBufferHandle_t DMXBufferHandle) {
 }
 
 size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
-                          size_t size, TickType_t ticksToWait) {
+                          size_t size) {
   configASSERT(DMXBufferHandle);
   configASSERT(data);
   if (size == 0) {
@@ -66,7 +66,8 @@ size_t DMXBufferOverwrite(DMXBufferHandle_t DMXBufferHandle, const void *data,
   }
 
   DMXBuffer_t *dmx_buf = (DMXBuffer_t *)DMXBufferHandle;
-  
+
+  // Clamp size to the size of the buffer  
   if (size > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE;
   }
