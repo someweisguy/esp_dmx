@@ -73,7 +73,7 @@ IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
  * @param hal Pointer to a UART HAL context.
  * @return The UART rx timeout.
  */
-uint8_t dmx_hal_get_rx_timeout(uart_hal_context_t *hal) {
+uint8_t dmx_hal_get_rx_timeout_threshold(uart_hal_context_t *hal) {
   return uart_hal_get_rx_tout_thr(hal);
 }
 
