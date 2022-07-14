@@ -127,8 +127,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   }
 
   // Install UART interrupt
-  dmx_hal_disable_intr_mask(&hardware->hal, DMX_ALL_INTR_MASK);
-  dmx_hal_clr_intsts_mask(&hardware->hal, DMX_ALL_INTR_MASK);
+  dmx_hal_disable_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
+  dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags,
                  &dmx_intr_handler, driver, &driver->uart_isr_handle);
   const dmx_intr_config_t dmx_intr_conf = {
@@ -140,7 +140,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   // Enable UART read interrupt and set RTS low
   portENTER_CRITICAL(&hardware->spinlock);
-  dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
+  dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
   dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
   portEXIT_CRITICAL(&hardware->spinlock);
 
@@ -195,7 +195,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   }
 
   // Clear interrupts and set the mode
-  dmx_hal_clr_intsts_mask(&hardware->hal, DMX_ALL_INTR_MASK);
+  dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   driver->mode = dmx_mode;
 
   // Put the driver in the idle state so it can send or receive data
@@ -210,12 +210,12 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     // Set RTS and enable UART interrupts
     portENTER_CRITICAL(&hardware->spinlock);
     dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
-    dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
+    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
     portEXIT_CRITICAL(&hardware->spinlock);
   } else {
     // Disable read interrupts
     portENTER_CRITICAL(&hardware->spinlock);
-    dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_RX_ALL);
+    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
     portEXIT_CRITICAL(&hardware->spinlock);
 
     // Disable DMX sniffer if it is enabled
@@ -388,7 +388,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   // Trigger the DMX break
   xEventGroupSetBits(driver->state, DMX_IS_IN_BREAK);
   driver->is_in_break = true;
-  dmx_hal_inverse_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
+  dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
 
   return ESP_OK;

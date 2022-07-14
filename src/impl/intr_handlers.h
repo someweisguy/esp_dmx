@@ -57,12 +57,12 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
   int task_awoken = false;
 
   while (true) {
-    const uint32_t intr_flags = dmx_hal_get_intsts_mask(&hardware->hal);
+    const uint32_t intr_flags = dmx_hal_get_interrupt_status(&hardware->hal);
     if (intr_flags == 0) break;
 
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
       /*
       // handle a UART overflow
 
@@ -80,7 +80,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     */
     }
     else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
       /*
       // handle situation where a malformed slot is received
 
@@ -98,7 +98,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     */
     }
     else if (intr_flags & DMX_INTR_RX_BREAK) {
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_BREAK);
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_BREAK);
     /*
           // handle receiving the DMX break
 
@@ -136,7 +136,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     }
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_DATA);
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_DATA);
       /*
       // data was received or timed out waiting for new data
 
@@ -144,7 +144,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       if (intr_flags & UART_INTR_RXFIFO_FULL) {
         driver->rx.last_data_ts = now;
       } else {
-        const uint8_t rx_timeout = dmx_hal_get_rx_tout(&hardware->hal);
+        const uint8_t rx_timeout = dmx_hal_get_rx_timeout(&hardware->hal);
         driver->rx.last_data_ts = now - (rx_timeout * 44);
       }
 
@@ -188,14 +188,14 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
     else if (intr_flags & DMX_INTR_RX_CLASH) {
       // Multiple devices sent data at once (typical of RDM discovery)
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_RX_CLASH);
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_CLASH);
       // TODO: this code should only run when using RDM
     }
 
     // DMX Transmit #####################################################
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // UART is ready to write more DMX data
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DATA);
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
 
       // Write data to the UART
       size_t write_size = driver->buffer.size - driver->buffer.head;
@@ -205,14 +205,14 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // Allow FIFO to empty when done writing data
       if (driver->buffer.head == driver->buffer.size) {
         portENTER_CRITICAL_ISR(&hardware->spinlock);
-        dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_DATA);
+        dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
         portEXIT_CRITICAL_ISR(&hardware->spinlock);
       }
     }
     
     else if (intr_flags & DMX_INTR_TX_DONE) {
       // UART has finished sending DMX data
-      dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DONE);
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
       
       // Clear flags and reset buffer head
       xEventGroupSetBitsFromISR(driver->state, DMX_IDLE, &task_awoken);
@@ -223,9 +223,9 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // disable interrupts that shouldn't be handled
       // this code shouldn't be called but it can prevent crashes when it is
       portENTER_CRITICAL_ISR(&hardware->spinlock);
-      dmx_hal_disable_intr_mask(&hardware->hal, intr_flags);
+      dmx_hal_disable_interrupt(&hardware->hal, intr_flags);
       portEXIT_CRITICAL_ISR(&hardware->spinlock);
-      dmx_hal_clr_intsts_mask(&hardware->hal, intr_flags);
+      dmx_hal_clear_interrupt(&hardware->hal, intr_flags);
     }
   }
 
@@ -271,7 +271,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
 
   if (intr_flags & DMX_IS_IN_BREAK) {
     // End the DMX break
-    dmx_hal_inverse_signal(&hardware->hal, 0);
+    dmx_hal_invert_signal(&hardware->hal, 0);
     xEventGroupClearBitsFromISR(driver->state, DMX_IS_IN_BREAK);
     driver->is_in_break = false;
 
@@ -290,7 +290,7 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
 
     // Enable DMX write interrupts
     portENTER_CRITICAL_ISR(&hardware->spinlock);
-    dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);
+    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
     portEXIT_CRITICAL_ISR(&hardware->spinlock);
 
     // Pause the timer
