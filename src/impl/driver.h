@@ -30,7 +30,14 @@ typedef struct {
   timer_idx_t timer_idx;          // The timer index being used for the reset sequence.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
-  DMXBufferHandle_t buffer;
+  struct {
+    uint16_t head;
+    uint8_t data[DMX_MAX_PACKET_SIZE];
+    uint16_t size;
+    TaskHandle_t waiting_task;
+  } buffer;
+
+  bool is_in_break;
 
   EventGroupHandle_t state;
 
@@ -45,12 +52,12 @@ typedef struct {
 
     // TODO: every tx variable below this comment can be unionized with rx variables
 
-    uint16_t size;            // The size of the number of slots to send.
+    // uint16_t size;            // The size of the number of slots to send.
   } tx;
 
   /* These variables are used when receiving DMX. */
   struct {
-    int16_t size_guess;           // The guess of the size of the packet. Can reduce latency in reporting new data.
+    // int16_t size_guess;           // The guess of the size of the packet. Can reduce latency in reporting new data.
     int64_t last_data_ts;
     uint8_t last_cc;
 
@@ -60,7 +67,7 @@ typedef struct {
     
     /* The remaining variables are only used if the DMX sniffer is enabled.
     They are uninitialized until dmx_sniffer_enable is called. */
-    bool is_in_brk;               // True if the received DMX packet is currently in a break.
+    // bool is_in_brk;               // True if the received DMX packet is currently in a break.
     int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
     int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
     int64_t last_pos_edge_ts;     // Timestamp of the last positive edge on the sniffer pin.

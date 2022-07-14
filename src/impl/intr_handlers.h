@@ -197,14 +197,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // UART is ready to write more DMX data
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DATA);
 
-      // Write data to the FIFO
-      const uint32_t fifo_len = hardware->hal.dev->status.txfifo_cnt;
-      DMXBufferReceiveToFIFOFromISR(driver->buffer, 
-                                    (void *)&hardware->hal.dev->fifo, 
-                                    fifo_len, &task_awoken);
+      // Write data to the UART
+      size_t write_size = driver->buffer.size - driver->buffer.head;
+      dmx_hal_write_txfifo(&hardware->hal, driver->buffer.data, &write_size);
+      driver->buffer.head += write_size;
       
       // Allow FIFO to empty when done writing data
-      if (DMXBufferIsCompleted(driver->buffer)) {
+      if (driver->buffer.head == driver->buffer.size) {
         portENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_intr_mask(&hardware->hal, DMX_INTR_TX_DATA);
         portEXIT_CRITICAL_ISR(&hardware->spinlock);
@@ -214,9 +213,10 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     else if (intr_flags & DMX_INTR_TX_DONE) {
       // UART has finished sending DMX data
       dmx_hal_clr_intsts_mask(&hardware->hal, DMX_INTR_TX_DONE);
-
-      xEventGroupSetBitsFromISR(driver->state, DMX_SENT, &task_awoken);
-
+      
+      // Clear flags and reset buffer head
+      xEventGroupSetBitsFromISR(driver->state, DMX_IDLE, &task_awoken);
+      driver->buffer.head = 0;
     }
 
     else {
@@ -263,12 +263,17 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  const int flags = xEventGroupGetBitsFromISR(driver->state);
+  const uint32_t intr_flags = xEventGroupGetBitsFromISR(driver->state);
 
-  if (flags & DMX_IS_IN_BREAK) {
+  // FIXME: setting bits from ISR doesn't actually set the bits until the 
+  // scheduler has been called. This results in the DMX MAB taking 10 whole 
+  // milliseconds instead of a few microseconds. UGH!
+
+  if (intr_flags & DMX_IS_IN_BREAK) {
     // End the DMX break
     dmx_hal_inverse_signal(&hardware->hal, 0);
     xEventGroupClearBitsFromISR(driver->state, DMX_IS_IN_BREAK);
+    driver->is_in_break = false;
 
     // Get the configured length of the DMX mark-after-break
     portENTER_CRITICAL_ISR(&hardware->spinlock);
@@ -276,15 +281,13 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     portEXIT_CRITICAL_ISR(&hardware->spinlock);
 
     // Reset the alarm for the end of the DMX mark-after-break
-    timer_group_set_alarm_value_in_isr(driver->rst_seq_hw, driver->timer_idx, 
-                                       mab_len);
+    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, mab_len);
   } else {
-    // Write the DMX packet to the UART
-    const uint32_t fifo_len = hardware->hal.dev->status.txfifo_cnt;
-    DMXBufferReceiveToFIFOFromISR(driver->buffer, 
-                                  (void *)&hardware->hal.dev->fifo, 
-                                  fifo_len, &task_awoken);
-    
+    // Write data to the UART
+    size_t write_size = driver->buffer.size - driver->buffer.head;
+    dmx_hal_write_txfifo(&hardware->hal, driver->buffer.data, &write_size);
+    driver->buffer.head += write_size;
+
     // Enable DMX write interrupts
     portENTER_CRITICAL_ISR(&hardware->spinlock);
     dmx_hal_ena_intr_mask(&hardware->hal, DMX_INTR_TX_ALL);

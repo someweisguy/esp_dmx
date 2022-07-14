@@ -156,9 +156,9 @@ typedef struct {
 
 
 enum {
-  DMX_SENT = 1,
-  DMX_IS_IN_BREAK = 2,
-  DMX_TURNAROUND_COMPLETE = 4,
+  DMX_IDLE = BIT0,
+  DMX_IS_IN_BREAK = BIT1,
+  // DMX_TURNAROUND_COMPLETE = 8,
 };
 
 

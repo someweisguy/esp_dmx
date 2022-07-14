@@ -86,14 +86,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
     return ESP_ERR_NO_MEM;
   }
   dmx_driver[dmx_num] = driver;
-  
-  // Allocate the DMX buffer dynamically
-  driver->buffer = DMXBufferCreate(DMX_PACKET_SIZE);
-  if (driver->buffer == NULL) {
-    ESP_LOGE(TAG, "DMX buffer malloc error");
-    return ESP_ERR_NO_MEM;
-  }
-  DMXBufferSendCompleted(driver->buffer, DMX_MODE_SWITCH);
 
   // Allocate event group dynamically
   driver->state = xEventGroupCreate();
@@ -101,6 +93,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
     ESP_LOGE(TAG, "DMX event flags malloc error");
     return ESP_ERR_NO_MEM;
   }
+
+  // Initialize the driver buffer
+  bzero(driver->buffer.data, DMX_MAX_PACKET_SIZE);
+  driver->buffer.head = 0;
+  driver->buffer.size = DMX_MAX_PACKET_SIZE;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
@@ -192,7 +189,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   }
 
   // Return if the driver is currently writing DMX
-  if (current_mode == DMX_MODE_WRITE && !DMXBufferIsCompleted(driver->buffer)) {
+  const int flags = xEventGroupGetBits(driver->state);
+  if (current_mode == DMX_MODE_WRITE && !(flags & DMX_IDLE)) {
     // TODO
   }
 
@@ -200,9 +198,11 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   dmx_hal_clr_intsts_mask(&hardware->hal, DMX_ALL_INTR_MASK);
   driver->mode = dmx_mode;
 
+  // Put the driver in the idle state so it can send or receive data
+  xEventGroupSetBits(driver->state, DMX_IDLE);
+
   if (dmx_mode == DMX_MODE_READ) {
     // Reset the driver so that data isn't accepted until after a DMX break
-    DMXBufferSendCompleted(driver->buffer, DMX_MODE_SWITCH);
 
     // Reset the UART read FIFO
     dmx_hal_rxfifo_rst(&hardware->hal);
@@ -223,13 +223,9 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
       dmx_sniffer_disable(dmx_num);
     }
 
-    // Ready the driver to transmit DMX
-    DMXBufferClear(driver->buffer);
-    xEventGroupSetBits(driver->state, DMX_SENT);
-
-    // Reset the UART write FIFO
+    // Reset the UART write FIFO and clear the buffer
     dmx_hal_txfifo_rst(&hardware->hal);
-
+    bzero(driver->buffer.data, DMX_MAX_PACKET_SIZE);
 
     // Set RTS and enable UART interrupts
     portENTER_CRITICAL(&hardware->spinlock);
@@ -351,11 +347,9 @@ esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
   // TODO: check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  const size_t written = DMXBufferOverwrite(driver->buffer, buffer, size);
-  if (written != size) {
-    return ESP_FAIL;
-  }
+  memcpy(driver->buffer.data, buffer, size);
 
   return ESP_OK;
 }
@@ -374,9 +368,13 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
   // Ensure packets are only sent when the UART is not sending data
   const int flags = xEventGroupGetBits(driver->state);
-  if (!(flags & DMX_SENT)) {
+  if (!(flags & DMX_IDLE)) {
     return ESP_FAIL;
   }
+
+  // Clear the driver idle state and set the size of the packet to send
+  xEventGroupClearBits(driver->state, DMX_IDLE);
+  driver->buffer.size = num_slots;
 
   // Get the configured length of the DMX break
   portENTER_CRITICAL(&hardware->spinlock);
@@ -389,6 +387,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
   // Trigger the DMX break
   xEventGroupSetBits(driver->state, DMX_IS_IN_BREAK);
+  driver->is_in_break = true;
   dmx_hal_inverse_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
 
@@ -401,9 +400,9 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Wait for the driver event flags
-  const int flags = xEventGroupWaitBits(driver->state, DMX_SENT, false, true,
+  const int flags = xEventGroupWaitBits(driver->state, DMX_IDLE, false, true,
                                         ticks_to_wait);
-  if (!(flags & DMX_SENT)) {
+  if (!(flags & DMX_IDLE)) {
     return ESP_ERR_TIMEOUT;
   }
 

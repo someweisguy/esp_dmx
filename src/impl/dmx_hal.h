@@ -108,6 +108,10 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  */
 IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
                                    int *num) {
+  const size_t rxfifo_len = uart_ll_get_rxfifo_len(hal->dev);
+  if (*num > rxfifo_len) {
+    *num = rxfifo_len;
+  }
   uart_hal_read_rxfifo(hal, buf, num);
 }
 
@@ -280,8 +284,12 @@ IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
 
 // TODO: documentation
 IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
-                                    uint32_t data_size, int16_t *write_size) {
-  uart_hal_write_txfifo(hal, buf, data_size, (uint32_t *)write_size);
+                                    uint32_t *size) {
+  const size_t txfifo_len = uart_ll_get_txfifo_len(hal->dev);
+  if (*size > txfifo_len) {
+    *size = txfifo_len;
+  }
+  uart_ll_write_txfifo(hal->dev, buf, *size);
 }
 
 // TODO: documentation
