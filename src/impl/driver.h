@@ -19,6 +19,8 @@ extern "C" {
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
+
+
 /* This is the DMX driver object used to handle tx'ing and rx'ing DMX data on
 the UART port. It stores all the information needed to run and analyze DMX
 including the buffer used as an intermediary to store reads/writes on the UART
@@ -36,9 +38,17 @@ typedef struct {
     TaskHandle_t waiting_task;
   } buffer;
 
-  bool is_in_break;
+  struct {
+    union {
+      struct {
+        uint8_t is_busy : 1;
+        uint8_t is_in_break : 1;
+      };
+      uint32_t status_flags;
+    };
+  };
 
-  EventGroupHandle_t state;
+  SemaphoreHandle_t data_sent;
 
   // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.

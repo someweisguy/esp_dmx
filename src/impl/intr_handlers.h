@@ -213,9 +213,9 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // UART has finished sending DMX data
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
       
-      // Clear flags and reset buffer head
-      xEventGroupSetBitsFromISR(driver->state, DMX_IDLE, &task_awoken);
-      driver->buffer.head = 0;
+      // Set flags and signal data is sent
+      driver->is_busy = false;
+      xSemaphoreGiveFromISR(driver->data_sent, &task_awoken);
     }
 
     else {
@@ -262,16 +262,9 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  const uint32_t intr_flags = xEventGroupGetBitsFromISR(driver->state);
-
-  // FIXME: setting bits from ISR doesn't actually set the bits until the 
-  // scheduler has been called. This results in the DMX MAB taking 10 whole 
-  // milliseconds instead of a few microseconds. UGH!
-
-  if (intr_flags & DMX_IS_IN_BREAK) {
+  if (driver->is_in_break) {
     // End the DMX break
     dmx_hal_invert_signal(&hardware->hal, 0);
-    xEventGroupClearBitsFromISR(driver->state, DMX_IS_IN_BREAK);
     driver->is_in_break = false;
 
     // Get the configured length of the DMX mark-after-break
@@ -280,7 +273,8 @@ static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
     portEXIT_CRITICAL_ISR(&hardware->spinlock);
 
     // Reset the alarm for the end of the DMX mark-after-break
-    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, mab_len);
+    timer_group_set_alarm_value_in_isr(driver->rst_seq_hw, driver->timer_idx,
+                                       mab_len);
   } else {
     // Write data to the UART
     size_t write_size = driver->buffer.size - driver->buffer.head;

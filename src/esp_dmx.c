@@ -86,12 +86,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   }
   dmx_driver[dmx_num] = driver;
 
-  // Allocate event group dynamically
-  driver->state = xEventGroupCreate();
-  if (driver->state == NULL) {
-    ESP_LOGE(TAG, "DMX event flags malloc error");
+  // Allocate semaphores dynamically
+  driver->data_sent = xSemaphoreCreateBinary();
+  if (driver->data_sent == NULL) {
+    ESP_LOGE(TAG, "DMX driver semaphore malloc error");
     return ESP_ERR_NO_MEM;
   }
+  xSemaphoreGive(driver->data_sent);
 
   // Initialize the driver buffer
   bzero(driver->buffer.data, DMX_MAX_PACKET_SIZE);
@@ -103,6 +104,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->mode = DMX_MODE_READ;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
+  driver->status_flags = 0;
   // driver->uid = dmx_get_uid(); // TODO
 
   // TODO: reorganize these inits
@@ -187,22 +189,19 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     return ESP_OK;
   }
 
-  // Return if the driver is currently writing DMX
-  const int flags = xEventGroupGetBits(driver->state);
-  if (current_mode == DMX_MODE_WRITE && !(flags & DMX_IDLE)) {
-    // TODO
+  // Ensure driver isn't currently transmitting DMX data
+  portENTER_CRITICAL(&hardware->spinlock);
+  const int driver_is_busy = driver->is_busy;
+  portEXIT_CRITICAL(&hardware->spinlock);
+  if (current_mode == DMX_MODE_WRITE && driver_is_busy) {
+    return ESP_FAIL;
   }
 
   // Clear interrupts and set the mode
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   driver->mode = dmx_mode;
 
-  // Put the driver in the idle state so it can send or receive data
-  xEventGroupSetBits(driver->state, DMX_IDLE);
-
   if (dmx_mode == DMX_MODE_READ) {
-    // Reset the driver so that data isn't accepted until after a DMX break
-
     // Reset the UART read FIFO
     dmx_hal_rxfifo_rst(&hardware->hal);
 
@@ -365,15 +364,18 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // Ensure packets are only sent when the UART is not sending data
-  const int flags = xEventGroupGetBits(driver->state);
-  if (!(flags & DMX_IDLE)) {
+  // Ensure driver isn't currently transmitting DMX data
+  portENTER_CRITICAL(&hardware->spinlock);
+  const int driver_is_busy = driver->is_busy;
+  portEXIT_CRITICAL(&hardware->spinlock);
+  if (driver_is_busy) {
     return ESP_FAIL;
   }
 
-  // Clear the driver idle state and set the size of the packet to send
-  xEventGroupClearBits(driver->state, DMX_IDLE);
+  // Set the driver busy flag and set the buffer state
+  driver->is_busy = true;
   driver->buffer.size = num_slots;
+  driver->buffer.head = 0;
 
   // Get the configured length of the DMX break
   portENTER_CRITICAL(&hardware->spinlock);
@@ -385,7 +387,6 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);
 
   // Trigger the DMX break
-  xEventGroupSetBits(driver->state, DMX_IS_IN_BREAK);
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
@@ -398,12 +399,11 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Wait for the driver event flags
-  const int flags = xEventGroupWaitBits(driver->state, DMX_IDLE, false, true,
-                                        ticks_to_wait);
-  if (!(flags & DMX_IDLE)) {
+  // Block until the DMX data has been sent
+  if (!xSemaphoreTake(driver->data_sent, ticks_to_wait)) {
     return ESP_ERR_TIMEOUT;
   }
+  xSemaphoreGive(driver->data_sent);
 
   return ESP_OK;
 }
