@@ -3,7 +3,6 @@
 #include <math.h>
 #include <string.h>
 
-#include "dmx_buffer.h"
 #include "dmx_types.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"

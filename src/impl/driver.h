@@ -4,7 +4,6 @@
 extern "C" {
 #endif
 
-#include "dmx_buffer.h"
 #include "driver/gpio.h"
 #include "driver/timer.h"
 #include "esp_dmx.h"

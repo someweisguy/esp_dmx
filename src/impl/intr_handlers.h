@@ -4,7 +4,6 @@
 extern "C" {
 #endif
 
-#include "dmx_buffer.h"
 #include "esp_dmx.h"
 #include "esp_system.h"
 #include "impl/dmx_hal.h"
