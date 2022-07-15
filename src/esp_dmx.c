@@ -221,9 +221,8 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
       dmx_sniffer_disable(dmx_num);
     }
 
-    // Reset the UART write FIFO and clear the buffer
+    // Reset the UART write FIFO
     dmx_hal_txfifo_rst(&hardware->hal);
-    bzero(driver->buffer.data, DMX_MAX_PACKET_SIZE);
 
     // Set RTS and enable UART interrupts
     portENTER_CRITICAL(&hardware->spinlock);
