@@ -107,12 +107,12 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * @return The number of characters read
  */
 IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
-                                   int *num) {
+                                   size_t *size) {
   const size_t rxfifo_len = uart_ll_get_rxfifo_len(hal->dev);
-  if (*num > rxfifo_len) {
-    *num = rxfifo_len;
+  if (*size > rxfifo_len) {
+    *size = rxfifo_len;
   }
-  uart_hal_read_rxfifo(hal, buf, num);
+  uart_ll_read_rxfifo(hal->dev, buf, *size);
 }
 
 /**
@@ -243,7 +243,7 @@ IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
 
 // TODO: documentation
 IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
-                                    uint32_t *size) {
+                                    size_t *size) {
   const size_t txfifo_len = uart_ll_get_txfifo_len(hal->dev);
   if (*size > txfifo_len) {
     *size = txfifo_len;

@@ -62,127 +62,89 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
-      /*
-      // handle a UART overflow
 
-      if (driver->slot_idx > -1) {
-        const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
-        dmx_event_t event = {.status = DMX_ERR_DATA_OVERFLOW,
-                             .size = driver->slot_idx + rxfifo_len,
-                             .timing = {.break_len = driver->rx.break_len,
-                                        .mab_len = driver->rx.mab_len}};
-        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-        driver->rx.event_sent = true;
-        driver->slot_idx = -1;  // set error state
+      // Notify task that an error occurred
+      if (driver->is_busy && driver->buffer.waiting_task) {
+        xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_ERR_DATA_OVERFLOW,
+                           eSetValueWithOverwrite, &task_awoken);
       }
+
+      // Indicate driver is finished reading data and reset the FIFO
+      driver->is_busy = false;
       dmx_hal_rxfifo_rst(&hardware->hal);
-    */
     }
     else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
-      /*
-      // handle situation where a malformed slot is received
 
-      if (driver->slot_idx > -1) {
-        const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
-        dmx_event_t event = {.status = DMX_ERR_IMPROPER_SLOT,
-                             .size = driver->slot_idx + rxfifo_len,
-                             .timing = {.break_len = driver->rx.break_len,
-                                        .mab_len = driver->rx.mab_len}};
-        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-        driver->rx.event_sent = true;
-        driver->slot_idx = -1;  // set error state
+      // Notify task that an error occurred
+      if (driver->is_busy && driver->buffer.waiting_task) {
+        xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_ERR_IMPROPER_SLOT,
+                           eSetValueWithOverwrite, &task_awoken);
       }
+
+      // Indicate driver is finished reading data and reset the FIFO
+      driver->is_busy = false;
       dmx_hal_rxfifo_rst(&hardware->hal);
-    */
     }
     else if (intr_flags & DMX_INTR_RX_BREAK) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_BREAK);
-    /*
-          // handle receiving the DMX break
 
-      driver->rx.is_in_brk = true;  // notify sniffer
-      if (!driver->rx.event_sent) {
-        // haven't sent a queue event yet
-        dmx_event_t event = {.status = DMX_OK,
-                             .size = driver->slot_idx,
-                             .timing = {.break_len = driver->rx.break_len,
-                                        .mab_len = driver->rx.mab_len}};
-        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-        driver->rx.size_guess = driver->slot_idx;  // update guess
-      } else if (driver->slot_idx > -1) {
-        // check for errors that haven't been reported yet
-        if (driver->slot_idx > DMX_MAX_PACKET_SIZE) {
-          // packet length is longer than is allowed
-          dmx_event_t event = {.status = DMX_ERR_PACKET_SIZE,
-                               .size = driver->slot_idx};
-          xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-        } else if (driver->slot_idx > driver->buf_size) {
-          // packet length is longer than the driver buffer
-          dmx_event_t event = {.status = DMX_ERR_BUFFER_SIZE,
-                               .size = driver->slot_idx};
-          xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-        }
+      // Notify sniffer that the driver is in a DMX break
+      driver->is_in_break = true;
+
+      // Send a task notification if it hasn't been sent yet
+      if (driver->is_busy) {
+        xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_OK,
+                           eSetValueWithOverwrite, &task_awoken);
+        driver->buffer.size = driver->buffer.head;  // Update packet size guess
       }
 
-      // ready driver to read data into the buffer
-      driver->slot_idx = 0;
-      driver->rx.event_sent = false;
-      driver->rx.break_len = -1;
-      driver->rx.mab_len = -1;
+      // Indicate a packet is being read, reset head, and reset the FIFO
+      driver->is_busy = true;
+      driver->buffer.head = 0;
       dmx_hal_rxfifo_rst(&hardware->hal);
-      */
+
+      // TODO: reset sniffer values
     }
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_DATA);
-      /*
-      // data was received or timed out waiting for new data
 
-      // Determine the timestamp of when the last slot was received
-      if (intr_flags & UART_INTR_RXFIFO_FULL) {
-        driver->rx.last_data_ts = now;
+      // Driver is not in a DMX break
+      driver->is_in_break = false;
+
+      // Determine the timestamp of the last slot
+      if (intr_flags & UART_INTR_RXFIFO_TOUT) {
+        uint8_t timeout = dmx_hal_get_rx_timeout_threshold(&hardware->hal);
+        driver->buffer.last_received_ts = now - (timeout * 44);
       } else {
-        const uint8_t rx_timeout = dmx_hal_get_rx_timeout(&hardware->hal);
-        driver->rx.last_data_ts = now - (rx_timeout * 44);
+        driver->buffer.last_received_ts = now;
       }
 
-      // read from the uart fifo
-      if (driver->slot_idx > -1) {
-        // driver is not in error state
-        const uint32_t rxfifo_len = dmx_hal_get_rxfifo_len(&hardware->hal);
-        const int16_t slots_rem = driver->buf_size - driver->slot_idx;
-        if (driver->slot_idx < driver->buf_size) {
-          // there are slots remaining to be read
-          int rd_len = slots_rem > rxfifo_len ? rxfifo_len : slots_rem;
-          uint8_t *slot_ptr = driver->buffer + driver->slot_idx;
-          dmx_hal_read_rxfifo(&hardware->hal, slot_ptr, &rd_len);
-          driver->slot_idx += rd_len;
-        } else {
-          // no slots remaining to be read
-          dmx_hal_rxfifo_rst(&hardware->hal);
-          driver->slot_idx += rxfifo_len;  // track for error reporting
-        }
+      // Read from the FIFO if there is data and if the driver is ready
+      size_t read_len = DMX_MAX_PACKET_SIZE - driver->buffer.head;
+      if (driver->is_busy && read_len > 0) {
+        uint8_t *data_ptr = &driver->buffer.data[driver->buffer.head];
+        dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
+        driver->buffer.head += read_len;
       } else {
-        // driver is in error state
         dmx_hal_rxfifo_rst(&hardware->hal);
       }
 
-      // Process received data
-      if (driver->rx.event_sent) continue;  // Only process data once
-      const uint8_t sc = driver->buffer[0];  // Packet start-code.
+      // Don't process data if driver already has or no task waiting
+      if (!driver->is_busy || driver->buffer.waiting_task == NULL) {
+        continue;
+      }
+
+      // Determine if a full packet has been received
+      const uint8_t sc = driver->buffer.data[0];  // Received DMX start code.
       if (sc == DMX_SC) {
-        if (driver->slot_idx < driver->rx.size_guess)
-          continue;  // Haven't yet received a full DMX packet
-        // Send a DMX event to the event queue
-        dmx_event_t event = {.status = DMX_OK,
-                             .size = driver->slot_idx,
-                             .data_class = DMX_DATA_CLASS,
-                             .timing = {.break_len = driver->rx.break_len,
-                                        .mab_len = driver->rx.mab_len}};
-        xQueueSendFromISR(driver->rx.queue, &event, &task_awoken);
-        driver->rx.event_sent = true;
-      } */
+        if (driver->buffer.head > driver->buffer.size) {
+          xTaskNotifyFromISR(driver->buffer.waiting_task, 0,  // FIXME: use enum
+                             eSetValueWithOverwrite, &task_awoken);
+          driver->is_busy = false;
+        }
+      } // TODO: process RDM or RDM Discovery Response
     }
 
     else if (intr_flags & DMX_INTR_RX_CLASH) {
@@ -212,10 +174,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
     else if (intr_flags & DMX_INTR_TX_DONE) {
       // UART has finished sending DMX data
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
+
+      // Record timestamp of last sent slot
+      driver->buffer.last_sent_ts = now;
       
       // Set flags and signal data is sent
       driver->is_busy = false;
-      xSemaphoreGiveFromISR(driver->data_sent, &task_awoken);
+      xSemaphoreGiveFromISR(driver->data_written, &task_awoken);
     }
 
     else {
