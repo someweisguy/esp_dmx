@@ -35,7 +35,7 @@ typedef struct {
     uint16_t head;
     uint8_t data[DMX_MAX_PACKET_SIZE];
     uint16_t size;
-    TaskHandle_t waiting_task;
+    TaskHandle_t task_waiting;
     int64_t last_received_ts;
     int64_t last_sent_ts;
   } buffer;

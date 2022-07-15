@@ -64,8 +64,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
 
       // Notify task that an error occurred
-      if (driver->is_active && driver->buffer.waiting_task) {
-        xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_ERR_DATA_OVERFLOW,
+      if (driver->is_active && driver->buffer.task_waiting) {
+        xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_ERR_DATA_OVERFLOW,
                            eSetValueWithOverwrite, &task_awoken);
       }
 
@@ -77,8 +77,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
 
       // Notify task that an error occurred
-      if (driver->is_active && driver->buffer.waiting_task) {
-        xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_ERR_IMPROPER_SLOT,
+      if (driver->is_active && driver->buffer.task_waiting) {
+        xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_ERR_IMPROPER_SLOT,
                            eSetValueWithOverwrite, &task_awoken);
       }
 
@@ -95,8 +95,8 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // Update packet size guess if driver is still trying to read data
       if (driver->is_active) {
         // Send a task notification if it hasn't been sent yet
-        if (driver->buffer.waiting_task) {
-          xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_OK,
+        if (driver->buffer.task_waiting) {
+          xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_OK,
                              eSetValueWithOverwrite, &task_awoken);
         }
         driver->buffer.size = driver->buffer.head;  // Update packet size guess
@@ -135,7 +135,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       }
 
       // Don't process data if driver already has or no task waiting
-      if (!driver->is_active || driver->buffer.waiting_task == NULL) {
+      if (!driver->is_active || driver->buffer.task_waiting == NULL) {
         continue;
       }
 
@@ -143,7 +143,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       const uint8_t sc = driver->buffer.data[0];  // Received DMX start code.
       if (sc == DMX_SC) {
         if (driver->buffer.head >= driver->buffer.size) {
-          xTaskNotifyFromISR(driver->buffer.waiting_task, 0,  // FIXME: use enum
+          xTaskNotifyFromISR(driver->buffer.task_waiting, 0,  // FIXME: use enum
                              eSetValueWithOverwrite, &task_awoken);
           driver->is_active = false;
         }

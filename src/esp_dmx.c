@@ -406,20 +406,20 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
     portENTER_CRITICAL(&hardware->spinlock);
 
     // Ensure only one task is calling this function
-    if (driver->buffer.waiting_task != NULL) {
+    if (driver->buffer.task_waiting != NULL) {
       portEXIT_CRITICAL(&hardware->spinlock);
       return ESP_FAIL;
     }
 
     // Ensure the driver notifies this task when a packet is received
-    driver->buffer.waiting_task = xTaskGetCurrentTaskHandle();;
+    driver->buffer.task_waiting = xTaskGetCurrentTaskHandle();;
 
     portEXIT_CRITICAL(&hardware->spinlock);
 
     // Recheck to ensure that this is the task that will be notified
-    if (driver->buffer.waiting_task) {
+    if (driver->buffer.task_waiting) {
       packet_received = xTaskNotifyWait(0, ULONG_MAX, &flags, ticks_to_wait);
-      driver->buffer.waiting_task = NULL;
+      driver->buffer.task_waiting = NULL;
     }
   } else {
     portENTER_CRITICAL(&hardware->spinlock);
