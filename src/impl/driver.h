@@ -51,7 +51,7 @@ typedef struct {
     };
   };
 
-  SemaphoreHandle_t written_semaphore;
+  SemaphoreHandle_t sent_semaphore;
   SemaphoreHandle_t ready_semaphore;  // FIXME: use task notification instead?
 
   // TODO: replace variables with single variable with flags

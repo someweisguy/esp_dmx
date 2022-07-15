@@ -183,7 +183,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       
       // Set flags and signal data is sent
       driver->is_active = false;
-      xSemaphoreGiveFromISR(driver->written_semaphore, &task_awoken);
+      xSemaphoreGiveFromISR(driver->sent_semaphore, &task_awoken);
     }
 
     else {

@@ -292,7 +292,7 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
                                    TickType_t ticks_to_wait);
 
 // TODO: docs - Used to wait until able to call dmx_write()
-esp_err_t dmx_wait_packet_written(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
 // TODO: docs - Used to wait until able to call dmx_send_packet()
 esp_err_t dmx_wait_send_ready(dmx_port_t dmx_num, TickType_t ticks_to_wait);

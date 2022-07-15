@@ -87,13 +87,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_driver[dmx_num] = driver;
 
   // Allocate semaphores dynamically
-  driver->written_semaphore = xSemaphoreCreateBinary();
+  driver->sent_semaphore = xSemaphoreCreateBinary();
   driver->ready_semaphore = xSemaphoreCreateBinary();
-  if (driver->written_semaphore == NULL || driver->ready_semaphore == NULL) {
+  if (driver->sent_semaphore == NULL || driver->ready_semaphore == NULL) {
     ESP_LOGE(TAG, "DMX driver semaphore malloc error");
     return ESP_ERR_NO_MEM;
   }
-  xSemaphoreGive(driver->written_semaphore);
+  xSemaphoreGive(driver->sent_semaphore);
   xSemaphoreGive(driver->ready_semaphore);
 
   // Initialize the driver buffer
@@ -444,17 +444,17 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   return ESP_OK;
 }
 
-esp_err_t dmx_wait_packet_written(dmx_port_t dmx_num,
+esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num,
                                   TickType_t ticks_to_wait) {
   // TODO: Check arguments
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Block until the DMX data has been sent
-  if (!xSemaphoreTake(driver->written_semaphore, ticks_to_wait)) {
+  if (!xSemaphoreTake(driver->sent_semaphore, ticks_to_wait)) {
     return ESP_ERR_TIMEOUT;
   }
-  xSemaphoreGive(driver->written_semaphore);
+  xSemaphoreGive(driver->sent_semaphore);
 
   return ESP_OK;
 }
