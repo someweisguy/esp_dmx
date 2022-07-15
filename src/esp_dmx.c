@@ -326,40 +326,36 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout) {
 }
 
 /// Read/Write  ###############################################################
-esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size) {
+esp_err_t dmx_read(dmx_port_t dmx_num, void *data, size_t size) {
   // TODO: Check arguments
 
 
-
-
   return ESP_OK;
 }
 
-esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *source,
-                           size_t size) {
+esp_err_t dmx_write(dmx_port_t dmx_num, const void *data, size_t size) {
   // TODO: check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Copy data from the source to the driver buffer
   // This is not synchronous - use dmx_wait_sent() for frame synchronization
-  memcpy(driver->buffer.data, source, size);
+  memcpy(driver->buffer.data, data, size);
 
   return ESP_OK;
 }
 
-esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
+esp_err_t dmx_read_slot(dmx_port_t dmx_num, size_t index, uint8_t *value) {
+  
+  return ESP_OK;
+}
+
+esp_err_t dmx_write_slot(dmx_port_t dmx_num, size_t index,
                          const uint8_t value) {
-
   return ESP_OK;
 }
 
-esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
+esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   // TODO: Check arguments
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -375,13 +371,15 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
 
   // Set the driver busy flag and set the buffer state
   driver->is_busy = true;
-  driver->buffer.size = num_slots;
+  driver->buffer.size = size;
   driver->buffer.head = 0;
 
   // Get the configured length of the DMX break
   portENTER_CRITICAL(&hardware->spinlock);
   const uint32_t break_len = driver->tx.break_len;
   portEXIT_CRITICAL(&hardware->spinlock);
+
+  // TODO: allow busy wait mode
 
   // Setup hardware timer for DMX break
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
@@ -395,7 +393,14 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots) {
   return ESP_OK;
 }
 
-esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
+                                   TickType_t ticks_to_wait) {
+  
+  return ESP_OK;
+}
+
+esp_err_t dmx_wait_packet_written(dmx_port_t dmx_num,
+                                  TickType_t ticks_to_wait) {
   // TODO: Check arguments
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -405,6 +410,11 @@ esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
     return ESP_ERR_TIMEOUT;
   }
   xSemaphoreGive(driver->data_sent);
+
+  return ESP_OK;
+}
+
+esp_err_t dmx_wait_send_ready(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
   return ESP_OK;
 }

@@ -279,85 +279,26 @@ esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold);
 esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout);
 
 /// Read/Write  ###############################################################
-/**
- * @brief Read data from the DMX driver.
- *
- * @note This function is not synchronous with the DMX frame.
- *
- * @param dmx_num The DMX port number.
- * @param[out] buffer The buffer that will be read into from the DMX driver.
- * @param size The size of the receiving buffer.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- * @retval ESP_FAIL on driver error.
- */
-esp_err_t dmx_read_packet(dmx_port_t dmx_num, void *buffer, uint16_t size);
+esp_err_t dmx_read(dmx_port_t dmx_num, void *data, size_t size);
+esp_err_t dmx_write(dmx_port_t dmx_num, const void *data, size_t size);
 
-/**
- * @brief Reads a slot value from the DMX bus.
- *
- * @param dmx_num The DMX port number.
- * @param slot_idx The index of the slot to be read from.
- * @param[out] value A pointer to the byte that will store the value read.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- */
-esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value);
+esp_err_t dmx_read_slot(dmx_port_t dmx_num, size_t index, uint8_t *value);
+esp_err_t dmx_write_slot(dmx_port_t dmx_num, size_t index, const uint8_t value);
 
-/**
- * @brief Write data to the DMX driver from a given buffer and length.
- *
- * @note This function is not synchronous with the DMX frame.
- *
- * @param dmx_num The DMX port number.
- * @param[in] source The source data that will be written to the DMX driver.
- * @param size The size of the data that will be written to the DMX driver.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- * @retval ESP_FAIL on driver error.
- */
-esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *source, size_t size);
+esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size);
 
-/**
- * @brief Write a slot value to the DMX bus.
- *
- * @param dmx_num The DMX port number.
- * @param slot_idx The index of the slot to be read from.
- * @param value The byte value that will be written to the DMX bus.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- */
-esp_err_t dmx_write_slot(dmx_port_t dmx_num, uint16_t slot_idx,
-                         const uint8_t value);
+// TODO: docs - Used to wait until able to call dmx_read();
+esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event, 
+                                   TickType_t ticks_to_wait);
 
-/**
- * @brief Transmits a packet of DMX on the data bus.
- *
- * @param dmx_num The DMX port number.
- * @param num_slots The number of data slots to send.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- * @retval ESP_FAIL if a packet is already being sent.
- */
-esp_err_t dmx_send_packet(dmx_port_t dmx_num, uint16_t num_slots);
+// TODO: docs - Used to wait until able to call dmx_write()
+esp_err_t dmx_wait_packet_written(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
-/**
- * @brief Wait until the DMX port is done transmitting. This function blocks
- * the current task until the DMX port is finished with data transmission.
- *
- * @param dmx_num The DMX port number.
- * @param ticks_to_wait The number of FreeRTOS ticks to wait.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
- * @retval ESP_ERR_TIMEOUT on timeout.
- */
-esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+// TODO: docs - Used to wait until able to call dmx_send_packet()
+esp_err_t dmx_wait_send_ready(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+
+
+
 
 // TODO: docs
 uint64_t dmx_get_uid();
@@ -371,7 +312,6 @@ esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid,
 // TODO: docs
 esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid);
 
-esp_err_t dmx_wait_turnaround(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
 #ifdef __cplusplus
 }
