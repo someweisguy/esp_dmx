@@ -92,10 +92,13 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // Notify sniffer that the driver is in a DMX break
       driver->is_in_break = true;
 
-      // Send a task notification if it hasn't been sent yet
+      // Update packet size guess if driver is still trying to read data
       if (driver->is_busy) {
-        xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_OK,
-                           eSetValueWithOverwrite, &task_awoken);
+        // Send a task notification if it hasn't been sent yet
+        if (driver->buffer.waiting_task) {
+          xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_OK,
+                             eSetValueWithOverwrite, &task_awoken);
+        }
         driver->buffer.size = driver->buffer.head;  // Update packet size guess
       }
 
@@ -139,7 +142,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       // Determine if a full packet has been received
       const uint8_t sc = driver->buffer.data[0];  // Received DMX start code.
       if (sc == DMX_SC) {
-        if (driver->buffer.head > driver->buffer.size) {
+        if (driver->buffer.head >= driver->buffer.size) {
           xTaskNotifyFromISR(driver->buffer.waiting_task, 0,  // FIXME: use enum
                              eSetValueWithOverwrite, &task_awoken);
           driver->is_busy = false;
