@@ -143,7 +143,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       const uint8_t sc = driver->buffer.data[0];  // Received DMX start code.
       if (sc == DMX_SC) {
         if (driver->buffer.head >= driver->buffer.size) {
-          xTaskNotifyFromISR(driver->buffer.task_waiting, 0,  // FIXME: use enum
+          xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_OK,
                              eSetValueWithOverwrite, &task_awoken);
           driver->is_active = false;
         }
