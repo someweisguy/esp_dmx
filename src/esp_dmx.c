@@ -87,12 +87,14 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_driver[dmx_num] = driver;
 
   // Allocate semaphores dynamically
-  driver->data_sent = xSemaphoreCreateBinary();
-  if (driver->data_sent == NULL) {
+  driver->data_written = xSemaphoreCreateBinary();
+  driver->bus_ready = xSemaphoreCreateBinary();
+  if (driver->data_written == NULL || driver->bus_ready == NULL) {
     ESP_LOGE(TAG, "DMX driver semaphore malloc error");
     return ESP_ERR_NO_MEM;
   }
-  xSemaphoreGive(driver->data_sent);
+  xSemaphoreGive(driver->data_written);
+  xSemaphoreGive(driver->bus_ready);
 
   // Initialize the driver buffer
   bzero(driver->buffer.data, DMX_MAX_PACKET_SIZE);
