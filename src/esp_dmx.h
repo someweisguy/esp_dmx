@@ -312,15 +312,14 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value);
  * @note This function is not synchronous with the DMX frame.
  *
  * @param dmx_num The DMX port number.
- * @param[in] buffer The buffer that will be written to the DMX driver.
- * @param size The size of the buffer that will be written to the DMX driver.
+ * @param[in] source The source data that will be written to the DMX driver.
+ * @param size The size of the data that will be written to the DMX driver.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  * @retval ESP_ERR_INVALID_STATE if the driver was not installed.
  * @retval ESP_FAIL on driver error.
  */
-esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
-                           uint16_t size);
+esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *source, size_t size);
 
 /**
  * @brief Write a slot value to the DMX bus.

@@ -96,8 +96,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   // Initialize the driver buffer
   bzero(driver->buffer.data, DMX_MAX_PACKET_SIZE);
-  driver->buffer.head = 0;
   driver->buffer.size = DMX_MAX_PACKET_SIZE;
+  driver->buffer.head = 0;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
@@ -340,14 +340,15 @@ esp_err_t dmx_read_slot(dmx_port_t dmx_num, uint16_t slot_idx, uint8_t *value) {
   return ESP_OK;
 }
 
-esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *buffer,
-                           uint16_t size) {
+esp_err_t dmx_write_packet(dmx_port_t dmx_num, const void *source,
+                           size_t size) {
   // TODO: check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  memcpy(driver->buffer.data, buffer, size);
+  // Copy data from the source to the driver buffer
+  // This is not synchronous - use dmx_wait_sent() for frame synchronization
+  memcpy(driver->buffer.data, source, size);
 
   return ESP_OK;
 }
