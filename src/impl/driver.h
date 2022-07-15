@@ -36,19 +36,23 @@ typedef struct {
     uint8_t data[DMX_MAX_PACKET_SIZE];
     uint16_t size;
     TaskHandle_t waiting_task;
+    int64_t last_received_ts;
+    int64_t last_sent_ts;
   } buffer;
 
   struct {
     union {
       struct {
-        uint8_t is_busy : 1;
-        uint8_t is_in_break : 1;
+        uint8_t is_busy : 1;       // True if the DMX bus is currently sending or receiving a packet.
+        uint8_t is_in_break : 1;   // True if the DMX bus is in a break, either sent or received.
+        uint8_t bus_is_ready : 1;  // True if the DMX bus is ready for another packet to be sent.
       };
       uint32_t status_flags;
     };
   };
 
-  SemaphoreHandle_t data_sent;
+  SemaphoreHandle_t data_written;
+  SemaphoreHandle_t bus_ready;
 
   // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
