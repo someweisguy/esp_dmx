@@ -43,7 +43,7 @@ typedef struct {
   struct {
     union {
       struct {
-        uint8_t is_busy : 1;       // True if the DMX bus is currently sending or receiving a packet.
+        uint8_t is_active : 1;     // True if the DMX bus is currently sending or receiving a packet.
         uint8_t is_in_break : 1;   // True if the DMX bus is in a break, either sent or received.
         uint8_t bus_is_ready : 1;  // True if the DMX bus is ready for another packet to be sent.
       };

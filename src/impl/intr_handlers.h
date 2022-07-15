@@ -64,26 +64,26 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
 
       // Notify task that an error occurred
-      if (driver->is_busy && driver->buffer.waiting_task) {
+      if (driver->is_active && driver->buffer.waiting_task) {
         xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_ERR_DATA_OVERFLOW,
                            eSetValueWithOverwrite, &task_awoken);
       }
 
       // Indicate driver is finished reading data and reset the FIFO
-      driver->is_busy = false;
+      driver->is_active = false;
       dmx_hal_rxfifo_rst(&hardware->hal);
     }
     else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
 
       // Notify task that an error occurred
-      if (driver->is_busy && driver->buffer.waiting_task) {
+      if (driver->is_active && driver->buffer.waiting_task) {
         xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_ERR_IMPROPER_SLOT,
                            eSetValueWithOverwrite, &task_awoken);
       }
 
       // Indicate driver is finished reading data and reset the FIFO
-      driver->is_busy = false;
+      driver->is_active = false;
       dmx_hal_rxfifo_rst(&hardware->hal);
     }
     else if (intr_flags & DMX_INTR_RX_BREAK) {
@@ -93,7 +93,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       driver->is_in_break = true;
 
       // Update packet size guess if driver is still trying to read data
-      if (driver->is_busy) {
+      if (driver->is_active) {
         // Send a task notification if it hasn't been sent yet
         if (driver->buffer.waiting_task) {
           xTaskNotifyFromISR(driver->buffer.waiting_task, DMX_OK,
@@ -103,7 +103,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       }
 
       // Indicate a packet is being read, reset head, and reset the FIFO
-      driver->is_busy = true;
+      driver->is_active = true;
       driver->buffer.head = 0;
       dmx_hal_rxfifo_rst(&hardware->hal);
 
@@ -126,7 +126,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
 
       // Read from the FIFO if there is data and if the driver is ready
       size_t read_len = DMX_MAX_PACKET_SIZE - driver->buffer.head;
-      if (driver->is_busy && read_len > 0) {
+      if (driver->is_active && read_len > 0) {
         uint8_t *data_ptr = &driver->buffer.data[driver->buffer.head];
         dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
         driver->buffer.head += read_len;
@@ -135,7 +135,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       }
 
       // Don't process data if driver already has or no task waiting
-      if (!driver->is_busy || driver->buffer.waiting_task == NULL) {
+      if (!driver->is_active || driver->buffer.waiting_task == NULL) {
         continue;
       }
 
@@ -145,7 +145,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
         if (driver->buffer.head >= driver->buffer.size) {
           xTaskNotifyFromISR(driver->buffer.waiting_task, 0,  // FIXME: use enum
                              eSetValueWithOverwrite, &task_awoken);
-          driver->is_busy = false;
+          driver->is_active = false;
         }
       } // TODO: process RDM or RDM Discovery Response
     }
@@ -182,7 +182,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       driver->buffer.last_sent_ts = now;
       
       // Set flags and signal data is sent
-      driver->is_busy = false;
+      driver->is_active = false;
       xSemaphoreGiveFromISR(driver->written_semaphore, &task_awoken);
     }
 

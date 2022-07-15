@@ -191,7 +191,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
   // Ensure driver isn't currently transmitting DMX data
   portENTER_CRITICAL(&hardware->spinlock);
-  const int driver_is_busy = driver->is_busy;
+  const int driver_is_busy = driver->is_active;
   portEXIT_CRITICAL(&hardware->spinlock);
   if (current_mode == DMX_MODE_WRITE && driver_is_busy) {
     return ESP_FAIL;
@@ -362,14 +362,14 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
 
   // Ensure driver isn't currently transmitting DMX data
   portENTER_CRITICAL(&hardware->spinlock);
-  const int driver_is_busy = driver->is_busy;
+  const int driver_is_busy = driver->is_active;
   portEXIT_CRITICAL(&hardware->spinlock);
   if (driver_is_busy) {
     return ESP_FAIL;
   }
 
   // Set the driver busy flag and set the buffer state
-  driver->is_busy = true;
+  driver->is_active = true;
   driver->buffer.size = size;
   driver->buffer.head = 0;
 
@@ -425,7 +425,7 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
     portENTER_CRITICAL(&hardware->spinlock);
 
     // If task is not blocked, driver must be idle to receive data
-    if (!driver->is_busy) {
+    if (!driver->is_active) {
       packet_received = true;
       // TODO: add error flags to driver so that they can be read into &flags
     }
