@@ -110,8 +110,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   // driver->uid = dmx_get_uid(); // TODO
 
   // TODO: reorganize these inits
-  // driver->awaiting_response = false;
-  // driver->awaiting_turnaround = false;
   // driver->tx.rdm_tn = 0;
 
   // Initialize TX settings
@@ -348,7 +346,7 @@ esp_err_t dmx_write(dmx_port_t dmx_num, const void *data, size_t size) {
 }
 
 esp_err_t dmx_read_slot(dmx_port_t dmx_num, size_t index, uint8_t *value) {
-  
+
   return ESP_OK;
 }
 
@@ -397,7 +395,53 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
 
 esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
                                    TickType_t ticks_to_wait) {
-  
+  // TODO: Check arguments
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+
+  // Block task if required
+  uint32_t flags;
+  bool packet_received = false;
+  if (ticks_to_wait > 0) {
+    portENTER_CRITICAL(&hardware->spinlock);
+
+    // Ensure only one task is calling this function
+    if (driver->buffer.waiting_task != NULL) {
+      portEXIT_CRITICAL(&hardware->spinlock);
+      return ESP_FAIL;
+    }
+
+    // Ensure the driver notifies this task when a packet is received
+    driver->buffer.waiting_task = xTaskGetCurrentTaskHandle();;
+
+    portEXIT_CRITICAL(&hardware->spinlock);
+
+    // Recheck to ensure that this is the task that will be notified
+    if (driver->buffer.waiting_task) {
+      packet_received = xTaskNotifyWait(0, ULONG_MAX, &flags, ticks_to_wait);
+      driver->buffer.waiting_task = NULL;
+    }
+  } else {
+    portENTER_CRITICAL(&hardware->spinlock);
+
+    // If task is not blocked, driver must be idle to receive data
+    if (!driver->is_busy) {
+      packet_received = true;
+      // TODO: add error flags to driver so that they can be read into &flags
+    }
+    
+    portEXIT_CRITICAL(&hardware->spinlock);
+  }
+
+  // Do not process data if a packet was not received
+  if (!packet_received) {
+    return ESP_ERR_TIMEOUT;
+  }
+
+  // Handle packet processing
+  ESP_LOGI(TAG, "We received a packet! Woohoo!"); // TODO
+
   return ESP_OK;
 }
 
@@ -408,10 +452,10 @@ esp_err_t dmx_wait_packet_written(dmx_port_t dmx_num,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Block until the DMX data has been sent
-  if (!xSemaphoreTake(driver->data_sent, ticks_to_wait)) {
+  if (!xSemaphoreTake(driver->data_written, ticks_to_wait)) {
     return ESP_ERR_TIMEOUT;
   }
-  xSemaphoreGive(driver->data_sent);
+  xSemaphoreGive(driver->data_written);
 
   return ESP_OK;
 }
