@@ -368,26 +368,26 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
     return ESP_FAIL;
   }
 
-  // Set the driver busy flag and set the buffer state
-  driver->is_active = true;
-  driver->buffer.size = size;
-  driver->buffer.head = 0;
+  // TODO: allow busy wait mode
 
   // Get the configured length of the DMX break
   portENTER_CRITICAL(&hardware->spinlock);
   const uint32_t break_len = driver->tx.break_len;
   portEXIT_CRITICAL(&hardware->spinlock);
 
-  // TODO: allow busy wait mode
-
   // Setup hardware timer for DMX break
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
   timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);
 
-  // Trigger the DMX break
+  // Set flags, buffer state, and trigger the DMX break
+  portENTER_CRITICAL(&hardware->spinlock);
+  driver->is_active = true;
+  driver->buffer.size = size;
+  driver->buffer.head = 0;
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
+  portEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
