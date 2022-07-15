@@ -154,14 +154,6 @@ typedef struct {
   uint8_t rxfifo_full_threshold;   // DMX RX full interrupt threshold. This is the minimum number of bytes that are needed in the UART RX FIFO for the "FIFO full" interrupt to fire.
 } dmx_intr_config_t;
 
-
-enum {
-  DMX_IDLE = BIT0,
-  DMX_IS_IN_BREAK = BIT1,
-  // DMX_TURNAROUND_COMPLETE = 8,
-};
-
-
 #ifdef __cplusplus
 }
 #endif
