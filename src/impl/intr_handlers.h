@@ -48,7 +48,7 @@ enum {
   DMX_ALL_INTR_MASK = -1  // Interrupt mask for all interrupts.
 };
 
-static void IRAM_ATTR dmx_intr_handler(void *arg) {
+static void IRAM_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
@@ -199,7 +199,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
-static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
+static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
 
@@ -225,7 +225,7 @@ static void IRAM_ATTR dmx_timing_intr_handler(void *arg) {
   */
 }
 
-static bool IRAM_ATTR dmx_timer_intr_handler(void *arg) {
+static bool IRAM_ATTR dmx_timer_isr(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   int task_awoken = false;

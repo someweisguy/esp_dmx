@@ -131,7 +131,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_hal_disable_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags,
-                 &dmx_intr_handler, driver, &driver->uart_isr_handle);
+                 &dmx_uart_isr, driver, &driver->uart_isr_handle);
   const dmx_intr_config_t dmx_intr_conf = {
       .rxfifo_full_threshold = DMX_UART_FULL_DEFAULT,
       .rx_timeout_threshold = DMX_UART_TIMEOUT_DEFAULT,
@@ -158,7 +158,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
     timer_set_counter_value(dmx_config->rst_seq_hw, dmx_config->timer_idx, 0);
     timer_set_alarm_value(dmx_config->rst_seq_hw, dmx_config->timer_idx, 0);
     timer_isr_callback_add(dmx_config->rst_seq_hw, dmx_config->timer_idx,
-                           dmx_timer_intr_handler, driver,
+                           dmx_timer_isr, driver,
                            dmx_config->intr_alloc_flags);
     timer_enable_intr(dmx_config->rst_seq_hw, dmx_config->timer_idx);
   }
