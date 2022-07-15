@@ -473,11 +473,3 @@ void *memcpyswap(void *dest, const void *src, size_t n) {
   }
   return chrdest;
 }
-
-
-
-esp_err_t dmx_wait_turnaround(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
-
-
-  return ESP_OK;
-}
