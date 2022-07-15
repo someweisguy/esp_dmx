@@ -180,7 +180,7 @@ static void IRAM_ATTR dmx_intr_handler(void *arg) {
       
       // Set flags and signal data is sent
       driver->is_busy = false;
-      xSemaphoreGiveFromISR(driver->data_written_semaphore, &task_awoken);
+      xSemaphoreGiveFromISR(driver->written_semaphore, &task_awoken);
     }
 
     else {
