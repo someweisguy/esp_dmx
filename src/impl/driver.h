@@ -52,7 +52,7 @@ typedef struct {
   };
 
   SemaphoreHandle_t written_semaphore;
-  SemaphoreHandle_t ready_semaphore;
+  SemaphoreHandle_t ready_semaphore;  // FIXME: use task notification instead?
 
   // TODO: replace variables with single variable with flags
   dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
