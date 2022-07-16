@@ -118,7 +118,7 @@ typedef struct __attribute__((__packed__)) {
  * @brief DMX data events reported to the event queue when a packet is received.
  */
 typedef struct {
-  uint8_t status;              // The status of the received DMX packet.
+  uint8_t err;                 // The status of the received DMX packet.
   int16_t size;                // The size of the received DMX packet in bytes.
   uint8_t data_class;          // The type of packet received. 
   struct {

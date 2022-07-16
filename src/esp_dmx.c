@@ -418,8 +418,7 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   // Block task if required
-  uint32_t err;
-  bool packet_received = false;
+  bool received = false;
   if (ticks_to_wait > 0) {
     taskENTER_CRITICAL(&hardware->spinlock);
     // Ensure only one task is calling this function
@@ -434,26 +433,30 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
 
     // Recheck to ensure that this is the task that will be notified
     if (driver->data.task_waiting) {
-      packet_received = xTaskNotifyWait(0, ULONG_MAX, &err, ticks_to_wait);
+      received = xTaskNotifyWait(0, ULONG_MAX, &event->err, ticks_to_wait);
       driver->data.task_waiting = NULL;
     }
   } else {
     taskENTER_CRITICAL(&hardware->spinlock);
     // If task is not blocked, driver must be idle to receive data
     if (!driver->is_active) {
-      packet_received = true;
-      err = driver->data.err;
+      received = true;
+      event->err = driver->data.err;
     }
     taskEXIT_CRITICAL(&hardware->spinlock);
   }
 
+  // Get basic packet information regardless of error status
+  taskENTER_CRITICAL(&hardware->spinlock);
+  event->size = driver->data.head;
+  // TODO: get sniffer data
+  taskEXIT_CRITICAL(&hardware->spinlock);
+
   // Do not process data if a packet was not received
-  if (!packet_received) {
+  if (!received || event->err & DMX_ERR_TIMEOUT) {
     return ESP_ERR_TIMEOUT;
-  }
-
-  if (err) {
-
+  } else if (event->err) {
+    return ESP_ERR_INVALID_RESPONSE;
   }
 
   // Handle packet processing
