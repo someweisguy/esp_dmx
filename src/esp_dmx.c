@@ -34,7 +34,7 @@ enum {
 static const char *TAG = "dmx";  // The log tagline for the file.
 
 static void dmx_module_enable(dmx_port_t dmx_num) {
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  taskENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
     periph_module_enable(uart_periph_signal[dmx_num].module);
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
@@ -50,18 +50,18 @@ static void dmx_module_enable(dmx_port_t dmx_num) {
     }
     dmx_context[dmx_num].hw_enabled = true;
   }
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  taskEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
 static void dmx_module_disable(dmx_port_t dmx_num) {
-  portENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  taskENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != false) {
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
       periph_module_disable(uart_periph_signal[dmx_num].module);
     }
     dmx_context[dmx_num].hw_enabled = false;
   }
-  portEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
+  taskEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
 /// Driver Functions  #########################################################
@@ -142,10 +142,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_configure_interrupts(dmx_num, &dmx_intr_conf);
 
   // Enable UART read interrupt and set RTS low
-  portENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&hardware->spinlock);
   dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
   dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
-  portEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Install hardware timer interrupt
   if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
@@ -184,17 +184,17 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   // Return if the the driver is in the correct mode already
-  portENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&hardware->spinlock);
   const dmx_mode_t current_mode = driver->mode;
-  portEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&hardware->spinlock);
   if (current_mode == dmx_mode) {
     return ESP_OK;
   }
 
   // Ensure driver isn't currently transmitting DMX data
-  portENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&hardware->spinlock);
   const int driver_is_active = driver->is_active;
-  portEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&hardware->spinlock);
   if (driver_is_active && current_mode == DMX_MODE_WRITE) {
     return ESP_FAIL;
   }
@@ -208,15 +208,15 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     dmx_hal_rxfifo_rst(&hardware->hal);
 
     // Set RTS and enable UART interrupts
-    portENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&hardware->spinlock);
     dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    portEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&hardware->spinlock);
   } else {
     // Disable read interrupts
-    portENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&hardware->spinlock);
     dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    portEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&hardware->spinlock);
 
     // Disable DMX sniffer if it is enabled
     if (driver->rx.intr_io_num != -1) {
@@ -227,9 +227,9 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
     dmx_hal_txfifo_rst(&hardware->hal);
 
     // Set RTS and enable UART interrupts
-    portENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&hardware->spinlock);
     dmx_hal_set_rts(&hardware->hal, DMX_MODE_WRITE);
-    portEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&hardware->spinlock);
   }
 
   return ESP_OK;
@@ -311,14 +311,14 @@ esp_err_t dmx_configure_interrupts(dmx_port_t dmx_num,
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
-  portENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&hardware->spinlock);
   dmx_hal_set_rx_timeout_threshold(&hardware->hal,
                                    intr_conf->rx_timeout_threshold);
   dmx_hal_set_rxfifo_full_threshold(&hardware->hal,
                                     intr_conf->rxfifo_full_threshold);
   dmx_hal_set_txfifo_empty_threshold(&hardware->hal,
                                      intr_conf->txfifo_empty_threshold);
-  portEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
@@ -376,9 +376,9 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   // Ensure driver isn't currently transmitting DMX data
-  portENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&hardware->spinlock);
   const int driver_is_active = driver->is_active;
-  portEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&hardware->spinlock);
   if (driver_is_active) {
     return ESP_FAIL;
   }
@@ -386,23 +386,23 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   // TODO: allow busy wait mode
 
   // Get the configured length of the DMX break
-  portENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&hardware->spinlock);
   const uint32_t break_len = driver->tx.break_len;
-  portEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Setup hardware timer for DMX break
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
   timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);
 
   // Set flags, buffer state, and trigger the DMX break
-  portENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&hardware->spinlock);
   driver->data.size = size;
   driver->data.head = 0;
   driver->is_active = true;
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
-  portEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
@@ -418,16 +418,16 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   uint32_t err;
   bool packet_received = false;
   if (ticks_to_wait > 0) {
-    portENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&hardware->spinlock);
     // Ensure only one task is calling this function
     if (driver->data.task_waiting != NULL) {
-      portEXIT_CRITICAL(&hardware->spinlock);
+      taskEXIT_CRITICAL(&hardware->spinlock);
       return ESP_FAIL;
     }
 
     // Ensure the driver notifies this task when a packet is received
     driver->data.task_waiting = xTaskGetCurrentTaskHandle();
-    portEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&hardware->spinlock);
 
     // Recheck to ensure that this is the task that will be notified
     if (driver->data.task_waiting) {
@@ -435,13 +435,13 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
       driver->data.task_waiting = NULL;
     }
   } else {
-    portENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&hardware->spinlock);
     // If task is not blocked, driver must be idle to receive data
     if (!driver->is_active) {
       packet_received = true;
       err = driver->data.err;
     }
-    portEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&hardware->spinlock);
   }
 
   // Do not process data if a packet was not received

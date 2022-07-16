@@ -177,9 +177,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       
       // Allow FIFO to empty when done writing data
       if (driver->data.head == driver->data.size) {
-        portENTER_CRITICAL_ISR(&hardware->spinlock);
+        taskENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
-        portEXIT_CRITICAL_ISR(&hardware->spinlock);
+        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       }
     }
     
@@ -198,9 +198,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     else {
       // disable interrupts that shouldn't be handled
       // this code shouldn't be called but it can prevent crashes when it is
-      portENTER_CRITICAL_ISR(&hardware->spinlock);
+      taskENTER_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_disable_interrupt(&hardware->hal, intr_flags);
-      portEXIT_CRITICAL_ISR(&hardware->spinlock);
+      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_clear_interrupt(&hardware->hal, intr_flags);
     }
   }
@@ -245,9 +245,9 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     driver->is_in_break = false;
 
     // Get the configured length of the DMX mark-after-break
-    portENTER_CRITICAL_ISR(&hardware->spinlock);
+    taskENTER_CRITICAL_ISR(&hardware->spinlock);
     const uint32_t mab_len = driver->tx.mab_len;
-    portEXIT_CRITICAL_ISR(&hardware->spinlock);
+    taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
     // Reset the alarm for the end of the DMX mark-after-break
     timer_group_set_alarm_value_in_isr(driver->rst_seq_hw, driver->timer_idx,
@@ -259,9 +259,9 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     driver->data.head += write_size;
 
     // Enable DMX write interrupts
-    portENTER_CRITICAL_ISR(&hardware->spinlock);
+    taskENTER_CRITICAL_ISR(&hardware->spinlock);
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
-    portEXIT_CRITICAL_ISR(&hardware->spinlock);
+    taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
     // Pause the timer
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
