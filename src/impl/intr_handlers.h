@@ -35,11 +35,14 @@ FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
 
 enum {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,  // Interrupt mask that triggers when the UART overflows.
-  DMX_INTR_RX_DATA = (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT),  // Interrupt mask that is triggered when it is time to service the receive FIFO.
-  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,  // Interrupt mask that trigger when a DMX break is received.
   DMX_INTR_RX_FRAMING_ERR = (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR),  // Interrupt mask that represents a byte framing error.
+  DMX_INTR_RX_ERR = (DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR),  // TODO
+
+  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,  // Interrupt mask that trigger when a DMX break is received.
+  DMX_INTR_RX_DATA = (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT),  // Interrupt mask that is triggered when it is time to service the receive FIFO.
+  DMX_INTR_RX_TIMEOUT = UART_INTR_RXFIFO_TOUT,  // TODO
   DMX_INTR_RX_CLASH = UART_INTR_RS485_CLASH,  // Interrupt mask that represents a DMX collision.
-  DMX_INTR_RX_ALL = (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR | DMX_INTR_RX_CLASH),  // Interrupt mask that represents all receive conditions.
+  DMX_INTR_RX_ALL = (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR | DMX_INTR_RX_CLASH),  // Interrupt mask that represents all receive conditions.
 
   DMX_INTR_TX_DATA = UART_INTR_TXFIFO_EMPTY,  // Interrupt mask that is triggered when the UART is ready to send data.
   DMX_INTR_TX_DONE = UART_INTR_TX_DONE,  // Interrupt mask that is triggered when the UART has finished writing data.
@@ -60,51 +63,54 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     if (intr_flags == 0) break;
 
     // DMX Receive ####################################################
-    if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FIFO_OVERFLOW);
-
-      // Notify task that an error occurred
-      if (driver->is_active && driver->buffer.task_waiting) {
-        xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_ERR_DATA_OVERFLOW,
-                           eSetValueWithOverwrite, &task_awoken);
+    if (intr_flags & DMX_INTR_RX_ERR) {
+      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
+      
+      // Don't process errors if the DMX bus is inactive
+      if (!driver->is_active) {
+        continue;
       }
 
-      // Indicate driver is finished reading data and reset the FIFO
-      driver->is_active = false;
-      dmx_hal_rxfifo_rst(&hardware->hal);
-    }
-    else if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
-      dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_FRAMING_ERR);
+      // Indicate the driver is inactive
+      driver->state &= ~(DMX_BUS_IS_ACTIVE | DMX_BUS_IS_IN_BREAK);
 
-      // Notify task that an error occurred
-      if (driver->is_active && driver->buffer.task_waiting) {
-        xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_ERR_IMPROPER_SLOT,
-                           eSetValueWithOverwrite, &task_awoken);
+      // Set driver buffer error flags
+      if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
+        driver->data.err |= DMX_ERR_DATA_OVERFLOW;
+      }
+      if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
+        driver->data.err |= DMX_ERR_IMPROPER_SLOT;
       }
 
-      // Indicate driver is finished reading data and reset the FIFO
-      driver->is_active = false;
+      // Notify task that an error occurred if a task is waiting
+      if (driver->data.task_waiting) {
+        xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
+                            eSetValueWithOverwrite, &task_awoken);
+      }
+      
+      // Reset the FIFO
       dmx_hal_rxfifo_rst(&hardware->hal);
     }
+
     else if (intr_flags & DMX_INTR_RX_BREAK) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_BREAK);
 
-      // Notify sniffer that the driver is in a DMX break
+      // Indicate driver is active and in a DMX break
       driver->is_in_break = true;
 
-      // Update packet size guess if driver is still trying to read data
+      // Update packet size guess if driver is still reading data
       if (driver->is_active) {
         // Send a task notification if it hasn't been sent yet
-        if (driver->buffer.task_waiting) {
-          xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_OK,
+        if (driver->data.task_waiting) {
+          xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
                              eSetValueWithOverwrite, &task_awoken);
         }
-        driver->buffer.size = driver->buffer.head;  // Update packet size guess
+        driver->data.size = driver->data.head;  // Update packet size guess
       }
 
-      // Indicate a packet is being read, reset head, and reset the FIFO
+      // Set driver active flag, reset head, and reset the FIFO
       driver->is_active = true;
-      driver->buffer.head = 0;
+      driver->data.head = 0;
       dmx_hal_rxfifo_rst(&hardware->hal);
 
       // TODO: reset sniffer values
@@ -113,39 +119,41 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     else if (intr_flags & DMX_INTR_RX_DATA) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_DATA);
 
-      // Driver is not in a DMX break
-      driver->is_in_break = false;
+      // Indicate driver is not in a DMX break
+      if (driver->is_in_break) {
+        driver->is_in_break = false;
+      }
 
       // Determine the timestamp of the last slot
-      if (intr_flags & UART_INTR_RXFIFO_TOUT) {
+      if (intr_flags & DMX_INTR_RX_TIMEOUT) {
         uint8_t timeout = dmx_hal_get_rx_timeout_threshold(&hardware->hal);
-        driver->buffer.last_received_ts = now - (timeout * 44);
+        driver->data.last_received_ts = now - (timeout * 44);
       } else {
-        driver->buffer.last_received_ts = now;
+        driver->data.last_received_ts = now;
       }
 
       // Read from the FIFO if there is data and if the driver is ready
-      size_t read_len = DMX_MAX_PACKET_SIZE - driver->buffer.head;
+      size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
       if (driver->is_active && read_len > 0) {
-        uint8_t *data_ptr = &driver->buffer.data[driver->buffer.head];
+        uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
         dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
-        driver->buffer.head += read_len;
+        driver->data.head += read_len;
       } else {
         dmx_hal_rxfifo_rst(&hardware->hal);
       }
 
       // Don't process data if driver already has or no task waiting
-      if (!driver->is_active || driver->buffer.task_waiting == NULL) {
+      if (!driver->is_active || driver->data.task_waiting == NULL) {
         continue;
       }
 
       // Determine if a full packet has been received
-      const uint8_t sc = driver->buffer.data[0];  // Received DMX start code.
+      const uint8_t sc = driver->data.buffer[0];  // Received DMX start code.
       if (sc == DMX_SC) {
-        if (driver->buffer.head >= driver->buffer.size) {
-          xTaskNotifyFromISR(driver->buffer.task_waiting, DMX_OK,
-                             eSetValueWithOverwrite, &task_awoken);
+        if (driver->data.head >= driver->data.size) {
           driver->is_active = false;
+          xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
+                             eSetValueWithOverwrite, &task_awoken);
         }
       } // TODO: process RDM or RDM Discovery Response
     }
@@ -162,12 +170,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
 
       // Write data to the UART
-      size_t write_size = driver->buffer.size - driver->buffer.head;
-      dmx_hal_write_txfifo(&hardware->hal, driver->buffer.data, &write_size);
-      driver->buffer.head += write_size;
+      size_t write_size = driver->data.size - driver->data.head;
+      dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
+      driver->data.head += write_size;
       
       // Allow FIFO to empty when done writing data
-      if (driver->buffer.head == driver->buffer.size) {
+      if (driver->data.head == driver->data.size) {
         portENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
         portEXIT_CRITICAL_ISR(&hardware->spinlock);
@@ -179,7 +187,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
       // Record timestamp of last sent slot
-      driver->buffer.last_sent_ts = now;
+      driver->data.last_sent_ts = now;
       
       // Set flags and signal data is sent
       driver->is_active = false;
@@ -245,9 +253,9 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
                                        mab_len);
   } else {
     // Write data to the UART
-    size_t write_size = driver->buffer.size - driver->buffer.head;
-    dmx_hal_write_txfifo(&hardware->hal, driver->buffer.data, &write_size);
-    driver->buffer.head += write_size;
+    size_t write_size = driver->data.size - driver->data.head;
+    dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
+    driver->data.head += write_size;
 
     // Enable DMX write interrupts
     portENTER_CRITICAL_ISR(&hardware->spinlock);

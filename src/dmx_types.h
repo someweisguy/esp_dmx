@@ -62,15 +62,13 @@ overflow/improper_slot == ESP_FAIL
  * @brief DMX packet status types reported to the event queue when a packet is
  * received.
  */
-typedef enum {
-  DMX_OK = 0,               // The DMX packet is valid.
-  DMX_MODE_SWITCH,
-  DMX_ERR_BUFFER_SIZE,      // The user defined buffer is too small for the received packet.
-  DMX_ERR_IMPROPER_SLOT,    // A slot in the packet was improperly framed (missing stop bits).
-  DMX_ERR_PACKET_SIZE,      // The packet size is 0 or longer than the DMX standard allows.
-  DMX_ERR_DATA_OVERFLOW,    // The UART overflowed causing loss of data.
-  DMX_ERR_TIMEOUT,          // Timed out waiting for a DMX or RDM packet.
-} dmx_event_status_t;
+enum {
+  DMX_OK = 0,                    // The DMX packet is valid.
+  DMX_ERR_IMPROPER_SLOT = BIT1,  // A slot in the packet was improperly framed (missing stop bits).
+  DMX_ERR_PACKET_SIZE = BIT2,    // The packet size is 0 or longer than the DMX standard allows.
+  DMX_ERR_TIMEOUT = BIT3,        // Timed out waiting for a DMX or RDM packet.
+  DMX_ERR_DATA_OVERFLOW = BIT4,  // The UART overflowed causing loss of data.
+};
 
 
 typedef enum {
@@ -120,7 +118,7 @@ typedef struct __attribute__((__packed__)) {
  * @brief DMX data events reported to the event queue when a packet is received.
  */
 typedef struct {
-  dmx_event_status_t status;   // The status of the received DMX packet.
+  uint8_t status;              // The status of the received DMX packet.
   int16_t size;                // The size of the received DMX packet in bytes.
   uint8_t data_class;          // The type of packet received. 
   struct {

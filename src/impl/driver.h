@@ -19,8 +19,6 @@ extern "C" {
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
-
-
 /* This is the DMX driver object used to handle tx'ing and rx'ing DMX data on
 the UART port. It stores all the information needed to run and analyze DMX
 including the buffer used as an intermediary to store reads/writes on the UART
@@ -32,30 +30,34 @@ typedef struct {
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
   struct {
+    uint8_t err;
+    uint8_t buffer[DMX_MAX_PACKET_SIZE];
     uint16_t head;
-    uint8_t data[DMX_MAX_PACKET_SIZE];
     uint16_t size;
+
     TaskHandle_t task_waiting;
+
     int64_t last_received_ts;
     int64_t last_sent_ts;
-  } buffer;
+  } data;
 
-  struct {
-    union {
-      struct {
-        uint8_t is_active : 1;     // True if the DMX bus is currently sending or receiving a packet.
-        uint8_t is_in_break : 1;   // True if the DMX bus is in a break, either sent or received.
-        uint8_t bus_is_ready : 1;  // True if the DMX bus is ready for another packet to be sent.
-      };
-      uint32_t status_flags;
+  // TODO: move to status flags?
+  dmx_mode_t mode;  // The mode the driver is in - either READ or WRITE.
+  
+  // These flags 
+  union {
+    struct {
+      uint8_t is_active : 1;
+      uint8_t is_in_break : 1;
     };
+    uint8_t state;
   };
+  
 
   SemaphoreHandle_t sent_semaphore;
   SemaphoreHandle_t ready_semaphore;  // FIXME: use task notification instead?
 
   // TODO: replace variables with single variable with flags
-  dmx_mode_t mode;                // The mode the driver is in - either READ or WRITE.
   uint64_t uid;
   
   /* These variables are used when transmitting DMX. */

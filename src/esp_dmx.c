@@ -97,16 +97,18 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   xSemaphoreGive(driver->ready_semaphore);
 
   // Initialize the driver buffer
-  bzero(driver->buffer.data, DMX_MAX_PACKET_SIZE);
-  driver->buffer.size = DMX_MAX_PACKET_SIZE;
-  driver->buffer.head = 0;
+  bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
+  driver->data.task_waiting = NULL;
+  driver->data.size = DMX_MAX_PACKET_SIZE;
+  driver->data.head = 0;
+  driver->data.err = 0;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
   driver->mode = DMX_MODE_READ;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
-  driver->status_flags = 0;
+  driver->state = 0;
   // driver->uid = dmx_get_uid(); // TODO
 
   // TODO: reorganize these inits
@@ -191,9 +193,9 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
   // Ensure driver isn't currently transmitting DMX data
   portENTER_CRITICAL(&hardware->spinlock);
-  const int driver_is_busy = driver->is_active;
+  const int driver_is_active = driver->is_active;
   portEXIT_CRITICAL(&hardware->spinlock);
-  if (current_mode == DMX_MODE_WRITE && driver_is_busy) {
+  if (driver_is_active && current_mode == DMX_MODE_WRITE) {
     return ESP_FAIL;
   }
 
@@ -305,8 +307,7 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
 esp_err_t dmx_configure_interrupts(dmx_port_t dmx_num,
                                    dmx_intr_config_t *intr_conf) {
   // TODO: Check arguments
-  
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
@@ -339,21 +340,21 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout) {
 }
 
 /// Read/Write  ###############################################################
-esp_err_t dmx_read(dmx_port_t dmx_num, void *data, size_t size) {
+esp_err_t dmx_read(dmx_port_t dmx_num, void *buffer, size_t size) {
   // TODO: Check arguments
 
 
   return ESP_OK;
 }
 
-esp_err_t dmx_write(dmx_port_t dmx_num, const void *data, size_t size) {
+esp_err_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
   // TODO: check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Copy data from the source to the driver buffer
   // This is not synchronous - use dmx_wait_sent() for frame synchronization
-  memcpy(driver->buffer.data, data, size);
+  memcpy(driver->data.buffer, buffer, size);
 
   return ESP_OK;
 }
@@ -376,9 +377,9 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
 
   // Ensure driver isn't currently transmitting DMX data
   portENTER_CRITICAL(&hardware->spinlock);
-  const int driver_is_busy = driver->is_active;
+  const int driver_is_active = driver->is_active;
   portEXIT_CRITICAL(&hardware->spinlock);
-  if (driver_is_busy) {
+  if (driver_is_active) {
     return ESP_FAIL;
   }
 
@@ -395,9 +396,9 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
 
   // Set flags, buffer state, and trigger the DMX break
   portENTER_CRITICAL(&hardware->spinlock);
+  driver->data.size = size;
+  driver->data.head = 0;
   driver->is_active = true;
-  driver->buffer.size = size;
-  driver->buffer.head = 0;
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
@@ -414,36 +415,32 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   // Block task if required
-  uint32_t flags;
+  uint32_t err;
   bool packet_received = false;
   if (ticks_to_wait > 0) {
     portENTER_CRITICAL(&hardware->spinlock);
-
     // Ensure only one task is calling this function
-    if (driver->buffer.task_waiting != NULL) {
+    if (driver->data.task_waiting != NULL) {
       portEXIT_CRITICAL(&hardware->spinlock);
       return ESP_FAIL;
     }
 
     // Ensure the driver notifies this task when a packet is received
-    driver->buffer.task_waiting = xTaskGetCurrentTaskHandle();;
-
+    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
     portEXIT_CRITICAL(&hardware->spinlock);
 
     // Recheck to ensure that this is the task that will be notified
-    if (driver->buffer.task_waiting) {
-      packet_received = xTaskNotifyWait(0, ULONG_MAX, &flags, ticks_to_wait);
-      driver->buffer.task_waiting = NULL;
+    if (driver->data.task_waiting) {
+      packet_received = xTaskNotifyWait(0, ULONG_MAX, &err, ticks_to_wait);
+      driver->data.task_waiting = NULL;
     }
   } else {
     portENTER_CRITICAL(&hardware->spinlock);
-
     // If task is not blocked, driver must be idle to receive data
     if (!driver->is_active) {
       packet_received = true;
-      // TODO: add error flags to driver so that they can be read into &flags
+      err = driver->data.err;
     }
-
     portEXIT_CRITICAL(&hardware->spinlock);
   }
 
@@ -452,8 +449,11 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
     return ESP_ERR_TIMEOUT;
   }
 
+  if (err) {
+
+  }
+
   // Handle packet processing
-  ESP_LOGI(TAG, "We received a packet! Woohoo!"); // TODO
 
   return ESP_OK;
 }
