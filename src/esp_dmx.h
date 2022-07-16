@@ -238,8 +238,7 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len);
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  */
-esp_err_t dmx_intr_config(dmx_port_t dmx_num,
-                          const dmx_intr_config_t *intr_conf);
+esp_err_t dmx_configure_interrupts(dmx_port_t dmx_num, dmx_intr_config_t *intr_conf);
 
 /**
  * @brief Configure DMX rx full interrupt threshold.

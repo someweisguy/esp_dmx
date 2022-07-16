@@ -137,7 +137,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
       .rx_timeout_threshold = DMX_UART_TIMEOUT_DEFAULT,
       .txfifo_empty_threshold = DMX_UART_EMPTY_DEFAULT,
   };
-  dmx_intr_config(dmx_num, &dmx_intr_conf);
+  dmx_configure_interrupts(dmx_num, &dmx_intr_conf);
 
   // Enable UART read interrupt and set RTS low
   portENTER_CRITICAL(&hardware->spinlock);
@@ -302,9 +302,23 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
 }
 
 /// Interrupt Configuration  ##################################################
-esp_err_t dmx_intr_config(dmx_port_t dmx_num,
-                          const dmx_intr_config_t *intr_conf) {
- 
+esp_err_t dmx_configure_interrupts(dmx_port_t dmx_num,
+                                   dmx_intr_config_t *intr_conf) {
+  // TODO: Check arguments
+  
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+
+  dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
+  portENTER_CRITICAL(&hardware->spinlock);
+  dmx_hal_set_rx_timeout_threshold(&hardware->hal,
+                                   intr_conf->rx_timeout_threshold);
+  dmx_hal_set_rxfifo_full_threshold(&hardware->hal,
+                                    intr_conf->rxfifo_full_threshold);
+  dmx_hal_set_txfifo_empty_threshold(&hardware->hal,
+                                     intr_conf->txfifo_empty_threshold);
+  portEXIT_CRITICAL(&hardware->spinlock);
+
   return ESP_OK;
 }
 
