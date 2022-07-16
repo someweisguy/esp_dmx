@@ -70,9 +70,6 @@ typedef struct {
 
   /* These variables are used when receiving DMX. */
   struct {
-    // int16_t size_guess;           // The guess of the size of the packet. Can reduce latency in reporting new data.
-    int64_t last_data_ts;
-    uint8_t last_cc;
 
     // TODO: every rx variable below this comment can be unionized with tx variables
 
