@@ -343,6 +343,10 @@ esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout) {
 esp_err_t dmx_read(dmx_port_t dmx_num, void *buffer, size_t size) {
   // TODO: Check arguments
 
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Copy data from the driver buffer to a user buffer asynchronously
+  memcpy(buffer, driver->data.buffer, size);
 
   return ESP_OK;
 }
@@ -352,8 +356,7 @@ esp_err_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Copy data from the source to the driver buffer
-  // This is not synchronous - use dmx_wait_sent() for frame synchronization
+  // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data.buffer, buffer, size);
 
   return ESP_OK;
