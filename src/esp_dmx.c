@@ -345,7 +345,7 @@ esp_err_t dmx_read(dmx_port_t dmx_num, void *buffer, size_t size) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Copy data from the driver buffer to a user buffer asynchronously
+  // Copy data from the driver buffer to the destination asynchronously
   memcpy(buffer, driver->data.buffer, size);
 
   return ESP_OK;
