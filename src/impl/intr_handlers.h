@@ -71,8 +71,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         continue;
       }
 
-      // Indicate the driver is inactive
-      driver->state &= ~(DMX_BUS_IS_ACTIVE | DMX_BUS_IS_IN_BREAK);
+      // Indicate the driver is inactive and not in a DMX break
+      driver->is_active = false;
+      driver->is_in_break = false;
 
       // Set driver buffer error flags
       if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
