@@ -64,10 +64,10 @@ overflow/improper_slot == ESP_FAIL
  */
 enum {
   DMX_OK = 0,                    // The DMX packet is valid.
-  DMX_ERR_IMPROPER_SLOT = BIT1,  // A slot in the packet was improperly framed (missing stop bits).
-  DMX_ERR_PACKET_SIZE = BIT2,    // The packet size is 0 or longer than the DMX standard allows.
-  DMX_ERR_TIMEOUT = BIT3,        // Timed out waiting for a DMX or RDM packet.
-  DMX_ERR_DATA_OVERFLOW = BIT4,  // The UART overflowed causing loss of data.
+  DMX_ERR_IMPROPER_SLOT = BIT0,  // A slot in the packet was improperly framed (missing stop bits).
+  DMX_ERR_PACKET_SIZE = BIT1,    // The packet size is 0 or longer than the DMX standard allows.
+  DMX_ERR_TIMEOUT = BIT2,        // Timed out waiting for a DMX or RDM packet.
+  DMX_ERR_DATA_OVERFLOW = BIT3,  // The UART overflowed causing loss of data.
 };
 
 
