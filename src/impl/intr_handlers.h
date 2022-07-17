@@ -148,14 +148,44 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Determine if a full packet has been received
+      bool packet_received = false;
       const uint8_t sc = driver->data.buffer[0];  // Received DMX start code.
       if (sc == DMX_SC) {
+        // A DMX packet should equal the driver's expected packet size
         if (driver->data.head >= driver->data.size) {
-          driver->is_active = false;
-          xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
-                             eSetValueWithOverwrite, &task_awoken);
+          packet_received = true;
         }
-      }  // TODO: process RDM or RDM Discovery Response
+      } else if (sc == RDM_SC) {
+        // An RDM packet is at least 26 bytes long
+        if (driver->data.head >= 26) {
+          // An RDM packet's length should match the message length slot value
+          if (driver->data.head >= driver->data.buffer[3]) {
+            packet_received = true;
+          }
+        }
+      } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
+        // An RDM discovery response packet is at least 17 bytes long
+        if (driver->data.head >= 17) {
+          // Find the length of the discovery response preamble (0-7 bytes)
+          int delimiter_idx = 0;
+          for (; delimiter_idx < 7; ++delimiter_idx) {
+            if (driver->data.buffer[delimiter_idx] == RDM_DELIMITER) {
+              break;
+            }
+          }
+          // Discovery response packets are 17 bytes long after the delimiter
+          if (driver->data.head >= delimiter_idx + 17) {
+            packet_received = true;
+          }
+        }
+      }
+
+      // Notify the blocked task when a packet is received
+      if (packet_received) {
+        driver->is_active = false;
+        xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
+                            eSetValueWithOverwrite, &task_awoken);
+      }
     }
 
     else if (intr_flags & DMX_INTR_RX_CLASH) {
