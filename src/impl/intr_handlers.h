@@ -238,23 +238,26 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
-      // Record timestamp of last sent slot
-      driver->data.last_sent_ts = now;
-
-      // Set flags and signal data is sent
+      // Set flags, record timestamp of last slot, and signal data is sent
       driver->is_active = false;
+      driver->data.last_sent_ts = now;
       xSemaphoreGiveFromISR(driver->sent_semaphore, &task_awoken);
 
       // Determine if the driver should await a reply
       const rdm_packet_t *const rdm = driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
+        // RDM packets must have correct start code and sub-start code
         if (rdm->cc == RDM_GET_COMMAND || rdm->cc == RDM_SET_COMMAND) {
+          // If packet was a broadcast packet there will be no response
           const uint64_t destination_uid = uidcpy(rdm->destination_uid);
           if (destination_uid != RDM_BROADCAST_UID) {
             driver->is_awaiting_reply = true;
           }
         } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {
+          // All discovery commands should expect a response
           driver->is_awaiting_reply = true;
+
+          // Discovery response doesn't send a DMX break
           driver->is_active = true;
           driver->data.head = 0;
         }
