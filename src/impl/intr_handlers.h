@@ -63,7 +63,15 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ERR) {
-      // Reset the FIFO and clear the interrupt
+      // Read from the FIFO on a framing error then clear the FIFO and interrupt
+      if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
+        size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
+        if (driver->is_active && read_len > 0) {
+          uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
+          dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
+          driver->data.head += read_len;
+        }
+      }
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
 
@@ -76,21 +84,17 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->is_active = false;
       driver->is_in_break = false;
 
-      // Set driver buffer error flags
-      esp_err_t err;
-      if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-        err = ESP_FAIL;
-      } else {
-        err = ESP_ERR_INVALID_RESPONSE;
-      }
-
-      // Notify task that an error occurred if a task is waiting
-      const dmx_message_t message = {
-          .err = err, .size = driver->data.head,
+      // Determine the type of error to report and send a message to the queue
+      dmx_message_t message = {
+          .size = driver->data.head,
           // TODO: sniffer
       };
+      if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
+        message.err = ESP_FAIL;
+      } else {
+        message.err = ESP_ERR_INVALID_RESPONSE;
+      }
       xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
-
     }
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
@@ -138,7 +142,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Indicate that the awaited reply is being received
       if (driver->is_awaiting_reply) {
-        // TODO: use the is_awaiting_reply flag to signal what stage of a reply we are in
+        // TODO: use the is_awaiting_reply flag to signal what stage of a reply 
+        //  we are in
         timer_pause(driver->rst_seq_hw, driver->timer_idx);
         driver->is_awaiting_reply = false;
       }
