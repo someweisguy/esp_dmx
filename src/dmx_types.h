@@ -48,6 +48,8 @@ typedef struct {
 
 typedef enum {
   DMX_DIMMER_PACKET = 0x00,
+  DMX_UNKNOWN_PACKET = 0xff,
+
   RDM_DISCOVERY_COMMAND = 0x10,
   RDM_DISCOVERY_COMMAND_RESPONSE = 0x11,
   RDM_GET_COMMAND = 0x20,
@@ -63,17 +65,12 @@ typedef enum {
   RESPONSE_TYPE_ACK_OVERFLOW = 0x03
 } rdm_response_type_t;
 
-enum {
-  DMX_DATA_CLASS = DMX_SC,  // DMX class data. A packet is a DMX packet if it begins with a null start code.
-  RDM_DATA_CLASS = RDM_SC   // RDM class data. A packet is an RDM packet if it begins with an RDM start code and an RDM sub-start code.
-};
-
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
 typedef struct __attribute__((__packed__)) {
     uint8_t sc;
     uint8_t sub_sc;
-    uint8_t size;
+    uint8_t message_len;
     uint8_t destination_uid[6];
     uint8_t source_uid[6];
     uint8_t transaction_num;

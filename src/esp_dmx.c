@@ -102,6 +102,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
   driver->data.err = 0;
+  driver->data.last_received_packet = DMX_UNKNOWN_PACKET;
+  driver->data.last_sent_packet = DMX_UNKNOWN_PACKET;
   driver->data.last_received_ts = 0;
   driver->data.last_sent_ts = 0;
 
@@ -388,8 +390,23 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
 
   // TODO: allow busy wait mode
 
+  // Get the packet type so dmx_wait_send_ready() can be called later
+  const uint8_t sc = driver->data.buffer[0];
+  if (sc == DMX_SC) {
+    driver->data.last_sent_packet = DMX_DIMMER_PACKET;
+  } else if (sc == RDM_SC) {
+    const rdm_packet_t *const rdm = driver->data.buffer;
+    driver->data.last_received_packet = rdm->command_class;
+  } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
+    driver->data.last_sent_packet = RDM_DISCOVERY_COMMAND_RESPONSE;
+  } else {
+    driver->data.last_sent_packet = DMX_UNKNOWN_PACKET;
+  }
+
   // Get the configured length of the DMX break
+  taskENTER_CRITICAL(&hardware->spinlock);
   const uint32_t break_len = driver->tx.break_len;
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Setup hardware timer for DMX break
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
@@ -481,6 +498,7 @@ esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 }
 
 esp_err_t dmx_wait_send_ready(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+  // TODO: Check arguments
 
   return ESP_OK;
 }

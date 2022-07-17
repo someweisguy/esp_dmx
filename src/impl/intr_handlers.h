@@ -150,18 +150,13 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Determine if a full packet has been received
       bool packet_received = false;
       const uint8_t sc = driver->data.buffer[0];  // Received DMX start code.
-      if (sc == DMX_SC) {
-        // A DMX packet should equal the driver's expected packet size
-        if (driver->data.head >= driver->data.size) {
-          driver->data.last_received_packet = DMX_DIMMER_PACKET;
-          packet_received = true;
-        }
-      } else if (sc == RDM_SC) {
+      if (sc == RDM_SC) {
         // An RDM packet is at least 26 bytes long
         if (driver->data.head >= 26) {
           // An RDM packet's length should match the message length slot value
-          if (driver->data.head >= driver->data.buffer[3]) {
-            driver->data.last_received_packet = driver->data.buffer[20];
+          const rdm_packet_t *const rdm = driver->data.buffer;
+          if (driver->data.head >= rdm->message_len + 2) {
+            driver->data.last_received_packet = rdm->command_class;
             packet_received = true;
           }
         }
@@ -181,13 +176,23 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
             packet_received = true;
           }
         }
+      } else {
+        // A DMX packet should equal the driver's expected packet size
+        if (driver->data.head >= driver->data.size) {
+          if (sc == DMX_SC) {
+            driver->data.last_received_packet = DMX_DIMMER_PACKET;
+          } else {
+            driver->data.last_received_packet = DMX_UNKNOWN_PACKET;
+          }
+          packet_received = true;
+        }
       }
 
       // Notify the blocked task when a packet is received
       if (packet_received) {
         driver->is_active = false;
         xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
-                            eSetValueWithOverwrite, &task_awoken);
+                           eSetValueWithOverwrite, &task_awoken);
       }
     }
 
