@@ -76,9 +76,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Set driver buffer error flags
       if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-        driver->data.err = ESP_ERR_NOT_FOUND;
-      } else {
         driver->data.err = ESP_FAIL;
+      } else {
+        driver->data.err = ESP_ERR_INVALID_RESPONSE;
       }
 
       // Notify task that an error occurred if a task is waiting
@@ -153,6 +153,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       if (sc == DMX_SC) {
         // A DMX packet should equal the driver's expected packet size
         if (driver->data.head >= driver->data.size) {
+          driver->data.last_received_packet = DMX_DIMMER_PACKET;
           packet_received = true;
         }
       } else if (sc == RDM_SC) {
@@ -160,6 +161,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         if (driver->data.head >= 26) {
           // An RDM packet's length should match the message length slot value
           if (driver->data.head >= driver->data.buffer[3]) {
+            driver->data.last_received_packet = driver->data.buffer[20];
             packet_received = true;
           }
         }
@@ -175,6 +177,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           }
           // Discovery response packets are 17 bytes long after the delimiter
           if (driver->data.head >= delimiter_idx + 17) {
+            driver->data.last_received_packet = RDM_DISCOVERY_COMMAND_RESPONSE;
             packet_received = true;
           }
         }

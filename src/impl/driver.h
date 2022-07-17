@@ -32,6 +32,8 @@ typedef struct {
   struct {
     TaskHandle_t task_waiting;
 
+    uint8_t last_received_packet;
+    uint8_t last_sent_packet;
     int64_t last_received_ts;
     int64_t last_sent_ts;
 
