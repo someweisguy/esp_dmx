@@ -225,17 +225,13 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Allow FIFO to empty when done writing data
       if (driver->data.head == driver->data.size) {
-        taskENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
-        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       }
     }
 
     else if (intr_flags & DMX_INTR_TX_DONE) {
       // Disable write interrupts and clear the interrupt
-      taskENTER_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
-      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
       // Set flags, record timestamp of last slot, and signal data is sent
@@ -267,11 +263,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       if (driver->is_awaiting_reply) {
         // Turn the DMX bus around so data can be read
         dmx_hal_rxfifo_rst(&hardware->hal);
-        taskENTER_CRITICAL_ISR(&hardware->spinlock);
         dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
         dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
         dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
         // Set the timeout timer
         timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
@@ -284,9 +278,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     else {
       // disable interrupts that shouldn't be handled
       // this code shouldn't be called but it can prevent crashes when it is
-      taskENTER_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_disable_interrupt(&hardware->hal, intr_flags);
-      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       dmx_hal_clear_interrupt(&hardware->hal, intr_flags);
     }
   }
@@ -351,18 +343,14 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     timer_group_set_alarm_value_in_isr(driver->rst_seq_hw, driver->timer_idx,
                                        mab_len);
   } else {
-    // Write data to the UART
+    // Write data to the UART and pause the timer
     size_t write_size = driver->data.size - driver->data.head;
     dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
     driver->data.head += write_size;
+    timer_pause(driver->rst_seq_hw, driver->timer_idx);
 
     // Enable DMX write interrupts
-    taskENTER_CRITICAL_ISR(&hardware->spinlock);
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
-    taskEXIT_CRITICAL_ISR(&hardware->spinlock);
-
-    // Pause the timer
-    timer_pause(driver->rst_seq_hw, driver->timer_idx);
   }
 
   return task_awoken;
