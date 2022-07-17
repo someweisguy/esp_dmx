@@ -396,7 +396,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
     driver->data.last_sent_packet = DMX_DIMMER_PACKET;
   } else if (sc == RDM_SC) {
     const rdm_packet_t *const rdm = driver->data.buffer;
-    driver->data.last_received_packet = rdm->command_class;
+    driver->data.last_sent_packet = rdm->command_class;
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
     driver->data.last_sent_packet = RDM_DISCOVERY_COMMAND_RESPONSE;
   } else {
