@@ -102,6 +102,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
   driver->data.err = 0;
+  driver->data.last_received_ts = 0;
+  driver->data.last_sent_ts = 0;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
