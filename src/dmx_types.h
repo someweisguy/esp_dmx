@@ -67,6 +67,13 @@ typedef enum {
 
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
+typedef struct {
+  esp_err_t err;
+  size_t size;
+  int break_len;
+  int mab_len;
+} dmx_message_t;
+
 typedef struct __attribute__((__packed__)) {
     uint8_t sc;
     uint8_t sub_sc;
@@ -80,7 +87,10 @@ typedef struct __attribute__((__packed__)) {
     };
     uint8_t message_count;
     uint16_t sub_device;
-    uint8_t command_class;
+    union {
+      uint8_t command_class;
+      uint8_t cc;
+    };
     uint16_t parameter_id; 
     uint8_t parameter_data_len;
     void *parameter_data;

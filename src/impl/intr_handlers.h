@@ -75,17 +75,19 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->is_in_break = false;
 
       // Set driver buffer error flags
+      esp_err_t err;
       if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-        driver->data.err = ESP_FAIL;
+        err = ESP_FAIL;
       } else {
-        driver->data.err = ESP_ERR_INVALID_RESPONSE;
+        err = ESP_ERR_INVALID_RESPONSE;
       }
 
       // Notify task that an error occurred if a task is waiting
-      if (driver->data.task_waiting) {
-        xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
-                           eSetValueWithOverwrite, &task_awoken);
-      }
+      const dmx_message_t message = {
+          .err = err, .size = driver->data.head,
+          // TODO: sniffer
+      };
+      xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
 
       // Reset the FIFO
       dmx_hal_rxfifo_rst(&hardware->hal);
@@ -100,17 +102,18 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Update packet size guess if driver is still reading data
       if (driver->is_active) {
         // Send a task notification if it hasn't been sent yet
-        if (driver->data.task_waiting) {
-          xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
-                             eSetValueWithOverwrite, &task_awoken);
-        }
+
+        const dmx_message_t message = {
+            .err = ESP_OK, .size = driver->data.head,
+            // TODO: sniffer
+        };
+        xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
         driver->data.size = driver->data.head;  // Update packet size guess
       }
 
       // Set driver active flag, reset head and err, and reset the FIFO
       driver->is_active = true;
       driver->data.head = 0;
-      driver->data.err = ESP_OK;
       dmx_hal_rxfifo_rst(&hardware->hal);
 
       // TODO: reset sniffer values
@@ -122,6 +125,13 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Indicate driver is not in a DMX break
       if (driver->is_in_break) {
         driver->is_in_break = false;
+      }
+
+      // Indicate that the awaited reply is being received
+      if (driver->is_awaiting_reply) {
+        // TODO: use the is_awaiting_reply flag to signal what stage of a reply we are in
+        timer_pause(driver->rst_seq_hw, driver->timer_idx);
+        driver->is_awaiting_reply = false;
       }
 
       // Determine the timestamp of the last slot
@@ -142,8 +152,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         dmx_hal_rxfifo_rst(&hardware->hal);
       }
 
-      // Don't process data if driver already has or no task waiting
-      if (!driver->is_active || driver->data.task_waiting == NULL) {
+      // Don't process data if driver already has done so
+      if (!driver->is_active) {
         continue;
       }
 
@@ -190,9 +200,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Notify the blocked task when a packet is received
       if (packet_received) {
+        const dmx_message_t message = {
+            .err = ESP_OK, .size = driver->data.head,
+            // TODO: sniffer
+        };
+        xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
         driver->is_active = false;
-        xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
-                           eSetValueWithOverwrite, &task_awoken);
       }
     }
 
@@ -224,12 +237,50 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // UART has finished sending DMX data
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
+      // Disable and clear send interrupts
+      taskENTER_CRITICAL_ISR(&hardware->spinlock);
+      dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
+      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
+
       // Record timestamp of last sent slot
       driver->data.last_sent_ts = now;
 
       // Set flags and signal data is sent
       driver->is_active = false;
       xSemaphoreGiveFromISR(driver->sent_semaphore, &task_awoken);
+
+      // Determine if the driver should await a reply
+      const rdm_packet_t *const rdm = driver->data.buffer;
+      if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
+        if (rdm->cc == RDM_GET_COMMAND || rdm->cc == RDM_SET_COMMAND) {
+          const uint64_t destination_uid = uidcpy(rdm->destination_uid);
+          if (destination_uid != RDM_BROADCAST_UID) {
+            driver->is_awaiting_reply = true;
+          }
+        } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {
+          driver->is_awaiting_reply = true;
+          driver->is_active = true;
+          driver->data.head = 0;
+        }
+      }
+
+      // Prepare the driver for an expected RDM respone
+      if (driver->is_awaiting_reply) {
+        // Turn the DMX bus around so data can be read
+        dmx_hal_rxfifo_rst(&hardware->hal);
+        taskENTER_CRITICAL_ISR(&hardware->spinlock);
+        dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
+        dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+        dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
+
+        // Set the timeout timer
+        timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
+        timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
+                              RDM_REQUEST_TIMEOUT);
+        timer_start(driver->rst_seq_hw, driver->timer_idx);
+      }
+      
     }
 
     else {
@@ -276,7 +327,19 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  if (driver->is_in_break) {
+  if (driver->is_awaiting_reply) {
+    // Send a timeout message to the data queue and set flags
+    const dmx_message_t message = {
+        .err = ESP_ERR_TIMEOUT, .size = driver->data.head,
+        // TODO: sniffer
+    };
+    xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+    driver->is_awaiting_reply = false;
+    driver->is_active = false;
+
+    // Pause the timer
+    timer_pause(driver->rst_seq_hw, driver->timer_idx);
+  } else if (driver->is_in_break) {
     // End the DMX break
     dmx_hal_invert_signal(&hardware->hal, 0);
     driver->is_in_break = false;

@@ -96,12 +96,17 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   xSemaphoreGive(driver->sent_semaphore);
   xSemaphoreGive(driver->ready_semaphore);
 
+  // Allocate the queue dynamically
+  driver->data.queue = xQueueCreate(1, sizeof(dmx_message_t));
+  if (driver->data.queue == NULL) {
+    ESP_LOGE(TAG, "DMX driver queue malloc error");
+    return ESP_ERR_NO_MEM;
+  }
+
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->data.task_waiting = NULL;
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
-  driver->data.err = 0;
   driver->data.last_received_packet = DMX_UNKNOWN_PACKET;
   driver->data.last_sent_packet = DMX_UNKNOWN_PACKET;
   driver->data.last_received_ts = 0;
@@ -415,6 +420,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   // Set flags, buffer state, and trigger the DMX break
   driver->data.size = size;
   driver->data.head = 0;
+  driver->is_awaiting_reply = false;
   taskENTER_CRITICAL(&hardware->spinlock);
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
@@ -431,51 +437,38 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // Block task if required
-  bool packet_received = false;
-  uint32_t err;
-  if (ticks_to_wait > 0) {
-    taskENTER_CRITICAL(&hardware->spinlock);
-    // Ensure only one task is calling this function
-    if (driver->data.task_waiting != NULL) {
-      taskEXIT_CRITICAL(&hardware->spinlock);
-      return ESP_FAIL;
-    }
+    /*
+    send discovery -> wait 2.8ms from last tx
+      if receive response:
+        wait 176us from last rx -> send next packet
+      else:
+        wait 5.8ms from last rx -> send next packet
 
-    // Ensure the driver notifies this task when a packet is received
-    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    send rdm -> wait 2.8ms from last tx
+      if receive response:
+        wait 176us from last rx -> send next packet
+      else:
+        wait 3ms from last rx -> send next packet
 
-    // Recheck to ensure that this is the task that will be notified
-    if (driver->data.task_waiting) {
-      packet_received = xTaskNotifyWait(0, ULONG_MAX, &err, ticks_to_wait);
-      driver->data.task_waiting = NULL;
-    }
-  } else {
-    taskENTER_CRITICAL(&hardware->spinlock);
-    // If task is not blocked, driver must be idle to receive data
-    if (!driver->is_active) {
-      packet_received = true;
-      err = driver->data.err;
-    }
-    taskEXIT_CRITICAL(&hardware->spinlock);
-  }
+    send non-discovery broadcast -> wait 176us -> send next packet
 
-  // Get basic packet information regardless of error status
-  taskENTER_CRITICAL(&hardware->spinlock);
-  event->size = driver->data.head;
-  // TODO: get sniffer data
-  taskEXIT_CRITICAL(&hardware->spinlock);
+    send DMX -> wait 176us -> send RDM packet
+    */
 
-  // Do not process data if an error occurred
-  if (!packet_received || err == ESP_ERR_TIMEOUT) {
-    return ESP_ERR_TIMEOUT;
-  } else if (event->size == 0) {
-    return ESP_ERR_INVALID_SIZE;
-  } else if (err) {
-    return (esp_err_t)err;
+  // Wait for a DMX packet
+  dmx_message_t message = {
+      .err = ESP_ERR_TIMEOUT, .size = 0, .break_len = -1, .mab_len = -1};
+  if (!xQueueReceive(driver->data.queue, &message, ticks_to_wait)) {
+    ESP_LOGW(TAG, "Didn't receive message");
   }
   
+  // Send basic packet info to user regardless of errors
+  event->size = message.size;
+
+  // Do not process data if an error occurred
+  if (message.err) {
+    return message.err;
+  }
 
   // Handle packet processing
   // TODO
