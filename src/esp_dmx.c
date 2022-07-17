@@ -362,6 +362,7 @@ esp_err_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
+  // TODO: if packet being sent is RDM, don't let a write happen asynchronously
   // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data.buffer, buffer, size);
 
