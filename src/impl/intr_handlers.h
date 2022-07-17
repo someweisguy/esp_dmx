@@ -86,14 +86,10 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Determine the type of error to report and send a message to the queue
       dmx_message_t message = {
-          .size = driver->data.head,
+          .err = ESP_ERR_INVALID_RESPONSE, .size = driver->data.head,
           // TODO: sniffer
       };
-      if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-        message.err = ESP_FAIL;
-      } else {
-        message.err = ESP_ERR_INVALID_RESPONSE;
-      }
+      if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) message.err = ESP_FAIL;
       xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
     }
 
