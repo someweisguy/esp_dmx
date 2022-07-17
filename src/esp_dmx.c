@@ -391,7 +391,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   // TODO: allow busy wait mode
 
   // Get the packet type so dmx_wait_send_ready() can be called later
-  const uint8_t sc = driver->data.buffer[0];
+  const uint8_t sc = driver->data.buffer[0];  // Sent DMX start code.
   if (sc == DMX_SC) {
     driver->data.last_sent_packet = DMX_DIMMER_PACKET;
   } else if (sc == RDM_SC) {
