@@ -185,21 +185,18 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // Return if the the driver is in the correct mode already
   taskENTER_CRITICAL(&hardware->spinlock);
-  const dmx_mode_t current_mode = driver->mode;
-  taskEXIT_CRITICAL(&hardware->spinlock);
-  if (current_mode == dmx_mode) {
+  // Return if the the driver is in the correct mode already
+  if (driver->mode == dmx_mode) {
+    taskEXIT_CRITICAL(&hardware->spinlock);
     return ESP_OK;
   }
-
   // Ensure driver isn't currently transmitting DMX data
-  taskENTER_CRITICAL(&hardware->spinlock);
-  const int driver_is_active = driver->is_active;
-  taskEXIT_CRITICAL(&hardware->spinlock);
-  if (driver_is_active && current_mode == DMX_MODE_WRITE) {
+  if (driver->is_active && driver->mode == DMX_MODE_WRITE) {
+    taskEXIT_CRITICAL(&hardware->spinlock);
     return ESP_FAIL;
   }
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Clear interrupts and set the mode
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
@@ -382,28 +379,26 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
 
   // Ensure driver isn't currently transmitting DMX data
   taskENTER_CRITICAL(&hardware->spinlock);
-  const int driver_is_active = driver->is_active;
-  taskEXIT_CRITICAL(&hardware->spinlock);
-  if (driver_is_active) {
+  if (driver->is_active) {
+    taskEXIT_CRITICAL(&hardware->spinlock);
     return ESP_FAIL;
   }
+  driver->is_active = true;
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // TODO: allow busy wait mode
 
   // Get the configured length of the DMX break
-  taskENTER_CRITICAL(&hardware->spinlock);
   const uint32_t break_len = driver->tx.break_len;
-  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Setup hardware timer for DMX break
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
   timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);
 
   // Set flags, buffer state, and trigger the DMX break
-  taskENTER_CRITICAL(&hardware->spinlock);
   driver->data.size = size;
   driver->data.head = 0;
-  driver->is_active = true;
+  taskENTER_CRITICAL(&hardware->spinlock);
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
