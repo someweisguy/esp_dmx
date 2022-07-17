@@ -46,31 +46,6 @@ typedef struct {
   int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
 } dmx_config_t;
 
-/*
-TODO
-new dmx_event_status_t types
-ok == ESP_OK
-packet_size/buffer_size == ESP_ERR_INVALID_SIZE
-  but the user should know the size of the buffer, so they can figure it out 
-  based on the event.size that is returned
-
-timeout == ESP_ERR_TIMEOUT
-overflow/improper_slot == ESP_FAIL
-  on overflow, set the event.size to -1 so user can figure out which happened
-*/
-/**
- * @brief DMX packet status types reported to the event queue when a packet is
- * received.
- */
-enum {
-  DMX_OK = 0,                    // The DMX packet is valid.
-  DMX_ERR_IMPROPER_SLOT = BIT0,  // A slot in the packet was improperly framed (missing stop bits).
-  DMX_ERR_PACKET_SIZE = BIT1,    // The packet size is 0 or longer than the DMX standard allows.
-  DMX_ERR_TIMEOUT = BIT2,        // Timed out waiting for a DMX or RDM packet.
-  DMX_ERR_DATA_OVERFLOW = BIT3,  // The UART overflowed causing loss of data.
-};
-
-
 typedef enum {
   DMX_DIMMER_PACKET = 0x00,
   RDM_DISCOVERY_COMMAND = 0x10,
@@ -118,7 +93,6 @@ typedef struct __attribute__((__packed__)) {
  * @brief DMX data events reported to the event queue when a packet is received.
  */
 typedef struct {
-  uint8_t err;                 // The status of the received DMX packet.
   int16_t size;                // The size of the received DMX packet in bytes.
   uint8_t data_class;          // The type of packet received. 
   struct {

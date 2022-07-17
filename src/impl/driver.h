@@ -30,15 +30,15 @@ typedef struct {
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
   struct {
-    uint8_t err;
-    uint8_t buffer[DMX_MAX_PACKET_SIZE];
-    uint16_t head;
-    uint16_t size;
-
     TaskHandle_t task_waiting;
 
     int64_t last_received_ts;
     int64_t last_sent_ts;
+
+    uint32_t err;
+    uint16_t head;
+    uint16_t size;
+    uint8_t buffer[DMX_MAX_PACKET_SIZE];
   } data;
 
   // TODO: move to status flags?

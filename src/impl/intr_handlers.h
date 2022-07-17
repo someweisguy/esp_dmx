@@ -9,12 +9,11 @@ extern "C" {
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 
-
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
  * first buffer and copies it to least-significant-byte first endianness, which
  * is what ESP32 uses.
- * 
+ *
  * @note This function looks horrible, but it is the most efficient way to swap
  * endianness of a 6-byte number on the Xtensa compiler, which is important
  * because it will be used exclusively in an interrupt handler.
@@ -29,7 +28,7 @@ FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
   ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
   ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
   ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
-  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];  
+  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
   return val;
 }
 
@@ -65,7 +64,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ERR) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
-      
+
       // Don't process errors if the DMX bus is inactive
       if (!driver->is_active) {
         continue;
@@ -77,18 +76,17 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Set driver buffer error flags
       if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-        driver->data.err |= DMX_ERR_DATA_OVERFLOW;
-      }
-      if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
-        driver->data.err |= DMX_ERR_IMPROPER_SLOT;
+        driver->data.err = ESP_ERR_NOT_FOUND;
+      } else {
+        driver->data.err = ESP_FAIL;
       }
 
       // Notify task that an error occurred if a task is waiting
       if (driver->data.task_waiting) {
         xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
-                            eSetValueWithOverwrite, &task_awoken);
+                           eSetValueWithOverwrite, &task_awoken);
       }
-      
+
       // Reset the FIFO
       dmx_hal_rxfifo_rst(&hardware->hal);
     }
@@ -109,9 +107,10 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         driver->data.size = driver->data.head;  // Update packet size guess
       }
 
-      // Set driver active flag, reset head, and reset the FIFO
+      // Set driver active flag, reset head and err, and reset the FIFO
       driver->is_active = true;
       driver->data.head = 0;
+      driver->data.err = ESP_OK;
       dmx_hal_rxfifo_rst(&hardware->hal);
 
       // TODO: reset sniffer values
@@ -156,7 +155,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           xTaskNotifyFromISR(driver->data.task_waiting, driver->data.err,
                              eSetValueWithOverwrite, &task_awoken);
         }
-      } // TODO: process RDM or RDM Discovery Response
+      }  // TODO: process RDM or RDM Discovery Response
     }
 
     else if (intr_flags & DMX_INTR_RX_CLASH) {
@@ -174,7 +173,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       size_t write_size = driver->data.size - driver->data.head;
       dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
       driver->data.head += write_size;
-      
+
       // Allow FIFO to empty when done writing data
       if (driver->data.head == driver->data.size) {
         taskENTER_CRITICAL_ISR(&hardware->spinlock);
@@ -182,14 +181,14 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       }
     }
-    
+
     else if (intr_flags & DMX_INTR_TX_DONE) {
       // UART has finished sending DMX data
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
       // Record timestamp of last sent slot
       driver->data.last_sent_ts = now;
-      
+
       // Set flags and signal data is sent
       driver->is_active = false;
       xSemaphoreGiveFromISR(driver->sent_semaphore, &task_awoken);

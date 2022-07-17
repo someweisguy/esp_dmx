@@ -418,7 +418,8 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   // Block task if required
-  bool received = false;
+  bool packet_received = false;
+  uint32_t err;
   if (ticks_to_wait > 0) {
     taskENTER_CRITICAL(&hardware->spinlock);
     // Ensure only one task is calling this function
@@ -433,15 +434,15 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
 
     // Recheck to ensure that this is the task that will be notified
     if (driver->data.task_waiting) {
-      received = xTaskNotifyWait(0, ULONG_MAX, &event->err, ticks_to_wait);
+      packet_received = xTaskNotifyWait(0, ULONG_MAX, &err, ticks_to_wait);
       driver->data.task_waiting = NULL;
     }
   } else {
     taskENTER_CRITICAL(&hardware->spinlock);
     // If task is not blocked, driver must be idle to receive data
     if (!driver->is_active) {
-      received = true;
-      event->err = driver->data.err;
+      packet_received = true;
+      err = driver->data.err;
     }
     taskEXIT_CRITICAL(&hardware->spinlock);
   }
@@ -452,20 +453,23 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   // TODO: get sniffer data
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  // Do not process data if a packet was not received
-  if (!received || event->err & DMX_ERR_TIMEOUT) {
+  // Do not process data if an error occurred
+  if (!packet_received || err == ESP_ERR_TIMEOUT) {
     return ESP_ERR_TIMEOUT;
-  } else if (event->err) {
-    return ESP_ERR_INVALID_RESPONSE;
+  } else if (event->size == 0) {
+    return ESP_ERR_INVALID_SIZE;
+  } else if (err) {
+    return (esp_err_t)err;
   }
+  
 
   // Handle packet processing
+  // TODO
 
   return ESP_OK;
 }
 
-esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num,
-                                  TickType_t ticks_to_wait) {
+esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   // TODO: Check arguments
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
