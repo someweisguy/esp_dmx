@@ -31,6 +31,7 @@ typedef struct {
 
   struct {
     QueueHandle_t queue;
+    TaskHandle_t task_waiting;
 
     uint8_t last_received_packet;
     uint8_t last_sent_packet;
@@ -58,7 +59,7 @@ typedef struct {
   
 
   SemaphoreHandle_t sent_semaphore;
-  SemaphoreHandle_t ready_semaphore;  // FIXME: use task notification instead?
+  SemaphoreHandle_t ready_semaphore;
 
   // TODO: replace variables with single variable with flags
   uint64_t uid;

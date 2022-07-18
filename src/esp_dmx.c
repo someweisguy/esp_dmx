@@ -107,6 +107,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
+  driver->data.task_waiting = xTaskGetCurrentTaskHandle();
   driver->data.last_received_packet = DMX_UNKNOWN_PACKET;
   driver->data.last_sent_packet = DMX_UNKNOWN_PACKET;
   driver->data.last_received_ts = 0;
@@ -389,7 +390,13 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   if (!xSemaphoreTake(driver->sent_semaphore, 0)) {
     return ESP_FAIL;
   }
-  xSemaphoreTake(driver->ready_semaphore, 0);
+  const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (driver->data.task_waiting != this_task) {
+    xTaskNotifyStateClear(driver->data.task_waiting);
+    driver->data.task_waiting = this_task;
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // TODO: allow busy wait mode
 
@@ -453,21 +460,43 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
 
     send DMX -> wait 176us -> send RDM packet
     */
+  
+  // Update the task notification handle
+  const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (driver->data.task_waiting != this_task) {
+    xTaskNotifyStateClear(driver->data.task_waiting);
+    driver->data.task_waiting = this_task;
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
+
+  // Wait for a task notification
+  uint32_t notification;
+  bool notified = xTaskNotifyWait(0, ULONG_MAX, &notification, ticks_to_wait);
+  event->size = driver->data.head;
+
+  // Return early on errors
+  if (!notified) {
+    return ESP_ERR_TIMEOUT;
+  } else if (notification) {
+    return notification;
+  }
+
 
   // Wait for a DMX packet
-  dmx_message_t message = {
-      .err = ESP_ERR_TIMEOUT, .size = 0, .break_len = -1, .mab_len = -1};
-  if (!xQueueReceive(driver->data.queue, &message, ticks_to_wait)) {
-    ESP_LOGW(TAG, "Didn't receive message");
-  }
+  // dmx_message_t message = {
+  //     .err = ESP_ERR_TIMEOUT, .size = 0, .break_len = -1, .mab_len = -1};
+  // if (!xQueueReceive(driver->data.queue, &message, ticks_to_wait)) {
+  //   ESP_LOGW(TAG, "Didn't receive message");
+  // }
   
   // Send basic packet info to user regardless of errors
-  event->size = message.size;
+  // event->size = message.size;
 
   // Do not process data if an error occurred
-  if (message.err) {
-    return message.err;
-  }
+  // if (notification) {
+  //   return notification;
+  // }
 
   // Handle packet processing
   // TODO

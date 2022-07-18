@@ -85,12 +85,17 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->is_in_break = false;
 
       // Determine the type of error to report and send a message to the queue
-      dmx_message_t message = {
-          .err = ESP_ERR_INVALID_RESPONSE, .size = driver->data.head,
-          // TODO: sniffer
-      };
-      if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) message.err = ESP_FAIL;
-      xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+      // dmx_message_t message = {
+      //     .err = ESP_ERR_INVALID_RESPONSE, .size = driver->data.head,
+      //     // TODO: sniffer
+      // };
+      // if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) message.err = ESP_FAIL;
+      // xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+      taskENTER_CRITICAL_ISR(&hardware->spinlock);
+      const TaskHandle_t task_waiting = driver->data.task_waiting;
+      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
+      xTaskNotifyFromISR(task_waiting, ESP_FAIL, eSetValueWithOverwrite,
+                         &task_awoken);
     }
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
@@ -105,11 +110,16 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       if (driver->is_active) {
         // Send a task notification if it hasn't been sent yet
 
-        const dmx_message_t message = {
-            .err = ESP_OK, .size = driver->data.head,
-            // TODO: sniffer
-        };
-        xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+        // const dmx_message_t message = {
+        //     .err = ESP_OK, .size = driver->data.head,
+        //     // TODO: sniffer
+        // };
+        // xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+        taskENTER_CRITICAL_ISR(&hardware->spinlock);
+        const TaskHandle_t task_waiting = driver->data.task_waiting;
+        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
+        xTaskNotifyFromISR(task_waiting, ESP_OK, eSetValueWithOverwrite,
+                           &task_awoken);
         driver->data.size = driver->data.head;  // Update packet size guess
       }
 
@@ -200,11 +210,17 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Notify the blocked task when a packet is received
       if (packet_received) {
-        const dmx_message_t message = {
-            .err = ESP_OK, .size = driver->data.head,
-            // TODO: sniffer
-        };
-        xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+        taskENTER_CRITICAL_ISR(&hardware->spinlock);
+        const TaskHandle_t task_waiting = driver->data.task_waiting;
+        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
+        xTaskNotifyFromISR(task_waiting, ESP_OK, eSetValueWithOverwrite,
+                           &task_awoken);
+
+        // const dmx_message_t message = {
+        //     .err = ESP_OK, .size = driver->data.head,
+        //     // TODO: sniffer
+        // };
+        // xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
         driver->is_active = false;
       }
     }
@@ -320,11 +336,16 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
 
   if (driver->is_awaiting_reply) {
     // Send a timeout message to the data queue and set flags
-    const dmx_message_t message = {
-        .err = ESP_ERR_TIMEOUT, .size = driver->data.head,
-        // TODO: sniffer
-    };
-    xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+    // const dmx_message_t message = {
+    //     .err = ESP_ERR_TIMEOUT, .size = driver->data.head,
+    //     // TODO: sniffer
+    // };
+    // xQueueOverwriteFromISR(driver->data.queue, &message, &task_awoken);
+    taskENTER_CRITICAL_ISR(&hardware->spinlock);
+    const TaskHandle_t task_waiting = driver->data.task_waiting;
+    taskEXIT_CRITICAL_ISR(&hardware->spinlock);
+    xTaskNotifyFromISR(task_waiting, ESP_ERR_TIMEOUT, eSetValueWithOverwrite,
+                       &task_awoken);
     driver->is_awaiting_reply = false;
     driver->is_active = false;
 
