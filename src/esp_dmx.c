@@ -396,13 +396,13 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
 
   // TODO: allow busy wait mode
 
-  // Get the packet type so dmx_wait_send_ready() can be called later
+  // Record the outgoing packet type
   const uint8_t sc = driver->data.buffer[0];  // Sent DMX start code.
   if (sc == DMX_SC) {
     driver->data.last_sent_packet = DMX_DIMMER_PACKET;
   } else if (sc == RDM_SC) {
     const rdm_packet_t *const rdm = driver->data.buffer;
-    driver->data.last_sent_packet = rdm->command_class;
+    driver->data.last_sent_packet = rdm->cc;
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
     driver->data.last_sent_packet = RDM_DISCOVERY_COMMAND_RESPONSE;
   } else {
