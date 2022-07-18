@@ -386,13 +386,10 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   // Ensure driver isn't currently transmitting DMX data
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->is_active) {
-    taskEXIT_CRITICAL(&hardware->spinlock);
+  if (!xSemaphoreTake(driver->sent_semaphore, 0)) {
     return ESP_FAIL;
   }
-  driver->is_active = true;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  xSemaphoreTake(driver->ready_semaphore, 0);
 
   // TODO: allow busy wait mode
 
@@ -423,6 +420,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
   driver->data.head = 0;
   driver->is_awaiting_reply = false;
   taskENTER_CRITICAL(&hardware->spinlock);
+  driver->is_active = true;
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
@@ -493,6 +491,12 @@ esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
 esp_err_t dmx_wait_send_ready(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   // TODO: Check arguments
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+
+
+
 
   return ESP_OK;
 }
