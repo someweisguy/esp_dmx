@@ -187,6 +187,7 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
+/*
 esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
   // TODO: check args
 
@@ -241,11 +242,7 @@ esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
 
   return ESP_OK;
 }
-
-esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode) {
-  
-  return ESP_OK;
-}
+*/
 
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 
@@ -443,23 +440,11 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-    /*
-    send discovery -> wait 2.8ms from last tx
-      if receive response:
-        wait 176us from last rx -> send next packet
-      else:
-        wait 5.8ms from last rx -> send next packet
-
-    send rdm -> wait 2.8ms from last tx
-      if receive response:
-        wait 176us from last rx -> send next packet
-      else:
-        wait 3ms from last rx -> send next packet
-
-    send non-discovery broadcast -> wait 176us -> send next packet
-
-    send DMX -> wait 176us -> send RDM packet
-    */
+  const TickType_t start = xTaskGetTickCount();
+  if (!xSemaphoreTake(driver->sent_semaphore, ticks_to_wait)) {
+    return ESP_ERR_TIMEOUT;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start;
   
   // Update the task notification handle
   const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();

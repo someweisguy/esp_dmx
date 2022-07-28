@@ -68,28 +68,6 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
 bool dmx_is_driver_installed(dmx_port_t dmx_num);
 
 /**
- * @brief Sets the DMX mode, either DMX_MODE_READ or DMX_MODE_WRITE.
- *
- * @param dmx_num The DMX port number.
- * @param dmx_mode The mode that the DMX driver will be set to.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver is not installed.
- */
-esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode);
-
-/**
- * @brief Gets the DMX mode.
- *
- * @param dmx_num The DMX port number.
- * @param[out] dmx_mode A pointer to a dmx_mode_t to return the current mode.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver is not installed.
- */
-esp_err_t dmx_get_mode(dmx_port_t dmx_num, dmx_mode_t *dmx_mode);
-
-/**
  * @brief Enable the DMX sniffer to determine the break and mark-after-break
  * length.
  *
