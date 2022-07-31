@@ -98,12 +98,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
-  driver->data.task_waiting = xTaskGetCurrentTaskHandle();
+  driver->data.task_waiting = NULL;
   driver->data.previous_type = DMX_UNKNOWN_PACKET;
   driver->data.previous_ts = 0;
   driver->data.sent_previous = false;
 
   driver->mode = DMX_MODE_READ;
+  driver->sending = false;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
@@ -411,6 +412,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
   if (elapsed < timeout) {
     timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
+    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
     timer_start(driver->rst_seq_hw, driver->timer_idx);
   }
 
@@ -458,6 +460,8 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
   taskENTER_CRITICAL(&hardware->spinlock);
   driver->sending = true;
   driver->is_in_break = true;
+  driver->data.size = size;
+  driver->data.head = 0;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
   taskEXIT_CRITICAL(&hardware->spinlock);

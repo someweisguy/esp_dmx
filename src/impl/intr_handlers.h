@@ -230,9 +230,16 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
       // Set flags, record timestamp of last slot, and signal data is sent
+      taskENTER_CRITICAL_ISR(&hardware->spinlock);
       driver->data.previous_ts = now;
       driver->sending = false;
+      if (driver->data.task_waiting) {
+        xTaskNotifyFromISR(driver->data.task_waiting, 0, eSetValueWithOverwrite,
+                           &task_awoken);
+      }
+      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
+      /*
       // Determine if the driver should await a reply
       const rdm_packet_t *rdm = driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
@@ -259,13 +266,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
         dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
         dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-
-        // Set the timeout timer
-        timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
-        timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx,
-                              RDM_REQUEST_TIMEOUT);
-        timer_start(driver->rst_seq_hw, driver->timer_idx);
       }
+      */
     }
 
     else {
@@ -310,7 +312,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  if (driver->data.task_waiting) {
+  if (!driver->sending && driver->data.task_waiting) {
     // Notify the task and pause the timer
     xTaskNotifyFromISR(driver->data.task_waiting, 0, eSetValueWithOverwrite,
                        &task_awoken);
@@ -330,7 +332,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
                                        mab_len);
   } else {
     // Write data to the UART and pause the timer
-    size_t write_size = driver->data.size - driver->data.head;
+    size_t write_size = driver->data.size;
     dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
     driver->data.head += write_size;
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
