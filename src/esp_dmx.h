@@ -262,17 +262,15 @@ esp_err_t dmx_write(dmx_port_t dmx_num, const void *data, size_t size);
 esp_err_t dmx_read_slot(dmx_port_t dmx_num, size_t index, uint8_t *value);
 esp_err_t dmx_write_slot(dmx_port_t dmx_num, size_t index, const uint8_t value);
 
-esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size);
+esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
+                          TickType_t ticks_to_wait);
 
-// TODO: docs - Used to wait until able to call dmx_read();
-esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event, 
-                                   TickType_t ticks_to_wait);
+// TODO: if *event == NULL just wait until packet is received
+esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
+                             TickType_t ticks_to_wait);
 
-// TODO: docs - Used to wait until able to call dmx_write()
-esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);
-
-// TODO: docs - Used to wait until able to call dmx_send_packet()
-esp_err_t dmx_wait_send_ready(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+// TODO: docs, used to wait to call dmx_read() or dmx_write()
+esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
 // TODO: docs
 uint64_t dmx_get_uid();

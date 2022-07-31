@@ -30,38 +30,26 @@ typedef struct {
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
   struct {
-    QueueHandle_t queue;
     TaskHandle_t task_waiting;
 
-    uint8_t last_received_packet;
-    uint8_t last_sent_packet;
-    int64_t last_received_ts;
-    int64_t last_sent_ts;
+    uint8_t previous_type;
+    uint64_t previous_uid;
+    int64_t previous_ts;
+    bool sent_previous;
 
     uint16_t head;
     uint16_t size;
     uint8_t buffer[DMX_MAX_PACKET_SIZE];
   } data;
 
-  // TODO: move to status flags?
-  dmx_mode_t mode;  // The mode the driver is in - either READ or WRITE.
-  
-  // These flags 
-  union {
-    struct {
-      uint8_t is_active : 1;
-      uint8_t is_in_break : 1;
-      uint8_t is_awaiting_reply : 1;
-      uint8_t is_awaiting_turnaround : 1;
-    };
-    uint8_t state;
-  };
-  
+  uint8_t is_in_break;
+  uint8_t is_awaiting_reply;
 
-  SemaphoreHandle_t sent_semaphore;
-  SemaphoreHandle_t ready_semaphore;
+  bool sending;
+  int mode;
 
-  // TODO: replace variables with single variable with flags
+  SemaphoreHandle_t mux;
+
   uint64_t uid;
   
   /* These variables are used when transmitting DMX. */

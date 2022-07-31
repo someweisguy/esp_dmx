@@ -20,7 +20,7 @@
 enum {
   DMX_UART_FULL_DEFAULT = 1,      // The default value for the RX FIFO full interrupt threshold.
   DMX_UART_EMPTY_DEFAULT = 8,     // The default value for the TX FIFO empty interrupt threshold.
-  DMX_UART_TIMEOUT_DEFAULT = 45,  // The default value for the UART timeout interrupt.
+  DMX_UART_TIMEOUT_DEFAULT = 0,   // The default value for the UART timeout interrupt.
 
   DMX_MEMORY_CAPABILITIES = (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
 };
@@ -86,39 +86,31 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   }
   dmx_driver[dmx_num] = driver;
 
-  // Allocate semaphores dynamically
-  driver->sent_semaphore = xSemaphoreCreateBinary();
-  driver->ready_semaphore = xSemaphoreCreateBinary();
-  if (driver->sent_semaphore == NULL || driver->ready_semaphore == NULL) {
-    ESP_LOGE(TAG, "DMX driver semaphore malloc error");
+  // Allocate semaphore dynamically
+  driver->mux = xSemaphoreCreateRecursiveMutex();
+  if (driver->mux == NULL) {
+    ESP_LOGE(TAG, "DMX driver mutex malloc error");
     return ESP_ERR_NO_MEM;
   }
-  xSemaphoreGive(driver->sent_semaphore);
-  xSemaphoreGive(driver->ready_semaphore);
-
-  // Allocate the queue dynamically
-  driver->data.queue = xQueueCreate(1, sizeof(dmx_message_t));
-  if (driver->data.queue == NULL) {
-    ESP_LOGE(TAG, "DMX driver queue malloc error");
-    return ESP_ERR_NO_MEM;
-  }
+  xSemaphoreGiveRecursive(driver->mux);
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
   driver->data.task_waiting = xTaskGetCurrentTaskHandle();
-  driver->data.last_received_packet = DMX_UNKNOWN_PACKET;
-  driver->data.last_sent_packet = DMX_UNKNOWN_PACKET;
-  driver->data.last_received_ts = 0;
-  driver->data.last_sent_ts = 0;
+  driver->data.previous_type = DMX_UNKNOWN_PACKET;
+  driver->data.previous_ts = 0;
+  driver->data.sent_previous = false;
+
+  driver->mode = DMX_MODE_READ;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
-  driver->mode = DMX_MODE_READ;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
-  driver->state = 0;
+  driver->is_awaiting_reply = 0;
+  driver->is_in_break = 0;
   // driver->uid = dmx_get_uid(); // TODO
 
   // TODO: reorganize these inits
@@ -144,7 +136,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags,
                  &dmx_uart_isr, driver, &driver->uart_isr_handle);
-  const dmx_intr_config_t dmx_intr_conf = {
+  dmx_intr_config_t dmx_intr_conf = {
       .rxfifo_full_threshold = DMX_UART_FULL_DEFAULT,
       .rx_timeout_threshold = DMX_UART_TIMEOUT_DEFAULT,
       .txfifo_empty_threshold = DMX_UART_EMPTY_DEFAULT,
@@ -377,82 +369,125 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, size_t index,
   return ESP_OK;
 }
 
-esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size) {
+esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
+                          TickType_t ticks_to_wait) {
   // TODO: Check arguments
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // Ensure driver isn't currently transmitting DMX data
-  if (!xSemaphoreTake(driver->sent_semaphore, 0)) {
-    return ESP_FAIL;
-  }
-  const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
+  // Ensure the driver is not sending
   taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->data.task_waiting != this_task) {
-    xTaskNotifyStateClear(driver->data.task_waiting);
-    driver->data.task_waiting = this_task;
+  if (driver->sending) {
+    taskEXIT_CRITICAL(&hardware->spinlock);
+    return ESP_FAIL;
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  // TODO: allow busy wait mode
+  // Block until the mutex can be taken and decrement block time accordingly
+  const TickType_t start_tick = xTaskGetTickCount();
+  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
+    return ESP_ERR_TIMEOUT;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
-  // Record the outgoing packet type
-  const uint8_t sc = driver->data.buffer[0];  // Sent DMX start code.
-  if (sc == DMX_SC) {
-    driver->data.last_sent_packet = DMX_DIMMER_PACKET;
-  } else if (sc == RDM_SC) {
-    const rdm_packet_t *const rdm = driver->data.buffer;
-    driver->data.last_sent_packet = rdm->cc;
-  } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
-    driver->data.last_sent_packet = RDM_DISCOVERY_COMMAND_RESPONSE;
+  // Determine if an alarm needs to be set to wait until driver is ready
+  uint32_t timeout = 0;
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (driver->data.sent_previous) {
+    if (driver->data.previous_type == RDM_DISCOVERY_COMMAND) {
+      timeout = 5800;
+    } else if (driver->data.previous_uid != RDM_BROADCAST_UID) {
+      timeout = 3000;
+    } else {
+      timeout = 176;
+    }
   } else {
-    driver->data.last_sent_packet = DMX_UNKNOWN_PACKET;
+    if (driver->data.previous_type == DMX_DIMMER_PACKET) {
+      timeout = 176;
+    }
+  }
+  const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
+  if (elapsed < timeout) {
+    timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
+    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
+    timer_start(driver->rst_seq_hw, driver->timer_idx);
   }
 
-  // Get the configured length of the DMX break
+  // Turn the DMX bus around
+  if (driver->mode == DMX_MODE_READ) {
+    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&hardware->hal, DMX_MODE_WRITE);
+    driver->mode = DMX_MODE_WRITE;
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
+
+  // Block if an alarm was set
+  if (elapsed < timeout) {
+    bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
+    if (!notified) {
+      timer_pause(driver->rst_seq_hw, driver->timer_idx);
+      xTaskNotifyStateClear(driver->data.task_waiting);
+    }
+    driver->data.task_waiting = NULL;
+    if (!notified) {
+      xSemaphoreGiveRecursive(driver->mux);
+      return ESP_ERR_TIMEOUT;
+    }
+  }
+
+  // Record the outgoing packet type
+  const uint8_t sc = driver->data.buffer[0];  // DMX start code.
+  if (sc == DMX_SC) {
+    driver->data.previous_type = DMX_DIMMER_PACKET;
+  } else if (sc == RDM_SC) {
+    driver->data.previous_type = ((rdm_packet_t *)driver->data.buffer)->cc;
+  } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
+    driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
+  } else {
+    driver->data.previous_type = DMX_UNKNOWN_PACKET;
+  }
+  driver->data.sent_previous = true;
+
+  // Begin sending the packet
   taskENTER_CRITICAL(&hardware->spinlock);
   const uint32_t break_len = driver->tx.break_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
-
-  // Setup hardware timer for DMX break
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
   timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);
-
-  // Set flags, buffer state, and trigger the DMX break
-  driver->data.size = size;
-  driver->data.head = 0;
-  driver->is_awaiting_reply = false;
   taskENTER_CRITICAL(&hardware->spinlock);
-  driver->is_active = true;
+  driver->sending = true;
   driver->is_in_break = true;
   dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
   taskEXIT_CRITICAL(&hardware->spinlock);
 
+  // Give the mutex back
+  xSemaphoreGiveRecursive(driver->mux);
   return ESP_OK;
 }
 
-esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
-                                   TickType_t ticks_to_wait) {
+esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
+                             TickType_t ticks_to_wait) {
   // TODO: Check arguments
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
+  /*
+  wait until bus is idle (done sending or receiving
+    Take driver->idle_semaphore
+  flip bus - it may already be set correctly
+  wait until packet is received
+    wait until task notification
+  */
 
-  const TickType_t start = xTaskGetTickCount();
-  if (!xSemaphoreTake(driver->sent_semaphore, ticks_to_wait)) {
-    return ESP_ERR_TIMEOUT;
-  }
-  ticks_to_wait -= xTaskGetTickCount() - start;
-  
-  // Update the task notification handle
-  const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
+  // Wait until the DMX bus is idle
+
+
+  // Turn the DMX bus around
+  dmx_hal_txfifo_rst(&hardware->hal);
   taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->data.task_waiting != this_task) {
-    xTaskNotifyStateClear(driver->data.task_waiting);
-    driver->data.task_waiting = this_task;
-  }
+  dmx_hal_set_rts(&hardware->hal, DMX_MODE_WRITE);
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Wait for a task notification
@@ -468,51 +503,39 @@ esp_err_t dmx_wait_packet_received(dmx_port_t dmx_num, dmx_event_t *event,
   }
 
 
-  // Wait for a DMX packet
-  // dmx_message_t message = {
-  //     .err = ESP_ERR_TIMEOUT, .size = 0, .break_len = -1, .mab_len = -1};
-  // if (!xQueueReceive(driver->data.queue, &message, ticks_to_wait)) {
-  //   ESP_LOGW(TAG, "Didn't receive message");
-  // }
-  
-  // Send basic packet info to user regardless of errors
-  // event->size = message.size;
-
-  // Do not process data if an error occurred
-  // if (notification) {
-  //   return notification;
-  // }
-
-  // Handle packet processing
-  // TODO
-
   return ESP_OK;
 }
 
-esp_err_t dmx_wait_packet_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   // TODO: Check arguments
   
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Block until the DMX data has been sent
-  if (!xSemaphoreTake(driver->sent_semaphore, ticks_to_wait)) {
-    return ESP_ERR_TIMEOUT;
-  }
-  xSemaphoreGive(driver->sent_semaphore);
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_wait_send_ready(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
-  // TODO: Check arguments
-
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
+  // Block until the mutex can be taken and decrement timeout accordingly
+  const TickType_t start_tick = xTaskGetTickCount();
+  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
+    return ESP_ERR_TIMEOUT;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
+  // Determine if the task needs to block
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (!driver->sending) {
+    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
+  // Wait for a notification that the driver is done sending
+  bool result = true;
+  if (driver->data.task_waiting) {
+    result = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
+    driver->data.task_waiting = NULL;
+  }
 
-  return ESP_OK;
+  // Give the mutex back and return
+  xSemaphoreGiveRecursive(driver->mux);
+  return result ? ESP_OK : ESP_ERR_TIMEOUT;
 }
 
 
