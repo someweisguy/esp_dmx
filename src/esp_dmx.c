@@ -396,15 +396,15 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
   taskENTER_CRITICAL(&hardware->spinlock);
   if (driver->data.sent_previous) {
     if (driver->data.previous_type == RDM_DISCOVERY_COMMAND) {
-      timeout = 5800;
+      timeout = 5800;  // TODO: Replace with enum
     } else if (driver->data.previous_uid != RDM_BROADCAST_UID) {
-      timeout = 3000;
+      timeout = 3000;  // TODO: Replace with enum
     } else {
-      timeout = 176;
+      timeout = 176;  // TODO: Replace with enum
     }
   } else {
     if (driver->data.previous_type == DMX_DIMMER_PACKET) {
-      timeout = 176;
+      timeout = 176;  // TODO: Replace with enum
     }
   }
   const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;

@@ -229,7 +229,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
-      // Record "done" timestamp, unset sending flag, and notify task
+      // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(&hardware->spinlock);
       driver->is_sending = false;
       driver->data.previous_ts = now;
