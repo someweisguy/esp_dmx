@@ -213,7 +213,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // Write data to the UART and clear the interrupt
       size_t write_size = driver->data.size - driver->data.head;
-      dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
+      const uint8_t *src = &driver->data.buffer[driver->data.head];
+      dmx_hal_write_txfifo(&hardware->hal, src, &write_size);
       driver->data.head += write_size;
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
 
