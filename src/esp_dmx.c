@@ -104,14 +104,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->data.sent_previous = false;
 
   driver->mode = DMX_MODE_READ;
-  driver->sending = false;
+  driver->is_in_break = false;
+  driver->is_sending = false;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
-  driver->is_awaiting_reply = 0;
-  driver->is_in_break = 0;
   // driver->uid = dmx_get_uid(); // TODO
 
   // TODO: reorganize these inits
@@ -379,7 +378,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
 
   // Ensure the driver is not sending
   taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->sending) {
+  if (driver->is_sending) {
     taskEXIT_CRITICAL(&hardware->spinlock);
     return ESP_FAIL;
   }
@@ -458,7 +457,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
   timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);
   taskENTER_CRITICAL(&hardware->spinlock);
-  driver->sending = true;
+  driver->is_sending = true;
   driver->is_in_break = true;
   driver->data.size = size;
   driver->data.head = 0;
@@ -525,7 +524,7 @@ esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
   // Determine if the task needs to block
   taskENTER_CRITICAL(&hardware->spinlock);
-  if (!driver->sending) {
+  if (!driver->is_sending) {
     driver->data.task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(&hardware->spinlock);

@@ -43,9 +43,7 @@ typedef struct {
   } data;
 
   uint8_t is_in_break;
-  uint8_t is_awaiting_reply;
-
-  bool sending;
+  uint8_t is_sending;
   int mode;
 
   SemaphoreHandle_t mux;

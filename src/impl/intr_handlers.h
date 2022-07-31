@@ -229,45 +229,38 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DONE);
 
-      // Set flags, record timestamp of last slot, and signal data is sent
+      // Record "done" timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(&hardware->spinlock);
+      driver->is_sending = false;
       driver->data.previous_ts = now;
-      driver->sending = false;
       if (driver->data.task_waiting) {
-        xTaskNotifyFromISR(driver->data.task_waiting, 0, eSetValueWithOverwrite,
+        xTaskNotifyFromISR(driver->data.task_waiting, 0, eNoAction,
                            &task_awoken);
       }
       taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
-      /*
-      // Determine if the driver should await a reply
+      // Turn DMX bus around quickly if expecting an RDM response
+      bool turn_bus_around = false;
       const rdm_packet_t *rdm = driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-        // RDM packets must have correct start code and sub-start code
+        // If packet was RDM and non-broadcast expect a response
         if (rdm->cc == RDM_GET_COMMAND || rdm->cc == RDM_SET_COMMAND) {
-          // If packet was a broadcast packet there will be no response
           const uint64_t destination_uid = uidcpy(rdm->destination_uid);
           if (destination_uid != RDM_BROADCAST_UID) {
-            driver->is_awaiting_reply = true;
+            turn_bus_around = true;
           }
         } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {
-          // All discovery commands should expect a response
-          driver->is_awaiting_reply = true;
-
-          // Discovery response doesn't send a DMX break
-          driver->data.head = 0;
+          // All discovery commands expect a response
+          driver->data.head = 0;  // Response doesn't have a DMX break
+          turn_bus_around = true;
         }
       }
-
-      // Prepare the driver for an expected RDM respone
-      if (driver->is_awaiting_reply) {
-        // Turn the DMX bus around so data can be read
+      if (turn_bus_around) {
         dmx_hal_rxfifo_rst(&hardware->hal);
         dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
         dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
         dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
       }
-      */
     }
 
     else {
@@ -312,7 +305,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  if (!driver->sending && driver->data.task_waiting) {
+  if (!driver->is_sending && driver->data.task_waiting) {
     // Notify the task and pause the timer
     xTaskNotifyFromISR(driver->data.task_waiting, 0, eSetValueWithOverwrite,
                        &task_awoken);
