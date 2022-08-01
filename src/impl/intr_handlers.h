@@ -94,31 +94,27 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     }
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
-      /*
       // Reset the FIFO and clear the interrupt
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_BREAK);
 
-      // Indicate driver is active and in a DMX break
-      driver->is_in_break = true;
-
-      // Update packet size guess if driver is still reading data
-      if (!uxSemaphoreGetCount(driver->idle_semaphore)) {
-        driver->data.size = driver->data.head;  // Update packet size guess
+      // Update packet size guess if driver hasn't received a packet yet
+      if (driver->is_receiving) {
+        driver->data.size = driver->data.head;
       }
 
-      // Set driver active flag, reset head 
-      xSemaphoreTakeFromISR(driver->idle_semaphore, &task_awoken);
+      // Set driver flags and reset data head
+      driver->is_receiving = true;
+      driver->is_in_break = true;
       driver->data.head = 0;
+
       // TODO: reset sniffer values
-      */
     }
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
-      /*
       // Read from the FIFO if ready and clear the interrupt
       size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-      if (!uxSemaphoreGetCount(driver->idle_semaphore) && read_len > 0) {
+      if (driver->is_receiving && read_len > 0) {
         uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
         dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
         driver->data.head += read_len;
@@ -127,37 +123,27 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       }
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_DATA);
 
-      // Indicate driver is not in a DMX break
+      // Unset DMX break flag and record the timestamp of the last slot
       if (driver->is_in_break) {
         driver->is_in_break = false;
       }
+      driver->data.previous_ts = now;  // TODO: handle RX full thresh > 1
 
-      // Indicate that the awaited reply is being received
-      if (driver->is_awaiting_reply) {
-        // TODO: use the is_awaiting_reply flag to signal what stage of a reply 
-        //  we are in
-        timer_pause(driver->rst_seq_hw, driver->timer_idx);
-        driver->is_awaiting_reply = false;
-      }
-
-      // Determine the timestamp of the last slot
-      driver->data.last_received_ts = now;
-
-      // Don't process data if driver already has done so
-      if (uxSemaphoreGetCount(driver->idle_semaphore)) {
+      // Don't process data if the driver is done receiving
+      if (!driver->is_receiving) {
         continue;
       }
 
-      // Determine if a full packet has been received
+      // Determine if a full packet has been received and notify the task
       bool packet_received = false;
-      const uint8_t sc = driver->data.buffer[0];  // Received DMX start code.
+      const uint8_t sc = driver->data.buffer[0];  // DMX start code.
       if (sc == RDM_SC) {
         // An RDM packet is at least 26 bytes long
         if (driver->data.head >= 26) {
           // An RDM packet's length should match the message length slot value
-          const rdm_packet_t *const rdm = driver->data.buffer;
+          const rdm_packet_t *rdm = driver->data.buffer;
           if (driver->data.head >= rdm->message_len + 2) {
-            driver->data.last_received_packet = rdm->command_class;
+            driver->data.previous_type = rdm->cc;
             packet_received = true;
           }
         }
@@ -165,41 +151,33 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         // An RDM discovery response packet is at least 17 bytes long
         if (driver->data.head >= 17) {
           // Find the length of the discovery response preamble (0-7 bytes)
-          int delimiter_idx = 0;
-          for (; delimiter_idx < 7; ++delimiter_idx) {
-            if (driver->data.buffer[delimiter_idx] == RDM_DELIMITER) {
+          size_t preamble_len = 0;
+          for (; preamble_len < 7; ++preamble_len) {
+            if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
               break;
             }
           }
-          // Discovery response packets are 17 bytes long after the delimiter
-          if (driver->data.head >= delimiter_idx + 17) {
-            driver->data.last_received_packet = RDM_DISCOVERY_COMMAND_RESPONSE;
+          // Discovery response packets are 17 bytes long after the preamble
+          if (driver->data.head >= preamble_len + 17) {
+            driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
             packet_received = true;
           }
         }
       } else {
-        // A DMX packet should equal the driver's expected packet size
+        // A DMX packet size should be equal to the expected packet size
         if (driver->data.head >= driver->data.size) {
           if (sc == DMX_SC) {
-            driver->data.last_received_packet = DMX_DIMMER_PACKET;
+            driver->data.previous_type = DMX_DIMMER_PACKET;
           } else {
-            driver->data.last_received_packet = DMX_UNKNOWN_PACKET;
+            driver->data.previous_type = DMX_UNKNOWN_PACKET;
           }
           packet_received = true;
         }
       }
-
-      // Notify the blocked task when a packet is received
-      if (packet_received) {
-        taskENTER_CRITICAL_ISR(&hardware->spinlock);
-        const TaskHandle_t task_waiting = driver->data.task_waiting;
-        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
-        xTaskNotifyFromISR(task_waiting, driver->data.head,
+      if (packet_received && driver->data.task_waiting) {
+        xTaskNotifyFromISR(driver->data.task_waiting, driver->data.head,
                            eSetValueWithOverwrite, &task_awoken);
-
-        xSemaphoreGiveFromISR(driver->idle_semaphore, &task_awoken);
       }
-      */
     }
 
     else if (intr_flags & DMX_INTR_RX_CLASH) {
@@ -232,6 +210,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(&hardware->spinlock);
       driver->is_sending = false;
+      driver->data.sent_previous = true;
       driver->data.previous_ts = now;
       if (driver->data.task_waiting) {
         xTaskNotifyFromISR(driver->data.task_waiting, 0, eNoAction,

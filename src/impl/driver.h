@@ -43,6 +43,7 @@ typedef struct {
   } data;
 
   uint8_t is_in_break;
+  uint8_t is_receiving;
   uint8_t is_sending;
   int mode;
 

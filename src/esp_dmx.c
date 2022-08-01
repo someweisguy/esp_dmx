@@ -105,6 +105,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   driver->mode = DMX_MODE_READ;
   driver->is_in_break = false;
+  driver->is_receiving = false;
   driver->is_sending = false;
 
   // Initialize driver state
@@ -476,37 +477,51 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
-  /*
-  wait until bus is idle (done sending or receiving
-    Take driver->idle_semaphore
-  flip bus - it may already be set correctly
-  wait until packet is received
-    wait until task notification
-  */
 
-  // Wait until the DMX bus is idle
-
-
-  // Turn the DMX bus around
-  dmx_hal_txfifo_rst(&hardware->hal);
+  // Ensure the driver is not sending nor is another task waiting to receive
   taskENTER_CRITICAL(&hardware->spinlock);
-  dmx_hal_set_rts(&hardware->hal, DMX_MODE_WRITE);
+  if (driver->is_sending || driver->data.task_waiting) {
+    taskEXIT_CRITICAL(&hardware->spinlock);
+    return ESP_FAIL;
+  }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  // Wait for a task notification
-  uint32_t notification;
-  bool notified = xTaskNotifyWait(0, ULONG_MAX, &notification, ticks_to_wait);
-  event->size = driver->data.head;
-
-  // Return early on errors
-  if (!notified) {
+  // Block until the mutex can be taken and decrement timeout accordingly
+  const TickType_t start_tick = xTaskGetTickCount();
+  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
     return ESP_ERR_TIMEOUT;
-  } else if (notification) {
-    return notification;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+
+  // Turn the DMX bus around
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (driver->mode == DMX_MODE_WRITE) {
+    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
+    driver->mode = DMX_MODE_READ;
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
+
+  // TODO: Determine if a timeout is necessary and set a timer if so
+
+  // Block until a packet is received
+  uint32_t packet_size;
+  bool notified = xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
+  if (notified && packet_size == 0) {
+    timer_pause(driver->rst_seq_hw, driver->timer_idx);
+    xTaskNotifyStateClear(driver->data.task_waiting);
+  }
+  driver->data.task_waiting = NULL;
+
+  // Process DMX packet data
+  if (notified && packet_size > 0) {
+    event->size = packet_size;
+    // TODO
   }
 
-
-  return ESP_OK;
+  // Give the mutex back and return
+  xSemaphoreGiveRecursive(driver->mux);
+  return notified && packet_size > 0 ? ESP_OK : ESP_ERR_TIMEOUT;
 }
 
 esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
