@@ -129,6 +129,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       }
       driver->data.previous_ts = now;  // TODO: handle RX full thresh > 1
 
+      // TODO: set a flag when the timer is active
+      timer_pause(driver->rst_seq_hw, driver->timer_idx);
+
       // Don't process data if the driver is done receiving
       if (!driver->is_receiving) {
         continue;
@@ -233,6 +236,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           }
         } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {
           // All discovery commands expect a response
+          driver->is_receiving = true;
           driver->data.head = 0;  // Response doesn't have a DMX break
           turn_bus_around = true;
         }
@@ -292,6 +296,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     xTaskNotifyFromISR(driver->data.task_waiting, 0, eSetValueWithOverwrite,
                        &task_awoken);
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
+    ESP_EARLY_LOGW("intr", "timeout");
   } else if (driver->is_in_break) {
     // End the DMX break
     dmx_hal_invert_signal(&hardware->hal, 0);

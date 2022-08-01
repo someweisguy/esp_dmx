@@ -502,14 +502,29 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
     driver->mode = DMX_MODE_READ;
   }
+
+  // Set an RDM receive timeout to allow driver to fail quickly
+  uint32_t timeout = 0;
+  if (driver->data.sent_previous &&
+      driver->data.previous_type != DMX_DIMMER_PACKET &&
+      driver->data.previous_type != DMX_UNKNOWN_PACKET) {
+    timeout = 2800;  // TODO: use enum
+  }
+  const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
+  if (elapsed < timeout) {
+    timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
+    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
+    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
+    timer_start(driver->rst_seq_hw, driver->timer_idx);
+  } else {
+    // TODO: Handle case where timeout is elapsed?
+  }
   taskEXIT_CRITICAL(&hardware->spinlock);
-
-  // TODO: Determine if a timeout is necessary and set a timer if so
-
+  
   // Block until a packet is received
   uint32_t packet_size;
   bool notified = xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
-  if (notified && packet_size == 0) {
+  if (elapsed < timeout && notified && packet_size > 0) {
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
     xTaskNotifyStateClear(driver->data.task_waiting);
   }
