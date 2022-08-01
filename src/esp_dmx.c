@@ -185,63 +185,6 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
-/*
-esp_err_t dmx_set_mode(dmx_port_t dmx_num, dmx_mode_t dmx_mode) {
-  // TODO: check args
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
-
-  taskENTER_CRITICAL(&hardware->spinlock);
-  // Return if the the driver is in the correct mode already
-  if (driver->mode == dmx_mode) {
-    taskEXIT_CRITICAL(&hardware->spinlock);
-    return ESP_OK;
-  }
-  // Ensure driver isn't currently transmitting DMX data
-  if (driver->is_active && driver->mode == DMX_MODE_WRITE) {
-    taskEXIT_CRITICAL(&hardware->spinlock);
-    return ESP_FAIL;
-  }
-  taskEXIT_CRITICAL(&hardware->spinlock);
-
-  // Clear interrupts and set the mode
-  dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
-  driver->mode = dmx_mode;
-
-  if (dmx_mode == DMX_MODE_READ) {
-    // Reset the UART read FIFO
-    dmx_hal_rxfifo_rst(&hardware->hal);
-
-    // Set RTS and enable UART interrupts
-    taskENTER_CRITICAL(&hardware->spinlock);
-    dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
-    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    taskEXIT_CRITICAL(&hardware->spinlock);
-  } else {
-    // Disable read interrupts
-    taskENTER_CRITICAL(&hardware->spinlock);
-    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    taskEXIT_CRITICAL(&hardware->spinlock);
-
-    // Disable DMX sniffer if it is enabled
-    if (driver->rx.intr_io_num != -1) {
-      dmx_sniffer_disable(dmx_num);
-    }
-
-    // Reset the UART write FIFO
-    dmx_hal_txfifo_rst(&hardware->hal);
-
-    // Set RTS and enable UART interrupts
-    taskENTER_CRITICAL(&hardware->spinlock);
-    dmx_hal_set_rts(&hardware->hal, DMX_MODE_WRITE);
-    taskEXIT_CRITICAL(&hardware->spinlock);
-  }
-
-  return ESP_OK;
-}
-*/
-
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
 
   return ESP_OK;
