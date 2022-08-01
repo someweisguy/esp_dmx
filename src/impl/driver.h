@@ -35,24 +35,23 @@ typedef struct {
   uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
 
   struct {
-    TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
-
+    uint16_t head;                        // The index of the current slot being either transmitted or received.
+    uint16_t size;                        // The size of the outgoing data packet or the expected size of the incoming data packet.
+    uint8_t buffer[DMX_MAX_PACKET_SIZE];  // The buffer that stores the DMX packet.
+ 
     uint8_t previous_type;  // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
     uint64_t previous_uid;  // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
     int64_t previous_ts;    // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     bool sent_previous;     // Is true if this device sent the previous data packet.
-
-    uint16_t head;                        // The index of the current slot being either transmitted or received.
-    uint16_t size;                        // The size of the outgoing data packet or the expected size of the incoming data packet.
-    uint8_t buffer[DMX_MAX_PACKET_SIZE];  // The buffer that stores the DMX packet.
   } data;
 
   uint8_t is_in_break;
   uint8_t is_receiving;
   uint8_t is_sending;
-  int mode;
+  uint8_t mode;
 
-  SemaphoreHandle_t mux;  // The handle to the driver mutex which allows multi-threaded driver function calls.
+  TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
+  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
   /* These variables are used when receiving DMX. */
   struct {

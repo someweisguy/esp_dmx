@@ -85,12 +85,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Unset DMX break and receiving flags and notify task
       driver->is_in_break = false;
       driver->is_receiving = false;
-      if (driver->data.task_waiting) {
+      if (driver->task_waiting) {
         uint32_t notification = driver->data.head;
         if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
           notification = 0;  // Don't report packet size on overflow
         }
-        xTaskNotifyFromISR(driver->data.task_waiting, notification,
+        xTaskNotifyFromISR(driver->task_waiting, notification,
                            eSetValueWithOverwrite, &task_awoken);
       }
     }
@@ -183,8 +183,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       if (packet_received) {
         driver->data.sent_previous = false;
         driver->is_receiving = false;
-        if (driver->data.task_waiting) {
-          xTaskNotifyFromISR(driver->data.task_waiting, driver->data.head,
+        if (driver->task_waiting) {
+          xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                              eSetValueWithOverwrite, &task_awoken);
         }
       }
@@ -221,9 +221,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(&hardware->spinlock);
       driver->is_sending = false;
       driver->data.previous_ts = now;
-      if (driver->data.task_waiting) {
-        xTaskNotifyFromISR(driver->data.task_waiting, 0, eNoAction,
-                           &task_awoken);
+      if (driver->task_waiting) {
+        xTaskNotifyFromISR(driver->task_waiting, 0, eNoAction, &task_awoken);
       }
       taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
@@ -294,9 +293,9 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
   dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  if (!driver->is_sending && driver->data.task_waiting) {
+  if (!driver->is_sending && driver->task_waiting) {
     // Notify the task and pause the timer
-    xTaskNotifyFromISR(driver->data.task_waiting, 0, eSetValueWithOverwrite,
+    xTaskNotifyFromISR(driver->task_waiting, 0, eSetValueWithOverwrite,
                        &task_awoken);
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
   } else if (driver->is_in_break) {

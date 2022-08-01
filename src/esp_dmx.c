@@ -104,7 +104,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
-  driver->data.task_waiting = NULL;
   driver->data.previous_type = DMX_UNKNOWN_PACKET;
   driver->data.previous_ts = 0;
   driver->data.sent_previous = false;
@@ -118,6 +117,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->dmx_num = dmx_num;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
+  driver->task_waiting = NULL;
 
   // TODO: reorganize these inits
   // driver->tx.rdm_tn = 0;
@@ -415,7 +415,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
   if (elapsed < timeout) {
     timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
-    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
     timer_start(driver->rst_seq_hw, driver->timer_idx);
   }
 
@@ -432,9 +432,9 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
     if (!notified) {
       timer_pause(driver->rst_seq_hw, driver->timer_idx);
-      xTaskNotifyStateClear(driver->data.task_waiting);
+      xTaskNotifyStateClear(driver->task_waiting);
     }
-    driver->data.task_waiting = NULL;
+    driver->task_waiting = NULL;
     if (!notified) {
       xSemaphoreGiveRecursive(driver->mux);
       return ESP_ERR_TIMEOUT;
@@ -488,7 +488,7 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Ensure the driver is not sending nor is another task waiting to receive
   taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->is_sending || driver->data.task_waiting) {
+  if (driver->is_sending || driver->task_waiting) {
     taskEXIT_CRITICAL(&hardware->spinlock);
     return ESP_FAIL;
   }
@@ -503,7 +503,7 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Turn the DMX bus around
   taskENTER_CRITICAL(&hardware->spinlock);
-  driver->data.task_waiting = xTaskGetCurrentTaskHandle();
+  driver->task_waiting = xTaskGetCurrentTaskHandle();
   if (driver->mode == DMX_MODE_WRITE) {
     dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
     dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
@@ -522,21 +522,21 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
   if (elapsed < timeout) {
     timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
-    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
     timer_start(driver->rst_seq_hw, driver->timer_idx);
   } else {
     // TODO: Handle case where timeout is elapsed?
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
-  
+
   // Block until a packet is received
   uint32_t packet_size;
   bool notified = xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
   if (elapsed < timeout && notified && packet_size > 0) {
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
-    xTaskNotifyStateClear(driver->data.task_waiting);
+    xTaskNotifyStateClear(driver->task_waiting);
   }
-  driver->data.task_waiting = NULL;
+  driver->task_waiting = NULL;
 
   // Process DMX packet data
   if (notified && packet_size > 0) {
@@ -565,15 +565,15 @@ esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   // Determine if the task needs to block
   taskENTER_CRITICAL(&hardware->spinlock);
   if (driver->is_sending) {
-    driver->data.task_waiting = xTaskGetCurrentTaskHandle();
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Wait for a notification that the driver is done sending
   bool result = true;
-  if (driver->data.task_waiting) {
+  if (driver->task_waiting) {
     result = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
-    driver->data.task_waiting = NULL;
+    driver->task_waiting = NULL;
   }
 
   // Give the mutex back and return
