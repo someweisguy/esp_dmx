@@ -216,7 +216,6 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(&hardware->spinlock);
       driver->is_sending = false;
-      driver->data.sent_previous = true;
       driver->data.previous_ts = now;
       if (driver->data.task_waiting) {
         xTaskNotifyFromISR(driver->data.task_waiting, 0, eNoAction,
