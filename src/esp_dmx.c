@@ -404,9 +404,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
       timeout = 176;  // TODO: Replace with enum
     }
   } else {
-    if (driver->data.previous_type == DMX_DIMMER_PACKET) {
-      timeout = 176;  // TODO: Replace with enum
-    }
+    timeout = 176;  // TODO: Replace with enum
   }
   const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
   if (elapsed < timeout) {
@@ -442,12 +440,17 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
   if (sc == DMX_SC) {
     driver->data.previous_type = DMX_DIMMER_PACKET;
+    driver->data.previous_uid = -1;  // No destination UID
   } else if (sc == RDM_SC) {
-    driver->data.previous_type = ((rdm_packet_t *)driver->data.buffer)->cc;
+    const rdm_packet_t *rdm = (rdm_packet_t *)driver->data.buffer;
+    driver->data.previous_type = rdm->cc;
+    driver->data.previous_uid = uidcpy(rdm->destination_uid);
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
     driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
+    driver->data.previous_uid = RDM_BROADCAST_UID;
   } else {
     driver->data.previous_type = DMX_UNKNOWN_PACKET;
+    driver->data.previous_uid = -1;  // No destination UID
   }
   driver->data.sent_previous = true;
 

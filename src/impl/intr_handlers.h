@@ -147,6 +147,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           const rdm_packet_t *rdm = driver->data.buffer;
           if (driver->data.head >= rdm->message_len + 2) {
             driver->data.previous_type = rdm->cc;
+            driver->data.previous_uid = uidcpy(rdm->destination_uid);
             packet_received = true;
           }
         }
@@ -178,11 +179,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         }
       }
       if (packet_received) {
+        driver->data.sent_previous = false;
+        driver->is_receiving = false;
         if (driver->data.task_waiting) {
           xTaskNotifyFromISR(driver->data.task_waiting, driver->data.head,
                              eSetValueWithOverwrite, &task_awoken);
         }
-        driver->is_receiving = false;
       }
     }
 
