@@ -495,9 +495,11 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Turn the DMX bus around
   taskENTER_CRITICAL(&hardware->spinlock);
+  driver->data.task_waiting = xTaskGetCurrentTaskHandle();
   if (driver->mode == DMX_MODE_WRITE) {
-    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
     dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
+    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
     driver->mode = DMX_MODE_READ;
   }
   taskEXIT_CRITICAL(&hardware->spinlock);

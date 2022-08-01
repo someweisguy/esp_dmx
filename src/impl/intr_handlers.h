@@ -174,9 +174,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           packet_received = true;
         }
       }
-      if (packet_received && driver->data.task_waiting) {
-        xTaskNotifyFromISR(driver->data.task_waiting, driver->data.head,
-                           eSetValueWithOverwrite, &task_awoken);
+      if (packet_received) {
+        if (driver->data.task_waiting) {
+          xTaskNotifyFromISR(driver->data.task_waiting, driver->data.head,
+                             eSetValueWithOverwrite, &task_awoken);
+        }
+        driver->is_receiving = false;
       }
     }
 
