@@ -272,17 +272,7 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
 // TODO: docs, used to wait to call dmx_read() or dmx_write()
 esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
-// TODO: docs
-uint64_t dmx_get_uid();
-
 void *memcpyswap(void *dest, const void *src, size_t n);
-
-// TODO: docs
-esp_err_t dmx_write_discovery(dmx_port_t dmx_num, uint64_t lower_uid, 
-                              uint64_t upper_uid);
-
-// TODO: docs
-esp_err_t dmx_write_mute(dmx_port_t dmx_num, uint64_t mute_uid);
 
 #ifdef __cplusplus
 }
