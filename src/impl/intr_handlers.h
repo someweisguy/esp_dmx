@@ -304,7 +304,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
 
     // Get the configured length of the DMX mark-after-break
     taskENTER_CRITICAL_ISR(&hardware->spinlock);
-    const uint32_t mab_len = driver->tx.mab_len;
+    const uint32_t mab_len = driver->mab_len;
     taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
     // Reset the alarm for the end of the DMX mark-after-break

@@ -118,8 +118,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   // driver->tx.rdm_tn = 0;
 
   // Initialize TX settings
-  driver->tx.break_len = DMX_BREAK_LEN_US;
-  driver->tx.mab_len = DMX_WRITE_MIN_MAB_LEN_US;
+  driver->break_len = DMX_BREAK_LEN_US;
+  driver->mab_len = DMX_WRITE_MIN_MAB_LEN_US;
 
   // initialize driver rx variables
   driver->rx.intr_io_num = -1;
@@ -456,7 +456,7 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
 
   // Begin sending the packet
   taskENTER_CRITICAL(&hardware->spinlock);
-  const uint32_t break_len = driver->tx.break_len;
+  const uint32_t break_len = driver->break_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
   timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
   timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);

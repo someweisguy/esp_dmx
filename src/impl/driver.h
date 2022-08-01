@@ -29,6 +29,9 @@ typedef struct {
   timer_idx_t timer_idx;          // The timer index being used for the reset sequence.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
+  uint32_t break_len;       // Length in microseconds of the transmitted break.
+  uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
+
   struct {
     TaskHandle_t task_waiting;
 
@@ -49,28 +52,12 @@ typedef struct {
 
   SemaphoreHandle_t mux;
 
-  uint64_t uid;
-  
-  /* These variables are used when transmitting DMX. */
-  struct {
-    uint32_t break_len;       // Length in microseconds of the transmitted break.
-    uint32_t mab_len;         // Length in microseconds of the transmitted mark-after-break;
-
-    // TODO: every tx variable below this comment can be unionized with rx variables
-
-    // uint16_t size;            // The size of the number of slots to send.
-  } tx;
-
   /* These variables are used when receiving DMX. */
   struct {
-
-    // TODO: every rx variable below this comment can be unionized with tx variables
-
     gpio_num_t intr_io_num;       // The GPIO number of the DMX sniffer interrupt pin.
     
     /* The remaining variables are only used if the DMX sniffer is enabled.
     They are uninitialized until dmx_sniffer_enable is called. */
-    // bool is_in_brk;               // True if the received DMX packet is currently in a break.
     int32_t break_len;            // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
     int32_t mab_len;              // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
     int64_t last_pos_edge_ts;     // Timestamp of the last positive edge on the sniffer pin.
