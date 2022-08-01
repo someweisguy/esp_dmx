@@ -70,6 +70,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_context_t *const hardware = &dmx_context[dmx_num];
   dmx_driver_t *driver;
 
+  // Initialize the DMX UID
+  if (dmx_uid == 0) {
+    // TODO: initialize the UID based on the device MAC address
+    dmx_uid = 0x1234567890ab;
+  }
+
   // Configure the UART hardware
   dmx_module_enable(dmx_num);
   dmx_hal_init(&hardware->hal);
@@ -112,7 +118,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->dmx_num = dmx_num;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
-  // driver->uid = dmx_get_uid(); // TODO
 
   // TODO: reorganize these inits
   // driver->tx.rdm_tn = 0;

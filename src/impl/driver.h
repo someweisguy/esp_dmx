@@ -19,6 +19,8 @@ extern "C" {
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
+static uint64_t dmx_uid = 0;  // The 48-bit unique ID of this device.
+
 /* This is the DMX driver object used to handle tx'ing and rx'ing DMX data on
 the UART port. It stores all the information needed to run and analyze DMX
 including the buffer used as an intermediary to store reads/writes on the UART
