@@ -296,7 +296,6 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     xTaskNotifyFromISR(driver->data.task_waiting, 0, eSetValueWithOverwrite,
                        &task_awoken);
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
-    ESP_EARLY_LOGW("intr", "timeout");
   } else if (driver->is_in_break) {
     // End the DMX break
     dmx_hal_invert_signal(&hardware->hal, 0);
