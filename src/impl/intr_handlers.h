@@ -63,34 +63,36 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ERR) {
-      /*
       // Read from the FIFO on a framing error then clear the FIFO and interrupt
       if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
         size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-        if (!uxSemaphoreGetCount(driver->idle_semaphore) && read_len > 0) {
+        if (driver->is_receiving && read_len > 0) {
           uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
           dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
           driver->data.head += read_len;
+        } else {
+          dmx_hal_rxfifo_rst(&hardware->hal);
         }
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
 
       // Don't process errors if the DMX bus is inactive
-      if (uxSemaphoreGetCount(driver->idle_semaphore)) {
+      if (!driver->is_receiving) {
         continue;
       }
 
-      // Indicate the driver is inactive and not in a DMX break
-      xSemaphoreGiveFromISR(driver->idle_semaphore, &task_awoken);
+      // Unset DMX break and receiving flags and notify task
       driver->is_in_break = false;
-
-      taskENTER_CRITICAL_ISR(&hardware->spinlock);
-      const TaskHandle_t task_waiting = driver->data.task_waiting;
-      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
-      xTaskNotifyFromISR(task_waiting, driver->data.head,
-                         eSetValueWithOverwrite, &task_awoken);
-                         */
+      driver->is_receiving = false;
+      if (driver->data.task_waiting) {
+        uint32_t notification = driver->data.head;
+        if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
+          notification = 0;  // Don't report packet size on overflow
+        }
+        xTaskNotifyFromISR(driver->data.task_waiting, notification,
+                           eSetValueWithOverwrite, &task_awoken);
+      }
     }
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
