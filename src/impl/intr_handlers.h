@@ -14,7 +14,7 @@ extern "C" {
  * first buffer and copies it to least-significant-byte first endianness, which
  * is what ESP32 uses.
  *
- * @note This function looks horrible, but it is the most efficient way to swap
+ * @note This function looks horrible, but it is the quickest way to swap
  * endianness of a 6-byte number on the Xtensa compiler, which is important
  * because it will be used exclusively in an interrupt handler.
  *
@@ -35,11 +35,11 @@ FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
 enum {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,  // Interrupt mask that triggers when the UART overflows.
   DMX_INTR_RX_FRAMING_ERR = (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR),  // Interrupt mask that represents a byte framing error.
-  DMX_INTR_RX_ERR = (DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR),  // TODO
+  DMX_INTR_RX_ERR = (DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR),  // Interrupt mask that triggers when an error occurs.
 
-  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,  // Interrupt mask that trigger when a DMX break is received.
+  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,  // Interrupt mask that triggers when a DMX break is received.
   DMX_INTR_RX_DATA = (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT),  // Interrupt mask that is triggered when it is time to service the receive FIFO.
-  DMX_INTR_RX_TIMEOUT = UART_INTR_RXFIFO_TOUT,  // TODO
+  DMX_INTR_RX_TIMEOUT = UART_INTR_RXFIFO_TOUT,  // Interrupt mask that triggers when the UART times out after receiving data.
   DMX_INTR_RX_CLASH = UART_INTR_RS485_CLASH,  // Interrupt mask that represents a DMX collision.
   DMX_INTR_RX_ALL = (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR | DMX_INTR_RX_CLASH),  // Interrupt mask that represents all receive conditions.
 
