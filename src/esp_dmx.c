@@ -541,7 +541,7 @@ esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
 
   // Determine if the task needs to block
   taskENTER_CRITICAL(&hardware->spinlock);
-  if (!driver->is_sending) {
+  if (driver->is_sending) {
     driver->data.task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
