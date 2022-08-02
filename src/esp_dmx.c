@@ -21,7 +21,6 @@ enum {
   DMX_MEMORY_CAPABILITIES = (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
 };
 
-
 #define DMX_FUNCTION_NOT_SUPPORTED()                         \
   ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, \
            CONFIG_IDF_TARGET);                               \
@@ -332,14 +331,14 @@ esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   taskENTER_CRITICAL(&hardware->spinlock);
   if (driver->data.sent_previous) {
     if (driver->data.previous_type == RDM_DISCOVERY_COMMAND) {
-      timeout = 5800;  // TODO: Replace with enum
+      timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
     } else if (driver->data.previous_uid != RDM_BROADCAST_UID) {
-      timeout = 3000;  // TODO: Replace with enum
+      timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
     } else {
-      timeout = 176;  // TODO: Replace with enum
+      timeout = RDM_BROADCAST_PACKET_SPACING;
     }
   } else {
-    timeout = 176;  // TODO: Replace with enum
+    timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
   }
   const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
   if (elapsed < timeout) {
@@ -478,7 +477,7 @@ esp_err_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (driver->data.sent_previous &&
       driver->data.previous_type != DMX_DIMMER_PACKET &&
       driver->data.previous_type != DMX_UNKNOWN_PACKET) {
-    timeout = 2800;  // TODO: use enum
+    timeout = RDM_DISCOVERY_NO_RESPONSE_TIMEOUT;
   }
   const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
   if (elapsed < timeout) {
