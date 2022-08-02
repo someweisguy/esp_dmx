@@ -4,36 +4,35 @@
 #include "dmx_types.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
-#include "hal/gpio_types.h"
+#include "soc/soc_caps.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define DMX_NUM_MAX UART_NUM_MAX  // DMX port max. Used for error checking.
+#define DMX_NUM_MAX SOC_UART_NUM  // DMX port max. Used for error checking.
 
 enum {
   DMX_NUM_0,  // DMX port 0.
   DMX_NUM_1,  // DMX port 1.
-#if UART_NUM_MAX > 2
+#if DMX_NUM_MAX > 2
   DMX_NUM_2,  // DMX port 2.
 #endif
 };
 
 enum {
   // Constant for dmx_set_pin(). Indicates the pin should not be changed.
-  DMX_PIN_NO_CHANGE = UART_PIN_NO_CHANGE
+  DMX_PIN_NO_CHANGE = -1
 };
 
 /**
  * @brief The default configuration for DMX. This macro may be used to
  * initialize a dmx_config_t to the standard's defined typical values.
  */
-#define DMX_DEFAULT_CONFIG                                                   \
-  {                                                                          \
-    .buffer_size = DMX_MAX_PACKET_SIZE, .rst_seq_hw = DMX_USE_TIMER_GROUP_0, \
-    .timer_idx = 0, .intr_alloc_flags = ESP_INTR_FLAG_IRAM                   \
+#define DMX_DEFAULT_CONFIG                                               \
+  {                                                                      \
+    .buffer_size = DMX_MAX_PACKET_SIZE, .rst_seq_hw = 0, .timer_idx = 0, \
+    .intr_alloc_flags = ESP_INTR_FLAG_IRAM                               \
   }
 
 /// Driver Functions  #########################################################

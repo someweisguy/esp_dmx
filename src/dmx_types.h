@@ -1,9 +1,5 @@
 #pragma once
 
-#include "driver/timer.h"
-#include "driver/uart.h"
-#include "esp_system.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,19 +16,6 @@ typedef enum {
   DMX_MODE_WRITE,  // DMX transmit mode.
   DMX_MODE_READ,   // DMX receive mode.
 } dmx_mode_t;
-
-/**
- * @brief DMX reset sequence hardware choice. Determines which hardware is used
- * to send the DMX reset sequence.
- */
-typedef enum {
-  DMX_USE_BUSY_WAIT = -1,                 // Use busy-waits to send the DMX reset sequence. Can be significantly less precise than using a hardware timer if there are multiple tasks to execute.
-  DMX_USE_TIMER_GROUP_0 = TIMER_GROUP_0,  // Use hardware timer group 0 to send the DMX reset sequence.
-#if SOC_TIMER_GROUPS > 1
-  DMX_USE_TIMER_GROUP_1 = TIMER_GROUP_1,  // Use hardware timer group 1 to send the DMX reset sequence.
-#endif
-  DMX_RESET_SEQUENCE_MAX                  // Maximum DMX reset sequence hardware value. Used for error checking.
-} rst_seq_hw_t;
 
 /**
  * @brief Struct that contains DMX driver constants that cannot be changed
@@ -55,14 +38,14 @@ typedef enum {
   RDM_GET_COMMAND_RESPONSE = 0x21,
   RDM_SET_COMMAND = 0x30,
   RDM_SET_COMMAND_RESPONSE = 0x31,
-} rdm_command_class_t;
+};
 
 typedef enum {
   RESPONSE_TYPE_ACK = 0x00,
   RESPONSE_TYPE_ACK_TIMER = 0x01,
   RESPONSE_TYPE_NACK_REASON = 0x02,
   RESPONSE_TYPE_ACK_OVERFLOW = 0x03
-} rdm_response_type_t;
+};
 
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
@@ -112,7 +95,7 @@ typedef struct {
     uint16_t parameter_id;  // TODO: replace with enum?
     uint8_t parameter_data_len;
     void *parameter_data;
-    bool checksum_is_valid;
+    int checksum_is_valid;
   } rdm;
 } dmx_event_t;
 

@@ -1,11 +1,11 @@
 #include "esp_dmx.h"
 
-#include <math.h>
 #include <string.h>
 
 #include "dmx_types.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
+#include "driver/timer.h"
 #include "driver/uart.h"
 #include "endian.h"
 #include "esp_check.h"
@@ -13,9 +13,6 @@
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 #include "impl/intr_handlers.h"
-#include "soc/io_mux_reg.h"
-#include "soc/uart_periph.h"
-#include "soc/uart_reg.h"
 
 enum {
   DMX_UART_FULL_DEFAULT = 1,   // The default value for the RX FIFO full interrupt threshold.
@@ -142,8 +139,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags,
                  &dmx_uart_isr, driver, &driver->uart_isr_handle);
 
-  // Install hardware timer interrupt
-  if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
+  // Install hardware timer interrupt if specified by the user
+  if (driver->rst_seq_hw != -1) {
     const timer_config_t timer_config = {
         .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
         .counter_dir = TIMER_COUNT_UP,

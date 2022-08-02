@@ -1,7 +1,6 @@
 #pragma once
 
 #include "esp_dmx.h"
-#include "esp_system.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 
