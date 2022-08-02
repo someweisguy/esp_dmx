@@ -18,9 +18,8 @@
 #include "soc/uart_reg.h"
 
 enum {
-  DMX_UART_FULL_DEFAULT = 1,      // The default value for the RX FIFO full interrupt threshold.
-  DMX_UART_EMPTY_DEFAULT = 8,     // The default value for the TX FIFO empty interrupt threshold.
-  DMX_UART_TIMEOUT_DEFAULT = 0,   // The default value for the UART timeout interrupt.
+  DMX_UART_FULL_DEFAULT = 1,   // The default value for the RX FIFO full interrupt threshold.
+  DMX_UART_EMPTY_DEFAULT = 8,  // The default value for the TX FIFO empty interrupt threshold.
 
   DMX_MEMORY_CAPABILITIES = (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
 };
@@ -126,10 +125,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->break_len = DMX_BREAK_LEN_US;
   driver->mab_len = DMX_WRITE_MIN_MAB_LEN_US;
 
-  // initialize driver rx variables
-  driver->rx.intr_io_num = -1;
-  driver->rx.break_len = -1;
-  driver->rx.mab_len = -1;
+  // Initialize sniffer in the disabled state
+  driver->sniffer.intr_io_num = -1;
 
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
   if (!(dmx_config->intr_alloc_flags & ESP_INTR_FLAG_IRAM)) {
@@ -140,38 +137,31 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   // Install UART interrupt
   dmx_hal_disable_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
+  dmx_hal_set_txfifo_empty_threshold(&hardware->hal, DMX_UART_EMPTY_DEFAULT);
+  dmx_hal_set_rxfifo_full_threshold(&hardware->hal, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags,
                  &dmx_uart_isr, driver, &driver->uart_isr_handle);
-  dmx_intr_config_t dmx_intr_conf = {
-      .rxfifo_full_threshold = DMX_UART_FULL_DEFAULT,
-      .rx_timeout_threshold = DMX_UART_TIMEOUT_DEFAULT,
-      .txfifo_empty_threshold = DMX_UART_EMPTY_DEFAULT,
-  };
-  dmx_configure_interrupts(dmx_num, &dmx_intr_conf);
+
+  // Install hardware timer interrupt
+  if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
+    const timer_config_t timer_config = {
+        .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
+        .counter_dir = TIMER_COUNT_UP,
+        .counter_en = false,
+        .alarm_en = true,
+        .auto_reload = true,
+    };
+    timer_init(dmx_config->rst_seq_hw, dmx_config->timer_idx, &timer_config);
+    timer_isr_callback_add(dmx_config->rst_seq_hw, dmx_config->timer_idx,
+                           dmx_timer_isr, driver, dmx_config->intr_alloc_flags);
+    timer_enable_intr(dmx_config->rst_seq_hw, dmx_config->timer_idx);
+  }
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(&hardware->spinlock);
   dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
   dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
   taskEXIT_CRITICAL(&hardware->spinlock);
-
-  // Install hardware timer interrupt
-  if (driver->rst_seq_hw != DMX_USE_BUSY_WAIT) {
-    const timer_config_t timer_conf = {
-        .divider = 80,  // 80MHz / 80 == 1MHz resolution timer
-        .counter_dir = TIMER_COUNT_UP,
-        .counter_en = false,
-        .alarm_en = true,
-        .auto_reload = true,
-    };
-    timer_init(dmx_config->rst_seq_hw, dmx_config->timer_idx, &timer_conf);
-    timer_set_counter_value(dmx_config->rst_seq_hw, dmx_config->timer_idx, 0);
-    timer_set_alarm_value(dmx_config->rst_seq_hw, dmx_config->timer_idx, 0);
-    timer_isr_callback_add(dmx_config->rst_seq_hw, dmx_config->timer_idx,
-                           dmx_timer_isr, driver,
-                           dmx_config->intr_alloc_flags);
-    timer_enable_intr(dmx_config->rst_seq_hw, dmx_config->timer_idx);
-  }
 
   return ESP_OK;
 }
@@ -197,7 +187,7 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
 
 bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
   return dmx_is_driver_installed(dmx_num) &&
-         dmx_driver[dmx_num]->rx.intr_io_num != -1;
+         dmx_driver[dmx_num]->sniffer.intr_io_num != -1;
 }
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
@@ -282,42 +272,6 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
   *mab_len = dmx_driver[dmx_num]->mab_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  return ESP_OK;
-}
-
-/// Interrupt Configuration  ##################################################
-esp_err_t dmx_configure_interrupts(dmx_port_t dmx_num,
-                                   dmx_intr_config_t *intr_conf) {
-  // TODO: Check arguments
-
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
-
-  dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
-  taskENTER_CRITICAL(&hardware->spinlock);
-  dmx_hal_set_rx_timeout_threshold(&hardware->hal,
-                                   intr_conf->rx_timeout_threshold);
-  dmx_hal_set_rxfifo_full_threshold(&hardware->hal,
-                                    intr_conf->rxfifo_full_threshold);
-  dmx_hal_set_txfifo_empty_threshold(&hardware->hal,
-                                     intr_conf->txfifo_empty_threshold);
-  taskEXIT_CRITICAL(&hardware->spinlock);
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold) {
-  
-
-  return ESP_OK;
-}
-esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold) {
-  
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout) {
-  
   return ESP_OK;
 }
 

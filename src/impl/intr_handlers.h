@@ -38,8 +38,7 @@ enum {
   DMX_INTR_RX_ERR = (DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR),  // Interrupt mask that triggers when an error occurs.
 
   DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,  // Interrupt mask that triggers when a DMX break is received.
-  DMX_INTR_RX_DATA = (UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT),  // Interrupt mask that is triggered when it is time to service the receive FIFO.
-  DMX_INTR_RX_TIMEOUT = UART_INTR_RXFIFO_TOUT,  // Interrupt mask that triggers when the UART times out after receiving data.
+  DMX_INTR_RX_DATA = UART_INTR_RXFIFO_FULL,  // Interrupt mask that is triggered when it is time to service the receive FIFO.
   DMX_INTR_RX_CLASH = UART_INTR_RS485_CLASH,  // Interrupt mask that represents a DMX collision.
   DMX_INTR_RX_ALL = (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR | DMX_INTR_RX_CLASH),  // Interrupt mask that represents all receive conditions.
 
@@ -129,7 +128,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       if (driver->is_in_break) {
         driver->is_in_break = false;
       }
-      driver->data.previous_ts = now;  // TODO: handle RX full thresh > 1
+      driver->data.previous_ts = now;
 
       // TODO: set a flag when the timer is active
       timer_pause(driver->rst_seq_hw, driver->timer_idx);

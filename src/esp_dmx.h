@@ -209,56 +209,6 @@ esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
  */
 esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len);
 
-/// Interrupt Configuration  ##################################################
-// TODO: update interrupt configuration signatures
-/**
- * @brief Configure DMX interrupts.
- *
- * @param dmx_num The DMX port number.
- * @param intr_conf A pointer to a dmx_intr_config_t to configure the UART
- * hardware interrupts.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- */
-esp_err_t dmx_configure_interrupts(dmx_port_t dmx_num, dmx_intr_config_t *intr_conf);
-
-/**
- * @brief Configure DMX rx full interrupt threshold.
- *
- * @param dmx_num The DMX port number.
- * @param threshold The threshold value to set the UART hardware to. This is
- * the number of bytes that must be in the UART RX FIFO for the FIFO to be
- * "full."
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- */
-esp_err_t dmx_set_rx_full_threshold(dmx_port_t dmx_num, int threshold);
-
-/**
- * @brief Configure DMX tx empty interrupt threshold.
- *
- * @param dmx_num The DMX port number.
- * @param threshold The threshold value to set the UART hardware to. This is
- * the number of bytes or fewer that must be in the UART TX FIFO for it to
- * be 'empty.'
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- */
-esp_err_t dmx_set_tx_empty_threshold(dmx_port_t dmx_num, int threshold);
-
-/**
- * @brief Configure DMX rx timeout interrupt threshold.
- *
- * @param dmx_num The DMX port number.
- * @param timeout The timeout threshold for the UART FIFO. This is the
- * amount of time that must pass without receiving data for the UART to
- * timeout. The unit of time is the time it takes for the UART to receive
- * 1 byte of data.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- */
-esp_err_t dmx_set_rx_timeout(dmx_port_t dmx_num, uint8_t timeout);
-
 /// Read/Write  ###############################################################
 esp_err_t dmx_read(dmx_port_t dmx_num, void *data, size_t size);
 esp_err_t dmx_write(dmx_port_t dmx_num, const void *data, size_t size);
