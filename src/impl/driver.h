@@ -40,7 +40,7 @@ typedef struct {
     uint8_t buffer[DMX_MAX_PACKET_SIZE];  // The buffer that stores the DMX packet.
  
     uint8_t previous_type;  // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
-    uint64_t previous_uid;  // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
+    int64_t previous_uid;   // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
     int64_t previous_ts;    // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     bool sent_previous;     // Is true if this device sent the previous data packet.
   } data;
