@@ -11,13 +11,14 @@
 extern "C" {
 #endif
 
+#define DMX_NUM_MAX UART_NUM_MAX  // DMX port max. Used for error checking.
+
 enum {
   DMX_NUM_0,  // DMX port 0.
   DMX_NUM_1,  // DMX port 1.
 #if UART_NUM_MAX > 2
   DMX_NUM_2,  // DMX port 2.
 #endif
-  DMX_NUM_MAX  // DMX port max. Used for error checking.
 };
 
 enum {
