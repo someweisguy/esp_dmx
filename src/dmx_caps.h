@@ -139,7 +139,7 @@ enum {
    * microseconds.
    */
   DMX_TEST_SC = 0x55,
-  
+
   /**
    * @brief UTF-8 Text Packet alternate start code. Alternate start code 0x90
    * designates a special packet of between 3 and 512 data slots. The purpose of
@@ -187,12 +187,6 @@ enum {
 
 /* DMX parameter checking macros */
 /**
- * @brief Evaluates to true if the baud rate is within DMX specification.
- */
-#define DMX_BAUD_RATE_IS_VALID(baud) \
-  (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
-
-/**
  * @brief Evaluates to true if the start code is a start code permitted in a
  * non-prototype DMX device.
  *
@@ -208,47 +202,25 @@ enum {
    !(sc >= 0xf0 && sc <= 0xf7))
 
 /**
- * @brief Evaluates to true if the received packet duration is within DMX
- * specification.
+ * @brief Evaluates to true if the baud rate is within DMX specification.
  */
-// TODO
-// #define DMX_RX_PKT_DURATION_IS_VALID(pkt)  (pkt >= DMX_RX_MIN_BRK_TO_BRK_US && pkt <= DMX_RX_MAX_BRK_TO_BRK_US)
+#define DMX_BAUD_RATE_IS_VALID(baud) \
+  (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
 
+// TODO: Should the below macros test on RDM timing values or DMX?
 /**
  * @brief Evaluates to true if the received break duration is within DMX
  * specification.
  */
-// TODO
-// #define DMX_RX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_RX_MIN_SPACE_FOR_BRK_US)
+#define DMX_BREAK_LEN_IS_VALID(brk) \
+  (brk >= DMX_WRITE_MIN_BREAK_LEN_US && brk <= DMX_WRITE_MAX_BREAK_LEN_US)
 
 /**
  * @brief Evaluates to true if the received mark-after-break duration is within
  * DMX specification.
  */
-// TODO
-// #define DMX_RX_MAB_DURATION_IS_VALID(mab)    (mab >= DMX_RX_MIN_MRK_AFTER_BRK_US && mab <= DMX_RX_MAX_MRK_AFTER_BRK_US)
-
-/**
- * @brief Evaluates to true if the transmitted packet duration is within DMX
- * specification.
- */
-// TODO
-// #define DMX_TX_PKT_DURATION_IS_VALID(pkt)    (pkt >= DMX_TX_MIN_BRK_TO_BRK_US && pkt <= DMX_TX_MAX_BRK_TO_BRK_US)
-
-/**
- * @brief Evaluates to true if the transmitted break duration is within DMX
- * specification.
- */
-// TODO
-//#define DMX_TX_BRK_DURATION_IS_VALID(brk) (brk >= DMX_TX_MIN_SPACE_FOR_BRK_US)
-
-/**
- * @brief Evaluates to true of the transmitted mark-after-break duration is
- * within DMX specification.
- *
- */
-// TODO
-//#define DMX_TX_MAB_DURATION_IS_VALID(mab)   (mab >= DMX_TX_MIN_MRK_AFTER_BRK_US && mab <= DMX_TX_MAX_MRK_AFTER_BRK_US)
+#define DMX_MAB_LEN_IS_VALID(mab) \
+  (mab >= DMX_WRITE_MIN_MAB_LEN_US && mab <= DMX_WRITE_MAX_MAB_LEN_US)
 
 #ifdef __cplusplus
 }
