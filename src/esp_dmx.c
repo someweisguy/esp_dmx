@@ -200,7 +200,6 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
          dmx_driver[dmx_num]->rx.intr_io_num != -1;
 }
 
-/// Hardware Configuration  ###################################################
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
                       int rts_io_num) {
   ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
@@ -216,34 +215,72 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
                       DMX_PIN_NO_CHANGE);
 }
 
+/// Transmit Configuration  ###################################################
 esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
+  // TODO: check args
+  // TODO: check that the new baud_rate is within DMX specification
+
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  taskENTER_CRITICAL(&hardware->spinlock);
+  dmx_hal_set_baud_rate(&hardware->hal, baud_rate);
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
 
 esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate) {
+  // TODO: Check args
+
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  taskENTER_CRITICAL(&hardware->spinlock);
+  *baud_rate = dmx_hal_get_baud_rate(&hardware->hal);
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
 
 esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
+  // TODO: check args
+  // TODO: ensure break_len is within DMX spec
+
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  taskENTER_CRITICAL(&hardware->spinlock);
+  dmx_driver[dmx_num]->break_len = break_len;
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
 
 esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
+  // TODO: check args
 
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  taskENTER_CRITICAL(&hardware->spinlock);
+  *break_len = dmx_driver[dmx_num]->break_len;
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
 
 esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
+  // TODO: check args
+  // TODO: ensure mab_len is within DMX spec
+
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  taskENTER_CRITICAL(&hardware->spinlock);
+  dmx_driver[dmx_num]->mab_len = mab_len;
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
 
 esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
+  // TODO: check args
 
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  taskENTER_CRITICAL(&hardware->spinlock);
+  *mab_len = dmx_driver[dmx_num]->mab_len;
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
