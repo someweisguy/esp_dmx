@@ -45,10 +45,10 @@ typedef struct {
     bool sent_previous;     // Is true if this device sent the previous data packet.
   } data;
 
-  uint8_t is_in_break;
-  uint8_t is_receiving;
-  uint8_t is_sending;
-  uint8_t mode;
+  uint8_t is_in_break;   // True if the driver is sending or receiving a DMX break.
+  uint8_t is_receiving;  // True if the driver is receiving data.
+  uint8_t is_sending;    // True if the driver is sending data.
+  uint8_t mode;          // The mode of the driver's RTS pin. Either DMX_MODE_READ or DMX_MODE_WRITE.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
