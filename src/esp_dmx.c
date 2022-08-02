@@ -80,6 +80,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_hal_txfifo_rst(&hardware->hal);
 
   // Allocate the DMX driver dynamically
+  // TODO: can we use a default malloc here? 
   driver = heap_caps_malloc(sizeof(dmx_driver_t), DMX_MEMORY_CAPABILITIES);
   if (driver == NULL) {
     ESP_LOGE(TAG, "DMX driver malloc error");
