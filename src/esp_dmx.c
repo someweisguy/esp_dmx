@@ -38,9 +38,9 @@ static void dmx_module_enable(dmx_port_t dmx_num) {
   if (dmx_context[dmx_num].hw_enabled != true) {
     periph_module_enable(uart_periph_signal[dmx_num].module);
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+#if SOC_UART_REQUIRE_CORE_RESET
       /* Workaround for ESP32C3: enable core reset before enabling UART module
       clock to prevent UART output garbage value. */
-#if SOC_UART_REQUIRE_CORE_RESET
       uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
       periph_module_reset(uart_periph_signal[dmx_num].module);
       uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), false);
