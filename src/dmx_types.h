@@ -116,15 +116,6 @@ typedef struct {
   } rdm;
 } dmx_event_t;
 
-/**
- * @brief Interrupt configuration used to configure the DMX hardware ISR.
- */
-typedef struct {
-  uint8_t rx_timeout_threshold;    // DMX timeout interrupt threshold. This sets the amount of time after receiving data that it takes for the "RX FIFO timeout" interrupt to fire. Unit: time of sending one byte.
-  uint8_t txfifo_empty_threshold;  // DMX TX empty interrupt threshold. This the maximum number of bytes that are needed in the UART TX FIFO for the "FIFO empty" interrupt to fire.
-  uint8_t rxfifo_full_threshold;   // DMX RX full interrupt threshold. This is the minimum number of bytes that are needed in the UART RX FIFO for the "FIFO full" interrupt to fire.
-} dmx_intr_config_t;
-
 #ifdef __cplusplus
 }
 #endif
