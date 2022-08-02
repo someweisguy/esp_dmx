@@ -46,8 +46,8 @@ enum {
   DMX_WRITE_MIN_PACKET_LEN_US = 1204,     // The minimum DMX controller packet length in microseconds.
   DMX_WRITE_MAX_PACKET_LEN_US = 1000000,  // The maximum DMX controller packet length in microseconds.
 
-  DMX_WRITE_TIMEOUT_US = 1000000,                                             // The DMX controller timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
-  DMX_WRITE_TIMEOUT_TICK = DMX_WRITE_TIMEOUT_US / 1000 / portTICK_PERIOD_MS,  // The DMX controller timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
+  DMX_WRITE_TIMEOUT_US = 1000000,                                       // The DMX controller timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
+  DMX_WRITE_TIMEOUT_TICK = pdMS_TO_TICKS(DMX_WRITE_TIMEOUT_US / 1000),  // The DMX controller timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
 
   DMX_WRITE_MIN_BREAK_LEN_US = 92,                           // The minimum DMX controller break length in microseconds.
   DMX_WRITE_MAX_BREAK_LEN_US = DMX_WRITE_MAX_PACKET_LEN_US,  // The maximum DMX controller break length in microseconds. This value isn't specified in the DMX standard, so DMX_WRITE_MAX_PACKET_LEN_US is used instead.
