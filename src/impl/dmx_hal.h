@@ -1,11 +1,11 @@
 #pragma once
 
+#include "dmx_ll.h"
+#include "hal/uart_hal.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "dmx_ll.h"
-#include "hal/uart_hal.h"
 
 /* Some of these functions are marked with IRAM_ATTR to place them in IRAM.
 Any function here that is used in the DMX ISR must be placed in IRAM, or

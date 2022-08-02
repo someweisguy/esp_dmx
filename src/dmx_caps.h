@@ -1,10 +1,10 @@
 #pragma once
 
+#include "freertos/FreeRTOS.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "freertos/FreeRTOS.h"
 
 enum {
   RDM_REQUEST_MIN_TURNAROUND = 176,

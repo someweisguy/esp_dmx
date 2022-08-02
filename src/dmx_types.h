@@ -1,12 +1,12 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "driver/timer.h"
 #include "driver/uart.h"
 #include "esp_system.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief DMX port type.

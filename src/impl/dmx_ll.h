@@ -1,11 +1,11 @@
 #pragma once
 
+#include "hal/uart_types.h"
+#include "soc/uart_struct.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "hal/uart_types.h"
-#include "soc/uart_struct.h"
 
 /**
  * The primary purpose of the LL Layer is to abstract away register field access

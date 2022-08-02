@@ -1,15 +1,15 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "dmx_caps.h"
 #include "dmx_types.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "hal/gpio_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 enum {
   DMX_NUM_0,  // DMX port 0.

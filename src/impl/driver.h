@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "driver/gpio.h"
 #include "driver/timer.h"
 #include "esp_dmx.h"
@@ -12,6 +8,10 @@ extern "C" {
 #include "freertos/event_groups.h"
 #include "hal/uart_hal.h"
 #include "soc/uart_struct.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define DMX_CONTEX_INIT_DEF(uart_num)                              \
   {                                                                \

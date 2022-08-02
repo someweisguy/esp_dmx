@@ -1,13 +1,13 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "esp_dmx.h"
 #include "esp_system.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
