@@ -139,6 +139,7 @@ enum {
    * microseconds.
    */
   DMX_TEST_SC = 0x55,
+  
   /**
    * @brief UTF-8 Text Packet alternate start code. Alternate start code 0x90
    * designates a special packet of between 3 and 512 data slots. The purpose of
