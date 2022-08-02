@@ -519,7 +519,7 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
   driver->task_waiting = NULL;
 
   // Process DMX packet data
-  if (notified && packet_size > 0) {
+  if (notified && packet_size > 0 && event != NULL) {
     event->size = packet_size;
     // TODO
   }
