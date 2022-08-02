@@ -355,8 +355,7 @@ esp_err_t dmx_write_slot(dmx_port_t dmx_num, size_t index,
   return ESP_OK;
 }
 
-esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
-                          TickType_t ticks_to_wait) {
+esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   // TODO: Check arguments
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -459,8 +458,40 @@ esp_err_t dmx_send_packet(dmx_port_t dmx_num, size_t size,
   return ESP_OK;
 }
 
-esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
-                             TickType_t ticks_to_wait) {
+esp_err_t dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+  // TODO: Check arguments
+  
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+
+  // Block until the mutex can be taken and decrement timeout accordingly
+  const TickType_t start_tick = xTaskGetTickCount();
+  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
+    return ESP_ERR_TIMEOUT;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+
+  // Determine if the task needs to block
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (driver->is_sending) {
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
+
+  // Wait for a notification that the driver is done sending
+  bool result = true;
+  if (driver->task_waiting) {
+    result = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
+    driver->task_waiting = NULL;
+  }
+
+  // Give the mutex back and return
+  xSemaphoreGiveRecursive(driver->mux);
+  return result ? ESP_OK : ESP_ERR_TIMEOUT;
+}
+
+esp_err_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+                      TickType_t ticks_to_wait) {
   // TODO: Check arguments
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -528,39 +559,6 @@ esp_err_t dmx_receive_packet(dmx_port_t dmx_num, dmx_event_t *event,
   xSemaphoreGiveRecursive(driver->mux);
   return notified && packet_size > 0 ? ESP_OK : ESP_ERR_TIMEOUT;
 }
-
-esp_err_t dmx_wait_idle(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
-  // TODO: Check arguments
-  
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
-
-  // Block until the mutex can be taken and decrement timeout accordingly
-  const TickType_t start_tick = xTaskGetTickCount();
-  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
-    return ESP_ERR_TIMEOUT;
-  }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
-
-  // Determine if the task needs to block
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->is_sending) {
-    driver->task_waiting = xTaskGetCurrentTaskHandle();
-  }
-  taskEXIT_CRITICAL(&hardware->spinlock);
-
-  // Wait for a notification that the driver is done sending
-  bool result = true;
-  if (driver->task_waiting) {
-    result = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
-    driver->task_waiting = NULL;
-  }
-
-  // Give the mutex back and return
-  xSemaphoreGiveRecursive(driver->mux);
-  return result ? ESP_OK : ESP_ERR_TIMEOUT;
-}
-
 
 void *memcpyswap(void *dest, const void *src, size_t n) {
   char *chrdest = (char *)dest;
