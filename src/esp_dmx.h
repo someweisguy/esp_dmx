@@ -11,15 +11,19 @@ extern "C" {
 #include "freertos/queue.h"
 #include "hal/gpio_types.h"
 
-#define DMX_NUM_0 (0)  // DMX port 0.
-#define DMX_NUM_1 (1)  // DMX port 1.
+enum {
+  DMX_NUM_0,  // DMX port 0.
+  DMX_NUM_1,  // DMX port 1.
 #if UART_NUM_MAX > 2
-#define DMX_NUM_2 (2)  // DMX port 2.
+  DMX_NUM_2,  // DMX port 2.
 #endif
-#define DMX_NUM_MAX UART_NUM_MAX  // DMX port max.
+  DMX_NUM_MAX  // DMX port max. Used for error checking.
+};
 
-// Constant for dmx_set_pin() which indicates the pin should not be changed.
-#define DMX_PIN_NO_CHANGE (UART_PIN_NO_CHANGE)
+enum {
+  // Constant for dmx_set_pin(). Indicates the pin should not be changed.
+  DMX_PIN_NO_CHANGE = UART_PIN_NO_CHANGE
+};
 
 /**
  * @brief The default configuration for DMX. This macro may be used to

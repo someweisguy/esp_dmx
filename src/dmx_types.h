@@ -19,7 +19,6 @@ typedef int dmx_port_t;
 typedef enum {
   DMX_MODE_WRITE,  // DMX transmit mode.
   DMX_MODE_READ,   // DMX receive mode.
-  DMX_MODE_MAX     // Maximum DMX mode value. Used for error checking.
 } dmx_mode_t;
 
 /**
@@ -66,13 +65,6 @@ typedef enum {
 } rdm_response_type_t;
 
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
-
-typedef struct {
-  esp_err_t err;
-  size_t size;
-  int break_len;
-  int mab_len;
-} dmx_message_t;
 
 typedef struct __attribute__((__packed__)) {
     uint8_t sc;
