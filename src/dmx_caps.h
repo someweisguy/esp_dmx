@@ -31,8 +31,8 @@ enum {
   DMX_READ_MIN_PACKET_LEN_US = 1196,     // The minimum DMX responder packet length in microseconds.
   DMX_READ_MAX_PACKET_LEN_US = 1250000,  // The maximum DMX responder packet length in microseconds.
 
-  DMX_READ_TIMEOUT_US = 1250000,                                            // The DMX responder timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
-  DMX_READ_TIMEOUT_TICK = DMX_READ_TIMEOUT_US / 1000 / portTICK_PERIOD_MS,  // The DMX responder timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
+  DMX_READ_TIMEOUT_US = 1250000,                                      // The DMX responder timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
+  DMX_READ_TIMEOUT_TICK = pdMS_TO_TICKS(DMX_READ_TIMEOUT_US / 1000),  // The DMX responder timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
 
   DMX_READ_MIN_BREAK_LEN_US = 88,                          // The minimum DMX responder break length in microseconds.
   DMX_READ_MAX_BREAK_LEN_US = DMX_READ_MAX_PACKET_LEN_US,  // The maximum DMX responder break length in microseconds. This value isn't specified in the DMX standard, so DMX_READ_MAX_PACKET_LEN_US is used instead.
