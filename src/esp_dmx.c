@@ -477,7 +477,7 @@ esp_err_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (driver->data.sent_previous &&
       driver->data.previous_type != DMX_DIMMER_PACKET &&
       driver->data.previous_type != DMX_UNKNOWN_PACKET) {
-    timeout = RDM_DISCOVERY_NO_RESPONSE_TIMEOUT;
+    timeout = RDM_RESPONSE_LOST_TIMEOUT;
   }
   const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
   if (elapsed < timeout) {
