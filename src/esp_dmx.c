@@ -14,10 +14,8 @@
 #include "impl/driver.h"
 #include "impl/intr_handlers.h"
 
-enum {
-  DMX_UART_FULL_DEFAULT = 1,   // The default value for the RX FIFO full interrupt threshold.
-  DMX_UART_EMPTY_DEFAULT = 8,  // The default value for the TX FIFO empty interrupt threshold.
-};
+#define DMX_UART_FULL_DEFAULT  (1)  // The default value for the RX FIFO full interrupt threshold.
+#define DMX_UART_EMPTY_DEFAULT (8)  // The default value for the TX FIFO empty interrupt threshold.
 
 #define DMX_FUNCTION_NOT_SUPPORTED()                         \
   ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, \
