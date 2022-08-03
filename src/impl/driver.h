@@ -23,7 +23,7 @@ static uint64_t dmx_uid = 0;  // The 48-bit unique ID of this device.
 the UART port. It stores all the information needed to run and analyze DMX
 including the buffer used as an intermediary to store reads/writes on the UART
 bus. */
-typedef struct {
+typedef WORD_ALIGNED_ATTR struct {
   dmx_port_t dmx_num;             // The driver's DMX port number.
   int rst_seq_hw;                 // The hardware being used to transmit the DMX reset sequence. Can be either the UART or an ESP32 timer group.
   int timer_idx;                  // The timer index being used for the reset sequence.
@@ -33,20 +33,20 @@ typedef struct {
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
   struct {
-    uint16_t head;                        // The index of the current slot being either transmitted or received.
-    uint16_t size;                        // The size of the outgoing data packet or the expected size of the incoming data packet.
-    uint8_t buffer[DMX_MAX_PACKET_SIZE];  // The buffer that stores the DMX packet.
+    size_t head;                        // The index of the current slot being either transmitted or received.
+    size_t size;                        // The size of the outgoing data packet or the expected size of the incoming data packet.
+    uint8_t *buffer;  // The buffer that stores the DMX packet.
  
-    uint8_t previous_type;  // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
+    int previous_type;  // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
     int64_t previous_uid;   // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
     int64_t previous_ts;    // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     int sent_previous;     // Is true if this device sent the previous data packet.
   } data;
 
-  uint8_t is_in_break;   // True if the driver is sending or receiving a DMX break.
-  uint8_t is_receiving;  // True if the driver is receiving data.
-  uint8_t is_sending;    // True if the driver is sending data.
-  uint8_t mode;          // The mode of the driver's RTS pin. Either DMX_MODE_READ or DMX_MODE_WRITE.
+  int is_in_break;   // True if the driver is sending or receiving a DMX break.
+  int is_receiving;  // True if the driver is receiving data.
+  int is_sending;    // True if the driver is sending data.
+  int mode;          // The mode of the driver's RTS pin. Either DMX_MODE_READ or DMX_MODE_WRITE.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
@@ -67,9 +67,9 @@ typedef struct {
     int hw_enabled;
 } dmx_context_t;
 
-static dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
+static DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
 
-static dmx_context_t dmx_context[DMX_NUM_MAX] = {
+static DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEXT_INIT(DMX_NUM_0),
     DMX_CONTEXT_INIT(DMX_NUM_1),
 #if DMX_NUM_MAX > 2

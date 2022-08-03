@@ -17,8 +17,6 @@
 enum {
   DMX_UART_FULL_DEFAULT = 1,   // The default value for the RX FIFO full interrupt threshold.
   DMX_UART_EMPTY_DEFAULT = 8,  // The default value for the TX FIFO empty interrupt threshold.
-
-  DMX_MEMORY_CAPABILITIES = (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
 };
 
 #define DMX_FUNCTION_NOT_SUPPORTED()                         \
@@ -80,21 +78,28 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_hal_txfifo_rst(&hardware->hal);
 
   // Allocate the DMX driver dynamically
-  // TODO: can we use a default malloc here? 
-  driver = heap_caps_malloc(sizeof(dmx_driver_t), DMX_MEMORY_CAPABILITIES);
+  driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_32BIT);
   if (driver == NULL) {
     ESP_LOGE(TAG, "DMX driver malloc error");
     return ESP_ERR_NO_MEM;
   }
   dmx_driver[dmx_num] = driver;
 
-  // Allocate semaphore dynamically
+  // Buffer must be allocated in unaligned memory
+  driver->data.buffer = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
+  if (driver->data.buffer == NULL) {
+    ESP_LOGE(TAG, "DMX driver buffer malloc error");
+    return ESP_ERR_NO_MEM;
+  }
+
+  // Allocate semaphore
   driver->mux = xSemaphoreCreateRecursiveMutex();
   if (driver->mux == NULL) {
     ESP_LOGE(TAG, "DMX driver mutex malloc error");
     return ESP_ERR_NO_MEM;
   }
   xSemaphoreGiveRecursive(driver->mux);
+
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
