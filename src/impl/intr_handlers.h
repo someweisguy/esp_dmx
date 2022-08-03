@@ -170,11 +170,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       } else {
         // A DMX packet size should be equal to the expected packet size
         if (driver->data.head >= driver->data.size) {
-          if (sc == DMX_SC) {
-            driver->data.previous_type = DMX_DIMMER_PACKET;
-          } else {
-            driver->data.previous_type = DMX_UNKNOWN_PACKET;
-          }
+          driver->data.previous_type = DMX_NON_RDM_PACKET;
           packet_received = true;
         }
       }

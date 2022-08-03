@@ -29,8 +29,7 @@ typedef struct {
 } dmx_config_t;
 
 typedef enum {
-  DMX_DIMMER_PACKET = 0x00,
-  DMX_UNKNOWN_PACKET = 0xff,
+  DMX_NON_RDM_PACKET = 0x00,
 
   RDM_DISCOVERY_COMMAND = 0x10,
   RDM_DISCOVERY_COMMAND_RESPONSE = 0x11,

@@ -98,12 +98,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   }
   xSemaphoreGiveRecursive(driver->mux);
 
-
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.head = 0;
-  driver->data.previous_type = DMX_UNKNOWN_PACKET;
+  driver->data.previous_type = DMX_NON_RDM_PACKET;
   driver->data.previous_ts = 0;
   driver->data.sent_previous = false;
 
@@ -376,10 +375,7 @@ esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
 
   // Record the outgoing packet type
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
-  if (sc == DMX_SC) {
-    driver->data.previous_type = DMX_DIMMER_PACKET;
-    driver->data.previous_uid = -1;  // No destination UID
-  } else if (sc == RDM_SC) {
+  if (sc == RDM_SC) {
     const rdm_packet_t *rdm = (rdm_packet_t *)driver->data.buffer;
     driver->data.previous_type = rdm->cc;
     driver->data.previous_uid = uidcpy(rdm->destination_uid);
@@ -387,7 +383,7 @@ esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
     driver->data.previous_uid = RDM_BROADCAST_UID;
   } else {
-    driver->data.previous_type = DMX_UNKNOWN_PACKET;
+    driver->data.previous_type = DMX_NON_RDM_PACKET;
     driver->data.previous_uid = -1;  // No destination UID
   }
   driver->data.sent_previous = true;
@@ -477,8 +473,7 @@ esp_err_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   // Set an RDM receive timeout to allow driver to fail quickly
   uint32_t timeout = 0;
   if (driver->data.sent_previous &&
-      driver->data.previous_type != DMX_DIMMER_PACKET &&
-      driver->data.previous_type != DMX_UNKNOWN_PACKET) {
+      driver->data.previous_type != DMX_NON_RDM_PACKET) {
     timeout = RDM_RESPONSE_LOST_TIMEOUT;
   }
   const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
