@@ -44,7 +44,7 @@ typedef WORD_ALIGNED_ATTR struct {
   } data;
 
   int is_in_break;   // True if the driver is sending or receiving a DMX break.
-  int is_receiving;  // True if the driver is receiving data.
+  int received_packet;  // True if the driver is receiving data.
   int is_sending;    // True if the driver is sending data.
   int mode;          // The mode of the driver's RTS pin. Either DMX_MODE_READ or DMX_MODE_WRITE.
 

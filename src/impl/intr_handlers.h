@@ -64,7 +64,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Read from the FIFO on a framing error then clear the FIFO and interrupt
       if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
         size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-        if (driver->is_receiving && read_len > 0) {
+        if (!driver->received_packet && read_len > 0) {
           uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
           dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
           driver->data.head += read_len;
@@ -76,13 +76,13 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
 
       // Don't process errors if the DMX bus is inactive
-      if (!driver->is_receiving) {
+      if (driver->received_packet) {
         continue;
       }
 
       // Unset DMX break and receiving flags and notify task
       driver->is_in_break = false;
-      driver->is_receiving = false;
+      driver->received_packet = true;
       if (driver->task_waiting) {
         uint32_t notification = driver->data.head;
         if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
@@ -99,12 +99,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_BREAK);
 
       // Update packet size guess if driver hasn't received a packet yet
-      if (driver->is_receiving) {
+      if (!driver->received_packet) {
         driver->data.size = driver->data.head;
       }
 
       // Set driver flags and reset data head
-      driver->is_receiving = true;
+      driver->received_packet = false;
       driver->is_in_break = true;
       driver->data.head = 0;
 
@@ -114,7 +114,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     else if (intr_flags & DMX_INTR_RX_DATA) {
       // Read from the FIFO if ready and clear the interrupt
       size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-      if (driver->is_receiving && read_len > 0) {
+      if (!driver->received_packet && read_len > 0) {
         uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
         dmx_hal_read_rxfifo(&hardware->hal, data_ptr, &read_len);
         driver->data.head += read_len;
@@ -133,12 +133,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       timer_pause(driver->rst_seq_hw, driver->timer_idx);
 
       // Don't process data if the driver is done receiving
-      if (!driver->is_receiving) {
+      if (driver->received_packet) {
+        ESP_EARLY_LOGI("intr", "here");
         continue;
       }
 
       // Determine if a full packet has been received and notify the task
-      bool packet_received = false;
       const uint8_t sc = driver->data.buffer[0];  // DMX start code.
       if (sc == RDM_SC) {
         // An RDM packet is at least 26 bytes long
@@ -148,7 +148,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           if (driver->data.head >= rdm->message_len + 2) {
             driver->data.previous_type = rdm->cc;
             driver->data.previous_uid = uidcpy(rdm->destination_uid);
-            packet_received = true;
+            driver->received_packet = true;
           }
         }
       } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
@@ -164,19 +164,18 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           // Discovery response packets are 17 bytes long after the preamble
           if (driver->data.head >= preamble_len + 17) {
             driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
-            packet_received = true;
+            driver->received_packet = true;
           }
         }
       } else {
         // A DMX packet size should be equal to the expected packet size
         if (driver->data.head >= driver->data.size) {
           driver->data.previous_type = DMX_NON_RDM_PACKET;
-          packet_received = true;
+          driver->received_packet = true;
         }
       }
-      if (packet_received) {
+      if (driver->received_packet) {
         driver->data.sent_previous = false;
-        driver->is_receiving = false;
         if (driver->task_waiting) {
           xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                              eSetValueWithOverwrite, &task_awoken);
@@ -232,7 +231,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           }
         } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {
           // All discovery commands expect a response
-          driver->is_receiving = true;
+          driver->received_packet = false;
           driver->data.head = 0;  // Response doesn't have a DMX break
           turn_bus_around = true;
         }
