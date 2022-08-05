@@ -286,7 +286,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
   } else if (driver->is_in_break) {
     // End the DMX break
-    dmx_hal_invert_signal(&hardware->hal, 0);
+    dmx_hal_invert_tx(&hardware->hal, 0);
     driver->is_in_break = false;
 
     // Get the configured length of the DMX mark-after-break

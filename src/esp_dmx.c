@@ -468,7 +468,7 @@ bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   driver->is_in_break = true;
   driver->data.size = size;
   driver->data.head = 0;
-  dmx_hal_invert_signal(&hardware->hal, UART_SIGNAL_TXD_INV);
+  dmx_hal_invert_tx(&hardware->hal, 1);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
   taskEXIT_CRITICAL(&hardware->spinlock);
 

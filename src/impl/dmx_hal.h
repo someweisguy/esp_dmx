@@ -77,13 +77,27 @@ uint8_t dmx_hal_get_rx_timeout_threshold(uart_hal_context_t *hal) {
 }
 
 /**
- * @brief Inverts or un-inverts lines on the UART bus using a mask.
+ * @brief Inverts or un-inverts the TX line on the UART.
  *
  * @param hal Pointer to a UART HAL context.
- * @param invert_mask Inversion mask.
+ * @param invert_mask 1 to invert, 0 to un-invert.
  */
-void dmx_hal_invert_signal(uart_hal_context_t *hal, uint32_t invert_mask) {
-  uart_hal_inverse_signal(hal, invert_mask);
+void dmx_hal_invert_tx(uart_hal_context_t *hal, uint32_t invert) {
+#if defined(CONFIG_IDF_TARGET_ESP32)
+  hal->dev->conf0.txd_inv = invert ? 1 : 0;
+#elif defined(CONFIG_IDF_TARGET_ESP32C2)
+#error ESP32-C2 is not yet supported.
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  hal->dev->conf0.txd_inv = invert ? 1 : 0;
+#elif defined(CONFIG_IDF_TARGET_ESP32H2)
+#error ESP32-H2 is not yet supported.
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+  hal->dev->conf0.txd_inv = invert ? 1 : 0;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  hal->dev->uart_conf0_reg_t.txd_inv = invert ? 1 : 0;
+#else
+#error Unknown target hardware.
+#endif
 }
 
 /**
