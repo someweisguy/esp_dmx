@@ -133,11 +133,30 @@ IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
  * @brief Enables or disables the UART RTS line.
  *
  * @param hal Pointer to a UART HAL context.
- * @param set 1 to enable the RTS line (set low), 0 to disable the RTS line (set
- * high).
+ * @param set 1 to enable the RTS line (set low; read), 0 to disable the RTS 
+ * line (set high; write).
  */
 IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
   uart_hal_set_rts(hal, set);
+}
+
+IRAM_ATTR bool dmx_hal_get_rts(uart_hal_context_t *hal) {
+#if defined(CONFIG_IDF_TARGET_ESP32)
+  return hal->dev->conf0.sw_rts;
+#elif defined(CONFIG_IDF_TARGET_ESP32C2)
+#error ESP32-C2 is not yet supported.
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  return hal->dev->conf0.sw_rts;
+#elif defined(CONFIG_IDF_TARGET_ESP32H2)
+#error ESP32-H2 is not yet supported.
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+  return hal->dev->conf0.sw_rts;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  return hal->dev->uart_conf0_reg_t.sw_rts;
+#else
+#error Unknown target hardware.
+  return 0;
+#endif
 }
 
 /**

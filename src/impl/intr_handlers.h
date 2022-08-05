@@ -238,7 +238,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       }
       if (turn_bus_around) {
         dmx_hal_rxfifo_rst(&hardware->hal);
-        dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
+        dmx_hal_set_rts(&hardware->hal, 1);
         dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
         dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
       }

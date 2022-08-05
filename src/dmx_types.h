@@ -10,14 +10,6 @@ extern "C" {
 typedef int dmx_port_t;
 
 /**
- * @brief DMX modes of operation.
- */
-typedef enum {
-  DMX_MODE_WRITE,  // DMX transmit mode.
-  DMX_MODE_READ,   // DMX receive mode.
-} dmx_mode_t;
-
-/**
  * @brief Struct that contains DMX driver constants that cannot be changed
  * without first deleting the driver.
  */

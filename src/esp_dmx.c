@@ -106,7 +106,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->data.previous_ts = 0;
   driver->data.sent_previous = false;
 
-  driver->mode = DMX_MODE_READ;
   driver->is_in_break = false;
   driver->received_packet = false;
   driver->is_sending = false;
@@ -159,7 +158,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(&hardware->spinlock);
   dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-  dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
+  dmx_hal_set_rts(&hardware->hal, 1);
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
@@ -352,10 +351,9 @@ esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   }
 
   // Turn the DMX bus around
-  if (driver->mode == DMX_MODE_READ) {
+  if (dmx_hal_get_rts(&hardware->hal) == 1) {
     dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&hardware->hal, DMX_MODE_WRITE);
-    driver->mode = DMX_MODE_WRITE;
+    dmx_hal_set_rts(&hardware->hal, 0);
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
@@ -463,11 +461,10 @@ esp_err_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Turn the DMX bus around
   taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->mode == DMX_MODE_WRITE) {
+  if (dmx_hal_get_rts(&hardware->hal) == 0) {
     dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
-    dmx_hal_set_rts(&hardware->hal, DMX_MODE_READ);
+    dmx_hal_set_rts(&hardware->hal, 1);
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    driver->mode = DMX_MODE_READ;
   }
 
   // Set an RDM receive timeout to allow driver to fail quickly
