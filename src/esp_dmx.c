@@ -275,7 +275,7 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
 }
 
 /// Read/Write  ###############################################################
-esp_err_t dmx_read(dmx_port_t dmx_num, void *buffer, size_t size) {
+size_t dmx_read(dmx_port_t dmx_num, void *buffer, size_t size) {
   // TODO: Check arguments
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -283,10 +283,10 @@ esp_err_t dmx_read(dmx_port_t dmx_num, void *buffer, size_t size) {
   // Copy data from the driver buffer to the destination asynchronously
   memcpy(buffer, driver->data.buffer, size);
 
-  return ESP_OK;
+  return size;
 }
 
-esp_err_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
+size_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
   // TODO: check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -295,17 +295,86 @@ esp_err_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
   // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data.buffer, buffer, size);
 
-  return ESP_OK;
+  return size;
 }
 
-esp_err_t dmx_read_slot(dmx_port_t dmx_num, size_t index, uint8_t *value) {
+bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+                 TickType_t ticks_to_wait) {
+  // TODO: Check arguments
 
-  return ESP_OK;
-}
+  // Ensure the driver isn't sending and decrement timeout accordingly
+  TickType_t start_tick = xTaskGetTickCount();
+  if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
+    return false;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
-esp_err_t dmx_write_slot(dmx_port_t dmx_num, size_t index,
-                         const uint8_t value) {
-  return ESP_OK;
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+
+  // Block until the mutex can be taken and decrement timeout accordingly
+  start_tick = xTaskGetTickCount();
+  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
+    return false;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+
+  // Turn the DMX bus around
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (dmx_hal_get_rts(&hardware->hal) == 0) {
+    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
+    dmx_hal_set_rts(&hardware->hal, 1);
+    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+  }
+
+  // Set an RDM receive timeout to allow driver to fail quickly
+  bool task_must_wait = false;
+  bool expecting_response = false;
+  if (!driver->received_packet) {
+    uint32_t timeout = 0;
+    if (driver->data.sent_previous &&
+        driver->data.previous_type != DMX_NON_RDM_PACKET) {
+      timeout = RDM_RESPONSE_LOST_TIMEOUT;
+    }
+    const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
+    if (elapsed < timeout) {
+      timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
+      timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
+      driver->task_waiting = xTaskGetCurrentTaskHandle();
+      timer_start(driver->rst_seq_hw, driver->timer_idx);
+      task_must_wait = true;
+    } else if (expecting_response) {
+      // TODO: Handle case where timeout is elapsed?
+    }
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
+
+  // Block until a packet is received
+  bool notified;
+  uint32_t packet_size = 0;
+  if (task_must_wait) {
+    notified = xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
+    if (notified && packet_size > 0) {
+      timer_pause(driver->rst_seq_hw, driver->timer_idx);
+      xTaskNotifyStateClear(driver->task_waiting);
+    }
+    driver->task_waiting = NULL;
+  } else {
+    taskENTER_CRITICAL(&hardware->spinlock);
+    packet_size = driver->data.head;
+    notified = true;
+    taskEXIT_CRITICAL(&hardware->spinlock);
+  }
+
+  // Process DMX packet data
+  if (packet_size > 0 && event != NULL) {
+    event->size = packet_size;
+    // TODO
+  }
+
+  // Give the mutex back and return
+  xSemaphoreGiveRecursive(driver->mux);
+  return notified;
 }
 
 bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
@@ -438,85 +507,6 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
   return result;
-}
-
-bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
-                      TickType_t ticks_to_wait) {
-  // TODO: Check arguments
-
-  // Ensure the driver isn't sending and decrement timeout accordingly
-  TickType_t start_tick = xTaskGetTickCount();
-  if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
-    return false;
-  }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
-
-  // Block until the mutex can be taken and decrement timeout accordingly
-  start_tick = xTaskGetTickCount();
-  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
-    return false;
-  }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
-
-  // Turn the DMX bus around
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (dmx_hal_get_rts(&hardware->hal) == 0) {
-    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
-    dmx_hal_set_rts(&hardware->hal, 1);
-    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-  }
-
-  // Set an RDM receive timeout to allow driver to fail quickly
-  bool task_must_wait = false;
-  bool expecting_response = false;
-  if (!driver->received_packet) {
-    uint32_t timeout = 0;
-    if (driver->data.sent_previous &&
-        driver->data.previous_type != DMX_NON_RDM_PACKET) {
-      timeout = RDM_RESPONSE_LOST_TIMEOUT;
-    }
-    const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
-    if (elapsed < timeout) {
-      timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
-      timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
-      driver->task_waiting = xTaskGetCurrentTaskHandle();
-      timer_start(driver->rst_seq_hw, driver->timer_idx);
-      task_must_wait = true;
-    } else if (expecting_response) {
-      // TODO: Handle case where timeout is elapsed?
-    }
-  }
-  taskEXIT_CRITICAL(&hardware->spinlock);
-
-  // Block until a packet is received
-  bool notified;
-  uint32_t packet_size = 0;
-  if (task_must_wait) {
-    notified = xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
-    if (notified && packet_size > 0) {
-      timer_pause(driver->rst_seq_hw, driver->timer_idx);
-      xTaskNotifyStateClear(driver->task_waiting);
-    }
-    driver->task_waiting = NULL;
-  } else {
-    taskENTER_CRITICAL(&hardware->spinlock);
-    packet_size = driver->data.head;
-    notified = true;
-    taskEXIT_CRITICAL(&hardware->spinlock);
-  }
-
-  // Process DMX packet data
-  if (packet_size > 0 && event != NULL) {
-    event->size = packet_size;
-    // TODO
-  }
-
-  // Give the mutex back and return
-  xSemaphoreGiveRecursive(driver->mux);
-  return notified;
 }
 
 void *memcpyswap(void *dest, const void *src, size_t n) {
