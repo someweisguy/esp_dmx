@@ -349,12 +349,6 @@ esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     driver->task_waiting = xTaskGetCurrentTaskHandle();
     timer_start(driver->rst_seq_hw, driver->timer_idx);
   }
-
-  // Turn the DMX bus around
-  if (dmx_hal_get_rts(&hardware->hal) == 1) {
-    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&hardware->hal, 0);
-  }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Block if an alarm was set
@@ -370,6 +364,14 @@ esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
       return ESP_ERR_TIMEOUT;
     }
   }
+
+  // Turn the DMX bus around
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (dmx_hal_get_rts(&hardware->hal) == 1) {
+    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&hardware->hal, 0);
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Record the outgoing packet type
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
