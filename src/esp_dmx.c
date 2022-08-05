@@ -314,16 +314,15 @@ esp_err_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // Ensure the driver is not sending
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->is_sending) {
-    taskEXIT_CRITICAL(&hardware->spinlock);
-    return ESP_FAIL;
+  // Ensure the driver isn't sending and decrement timeout accordingly
+  TickType_t start_tick = xTaskGetTickCount();
+  if (dmx_wait_sent(dmx_num, ticks_to_wait) != ESP_OK) {
+    return ESP_ERR_TIMEOUT;
   }
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
   // Block until the mutex can be taken and decrement block time accordingly
-  const TickType_t start_tick = xTaskGetTickCount();
+  start_tick = xTaskGetTickCount();
   if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
     return ESP_ERR_TIMEOUT;
   }
