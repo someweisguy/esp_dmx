@@ -33,19 +33,19 @@ typedef WORD_ALIGNED_ATTR struct {
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
   struct {
-    size_t head;                        // The index of the current slot being either transmitted or received.
-    size_t size;                        // The size of the outgoing data packet or the expected size of the incoming data packet.
+    size_t head;      // The index of the current slot being either transmitted or received.
+    size_t size;      // The size of the outgoing data packet or the expected size of the incoming data packet.
     uint8_t *buffer;  // The buffer that stores the DMX packet.
  
-    int previous_type;  // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
-    int64_t previous_uid;   // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
-    int64_t previous_ts;    // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
+    int previous_type;     // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
+    int64_t previous_uid;  // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
+    int64_t previous_ts;   // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     int sent_previous;     // Is true if this device sent the previous data packet.
   } data;
 
-  int is_in_break;   // True if the driver is sending or receiving a DMX break.
+  int is_in_break;      // True if the driver is sending or receiving a DMX break.
   int received_packet;  // True if the driver is receiving data.
-  int is_sending;    // True if the driver is sending data.
+  int is_sending;       // True if the driver is sending data.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
