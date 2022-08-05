@@ -243,13 +243,6 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
       }
     }
-
-    else {
-      // disable interrupts that shouldn't be handled
-      // this code shouldn't be called but it can prevent crashes when it is
-      dmx_hal_disable_interrupt(&hardware->hal, intr_flags);
-      dmx_hal_clear_interrupt(&hardware->hal, intr_flags);
-    }
   }
 
   if (task_awoken) portYIELD_FROM_ISR();
