@@ -96,7 +96,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
     ESP_LOGE(TAG, "DMX driver mutex malloc error");
     return ESP_ERR_NO_MEM;
   }
-  xSemaphoreGiveRecursive(driver->mux);
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
@@ -161,6 +160,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_hal_set_rts(&hardware->hal, 1);
   taskEXIT_CRITICAL(&hardware->spinlock);
 
+  // Give the mutex and return
+  xSemaphoreGiveRecursive(driver->mux);
   return ESP_OK;
 }
 
