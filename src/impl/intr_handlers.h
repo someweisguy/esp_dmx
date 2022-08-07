@@ -71,9 +71,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         } else {
           dmx_hal_rxfifo_rst(&hardware->hal);
         }
-        driver->err = 1;  // FIXME: improper slot
+        driver->data.err = 1;  // FIXME: improper slot
       } else {
-        driver->err = 2;  // FIXME: hardware overflow
+        driver->data.err = 2;  // FIXME: hardware overflow
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
@@ -110,7 +110,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->received_packet = false;
       driver->is_in_break = true;
       driver->data.head = 0;
-      driver->err = 0;
+      driver->data.err = 0;
 
       // TODO: reset sniffer values
     }
