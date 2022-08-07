@@ -11,7 +11,7 @@ Any function here that is used in the DMX ISR must be placed in IRAM, or
 cache miss crashes will (randomly) occur. In ESP-IDF v4.4.1, HAL functions in
 the UART ISR are either built in a separate source file that is specifically
 placed in IRAM or the functions are #defines instead of actual functions. I'm
-not a big fan of the "#defines as functions design pattern," so every function
+not a big fan of the "#defines as functions" design pattern, so every function
 defined in this file is an actual function. If the function is used in the DMX
 ISR, it shall be declared an IRAM_ATTR. */
 
@@ -63,17 +63,6 @@ void dmx_hal_clear_interrupt(uart_hal_context_t *hal, uint32_t mask) {
  */
 IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
   return uart_hal_get_rxfifo_len(hal);
-}
-
-/**
- * @brief Gets the UART rx timeout (unit: time it takes for one word to be sent
- * at current baud_rate).
- *
- * @param hal Pointer to a UART HAL context.
- * @return The UART rx timeout.
- */
-uint8_t dmx_hal_get_rx_timeout_threshold(uart_hal_context_t *hal) {
-  return uart_hal_get_rx_tout_thr(hal);
 }
 
 /**
@@ -205,17 +194,6 @@ void dmx_hal_init(uart_hal_context_t *hal) {
  */
 void dmx_hal_set_baud_rate(uart_hal_context_t *hal, uint32_t baud_rate) {
   uart_hal_set_baudrate(hal, baud_rate);
-}
-
-/**
- * @brief Sets the number of mark bits to transmit after a break has been
- * transmitted.
- *
- * @param hal Pointer to a UART HAL context.
- * @param idle_num The number of idle bits to transmit.
- */
-void dmx_hal_set_tx_idle_num(uart_hal_context_t *hal, uint16_t idle_num) {
-  uart_hal_set_tx_idle_num(hal, idle_num);
 }
 
 /**
