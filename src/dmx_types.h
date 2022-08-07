@@ -14,7 +14,6 @@ typedef int dmx_port_t;
  * without first deleting the driver.
  */
 typedef struct {
-  uint16_t buffer_size;  // The data buffer size of the DMX driver. // FIXME
   int8_t rst_seq_hw;     // The hardware to use to generate the DMX reset sequence. Can be set to -1 to use busy-wait mode.
   uint8_t timer_idx;     // The timer index to use to generate the DMX reset sequence.
   int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
