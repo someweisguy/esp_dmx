@@ -41,6 +41,8 @@ typedef WORD_ALIGNED_ATTR struct {
     int64_t previous_uid;  // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
     int64_t previous_ts;   // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     int sent_previous;     // Is true if this device sent the previous data packet.
+
+    int err;
   } data;
 
   int is_in_break;      // True if the driver is sending or receiving a DMX break.

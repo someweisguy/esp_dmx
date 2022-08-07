@@ -71,6 +71,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         } else {
           dmx_hal_rxfifo_rst(&hardware->hal);
         }
+        driver->err = 1;  // FIXME: improper slot
+      } else {
+        driver->err = 2;  // FIXME: hardware overflow
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
@@ -107,6 +110,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->received_packet = false;
       driver->is_in_break = true;
       driver->data.head = 0;
+      driver->err = 0;
 
       // TODO: reset sniffer values
     }
@@ -134,7 +138,6 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Don't process data if the driver is done receiving
       if (driver->received_packet) {
-        ESP_EARLY_LOGI("intr", "here");
         continue;
       }
 
@@ -187,6 +190,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Multiple devices sent data at once (typical of RDM discovery)
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_CLASH);
+      driver->data.err = 3;  // FIXME
       // TODO: this code should only run when using RDM
     }
 
