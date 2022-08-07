@@ -71,9 +71,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         } else {
           dmx_hal_rxfifo_rst(&hardware->hal);
         }
-        driver->data.err = 1;  // FIXME: improper slot
+        driver->data.err = DMX_IMPROPERLY_FRAMED_SLOT;
       } else {
-        driver->data.err = 2;  // FIXME: hardware overflow
+        driver->data.err = DMX_HARDWARE_OVERFLOW;
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
@@ -110,7 +110,6 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->received_packet = false;
       driver->is_in_break = true;
       driver->data.head = 0;
-      driver->data.err = 0;
 
       // TODO: reset sniffer values
     }
@@ -178,6 +177,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         }
       }
       if (driver->received_packet) {
+        driver->data.err = DMX_OK;
         driver->data.sent_previous = false;
         if (driver->task_waiting) {
           xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
@@ -190,7 +190,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Multiple devices sent data at once (typical of RDM discovery)
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_CLASH);
-      driver->data.err = 3;  // FIXME
+      driver->data.err = DMX_DATA_COLLISION;
       // TODO: this code should only run when using RDM
     }
 

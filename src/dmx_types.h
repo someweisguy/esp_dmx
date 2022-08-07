@@ -39,6 +39,13 @@ typedef enum {
 
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
+typedef enum {
+  DMX_OK = 0,
+  DMX_IMPROPERLY_FRAMED_SLOT,
+  DMX_DATA_COLLISION,
+  DMX_HARDWARE_OVERFLOW,
+} dmx_err_t;
+
 typedef struct __attribute__((__packed__)) {
     uint8_t sc;
     uint8_t sub_sc;
