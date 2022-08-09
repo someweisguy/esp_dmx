@@ -192,7 +192,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
     heap_caps_free(driver->data.buffer);
   }
 
-  // Free driver timer ISR if used
+  // Free hardware timer ISR
   if (driver->rst_seq_hw != -1) {
     timer_deinit(driver->rst_seq_hw, driver->timer_idx);
   }
