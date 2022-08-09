@@ -87,6 +87,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->data.buffer = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
   if (driver->data.buffer == NULL) {
     ESP_LOGE(TAG, "DMX driver buffer malloc error");
+    dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
   }
 
@@ -94,6 +95,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->mux = xSemaphoreCreateRecursiveMutex();
   if (driver->mux == NULL) {
     ESP_LOGE(TAG, "DMX driver mutex malloc error");
+    dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
   }
 
@@ -167,6 +169,40 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 }
 
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
+  // TODO: check args
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Free driver mutex
+  if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
+    return ESP_FAIL;
+  }
+  xSemaphoreGiveRecursive(driver->mux);
+  vSemaphoreDelete(driver->mux);
+
+  // Uninstall UART ISR
+  if (driver->uart_isr_handle != NULL) {
+    esp_intr_free(driver->uart_isr_handle);
+  }
+
+  // TODO: Uninstall sniffer ISR
+
+  // Free driver data buffer
+  if (driver->data.buffer != NULL) {
+    heap_caps_free(driver->data.buffer);
+  }
+
+  // Free driver timer ISR if used
+  if (driver->rst_seq_hw != -1) {
+    timer_deinit(driver->rst_seq_hw, driver->timer_idx);
+  }
+
+  // Free driver
+  heap_caps_free(driver);
+  dmx_driver[dmx_num] = NULL;
+
+  // Disable UART module
+  dmx_module_disable(dmx_num);
 
   return ESP_OK;
 }
