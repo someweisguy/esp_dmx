@@ -130,7 +130,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Stop the receive timeout if it is running
       if (driver->timer_running) {
-        timer_pause(driver->rst_seq_hw, driver->timer_idx);
+        timer_pause(driver->timer_group, driver->timer_num);
         driver->timer_running = false;
       }
 
@@ -289,7 +289,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     // Notify the task and pause the timer
     xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                        eSetValueWithOverwrite, &task_awoken);
-    timer_pause(driver->rst_seq_hw, driver->timer_idx);
+    timer_pause(driver->timer_group, driver->timer_num);
     driver->timer_running = false;
   } else if (driver->is_in_break) {
     // End the DMX break
@@ -302,14 +302,14 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     taskEXIT_CRITICAL_ISR(&hardware->spinlock);
 
     // Reset the alarm for the end of the DMX mark-after-break
-    timer_group_set_alarm_value_in_isr(driver->rst_seq_hw, driver->timer_idx,
+    timer_group_set_alarm_value_in_isr(driver->timer_group, driver->timer_num,
                                        mab_len);
   } else {
     // Write data to the UART and pause the timer
     size_t write_size = driver->data.size;
     dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
     driver->data.head += write_size;
-    timer_pause(driver->rst_seq_hw, driver->timer_idx);
+    timer_pause(driver->timer_group, driver->timer_num);
     driver->timer_running = false;
 
     // Enable DMX write interrupts

@@ -30,7 +30,7 @@ enum {
  * initialize a dmx_config_t to the standard's defined typical values.
  */
 #define DMX_DEFAULT_CONFIG \
-  { .rst_seq_hw = 0, .timer_idx = 0, .intr_alloc_flags = ESP_INTR_FLAG_IRAM }
+  { .timer_group = 0, .timer_num = 0, .intr_alloc_flags = ESP_INTR_FLAG_IRAM }
 
 /// Driver Functions  #########################################################
 /**

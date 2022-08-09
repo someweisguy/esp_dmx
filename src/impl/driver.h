@@ -19,14 +19,16 @@ extern "C" {
 
 static uint64_t dmx_uid = 0;  // The 48-bit unique ID of this device.
 
-/* This is the DMX driver object used to handle tx'ing and rx'ing DMX data on
-the UART port. It stores all the information needed to run and analyze DMX
-including the buffer used as an intermediary to store reads/writes on the UART
-bus. */
-typedef WORD_ALIGNED_ATTR struct {
-  dmx_port_t dmx_num;             // The driver's DMX port number.
-  int rst_seq_hw;                 // The hardware being used to transmit the DMX reset sequence. Can be either the UART or an ESP32 timer group.
-  int timer_idx;                  // The timer index being used for the reset sequence.
+/**
+ * @brief The DMX driver object used to handle reading and writing DMX data on 
+ * the UART port. It storese all the information needed to run and analyze DMX
+ * and RDM.
+ */
+typedef __attribute__((aligned(4))) struct {
+  dmx_port_t dmx_num;  // The driver's DMX port number.
+  int timer_group;     // The timer group being used fro the DMX reset sequence. Can be set to -1 to use busy-waits instead of a hardware timer.
+  int timer_num;       // The timer number being used for the DMX reset sequence.
+
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
   uint32_t break_len;  // Length in microseconds of the transmitted break.
@@ -42,7 +44,7 @@ typedef WORD_ALIGNED_ATTR struct {
     int64_t previous_ts;   // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     int sent_previous;     // Is true if this device sent the previous data packet.
 
-    dmx_err_t err;
+    dmx_err_t err;  // The error state of the received DMX data.
   } data;
 
   int is_in_break;      // True if the driver is sending or receiving a DMX break.

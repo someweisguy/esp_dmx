@@ -101,8 +101,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
-  driver->rst_seq_hw = dmx_config->rst_seq_hw;
-  driver->timer_idx = dmx_config->timer_idx;
+  driver->timer_group = dmx_config->timer_group;
+  driver->timer_num = dmx_config->timer_num;
   driver->task_waiting = NULL;
 
   // Initialize driver flags
@@ -141,7 +141,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
                  &dmx_uart_isr, driver, &driver->uart_isr_handle);
 
   // Install hardware timer interrupt if specified by the user
-  if (driver->rst_seq_hw != -1) {
+  if (driver->timer_group != -1) {
     const timer_config_t timer_config = {
         .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
         .counter_dir = TIMER_COUNT_UP,
@@ -149,10 +149,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
         .alarm_en = true,
         .auto_reload = true,
     };
-    timer_init(dmx_config->rst_seq_hw, dmx_config->timer_idx, &timer_config);
-    timer_isr_callback_add(dmx_config->rst_seq_hw, dmx_config->timer_idx,
+    timer_init(dmx_config->timer_group, dmx_config->timer_num, &timer_config);
+    timer_isr_callback_add(dmx_config->timer_group, dmx_config->timer_num,
                            dmx_timer_isr, driver, dmx_config->intr_alloc_flags);
-    timer_enable_intr(dmx_config->rst_seq_hw, dmx_config->timer_idx);
+    timer_enable_intr(dmx_config->timer_group, dmx_config->timer_num);
   }
 
   // Enable UART read interrupt and set RTS low
@@ -191,8 +191,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-  if (driver->rst_seq_hw != -1) {
-    timer_deinit(driver->rst_seq_hw, driver->timer_idx);
+  if (driver->timer_group != -1) {
+    timer_deinit(driver->timer_group, driver->timer_num);
   }
 
   // Free driver
@@ -373,10 +373,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     }
     const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
     if (elapsed < timeout) {
-      timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
-      timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
+      timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
+      timer_set_alarm_value(driver->timer_group, driver->timer_num, timeout);
       driver->task_waiting = xTaskGetCurrentTaskHandle();
-      timer_start(driver->rst_seq_hw, driver->timer_idx);
+      timer_start(driver->timer_group, driver->timer_num);
       driver->timer_running = true;
       task_must_wait = true;
     } else if (expecting_response) {
@@ -391,7 +391,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
     taskENTER_CRITICAL(&hardware->spinlock);
     if (driver->timer_running) {
-      timer_pause(driver->rst_seq_hw, driver->timer_idx);
+      timer_pause(driver->timer_group, driver->timer_num);
       driver->timer_running = false;
       xTaskNotifyStateClear(driver->task_waiting);
     }
@@ -453,10 +453,10 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   }
   const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
   if (elapsed < timeout) {
-    timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, elapsed);
-    timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
+    timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
+    timer_set_alarm_value(driver->timer_group, driver->timer_num, timeout);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
-    timer_start(driver->rst_seq_hw, driver->timer_idx);
+    timer_start(driver->timer_group, driver->timer_num);
     driver->timer_running = true;
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
@@ -465,7 +465,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
     if (!notified) {
-      timer_pause(driver->rst_seq_hw, driver->timer_idx);
+      timer_pause(driver->timer_group, driver->timer_num);
       driver->timer_running = false;
       xTaskNotifyStateClear(driver->task_waiting);
     }
@@ -503,15 +503,15 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   taskENTER_CRITICAL(&hardware->spinlock);
   const uint32_t break_len = driver->break_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
-  timer_set_counter_value(driver->rst_seq_hw, driver->timer_idx, 0);
-  timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, break_len);
+  timer_set_counter_value(driver->timer_group, driver->timer_num, 0);
+  timer_set_alarm_value(driver->timer_group, driver->timer_num, break_len);
   taskENTER_CRITICAL(&hardware->spinlock);
   driver->is_sending = true;
   driver->is_in_break = true;
   driver->data.size = size;
   driver->data.head = 0;
   dmx_hal_invert_tx(&hardware->hal, 1);
-  timer_start(driver->rst_seq_hw, driver->timer_idx);
+  timer_start(driver->timer_group, driver->timer_num);
   driver->timer_running = true;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
