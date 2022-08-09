@@ -116,6 +116,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->data.previous_type = DMX_NON_RDM_PACKET;
   driver->data.size = DMX_MAX_PACKET_SIZE;
   driver->data.sent_previous = false;
+  driver->data.previous_uid = 0;
   driver->data.previous_ts = 0;
   driver->data.head = DMX_MAX_PACKET_SIZE;  // Don't read before a DMX break
 
@@ -509,7 +510,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     driver->data.previous_uid = RDM_BROADCAST_UID;
   } else {
     driver->data.previous_type = DMX_NON_RDM_PACKET;
-    driver->data.previous_uid = -1;  // No destination UID
+    driver->data.previous_uid = 0;
   }
   driver->data.sent_previous = true;
 
