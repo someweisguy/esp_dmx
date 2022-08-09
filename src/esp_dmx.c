@@ -176,13 +176,13 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num) {
 }
 
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
-
-  return ESP_OK;
+  ESP_LOGE(TAG, "This function not supported yet.");
+  return ESP_ERR_NOT_SUPPORTED;
 }
 
 esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
-
-  return ESP_OK;
+  ESP_LOGE(TAG, "This function not supported yet.");
+  return ESP_ERR_NOT_SUPPORTED;
 }
 
 bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
