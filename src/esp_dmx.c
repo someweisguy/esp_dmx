@@ -99,29 +99,27 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
     return ESP_ERR_NO_MEM;
   }
 
-  // Initialize the driver buffer
-  bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->data.size = DMX_MAX_PACKET_SIZE;
-  driver->data.head = 0;
-  driver->data.previous_type = DMX_NON_RDM_PACKET;
-  driver->data.previous_ts = 0;
-  driver->data.sent_previous = false;
-
-  driver->is_in_break = false;
-  driver->received_packet = false;
-  driver->is_sending = false;
-  driver->timer_running = false;
-
   // Initialize driver state
   driver->dmx_num = dmx_num;
   driver->rst_seq_hw = dmx_config->rst_seq_hw;
   driver->timer_idx = dmx_config->timer_idx;
   driver->task_waiting = NULL;
 
-  // TODO: reorganize these inits
-  // driver->tx.rdm_tn = 0;
+  // Initialize driver flags
+  driver->is_in_break = false;
+  driver->received_packet = false;
+  driver->is_sending = false;
+  driver->timer_running = false;
 
-  // Initialize TX settings
+  // Initialize the driver buffer
+  bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
+  driver->data.previous_type = DMX_NON_RDM_PACKET;
+  driver->data.size = DMX_MAX_PACKET_SIZE;
+  driver->data.sent_previous = false;
+  driver->data.previous_ts = 0;
+  driver->data.head = DMX_MAX_PACKET_SIZE;  // Don't read before a DMX break
+
+  // Initialize DMX transmit settings
   driver->break_len = DMX_BREAK_LEN_US;
   driver->mab_len = DMX_WRITE_MIN_MAB_LEN_US;
 
