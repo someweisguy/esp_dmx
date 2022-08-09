@@ -14,8 +14,8 @@ typedef int dmx_port_t;
  * without first deleting the driver.
  */
 typedef struct {
-  int8_t timer_group;     // The hardware to use to generate the DMX reset sequence. Can be set to -1 to use busy-wait mode.
-  uint8_t timer_num;     // The timer index to use to generate the DMX reset sequence.
+  int timer_group;       // The hardware to use to generate the DMX reset sequence. Can be set to -1 to use busy-wait mode.
+  int timer_num;         // The timer index to use to generate the DMX reset sequence.
   int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
 } dmx_config_t;
 
