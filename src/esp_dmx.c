@@ -116,7 +116,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
   driver->data.previous_type = DMX_NON_RDM_PACKET;
-  driver->data.size = DMX_MAX_PACKET_SIZE;
+  driver->data.rx_size = DMX_MAX_PACKET_SIZE;
   driver->data.sent_previous = false;
   driver->data.previous_uid = 0;
   driver->data.previous_ts = 0;
@@ -525,7 +525,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   taskENTER_CRITICAL(&hardware->spinlock);
   driver->is_sending = true;
   driver->is_in_break = true;
-  driver->data.size = size;
+  driver->data.tx_size = size;
   driver->data.head = 0;
   dmx_hal_invert_tx(&hardware->hal, 1);
   timer_start(driver->timer_group, driver->timer_num);

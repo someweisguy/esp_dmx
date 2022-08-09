@@ -99,7 +99,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Update packet size guess if driver hasn't received a packet yet
       if (!driver->received_packet) {
-        driver->data.size = driver->data.head;
+        driver->data.rx_size = driver->data.head;
       }
 
       // Set driver flags and reset data head
@@ -170,7 +170,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         }
       } else {
         // A DMX packet size should be equal to the expected packet size
-        if (driver->data.head >= driver->data.size) {
+        if (driver->data.head >= driver->data.rx_size) {
           driver->data.previous_type = DMX_NON_RDM_PACKET;
           driver->received_packet = true;
         }
@@ -199,14 +199,14 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     // DMX Transmit #####################################################
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // Write data to the UART and clear the interrupt
-      size_t write_size = driver->data.size - driver->data.head;
+      size_t write_size = driver->data.tx_size - driver->data.head;
       const uint8_t *src = &driver->data.buffer[driver->data.head];
       dmx_hal_write_txfifo(&hardware->hal, src, &write_size);
       driver->data.head += write_size;
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
 
       // Allow FIFO to empty when done writing data
-      if (driver->data.head == driver->data.size) {
+      if (driver->data.head == driver->data.tx_size) {
         dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_DATA);
       }
     }
@@ -306,7 +306,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
                                        mab_len);
   } else {
     // Write data to the UART and pause the timer
-    size_t write_size = driver->data.size;
+    size_t write_size = driver->data.tx_size;
     dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
     driver->data.head += write_size;
     timer_pause(driver->timer_group, driver->timer_num);

@@ -36,8 +36,9 @@ typedef __attribute__((aligned(4))) struct {
 
   struct {
     size_t head;      // The index of the current slot being either transmitted or received.
-    size_t size;      // The size of the outgoing data packet or the expected size of the incoming data packet.
     uint8_t *buffer;  // The buffer that stores the DMX packet.
+    size_t tx_size;   // The size of the outgoing data packet.
+    size_t rx_size;   // The expected size of the incoming data packet
  
     int previous_type;     // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
     int64_t previous_uid;  // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
