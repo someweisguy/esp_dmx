@@ -287,10 +287,10 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
 
   if (!driver->is_sending && driver->task_waiting) {
     // Notify the task and pause the timer
-    xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
-                       eSetValueWithOverwrite, &task_awoken);
     timer_pause(driver->timer_group, driver->timer_num);
     driver->timer_running = false;
+    xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
+                       eSetValueWithOverwrite, &task_awoken);
   } else if (driver->is_in_break) {
     // End the DMX break
     dmx_hal_invert_tx(&hardware->hal, 0);
