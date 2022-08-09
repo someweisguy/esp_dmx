@@ -19,6 +19,10 @@ typedef struct {
   int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
 } dmx_config_t;
 
+/**
+ * @brief UID which indicates an RDM packet is being broadcast. Responders shall
+ * not respond to RDM broadcast messages.
+ */
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
 /**
