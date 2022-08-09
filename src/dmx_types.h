@@ -21,22 +21,32 @@ typedef struct {
 
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
+/**
+ * @brief DMX error codes. These values indicate problem in receiving DMX data 
+ * or processing RDM packets.
+ */
 typedef enum {
-  DMX_OK = 0,
-  DMX_IMPROPERLY_FRAMED_SLOT,
-  DMX_DATA_COLLISION,
-  DMX_HARDWARE_OVERFLOW,
+  DMX_OK = 0,  // Indicates data was read successfully.
+  DMX_IMPROPERLY_FRAMED_SLOT,  // The receiver detected missing stop bits. If a missing stop bit is detected, the receiver shall discard the improperly framed slot data and all following slots in the packet.
+  DMX_DATA_COLLISION,  // A data collision was detected. This typically occurs during RDM discovery.
+  DMX_HARDWARE_OVERFLOW,  // The ESP32 hardware overflowed, resulting in loss of data.
 } dmx_err_t;
 
+/**
+ * @brief The RDM command class (CC) type. The command class specifies the 
+ * action of the message. Responders shall always generate a response to 
+ * GET_COMMAND and SET_COMMAND messages except when the destination UID of the
+ * message is a broadcast address. Responders shall not respond to commands sent 
+ * using broadcast addressing, in order to prevent collisions.
+ */
 typedef enum {
-  DMX_NON_RDM_PACKET = 0x00,
-
-  RDM_DISCOVERY_COMMAND = 0x10,
-  RDM_DISCOVERY_COMMAND_RESPONSE = 0x11,
-  RDM_GET_COMMAND = 0x20,
-  RDM_GET_COMMAND_RESPONSE = 0x21,
-  RDM_SET_COMMAND = 0x30,
-  RDM_SET_COMMAND_RESPONSE = 0x31,
+  DMX_NON_RDM_PACKET = 0x00,  // The packet is a non-RDM packet.
+  RDM_DISCOVERY_COMMAND = 0x10,  // The packet is an RDM discovery command.
+  RDM_DISCOVERY_COMMAND_RESPONSE = 0x11,  // The packet is a response to an RDM discovery command.
+  RDM_GET_COMMAND = 0x20,  // The packet is an RDM get request.
+  RDM_GET_COMMAND_RESPONSE = 0x21,  // The packet is a response to an RDM get request.
+  RDM_SET_COMMAND = 0x30,  // The packet is an RDM set request.
+  RDM_SET_COMMAND_RESPONSE = 0x31,  // The packet is a response to an RDM set request.
 } rdm_cc_t;
 
 typedef enum {
