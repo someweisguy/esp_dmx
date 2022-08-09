@@ -108,6 +108,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->is_in_break = false;
   driver->received_packet = false;
   driver->is_sending = false;
+  driver->timer_running = false;
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
@@ -342,6 +343,7 @@ bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
       driver->task_waiting = xTaskGetCurrentTaskHandle();
       timer_start(driver->rst_seq_hw, driver->timer_idx);
+      driver->timer_running = true;
       task_must_wait = true;
     } else if (expecting_response) {
       // TODO: Handle case where timeout is elapsed?
@@ -356,6 +358,7 @@ bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     notified = xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
     if (notified && packet_size > 0) {
       timer_pause(driver->rst_seq_hw, driver->timer_idx);
+      driver->timer_running = false;
       xTaskNotifyStateClear(driver->task_waiting);
     }
     driver->task_waiting = NULL;
@@ -417,6 +420,7 @@ bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     timer_set_alarm_value(driver->rst_seq_hw, driver->timer_idx, timeout);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
     timer_start(driver->rst_seq_hw, driver->timer_idx);
+    driver->timer_running = true;
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
@@ -425,6 +429,7 @@ bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
     if (!notified) {
       timer_pause(driver->rst_seq_hw, driver->timer_idx);
+      driver->timer_running = false;
       xTaskNotifyStateClear(driver->task_waiting);
     }
     driver->task_waiting = NULL;
@@ -470,6 +475,7 @@ bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   driver->data.head = 0;
   dmx_hal_invert_tx(&hardware->hal, 1);
   timer_start(driver->rst_seq_hw, driver->timer_idx);
+  driver->timer_running = true;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Give the mutex back

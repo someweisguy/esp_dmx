@@ -132,8 +132,11 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       }
       driver->data.previous_ts = now;
 
-      // TODO: set a flag when the timer is active
-      timer_pause(driver->rst_seq_hw, driver->timer_idx);
+      // Stop the receive timeout if it is running
+      if (driver->timer_running) {
+        timer_pause(driver->rst_seq_hw, driver->timer_idx);
+        driver->timer_running = false;
+      }
 
       // Don't process data if the driver is done receiving
       if (driver->received_packet) {
@@ -288,6 +291,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     xTaskNotifyFromISR(driver->task_waiting, 0, eSetValueWithOverwrite,
                        &task_awoken);
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
+    driver->timer_running = false;
   } else if (driver->is_in_break) {
     // End the DMX break
     dmx_hal_invert_tx(&hardware->hal, 0);
@@ -307,6 +311,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
     driver->data.head += write_size;
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
+    driver->timer_running = false;
 
     // Enable DMX write interrupts
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
