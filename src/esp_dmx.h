@@ -212,11 +212,11 @@ size_t dmx_read(dmx_port_t dmx_num, void *data, size_t size);
 size_t dmx_write(dmx_port_t dmx_num, const void *data, size_t size);
 
 // TODO: docs
-bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
                  TickType_t ticks_to_wait);
 
 // TODO: docs
-bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait);
+size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait);
 
 // TODO: docs
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);

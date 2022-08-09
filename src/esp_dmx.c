@@ -299,14 +299,14 @@ size_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
   return size;
 }
 
-bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
                  TickType_t ticks_to_wait) {
   // TODO: Check arguments
 
   // Ensure the driver isn't sending and decrement timeout accordingly
   TickType_t start_tick = xTaskGetTickCount();
   if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
-    return false;
+    return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
@@ -316,7 +316,7 @@ bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   // Block until the mutex can be taken and decrement timeout accordingly
   start_tick = xTaskGetTickCount();
   if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
-    return false;
+    return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
@@ -377,10 +377,10 @@ bool dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
-  return notified;
+  return packet_size;
 }
 
-bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
+size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   // TODO: Check arguments
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -389,14 +389,14 @@ bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   // Ensure the driver isn't sending and decrement timeout accordingly
   TickType_t start_tick = xTaskGetTickCount();
   if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
-    return false;
+    return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
   // Block until the mutex can be taken and decrement block time accordingly
   start_tick = xTaskGetTickCount();
   if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
-    return false;
+    return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
@@ -435,7 +435,7 @@ bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     driver->task_waiting = NULL;
     if (!notified) {
       xSemaphoreGiveRecursive(driver->mux);
-      return false;
+      return 0;
     }
   }
 
@@ -480,7 +480,7 @@ bool dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
 
   // Give the mutex back
   xSemaphoreGiveRecursive(driver->mux);
-  return true;
+  return size;
 }
 
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
