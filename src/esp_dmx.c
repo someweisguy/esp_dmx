@@ -374,12 +374,15 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Set an RDM receive timeout to allow driver to fail quickly
   bool task_must_wait = false;
-  bool expecting_response = false;
   if (!driver->received_packet) {
+    bool expecting_response = false;
     uint32_t timeout = 0;
     if (driver->data.sent_previous &&
         driver->data.previous_type != DMX_NON_RDM_PACKET) {
       timeout = RDM_RESPONSE_LOST_TIMEOUT;
+      if (driver->data.previous_uid != RDM_BROADCAST_UID) {
+        expecting_response = true;
+      }
     }
     const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
     if (elapsed < timeout) {
@@ -390,7 +393,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       driver->timer_running = true;
       task_must_wait = true;
     } else if (expecting_response) {
-      // TODO: Handle case where timeout is elapsed?
+      taskEXIT_CRITICAL(&hardware->spinlock);
+      return 0;  // Haven't received a response - driver must send again
     }
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
