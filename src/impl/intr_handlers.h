@@ -87,11 +87,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->is_in_break = false;
       driver->received_packet = true;
       if (driver->task_waiting) {
-        uint32_t notification = driver->data.head;
-        if (intr_flags & DMX_INTR_RX_FIFO_OVERFLOW) {
-          notification = 0;  // Don't report packet size on overflow
-        }
-        xTaskNotifyFromISR(driver->task_waiting, notification,
+        xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                            eSetValueWithOverwrite, &task_awoken);
       }
     }
@@ -149,7 +145,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         // An RDM packet is at least 26 bytes long
         if (driver->data.head >= 26) {
           // An RDM packet's length should match the message length slot value
-          const rdm_packet_t *rdm = driver->data.buffer;
+          const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
           if (driver->data.head >= rdm->message_len + 2) {
             driver->data.previous_type = rdm->cc;
             driver->data.previous_uid = uidcpy(rdm->destination_uid);
@@ -194,7 +190,10 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_CLASH);
       driver->data.err = DMX_DATA_COLLISION;
-      // TODO: this code should only run when using RDM
+      if (driver->task_waiting) {
+        xTaskNotifyFromISR(driver->task_waiting, driver->data.head, 
+                           eSetValueWithOverwrite, &task_awoken);
+      }
     }
 
     // DMX Transmit #####################################################
@@ -228,7 +227,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Turn DMX bus around quickly if expecting an RDM response
       bool turn_bus_around = false;
-      const rdm_packet_t *rdm = driver->data.buffer;
+      const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
         // If packet was RDM and non-broadcast expect a response
         if (rdm->cc == RDM_GET_COMMAND || rdm->cc == RDM_SET_COMMAND) {
@@ -288,8 +287,8 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
 
   if (!driver->is_sending && driver->task_waiting) {
     // Notify the task and pause the timer
-    xTaskNotifyFromISR(driver->task_waiting, 0, eSetValueWithOverwrite,
-                       &task_awoken);
+    xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
+                       eSetValueWithOverwrite, &task_awoken);
     timer_pause(driver->rst_seq_hw, driver->timer_idx);
     driver->timer_running = false;
   } else if (driver->is_in_break) {

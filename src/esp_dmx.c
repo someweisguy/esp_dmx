@@ -352,26 +352,29 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Block until a packet is received
-  bool notified;
   uint32_t packet_size = 0;
   if (task_must_wait) {
-    notified = xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
-    if (notified && packet_size > 0) {
+    xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
+    taskENTER_CRITICAL(&hardware->spinlock);
+    if (driver->timer_running) {
       timer_pause(driver->rst_seq_hw, driver->timer_idx);
       driver->timer_running = false;
       xTaskNotifyStateClear(driver->task_waiting);
     }
+    taskEXIT_CRITICAL(&hardware->spinlock);
     driver->task_waiting = NULL;
   } else {
     taskENTER_CRITICAL(&hardware->spinlock);
     packet_size = driver->data.head;
-    notified = true;
     taskEXIT_CRITICAL(&hardware->spinlock);
   }
 
   // Process DMX packet data
   if (packet_size > 0 && event != NULL) {
     event->size = packet_size;
+    taskENTER_CRITICAL(&hardware->spinlock);
+    event->is_rdm = driver->data.previous_type ? true : false;
+    taskEXIT_CRITICAL(&hardware->spinlock);
     // TODO
   }
 
@@ -450,7 +453,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   // Record the outgoing packet type
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
   if (sc == RDM_SC) {
-    const rdm_packet_t *rdm = (rdm_packet_t *)driver->data.buffer;
+    const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
     driver->data.previous_type = rdm->cc;
     driver->data.previous_uid = uidcpy(rdm->destination_uid);
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
