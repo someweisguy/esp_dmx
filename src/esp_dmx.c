@@ -325,8 +325,16 @@ size_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
   // TODO: check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // TODO: if packet being sent is RDM, don't let a write happen asynchronously
+  // Do not allow asynchronous writes when sending an RDM packet
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (driver->is_sending && driver->data.previous_type != DMX_NON_RDM_PACKET) {
+    taskEXIT_CRITICAL(&hardware->spinlock);
+    return ESP_FAIL;
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
+
   // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data.buffer, buffer, size);
 
