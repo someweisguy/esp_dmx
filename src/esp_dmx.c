@@ -310,18 +310,18 @@ esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
 }
 
 /// Read/Write  ###############################################################
-size_t dmx_read(dmx_port_t dmx_num, void *buffer, size_t size) {
+size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
   // TODO: Check arguments
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Copy data from the driver buffer to the destination asynchronously
-  memcpy(buffer, driver->data.buffer, size);
+  memcpy(destination, driver->data.buffer, size);
 
   return size;
 }
 
-size_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
+size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   // TODO: check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -336,7 +336,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *buffer, size_t size) {
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Copy data from the source to the driver buffer asynchronously
-  memcpy(driver->data.buffer, buffer, size);
+  memcpy(driver->data.buffer, source, size);
 
   return size;
 }
