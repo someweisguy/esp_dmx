@@ -497,17 +497,25 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
   // Determine if the task needs to block
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (driver->is_sending) {
-    driver->task_waiting = xTaskGetCurrentTaskHandle();
-  }
-  taskEXIT_CRITICAL(&hardware->spinlock);
-
-  // Wait for a notification that the driver is done sending
   bool result = true;
-  if (driver->task_waiting) {
-    result = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
-    driver->task_waiting = NULL;
+  if (ticks_to_wait > 0) {
+    taskENTER_CRITICAL(&hardware->spinlock);
+    if (driver->is_sending) {
+      driver->task_waiting = xTaskGetCurrentTaskHandle();
+    }
+    taskEXIT_CRITICAL(&hardware->spinlock);
+
+    // Wait for a notification that the driver is done sending
+    if (driver->task_waiting) {
+      result = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
+      driver->task_waiting = NULL;
+    }
+  } else {
+    taskENTER_CRITICAL(&hardware->spinlock);
+    if (driver->is_sending) {
+      result = false;
+    }
+    taskEXIT_CRITICAL(&hardware->spinlock);
   }
 
   // Give the mutex back and return
