@@ -63,8 +63,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   // Initialize the DMX UID
   if (dmx_uid == 0) {
-    // TODO: initialize the UID based on the device MAC address
-    dmx_uid = 0x1234567890ab;
+    uint8_t mac[8];
+    esp_efuse_mac_get_default(mac);
+    dmx_uid = (uint64_t)0xbeef << 32;  // TODO: use real manufacturer ID
+    memcpy(&dmx_uid, mac, 4);
   }
 
   // Configure the UART hardware
