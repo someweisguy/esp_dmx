@@ -374,47 +374,66 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     dmx_hal_set_rts(&hardware->hal, 1);
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
   }
-
-  // Set an RDM receive timeout to allow driver to fail quickly
-  bool task_must_wait = false;
+  taskEXIT_CRITICAL(&hardware->spinlock);
+  
+  // Check if it is possible the driver must wait
+  taskENTER_CRITICAL(&hardware->spinlock);
   if (!driver->received_packet) {
-    bool expecting_response = false;
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
+  }
+  const bool received_packet = driver->received_packet;
+  const bool sent_previous = driver->data.sent_previous;
+  const int previous_type = driver->data.previous_type;
+  const uint64_t previous_uid = driver->data.previous_uid;
+  const int64_t previous_ts = driver->data.previous_ts;
+  taskEXIT_CRITICAL(&hardware->spinlock);
+  
+  // Receive the latest data packet from the driver
+  uint32_t packet_size = 0;
+  if (!received_packet) {
+    // Determine if a fail-quick timeout must be set
     uint32_t timeout = 0;
-    if (driver->data.sent_previous &&
-        driver->data.previous_type != DMX_NON_RDM_PACKET) {
+    bool response_expected = false;
+    if (sent_previous && previous_type != DMX_NON_RDM_PACKET) {
       timeout = RDM_RESPONSE_LOST_TIMEOUT;
-      if (driver->data.previous_uid != RDM_BROADCAST_UID) {
-        expecting_response = true;
+      if (previous_uid != RDM_BROADCAST_UID) {
+        response_expected = true;
       }
     }
-    const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
+
+    // Set the timeout alarm if the timeout hasn't elapsed yet
+    bool cannot_receive = false;
+    taskENTER_CRITICAL(&hardware->spinlock);
+    const int64_t elapsed = esp_timer_get_time() - previous_ts;
     if (elapsed < timeout) {
       timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
       timer_set_alarm_value(driver->timer_group, driver->timer_num, timeout);
-      driver->task_waiting = xTaskGetCurrentTaskHandle();
       timer_start(driver->timer_group, driver->timer_num);
       driver->timer_running = true;
-      task_must_wait = true;
-    } else if (expecting_response) {
+    } 
+    taskEXIT_CRITICAL(&hardware->spinlock);
+    
+    // Fail immediately if the timeout has elapsed and a response was expected
+    if (elapsed >= timeout && response_expected) {
+      taskENTER_CRITICAL(&hardware->spinlock);
+      driver->task_waiting = NULL;
       taskEXIT_CRITICAL(&hardware->spinlock);
-      return 0;  // Haven't received a response - driver must send again
+      xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+      return 0;
     }
-  }
-  taskEXIT_CRITICAL(&hardware->spinlock);
 
-  // Block until a packet is received
-  uint32_t packet_size = 0;
-  if (task_must_wait) {
+    // Wait for a task notification
     xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
-    taskENTER_CRITICAL(&hardware->spinlock);
-    if (driver->timer_running) {
+    if (elapsed < timeout) {
+      taskENTER_CRITICAL(&hardware->spinlock);
       timer_pause(driver->timer_group, driver->timer_num);
       driver->timer_running = false;
+      taskEXIT_CRITICAL(&hardware->spinlock);
       xTaskNotifyStateClear(driver->task_waiting);
     }
-    taskEXIT_CRITICAL(&hardware->spinlock);
     driver->task_waiting = NULL;
   } else {
+    // A packet has already been received
     taskENTER_CRITICAL(&hardware->spinlock);
     packet_size = driver->data.head;
     taskEXIT_CRITICAL(&hardware->spinlock);
