@@ -422,11 +422,54 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Process DMX packet data
   if (packet_size > 0 && event != NULL) {
-    event->size = packet_size;
     taskENTER_CRITICAL(&hardware->spinlock);
-    event->is_rdm = driver->data.previous_type ? true : false;
+    event->size = packet_size;
+    event->err = driver->data.err;
+    const int previous_type = driver->data.previous_type;
     taskEXIT_CRITICAL(&hardware->spinlock);
-    // TODO
+    event->is_rdm = previous_type ? true : false;
+
+    if (event->is_rdm) {
+      event->rdm.response_type = previous_type;
+      if (previous_type == RDM_DISCOVERY_COMMAND_RESPONSE) {
+        taskENTER_CRITICAL(&hardware->spinlock);
+        // Find the length of the discovery response preamble (0-7 bytes)
+        int preamble_len = 0;
+        for (; preamble_len < 7; ++preamble_len) {
+          if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
+            break;
+          }
+        }
+        if (driver->data.buffer[preamble_len] != RDM_DELIMITER) {
+          return false;  // Not a valid discovery response
+        }
+
+        // Decode the 6-byte UID and get the packet sum
+        uint64_t uid = 0;
+        uint16_t sum = 0;
+        const uint8_t *response = &driver->data.buffer[preamble_len + 1];
+        for (int i = 5, j = 0; i >= 0; --i, j += 2) {
+          ((uint8_t *)&uid)[i] = response[j] & 0x55;
+          ((uint8_t *)&uid)[i] |= response[j + 1] & 0xaa;
+          sum += ((uint8_t *)&uid)[i] + 0xff;
+        }
+
+        // Decode the checksum received in the response
+        uint16_t checksum;
+        for (int i = 1, j = 12; i >= 0; --i, j += 2) {
+          ((uint8_t *)&checksum)[i] = response[j] & 0x55;
+          ((uint8_t *)&checksum)[i] |= response[j + 1] & 0xaa;
+        }
+        taskEXIT_CRITICAL(&hardware->spinlock);
+
+        // Pass the parsed data back to the caller
+        event->rdm.source_uid = uid;
+        event->rdm.checksum_is_valid = (sum == checksum);
+      } else {
+        ESP_LOGE(TAG, "Received standard RDM request"); // FIXME: Stub
+      }
+
+    }
   }
 
   // Give the mutex back and return
