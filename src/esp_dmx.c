@@ -367,7 +367,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
-  // Turn the DMX bus around
+  // Set the RTS pin to read from the DMX bus
   taskENTER_CRITICAL(&hardware->spinlock);
   if (dmx_hal_get_rts(&hardware->hal) == 0) {
     dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
