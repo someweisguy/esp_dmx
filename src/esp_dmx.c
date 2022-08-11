@@ -350,19 +350,19 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
                  TickType_t ticks_to_wait) {
   // TODO: Check arguments
 
-  // Ensure the driver isn't sending and decrement timeout accordingly
-  TickType_t start_tick = xTaskGetTickCount();
-  if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
-    return 0;
-  }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
-
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
   // Block until the mutex can be taken and decrement timeout accordingly
-  start_tick = xTaskGetTickCount();
+  TickType_t start_tick = xTaskGetTickCount();
   if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
+    return 0;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+
+  // Ensure the driver isn't sending and decrement timeout accordingly
+  start_tick = xTaskGetTickCount();
+  if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
     return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
@@ -494,16 +494,16 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // Ensure the driver isn't sending and decrement timeout accordingly
+  // Block until the mutex can be taken and decrement block time accordingly
   TickType_t start_tick = xTaskGetTickCount();
-  if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
+  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
     return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
 
-  // Block until the mutex can be taken and decrement block time accordingly
+  // Ensure the driver isn't sending and decrement timeout accordingly
   start_tick = xTaskGetTickCount();
-  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
+  if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
     return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
