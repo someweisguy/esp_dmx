@@ -376,10 +376,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
   
-  // Check if it is possible the driver must wait
+  // Receive the latest data packet from the driver
+  uint32_t packet_size = 0;
   taskENTER_CRITICAL(&hardware->spinlock);
   if (!driver->received_packet) {
     driver->task_waiting = xTaskGetCurrentTaskHandle();
+  } else {
+    // A packet has already been received
+    packet_size = driver->data.head;
   }
   const bool received_packet = driver->received_packet;
   const bool sent_previous = driver->data.sent_previous;
@@ -387,13 +391,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   const uint64_t previous_uid = driver->data.previous_uid;
   const int64_t previous_ts = driver->data.previous_ts;
   taskEXIT_CRITICAL(&hardware->spinlock);
-  
-  // Receive the latest data packet from the driver
-  uint32_t packet_size = 0;
+
+  // If a packet hasn't been received, the driver must wait  
   if (!received_packet) {
     // Determine if a fail-quick timeout must be set
     uint32_t timeout = 0;
     bool response_expected = false;
+    // FIXME: previous_type should be a GET or SET request and non-broadcast
     if (sent_previous && previous_type != DMX_NON_RDM_PACKET) {
       timeout = RDM_RESPONSE_LOST_TIMEOUT;
       if (previous_uid != RDM_BROADCAST_UID) {
@@ -424,19 +428,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
     // Wait for a task notification
     xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
-    if (elapsed < timeout) {
-      taskENTER_CRITICAL(&hardware->spinlock);
-      timer_pause(driver->timer_group, driver->timer_num);
-      driver->timer_running = false;
-      taskEXIT_CRITICAL(&hardware->spinlock);
-      xTaskNotifyStateClear(driver->task_waiting);
-    }
     driver->task_waiting = NULL;
-  } else {
-    // A packet has already been received
-    taskENTER_CRITICAL(&hardware->spinlock);
-    packet_size = driver->data.head;
-    taskEXIT_CRITICAL(&hardware->spinlock);
   }
 
   // Process DMX packet data
