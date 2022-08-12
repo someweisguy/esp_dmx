@@ -396,15 +396,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (!received_packet) {
     // Determine if a fail-quick timeout must be set
     uint32_t timeout = 0;
-    bool response_expected = false;
-    // FIXME: previous_type should be a GET or SET request and non-broadcast
-    if (sent_previous && previous_type != DMX_NON_RDM_PACKET) {
+    if (sent_previous && previous_uid != RDM_BROADCAST_UID &&
+        (previous_type == RDM_GET_COMMAND || previous_type == RDM_SET_COMMAND ||
+         previous_type == RDM_DISCOVERY_COMMAND)) {
       timeout = RDM_RESPONSE_LOST_TIMEOUT;
-      if (previous_uid != RDM_BROADCAST_UID) {
-        response_expected = true;
-      }
     }
-
     // Set the timeout alarm if the timeout hasn't elapsed yet
     taskENTER_CRITICAL(&hardware->spinlock);
     const int64_t elapsed = esp_timer_get_time() - previous_ts;
@@ -417,11 +413,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     taskEXIT_CRITICAL(&hardware->spinlock);
     
     // Fail immediately if the timeout has elapsed and a response was expected
-    if (elapsed >= timeout && response_expected) {
+    if (timeout > 0 && elapsed >= timeout) {
       taskENTER_CRITICAL(&hardware->spinlock);
       driver->task_waiting = NULL;
       taskEXIT_CRITICAL(&hardware->spinlock);
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+      xSemaphoreGiveRecursive(driver->mux);
       return 0;
     }
 
@@ -450,9 +447,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
             break;
           }
         }
-        if (driver->data.buffer[preamble_len] != RDM_DELIMITER) {
-          return false;  // Not a valid discovery response
-        }
+        // if (driver->data.buffer[preamble_len] != RDM_DELIMITER) {
+        //   return false;  // Not a valid discovery response
+        // }
 
         // Decode the 6-byte UID and get the packet sum
         uint64_t uid = 0;
