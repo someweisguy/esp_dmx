@@ -24,6 +24,15 @@
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
+enum {
+  RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,  // The amount of time that must pass between the RDM controller sending a discovery packet and then sending any other packet.
+  RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,    // The amount of time that must pass between the RDM controller sending a request, considering the response lost, and sending any other packet.
+  RDM_BROADCAST_PACKET_SPACING = 176,               // The amount of time that must pass between the RDM controller sending a broadcast packet and then sending any other packet.
+  RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,      // The amount of time that must pass between the RDM controller sending a request and the RDM responder sending a response packet.
+
+  RDM_RESPONSE_LOST_TIMEOUT = 2800,         // The amount of time that must pass before the RDM controller considers a discovery response packet lost. 
+};
+
 static void dmx_module_enable(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {
