@@ -2,6 +2,7 @@
 
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"
+#include "esp_rdm.h"
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
 #include "hal/uart_hal.h"
@@ -39,7 +40,7 @@ typedef __attribute__((aligned(4))) struct {
     size_t rx_size;   // The expected size of the incoming data packet
  
     int previous_type;     // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
-    int64_t previous_uid;  // The destination UID of the previous packet. Is -1 if the previous packet was not RDM.
+    rdm_uid_t previous_uid;  // The destination UID of the previous packet. Is 0 if the previous packet was not RDM.
     int64_t previous_ts;   // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     int sent_previous;     // Is true if this device sent the previous data packet.
 

@@ -151,7 +151,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
           if (driver->data.head >= rdm->message_len + 2) {
             driver->data.previous_type = rdm->cc;
-            driver->data.previous_uid = uidcpy(rdm->destination_uid);
+            driver->data.previous_uid.raw = uidcpy(rdm->destination_uid);
             driver->received_packet = true;
           }
         }
@@ -239,7 +239,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         // If packet was RDM and non-broadcast expect a response
         if (rdm->cc == RDM_GET_COMMAND || rdm->cc == RDM_SET_COMMAND) {
           const uint64_t destination_uid = uidcpy(rdm->destination_uid);
-          if (destination_uid != RDM_BROADCAST_UID) {
+          if (destination_uid != RDM_BROADCAST_UID.raw) {
             turn_bus_around = true;
           }
         } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {
