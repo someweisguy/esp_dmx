@@ -375,8 +375,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
-  
-  // Receive the latest data packet from the driver
+
+  // Receive the latest data packet or check if the driver must wait
   uint32_t packet_size = 0;
   taskENTER_CRITICAL(&hardware->spinlock);
   if (!driver->received_packet) {
@@ -392,7 +392,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   const int64_t previous_ts = driver->data.previous_ts;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  // If a packet hasn't been received, the driver must wait  
+  // If a packet hasn't been received, the driver must wait
   if (!received_packet) {
     // Determine if a fail-quick timeout must be set
     uint32_t timeout = 0;
@@ -401,6 +401,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
          previous_type == RDM_DISCOVERY_COMMAND)) {
       timeout = RDM_RESPONSE_LOST_TIMEOUT;
     }
+
     // Set the timeout alarm if the timeout hasn't elapsed yet
     taskENTER_CRITICAL(&hardware->spinlock);
     const int64_t elapsed = esp_timer_get_time() - previous_ts;
@@ -409,9 +410,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       timer_set_alarm_value(driver->timer_group, driver->timer_num, timeout);
       timer_start(driver->timer_group, driver->timer_num);
       driver->timer_running = true;
-    } 
+    }
     taskEXIT_CRITICAL(&hardware->spinlock);
-    
+
     // Fail immediately if the timeout has elapsed and a response was expected
     if (timeout > 0 && elapsed >= timeout) {
       taskENTER_CRITICAL(&hardware->spinlock);
