@@ -440,7 +440,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     taskEXIT_CRITICAL(&hardware->spinlock);
     event->is_rdm = previous_type ? true : false;
 
-    if (event->is_rdm) {
+    if (event->is_rdm && event->err == DMX_OK) {
       event->rdm.response_type = previous_type;
       if (previous_type == RDM_DISCOVERY_COMMAND_RESPONSE) {
         taskENTER_CRITICAL(&hardware->spinlock);
@@ -475,7 +475,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
         // Pass the parsed data back to the caller
         event->rdm.source_uid = uid;
-        event->rdm.checksum_is_valid = (sum == checksum);
+        if (sum != checksum) {
+          event->err = DMX_ERR_INVALID_CHECKSUM;
+        }
       } else {
         ESP_LOGE(TAG, "Received standard RDM request"); // FIXME: Stub
       }

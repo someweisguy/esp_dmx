@@ -71,9 +71,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         } else {
           dmx_hal_rxfifo_rst(&hardware->hal);
         }
-        driver->data.err = DMX_IMPROPERLY_FRAMED_SLOT;
+        driver->data.err = DMX_ERR_IMPROPERLY_FRAMED_SLOT;
       } else {
-        driver->data.err = DMX_HARDWARE_OVERFLOW;
+        driver->data.err = DMX_ERR_HARDWARE_OVERFLOW;
       }
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_ERR);
@@ -189,9 +189,9 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Multiple devices sent data at once (typical of RDM discovery)
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_CLASH);
-      driver->data.err = DMX_DATA_COLLISION;
+      driver->data.err = DMX_ERR_DATA_COLLISION;
       if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, driver->data.head, 
+        xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                            eSetValueWithOverwrite, &task_awoken);
       }
     }
@@ -265,6 +265,7 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   mark-after-break has not been recorded while the break has been recorded,
   then we know that the mark-after-break has just completed so we should record
   its duration. */
+  // TODO
 /*
   if (dmx_hal_get_rx_level(&(dmx_context[driver->dmx_num].hal))) {
     if (driver->rx.is_in_brk && driver->rx.last_neg_edge_ts > -1) {

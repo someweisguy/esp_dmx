@@ -35,9 +35,10 @@ static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
  */
 typedef enum {
   DMX_OK = 0,  // Indicates data was read successfully.
-  DMX_IMPROPERLY_FRAMED_SLOT,  // The receiver detected missing stop bits. If a missing stop bit is detected, the receiver shall discard the improperly framed slot data and all following slots in the packet.
-  DMX_DATA_COLLISION,  // A data collision was detected. This typically occurs during RDM discovery.
-  DMX_HARDWARE_OVERFLOW,  // The ESP32 hardware overflowed, resulting in loss of data.
+  DMX_ERR_IMPROPERLY_FRAMED_SLOT,  // The receiver detected missing stop bits. If a missing stop bit is detected, the receiver shall discard the improperly framed slot data and all following slots in the packet.
+  DMX_ERR_DATA_COLLISION,  // A data collision was detected. This typically occurs during RDM discovery.
+  DMX_ERR_INVALID_CHECKSUM,  // The checksum for the DMX or RDM packet is invalid.
+  DMX_ERR_HARDWARE_OVERFLOW,  // The ESP32 hardware overflowed, resulting in loss of data.
 } dmx_err_t;
 
 /**
@@ -93,9 +94,7 @@ typedef struct {
     int sub_device;  // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
     rdm_cc_t cc;  // The command class (CC) specifies the action of the message. 
     rdm_pid_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
-    size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
-    
-    bool checksum_is_valid;  // Is true if the RDM checksum is valid.
+    size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.    
   } rdm;  // A struct containing information about the received RDM packet.
 } dmx_event_t;
 
