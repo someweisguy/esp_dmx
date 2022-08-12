@@ -71,9 +71,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_context_t *const hardware = &dmx_context[dmx_num];
   dmx_driver_t *driver;
 
-  // Initialize the RDM UID
-  rdm_get_uid();
-
   // Configure the UART hardware
   dmx_module_enable(dmx_num);
   dmx_hal_init(&hardware->hal);
