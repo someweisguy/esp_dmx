@@ -607,14 +607,16 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   // Determine if the task needs to block
   bool result = true;
   if (ticks_to_wait > 0) {
+    bool task_waiting = false;
     taskENTER_CRITICAL(&hardware->spinlock);
     if (driver->is_sending) {
       driver->task_waiting = xTaskGetCurrentTaskHandle();
+      task_waiting = true;
     }
     taskEXIT_CRITICAL(&hardware->spinlock);
 
     // Wait for a notification that the driver is done sending
-    if (driver->task_waiting) {
+    if (task_waiting) {
       result = xTaskNotifyWait(0, ULONG_MAX, NULL, ticks_to_wait);
       driver->task_waiting = NULL;
     }
