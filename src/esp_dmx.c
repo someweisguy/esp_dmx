@@ -406,7 +406,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     }
 
     // Set the timeout alarm if the timeout hasn't elapsed yet
-    bool cannot_receive = false;
     taskENTER_CRITICAL(&hardware->spinlock);
     const int64_t elapsed = esp_timer_get_time() - previous_ts;
     if (elapsed < timeout) {
