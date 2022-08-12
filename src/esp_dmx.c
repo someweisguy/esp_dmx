@@ -447,6 +447,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
             break;
           }
         }
+        // TODO: this check should occur only within a function
         // if (driver->data.buffer[preamble_len] != RDM_DELIMITER) {
         //   return false;  // Not a valid discovery response
         // }
