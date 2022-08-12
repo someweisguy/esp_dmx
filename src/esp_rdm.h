@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "dmx_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,6 +42,16 @@ rdm_uid_t rdm_get_uid();
  * @param uid The custom value to which to set the device UID.
  */
 void rdm_set_uid(rdm_uid_t uid);
+
+/**
+ * @brief // TODO
+ * 
+ * @param data 
+ * @param size 
+ * @param event 
+ * @return void* a pointer to the RDM parameter data or NULL on failure.
+ */
+void *rdm_parse(void *data, size_t size, dmx_event_t *event);
 
 #ifdef __cplusplus
 }
