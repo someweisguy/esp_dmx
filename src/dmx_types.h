@@ -24,12 +24,6 @@ typedef struct {
 } dmx_config_t;
 
 /**
- * @brief UID which indicates an RDM packet is being broadcast. Responders shall
- * not respond to RDM broadcast messages.
- */
-static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
-
-/**
  * @brief DMX error codes. These values indicate problem in receiving DMX data 
  * or processing RDM packets.
  */
