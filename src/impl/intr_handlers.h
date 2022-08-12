@@ -86,10 +86,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Unset DMX break and receiving flags and notify task
       driver->is_in_break = false;
       driver->received_packet = true;
+      taskENTER_CRITICAL_ISR(&hardware->spinlock);
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                            eSetValueWithOverwrite, &task_awoken);
       }
+      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
     }
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
@@ -178,10 +180,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       if (driver->received_packet) {
         driver->data.err = DMX_OK;
         driver->data.sent_previous = false;
+        taskENTER_CRITICAL_ISR(&hardware->spinlock);
         if (driver->task_waiting) {
           xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                              eSetValueWithOverwrite, &task_awoken);
         }
+        taskEXIT_CRITICAL_ISR(&hardware->spinlock);
       }
     }
 
@@ -190,10 +194,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       dmx_hal_rxfifo_rst(&hardware->hal);
       dmx_hal_clear_interrupt(&hardware->hal, DMX_INTR_RX_CLASH);
       driver->data.err = DMX_ERR_DATA_COLLISION;
+      taskENTER_CRITICAL_ISR(&hardware->spinlock);
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                            eSetValueWithOverwrite, &task_awoken);
       }
+      taskEXIT_CRITICAL_ISR(&hardware->spinlock);
     }
 
     // DMX Transmit #####################################################
