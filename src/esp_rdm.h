@@ -22,7 +22,8 @@ static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 uint64_t rdm_get_uid();
 
 /**
- * @brief Set the device UID to a custom value.
+ * @brief Set the device UID to a custom value. Setting the UID to 0 will reset 
+ * the UID to its default value.
  * 
  * @param uid The custom value to which to set the device UID.
  */
