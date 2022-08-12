@@ -18,12 +18,6 @@ uint64_t rdm_get_uid() {
   return rdm_uid;
 }
 
-bool rdm_set_uid(uint64_t uid) { 
-  if (uid < 0x000100000000 || uid > 0x7fffffffffff) {
-    return false;
-  }
-
+void rdm_set_uid(uint64_t uid) { 
   rdm_uid = uid;
-
-  return true;
 }
