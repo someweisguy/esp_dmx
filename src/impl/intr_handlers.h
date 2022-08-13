@@ -2,6 +2,7 @@
 
 #include "esp_dmx.h"
 #include "esp_rdm.h"
+#include "driver/timer.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 
@@ -143,8 +144,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Determine if a full packet has been received and notify the task
-      const uint8_t sc = driver->data.buffer[0];  // DMX start code.
-      if (sc == RDM_SC) {
+      const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
+      if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
         // An RDM packet is at least 26 bytes long
         if (driver->data.head >= 26) {
           // An RDM packet's length should match the message length slot value
@@ -155,7 +156,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
             driver->received_packet = true;
           }
         }
-      } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
+      } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
         // An RDM discovery response packet is at least 17 bytes long
         if (driver->data.head >= 17) {
           // Find the length of the discovery response preamble (0-7 bytes)
