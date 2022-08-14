@@ -399,8 +399,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     // Determine if a fail-quick timeout must be set
     uint32_t timeout = 0;
     if (sent_previous && previous_uid != DMX_BROADCAST_UID &&
-        (previous_type == RDM_GET_COMMAND || previous_type == RDM_SET_COMMAND ||
-         previous_type == RDM_DISCOVERY_COMMAND)) {
+        (previous_type == DMX_GET_COMMAND || previous_type == DMX_SET_COMMAND ||
+         previous_type == DMX_DISCOVERY_COMMAND)) {
       timeout = RDM_RESPONSE_LOST_TIMEOUT;
     }
 
@@ -441,7 +441,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
     if (event->is_rdm && event->err == DMX_OK) {
       event->rdm.response_type = previous_type;
-      if (previous_type == RDM_DISCOVERY_COMMAND_RESPONSE) {
+      if (previous_type == DMX_DISCOVERY_COMMAND_RESPONSE) {
         taskENTER_CRITICAL(&hardware->spinlock);
         // Find the length of the discovery response preamble (0-7 bytes)
         int preamble_len = 0;
@@ -514,7 +514,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   uint32_t timeout = 0;
   taskENTER_CRITICAL(&hardware->spinlock);
   if (driver->data.sent_previous) {
-    if (driver->data.previous_type == RDM_DISCOVERY_COMMAND) {
+    if (driver->data.previous_type == DMX_DISCOVERY_COMMAND) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
     } else if (driver->data.previous_uid != DMX_BROADCAST_UID) {
       timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
@@ -564,7 +564,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     driver->data.previous_type = rdm->cc;
     driver->data.previous_uid = uidcpy(rdm->destination_uid);
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
-    driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
+    driver->data.previous_type = DMX_DISCOVERY_COMMAND_RESPONSE;
     driver->data.previous_uid = DMX_BROADCAST_UID;
   } else {
     driver->data.previous_type = DMX_NON_RDM_PACKET;

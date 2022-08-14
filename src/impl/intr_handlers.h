@@ -168,7 +168,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           }
           // Discovery response packets are 17 bytes long after the preamble
           if (driver->data.head >= preamble_len + 17) {
-            driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
+            driver->data.previous_type = DMX_DISCOVERY_COMMAND_RESPONSE;
             driver->received_packet = true;
           }
         }
@@ -238,12 +238,12 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
         // If packet was RDM and non-broadcast expect a response
-        if (rdm->cc == RDM_GET_COMMAND || rdm->cc == RDM_SET_COMMAND) {
+        if (rdm->cc == DMX_GET_COMMAND || rdm->cc == DMX_SET_COMMAND) {
           const uint64_t destination_uid = uidcpy(rdm->destination_uid);
           if (destination_uid != DMX_BROADCAST_UID) {
             turn_bus_around = true;
           }
-        } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {
+        } else if (rdm->cc == DMX_DISCOVERY_COMMAND) {
           // All discovery commands expect a response
           driver->received_packet = false;
           driver->data.head = 0;  // Response doesn't have a DMX break
