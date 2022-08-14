@@ -45,10 +45,11 @@ void dmx_set_uid(uint64_t uid);
  * 
  * @param data 
  * @param size 
- * @param event 
- * @return void* a pointer to the RDM parameter data or NULL on failure.
+ * @param[out] event 
+ * @return true if the data is a valid RDM packet.
+ * @return false if the data is not a valid RDM packet.
  */
-void *dmx_parse(void *data, size_t size, dmx_event_t *event);
+bool dmx_parse_rdm(void *data, size_t size, dmx_event_t *event);
 
 #ifdef __cplusplus
 }
