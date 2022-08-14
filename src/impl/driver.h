@@ -2,7 +2,6 @@
 
 #include "esp_dmx.h"
 #include "esp_intr_alloc.h"
-#include "esp_rdm.h"
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
 #include "hal/uart_hal.h"

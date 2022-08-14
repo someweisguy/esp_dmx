@@ -2,7 +2,6 @@
 
 #include "dmx_caps.h"
 #include "dmx_types.h"
-#include "esp_rdm.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "soc/soc_caps.h"

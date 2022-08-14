@@ -1,10 +1,10 @@
 #pragma once
 
 #include "esp_dmx.h"
-#include "esp_rdm.h"
 #include "driver/timer.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
+#include "rdm_tools.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -240,7 +240,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
         // If packet was RDM and non-broadcast expect a response
         if (rdm->cc == RDM_GET_COMMAND || rdm->cc == RDM_SET_COMMAND) {
           const uint64_t destination_uid = uidcpy(rdm->destination_uid);
-          if (destination_uid != RDM_BROADCAST_UID) {
+          if (destination_uid != DMX_BROADCAST_UID) {
             turn_bus_around = true;
           }
         } else if (rdm->cc == RDM_DISCOVERY_COMMAND) {

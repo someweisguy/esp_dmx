@@ -50,14 +50,14 @@ typedef enum {
   RDM_GET_COMMAND_RESPONSE = 0x21,  // The packet is a response to an RDM get request.
   RDM_SET_COMMAND = 0x30,  // The packet is an RDM set request.
   RDM_SET_COMMAND_RESPONSE = 0x31,  // The packet is a response to an RDM set request.
-} rdm_cc_t;
+} dmx_cc_t;
 
 typedef enum {
   RESPONSE_TYPE_ACK = 0x00,
   RESPONSE_TYPE_ACK_TIMER = 0x01,
   RESPONSE_TYPE_NACK_REASON = 0x02,
   RESPONSE_TYPE_ACK_OVERFLOW = 0x03
-} rdm_response_type_t;
+} dmx_response_type_t;
 
 typedef enum {
   DISC_UNIQUE_BRANCH = 0x0001,
@@ -67,7 +67,7 @@ typedef enum {
   PROXIED_DEVICE_COUNT = 0x0011,
   COMMS_STATUS = 0x0015,
   // TODO: Add the rest of the PIDs
-} rdm_pid_t;
+} dmx_pid_t;
 
 /**
  * @brief DMX data events reported to the user when a packet is received.
@@ -82,12 +82,12 @@ typedef struct {
     size_t tn;  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
     union {
       int port_id;  // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
-      rdm_response_type_t response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
+      dmx_response_type_t response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
     };
     size_t message_count;  // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
     int sub_device;  // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
-    rdm_cc_t cc;  // The command class (CC) specifies the action of the message. 
-    rdm_pid_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
+    dmx_cc_t cc;  // The command class (CC) specifies the action of the message. 
+    dmx_pid_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
     size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.    
   } rdm;  // A struct containing information about the received RDM packet.
 } dmx_event_t;

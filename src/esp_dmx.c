@@ -10,10 +10,10 @@
 #include "endian.h"
 #include "esp_check.h"
 #include "esp_log.h"
-#include "esp_rdm.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 #include "impl/intr_handlers.h"
+#include "rdm_tools.h"
 
 #define DMX_UART_FULL_DEFAULT  (1)  // The default value for the RX FIFO full interrupt threshold.
 #define DMX_UART_EMPTY_DEFAULT (8)  // The default value for the TX FIFO empty interrupt threshold.
@@ -398,7 +398,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (!received_packet) {
     // Determine if a fail-quick timeout must be set
     uint32_t timeout = 0;
-    if (sent_previous && previous_uid != RDM_BROADCAST_UID &&
+    if (sent_previous && previous_uid != DMX_BROADCAST_UID &&
         (previous_type == RDM_GET_COMMAND || previous_type == RDM_SET_COMMAND ||
          previous_type == RDM_DISCOVERY_COMMAND)) {
       timeout = RDM_RESPONSE_LOST_TIMEOUT;
@@ -516,7 +516,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   if (driver->data.sent_previous) {
     if (driver->data.previous_type == RDM_DISCOVERY_COMMAND) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
-    } else if (driver->data.previous_uid != RDM_BROADCAST_UID) {
+    } else if (driver->data.previous_uid != DMX_BROADCAST_UID) {
       timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
     } else {
       timeout = RDM_BROADCAST_PACKET_SPACING;
@@ -565,7 +565,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     driver->data.previous_uid = uidcpy(rdm->destination_uid);
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
     driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
-    driver->data.previous_uid = RDM_BROADCAST_UID;
+    driver->data.previous_uid = DMX_BROADCAST_UID;
   } else {
     driver->data.previous_type = DMX_NON_RDM_PACKET;
     driver->data.previous_uid = 0;
