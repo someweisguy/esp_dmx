@@ -379,6 +379,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   taskEXIT_CRITICAL(&hardware->spinlock);
 
   // Receive the latest data packet or check if the driver must wait
+  dmx_err_t err = DMX_OK;
   uint32_t packet_size = 0;
   taskENTER_CRITICAL(&hardware->spinlock);
   if (!driver->received_packet) {
@@ -386,6 +387,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   } else {
     // A packet has already been received
     packet_size = driver->data.head;
+    err = driver->data.err;
   }
   const bool received_packet = driver->received_packet;
   const bool sent_previous = driver->data.sent_previous;
@@ -428,61 +430,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     // Wait for a task notification
     xTaskNotifyWait(0, ULONG_MAX, &packet_size, ticks_to_wait);
     driver->task_waiting = NULL;
+    err = driver->data.err;
   }
 
   // Process DMX packet data
-  if (packet_size > 0 && event != NULL) {
+  if (packet_size > 0 && err == DMX_OK && event != NULL) {
     taskENTER_CRITICAL(&hardware->spinlock);
-    event->size = packet_size;
-    event->err = driver->data.err;
-    const int previous_type = driver->data.previous_type;
+    dmx_parse_rdm(driver->data.buffer, packet_size, event);
     taskEXIT_CRITICAL(&hardware->spinlock);
-    event->is_rdm = previous_type ? true : false;
-
-    if (event->is_rdm && event->err == DMX_OK) {
-      event->rdm.response_type = previous_type;
-      if (previous_type == DMX_DISCOVERY_COMMAND_RESPONSE) {
-        taskENTER_CRITICAL(&hardware->spinlock);
-        // Find the length of the discovery response preamble (0-7 bytes)
-        int preamble_len = 0;
-        for (; preamble_len < 7; ++preamble_len) {
-          if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
-            break;
-          }
-        }
-        // TODO: this check should occur only within a function
-        // if (driver->data.buffer[preamble_len] != RDM_DELIMITER) {
-        //   return false;  // Not a valid discovery response
-        // }
-
-        // Decode the 6-byte UID and get the packet sum
-        uint64_t uid = 0;
-        uint16_t sum = 0;
-        const uint8_t *response = &driver->data.buffer[preamble_len + 1];
-        for (int i = 5, j = 0; i >= 0; --i, j += 2) {
-          ((uint8_t *)&uid)[i] = response[j] & 0x55;
-          ((uint8_t *)&uid)[i] |= response[j + 1] & 0xaa;
-          sum += ((uint8_t *)&uid)[i] + 0xff;
-        }
-
-        // Decode the checksum received in the response
-        uint16_t checksum;
-        for (int i = 1, j = 12; i >= 0; --i, j += 2) {
-          ((uint8_t *)&checksum)[i] = response[j] & 0x55;
-          ((uint8_t *)&checksum)[i] |= response[j + 1] & 0xaa;
-        }
-        taskEXIT_CRITICAL(&hardware->spinlock);
-
-        // Pass the parsed data back to the caller
-        event->rdm.source_uid = uid;
-        if (sum != checksum) {
-          event->err = DMX_ERR_INVALID_CHECKSUM;
-        }
-      } else {
-        ESP_LOGE(TAG, "Received standard RDM request"); // FIXME: Stub
-      }
-
-    }
   }
 
   // Give the mutex back and return
