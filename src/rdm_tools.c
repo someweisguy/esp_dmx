@@ -6,6 +6,12 @@
 #include "endian.h"
 #include "esp_system.h"
 
+/**
+ * @brief This is the RDM Manufacturer ID that was registered with ESTA for this 
+ * use with this software. Any device that uses this ID is associated with this
+ * library. Users of this library are welcome to use this manufacturer ID or may
+ * choose to register their own manufacturer ID.
+ */
 #define DMX_DEFAULT_MANUFACTURER_ID (0x05e0)
 
 static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
