@@ -32,7 +32,7 @@ void dmx_set_uid(uint64_t uid) {
   rdm_uid = uid;
 }
 
-bool dmx_parse_rdm(void *data, size_t size, dmx_event_t *event) {
+bool dmx_parse_rdm(void *data, size_t size, rdm_event_t *event) {
 
   const rdm_data_t *const rdm = (rdm_data_t *)data;
   
@@ -46,7 +46,6 @@ bool dmx_parse_rdm(void *data, size_t size, dmx_event_t *event) {
       }
     }
     if (response[preamble_len] != RDM_DELIMITER || size < preamble_len + 17) {
-      event->is_rdm = false;
       return false;  // Not a valid discovery response
     }
 
@@ -68,17 +67,14 @@ bool dmx_parse_rdm(void *data, size_t size, dmx_event_t *event) {
     }
 
     // Return DMX data to the caller
-    event->is_rdm = true;
-    event->rdm.source_uid = uid;
-    event->err = sum == checksum ? DMX_OK : DMX_ERR_INVALID_CHECKSUM;
+    event->source_uid = uid;
+    event->checksum_is_valid = (sum == checksum);
+    return true;
 
   } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
              rdm->message_len >= size) {
     // TODO:
-  } else {
-    event->is_rdm = false;
-    return false;
   }
 
-  return true;
+  return false;
 }

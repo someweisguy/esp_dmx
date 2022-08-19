@@ -349,7 +349,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
 }
 
 size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
-                 TickType_t ticks_to_wait) {
+                   TickType_t ticks_to_wait) {
   // TODO: Check arguments
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -436,8 +436,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   // Process DMX packet data
   if (packet_size > 0 && err == DMX_OK && event != NULL) {
     taskENTER_CRITICAL(&hardware->spinlock);
-    dmx_parse_rdm(driver->data.buffer, packet_size, event);
+    bool is_rdm = dmx_parse_rdm(driver->data.buffer, packet_size, &event->rdm);
     taskEXIT_CRITICAL(&hardware->spinlock);
+    event->size = packet_size;
+    event->is_rdm = is_rdm;
   }
 
   // Give the mutex back and return

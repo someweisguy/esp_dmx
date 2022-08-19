@@ -69,27 +69,27 @@ typedef enum {
   // TODO: Add the rest of the PIDs
 } dmx_pid_t;
 
-/**
- * @brief DMX data events reported to the user when a packet is received.
- */
 typedef struct {
-  dmx_err_t err;                          // Evaluates to true if an error occurred reading DMX data. Refer to dmx_err_t to evaluate the type of error.
-  size_t size;                            // The size of the received DMX packet in bytes.
-  bool is_rdm;                            // True if the received packet is RDM.
-  struct {
-    uint64_t destination_uid;             // The UID of the target device(s).
-    uint64_t source_uid;                  // The UID of the device originating this packet.
-    size_t tn;                            // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
-    union {
-      int port_id;                        // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
-      dmx_response_type_t response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
-    };
-    size_t message_count;                 // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
-    int sub_device;                       // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
-    dmx_cc_t cc;                          // The command class (CC) specifies the action of the message. 
-    dmx_pid_t pid;                        // The parameter ID (PID) identifies a specific type of parameter data.
-    size_t pdl;                           // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.    
-  } rdm;                                  // A struct containing information about the received RDM packet.
+  uint64_t destination_uid;             // The UID of the target device(s).
+  uint64_t source_uid;                  // The UID of the device originating this packet.
+  size_t tn;                            // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
+  union {
+    int port_id;                        // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
+    dmx_response_type_t response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
+  };
+  size_t message_count;                 // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
+  int sub_device;                       // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
+  dmx_cc_t cc;                          // The command class (CC) specifies the action of the message.
+  dmx_pid_t pid;                        // The parameter ID (PID) identifies a specific type of parameter data.
+  size_t pdl;                           // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
+  bool checksum_is_valid;               // True if the RDM checksum is valid.
+} rdm_event_t;
+
+typedef struct {
+  dmx_err_t err;    // Evaluates to true if an error occurred reading DMX data. Refer to dmx_err_t to evaluate the type of error.
+  size_t size;      // The size of the received DMX packet in bytes.
+  bool is_rdm;      // True if the received packet is RDM.
+  rdm_event_t rdm;  // An RDM event struct.
 } dmx_event_t;
 
 /**
