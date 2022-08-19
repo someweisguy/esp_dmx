@@ -143,7 +143,7 @@ IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
   uart_ll_set_rts_active_level(hal->dev, set);
 }
 
-IRAM_ATTR bool dmx_hal_get_rts(uart_hal_context_t *hal) {
+bool dmx_hal_get_rts(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->conf0.sw_rts;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
