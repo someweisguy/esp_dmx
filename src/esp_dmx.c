@@ -152,7 +152,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, uint16_t buffer_size,
 #else
     const int alloc_size = buffer_size * 2;
 #endif
-    p_dmx_obj[dmx_num]->buffer[0] = malloc(sizeof(uint8_t) * alloc_size);
+    p_dmx_obj[dmx_num]->buffer[0] = heap_caps_malloc(alloc_size, 
+      MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     if (p_dmx_obj[dmx_num]->buffer[0] == NULL) {
       ESP_LOGE(TAG, "DMX driver buffer malloc error");
       dmx_driver_delete(dmx_num);
