@@ -1,3 +1,15 @@
+/**
+ * @file dmx_hal.h
+ * @author Mitch Weisbrod
+ * @brief This file is the Hardware Abstraction Layer (HAL) of esp_dmx. It
+ * contains low-level functions to perform tasks relating to the ESP32 UART
+ * hardware. Many of these functions are labelled with IRAM_ATTR to place them
+ * in Instruction RAM memory. This is done to every function that is called from
+ * the DMX interrupt service routines. Functions labelled with IRAM_ATTR must 
+ * not call any functions that are not also labelled with IRAM_ATTR nor are not
+ * inlined. Doing so will cause the ESP32 to crash when the DMX interrupt
+ * service routines are called while the ESP32 cache is also disabled.
+ */
 #pragma once
 
 #include "hal/uart_hal.h"
@@ -5,15 +17,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* Some of these functions are marked with IRAM_ATTR to place them in IRAM.
-Any function here that is used in the DMX ISR must be placed in IRAM, or
-cache miss crashes will (randomly) occur. In ESP-IDF v4.4.1, HAL functions in
-the UART ISR are either built in a separate source file that is specifically
-placed in IRAM or the functions are #defines instead of actual functions. I'm
-not a big fan of the "#defines as functions" design pattern, so every function
-defined in this file is an actual function. If the function is used in the DMX
-ISR, it shall be declared an IRAM_ATTR. */
 
 /**
  * @brief The the interrupt status mask from the UART.
