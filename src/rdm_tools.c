@@ -6,7 +6,7 @@
 #include "endian.h"
 #include "esp_system.h"
 
-#define DMX_DEFAULT_MANUFACTURER_ID (0xbeef)  // TODO: Use real manufactuer ID
+#define DMX_DEFAULT_MANUFACTURER_ID (0x05e0)
 
 static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
