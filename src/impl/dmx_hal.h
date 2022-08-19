@@ -21,8 +21,8 @@ ISR, it shall be declared an IRAM_ATTR. */
  * @param hal Pointer to a UART HAL context.
  * @return The interrupt status mask.
  */
-uint32_t dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
-  return uart_hal_get_intsts_mask(hal);
+IRAM_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
+  return uart_ll_get_intsts_mask(hal->dev);
 }
 
 /**
@@ -31,8 +31,8 @@ uint32_t dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
  * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is enabled.
  */
-void dmx_hal_enable_interrupt(uart_hal_context_t *hal, uint32_t mask) {
-  uart_hal_ena_intr_mask(hal, mask);
+IRAM_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
+  uart_ll_ena_intr_mask(hal->dev, mask);
 }
 
 /**
@@ -41,8 +41,8 @@ void dmx_hal_enable_interrupt(uart_hal_context_t *hal, uint32_t mask) {
  * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is disabled.
  */
-void dmx_hal_disable_interrupt(uart_hal_context_t *hal, uint32_t mask) {
-  uart_hal_disable_intr_mask(hal, mask);
+IRAM_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
+  uart_ll_disable_intr_mask(hal->dev, mask);
 }
 
 /**
@@ -51,8 +51,8 @@ void dmx_hal_disable_interrupt(uart_hal_context_t *hal, uint32_t mask) {
  * @param hal Pointer to a UART HAL context.
  * @param mask The UART mask that is cleared.
  */
-void dmx_hal_clear_interrupt(uart_hal_context_t *hal, uint32_t mask) {
-  uart_hal_clr_intsts_mask(hal, mask);
+IRAM_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
+  uart_ll_clr_intsts_mask(hal->dev, mask);
 }
 
 /**
@@ -62,7 +62,7 @@ void dmx_hal_clear_interrupt(uart_hal_context_t *hal, uint32_t mask) {
  * @return Number of bytes in the rx FIFO
  */
 IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
-  return uart_hal_get_rxfifo_len(hal);
+  return uart_ll_get_rxfifo_len(hal->dev);
 }
 
 /**
@@ -140,7 +140,7 @@ IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
  * line (set high; write).
  */
 IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
-  uart_hal_set_rts(hal, set);
+  uart_ll_set_rts_active_level(hal->dev, set);
 }
 
 IRAM_ATTR bool dmx_hal_get_rts(uart_hal_context_t *hal) {
@@ -202,7 +202,7 @@ void dmx_hal_set_baud_rate(uart_hal_context_t *hal, uint32_t baud_rate) {
  * @param hal Pointer to a UART HAL context.
  * @return The baud rate of the UART hardware.
  */
-IRAM_ATTR uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
+uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
   uint32_t baud_rate;
   uart_hal_get_baudrate(hal, &baud_rate);
   return baud_rate;
@@ -213,12 +213,11 @@ IRAM_ATTR uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
  * RX timeout interrupt.
  *
  * @param hal Pointer to a UART HAL context.
- * @param rx_timeout_threshold The RX timeout duration (unit: time of sending
+ * @param threshold The RX timeout duration (unit: time of sending
  * one byte).
  */
-IRAM_ATTR void dmx_hal_set_rx_timeout_threshold(
-    uart_hal_context_t *hal, const uint8_t rx_timeout_threshold) {
-  uart_hal_set_rx_timeout(hal, rx_timeout_threshold);
+void dmx_hal_set_rx_timeout_threshold(uart_hal_context_t *hal, uint8_t threshold) {
+  uart_hal_set_rx_timeout(hal, threshold);
 }
 
 /**
@@ -229,9 +228,8 @@ IRAM_ATTR void dmx_hal_set_rx_timeout_threshold(
  * @param rxfifo_full_threshold The number of bytes needed to trigger an RX FIFO
  * full interrupt.
  */
-IRAM_ATTR void dmx_hal_set_rxfifo_full_threshold(
-    uart_hal_context_t *hal, uint8_t rxfifo_full_threshold) {
-  uart_hal_set_rxfifo_full_thr(hal, rxfifo_full_threshold);
+void dmx_hal_set_rxfifo_full_threshold(uart_hal_context_t *hal, uint8_t threshold) {
+  uart_hal_set_rxfifo_full_thr(hal, threshold);
 }
 
 /**
@@ -242,8 +240,7 @@ IRAM_ATTR void dmx_hal_set_rxfifo_full_threshold(
  * @param threshold The number of bytes remaining to trigger a TX FIFO empty
  * interrupt.
  */
-IRAM_ATTR void dmx_hal_set_txfifo_empty_threshold(uart_hal_context_t *hal,
-                                                  uint8_t threshold) {
+void dmx_hal_set_txfifo_empty_threshold(uart_hal_context_t *hal, uint8_t threshold) {
   uart_hal_set_txfifo_empty_thr(hal, threshold);
 }
 
@@ -253,7 +250,7 @@ IRAM_ATTR void dmx_hal_set_txfifo_empty_threshold(uart_hal_context_t *hal,
  * @param hal Pointer to a UART HAL context.
  */
 IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
-  uart_hal_rxfifo_rst(hal);
+  uart_ll_rxfifo_rst(hal->dev);
 }
 
 /**
@@ -263,7 +260,7 @@ IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
  * @return The length of the UART TX FIFO.
  */
 IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
-  return uart_hal_get_txfifo_len(hal);
+  return uart_ll_get_txfifo_len(hal->dev);
 }
 
 // TODO: documentation
@@ -278,7 +275,7 @@ IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
 
 // TODO: documentation
 IRAM_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
-  uart_hal_txfifo_rst(hal);
+  uart_ll_txfifo_rst(hal->dev);
 }
 
 #ifdef __cplusplus
