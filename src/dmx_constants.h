@@ -7,13 +7,38 @@ extern "C" {
 #endif
 
 /**
+ * @brief DMX port max. Used for error checking.
+ */
+#define DMX_NUM_MAX SOC_UART_NUM
+
+/**
+ * @brief The default configuration for DMX. This macro may be used to
+ * initialize a dmx_config_t to the standard's defined typical values.
+ */
+#define DMX_DEFAULT_CONFIG \
+  { .timer_group = 0, .timer_num = 0, .intr_alloc_flags = ESP_INTR_FLAG_IRAM }
+
+/**
  * @brief UID which indicates an RDM packet is being broadcast. Responders shall
  * not respond to RDM broadcast messages.
  */
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
+enum dmx_num {
+  DMX_NUM_0,  // DMX port 0.
+  DMX_NUM_1,  // DMX port 1.
+#if DMX_NUM_MAX > 2
+  DMX_NUM_2,  // DMX port 2.
+#endif
+};
+
+enum dmx_pin {
+  // Constant for dmx_set_pin(). Indicates the pin should not be changed.
+  DMX_PIN_NO_CHANGE = -1
+};
+
 // General DMX parameters
-enum dmx_parameter_t {
+enum dmx_parameter {
   DMX_BAUD_RATE = 250000,      // The typical baud rate of DMX.
   DMX_MIN_BAUD_RATE = 245000,  // The minimum baud rate of DMX.
   DMX_MAX_BAUD_RATE = 255000,  // The maximum baud rate of DMX.
@@ -26,7 +51,7 @@ enum dmx_parameter_t {
 };
 
 // DMX Read timing parameters
-enum dmx_read_timing_t {
+enum dmx_read_timing {
   DMX_READ_TIMEOUT_US = 1250000,                                      // The DMX responder timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
   DMX_READ_TIMEOUT_TICK = pdMS_TO_TICKS(DMX_READ_TIMEOUT_US / 1000),  // The DMX responder timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
 
@@ -38,7 +63,7 @@ enum dmx_read_timing_t {
 };
 
 // DMX Write timing parameters
-enum dmx_write_timing_t {
+enum dmx_write_timing {
   DMX_WRITE_MIN_PACKET_LEN_US = 1204,     // The minimum DMX controller packet length in microseconds.
   DMX_WRITE_MAX_PACKET_LEN_US = 1000000,  // The maximum DMX controller packet length in microseconds.
 
@@ -53,7 +78,7 @@ enum dmx_write_timing_t {
 };
 
 // DMX start codes
-enum dmx_start_code_t {
+enum dmx_start_code {
   /**
    * @brief DMX default NULL start code. A NULL start code identifies subsequent
    * data slots as a block of untyped sequential 8-bit information. Packets

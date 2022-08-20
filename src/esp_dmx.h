@@ -10,28 +10,6 @@
 extern "C" {
 #endif
 
-#define DMX_NUM_MAX SOC_UART_NUM  // DMX port max. Used for error checking.
-
-enum {
-  DMX_NUM_0,  // DMX port 0.
-  DMX_NUM_1,  // DMX port 1.
-#if DMX_NUM_MAX > 2
-  DMX_NUM_2,  // DMX port 2.
-#endif
-};
-
-enum {
-  // Constant for dmx_set_pin(). Indicates the pin should not be changed.
-  DMX_PIN_NO_CHANGE = -1
-};
-
-/**
- * @brief The default configuration for DMX. This macro may be used to
- * initialize a dmx_config_t to the standard's defined typical values.
- */
-#define DMX_DEFAULT_CONFIG \
-  { .timer_group = 0, .timer_num = 0, .intr_alloc_flags = ESP_INTR_FLAG_IRAM }
-
 /// Driver Functions  #########################################################
 /**
  * @brief Install DMX driver and set the DMX to the default configuration. DMX
