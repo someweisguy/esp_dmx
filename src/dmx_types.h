@@ -86,6 +86,7 @@ typedef struct rdm_event {
 
 typedef struct dmx_event {
   dmx_err_t err;    // Evaluates to true if an error occurred reading DMX data. Refer to dmx_err_t to evaluate the type of error.
+  uint8_t sc;       // Start code of the DMX packet.
   size_t size;      // The size of the received DMX packet in bytes.
   bool is_rdm;      // True if the received packet is RDM.
   rdm_event_t rdm;  // An RDM event struct.

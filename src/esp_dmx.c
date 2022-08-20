@@ -437,6 +437,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (packet_size > 0 && err == DMX_OK && event != NULL) {
     taskENTER_CRITICAL(&hardware->spinlock);
     bool is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
+    event->sc = driver->data.buffer[0];
     taskEXIT_CRITICAL(&hardware->spinlock);
     event->size = packet_size;
     event->is_rdm = is_rdm;
