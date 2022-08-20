@@ -356,7 +356,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
     taskEXIT_CRITICAL(&hardware->spinlock);
     return 0;
   } else if (dmx_hal_get_rts(&hardware->hal) == 1) {
-    // Flip the bus to stop writes from being overwritten by new data
+    // Flip the bus to stop writes from being overwritten by incoming data
     dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
     dmx_hal_set_rts(&hardware->hal, 0);
   }
