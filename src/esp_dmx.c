@@ -530,21 +530,34 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   }
   driver->data.sent_previous = true;
 
-  // Begin sending the packet
-  taskENTER_CRITICAL(&hardware->spinlock);
-  const uint32_t break_len = driver->break_len;
-  taskEXIT_CRITICAL(&hardware->spinlock);
-  timer_set_counter_value(driver->timer_group, driver->timer_num, 0);
-  timer_set_alarm_value(driver->timer_group, driver->timer_num, break_len);
-  taskENTER_CRITICAL(&hardware->spinlock);
-  driver->is_sending = true;
-  driver->is_in_break = true;
-  driver->data.tx_size = size;
-  driver->data.head = 0;
-  dmx_hal_invert_tx(&hardware->hal, 1);
-  timer_start(driver->timer_group, driver->timer_num);
-  driver->timer_running = true;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  // Determine if a DMX break is required and send the packet
+  if (driver->data.previous_type == RDM_DISCOVERY_COMMAND_RESPONSE) {
+    // RDM discovery responses do not send a DMX break - write immediately
+    size_t write_size = driver->data.tx_size;
+    dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
+    driver->data.head += write_size;
+
+    // Enable DMX write interrupts
+    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
+  } else {
+    // Use the hardware timer to send a DMX break and mark-after-break
+    taskENTER_CRITICAL(&hardware->spinlock);
+    const uint32_t break_len = driver->break_len;
+    taskEXIT_CRITICAL(&hardware->spinlock);
+    timer_set_counter_value(driver->timer_group, driver->timer_num, 0);
+    timer_set_alarm_value(driver->timer_group, driver->timer_num, break_len);
+    
+    // Send the packet by starting the DMX break
+    taskENTER_CRITICAL(&hardware->spinlock);
+    driver->is_sending = true;
+    driver->is_in_break = true;
+    driver->data.tx_size = size;
+    driver->data.head = 0;
+    dmx_hal_invert_tx(&hardware->hal, 1);
+    timer_start(driver->timer_group, driver->timer_num);
+    driver->timer_running = true;
+    taskEXIT_CRITICAL(&hardware->spinlock);
+  }
 
   // Give the mutex back
   xSemaphoreGiveRecursive(driver->mux);
