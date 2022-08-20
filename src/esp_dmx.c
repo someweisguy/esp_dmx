@@ -354,7 +354,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   taskENTER_CRITICAL(&hardware->spinlock);
   if (driver->is_sending && driver->data.previous_type != RDM_NON_RDM_PACKET) {
     taskEXIT_CRITICAL(&hardware->spinlock);
-    return ESP_FAIL;
+    return 0;
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
@@ -483,6 +483,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     return 0;
   }
   ticks_to_wait -= xTaskGetTickCount() - start_tick;
+
 
   // Determine if an alarm needs to be set to wait until driver is ready
   uint32_t timeout = 0;
