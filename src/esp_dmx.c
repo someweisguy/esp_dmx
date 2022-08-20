@@ -517,7 +517,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
 
   // Record the outgoing packet type
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
-  if (sc == RDM_SC) {
+  if (sc == RDM_SC && driver->data.buffer[1] == RDM_SUB_SC) {
     const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
     driver->data.previous_type = rdm->cc;
     driver->data.previous_uid = uidcpy(rdm->destination_uid);
