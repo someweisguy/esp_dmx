@@ -13,7 +13,7 @@ extern "C" {
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
 // General DMX parameters
-enum {
+enum dmx_parameter_t {
   DMX_BAUD_RATE = 250000,      // The typical baud rate of DMX.
   DMX_MIN_BAUD_RATE = 245000,  // The minimum baud rate of DMX.
   DMX_MAX_BAUD_RATE = 255000,  // The maximum baud rate of DMX.
@@ -25,7 +25,7 @@ enum {
 };
 
 // DMX Read timing parameters
-enum {
+enum dmx_read_timing_t {
   DMX_READ_MIN_PACKET_LEN_US = 1196,     // The minimum DMX responder packet length in microseconds.
   DMX_READ_MAX_PACKET_LEN_US = 1250000,  // The maximum DMX responder packet length in microseconds.
 
@@ -40,7 +40,7 @@ enum {
 };
 
 // DMX Write timing parameters
-enum {
+enum dmx_write_timing_t {
   DMX_WRITE_MIN_PACKET_LEN_US = 1204,     // The minimum DMX controller packet length in microseconds.
   DMX_WRITE_MAX_PACKET_LEN_US = 1000000,  // The maximum DMX controller packet length in microseconds.
 
@@ -55,7 +55,7 @@ enum {
 };
 
 // DMX start codes
-enum {
+enum dmx_start_code_t {
   /**
    * @brief DMX default NULL start code. A NULL start code identifies subsequent
    * data slots as a block of untyped sequential 8-bit information. Packets
