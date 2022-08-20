@@ -350,11 +350,15 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
 
-  // Do not allow asynchronous writes when sending an RDM packet
   taskENTER_CRITICAL(&hardware->spinlock);
   if (driver->is_sending && driver->data.previous_type != RDM_NON_RDM_PACKET) {
+    // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&hardware->spinlock);
     return 0;
+  } else if (dmx_hal_get_rts(&hardware->hal) == 1) {
+    // Flip the bus to stop writes from being overwritten by new data
+    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&hardware->hal, 0);
   }
   taskEXIT_CRITICAL(&hardware->spinlock);
 
