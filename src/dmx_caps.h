@@ -6,6 +6,12 @@
 extern "C" {
 #endif
 
+/**
+ * @brief UID which indicates an RDM packet is being broadcast. Responders shall
+ * not respond to RDM broadcast messages.
+ */
+static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
+
 // General DMX parameters
 enum {
   DMX_BAUD_RATE = 250000,      // The typical baud rate of DMX.
