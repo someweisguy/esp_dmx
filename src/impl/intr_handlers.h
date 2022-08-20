@@ -10,29 +10,6 @@
 extern "C" {
 #endif
 
-/**
- * @brief Helper function that takes an RDM UID from a most-significant-byte
- * first buffer and copies it to least-significant-byte first endianness, which
- * is what ESP32 uses.
- *
- * @note This function looks horrible, but it is the quickest way to swap
- * endianness of a 6-byte number on the Xtensa compiler, which is important
- * because it will be used exclusively in an interrupt handler.
- *
- * @param buf A pointer to an RDM buffer.
- * @return uint64_t The properly formatted RDM UID.
- */
-FORCE_INLINE_ATTR uint64_t uidcpy(const void *buf) {
-  uint64_t val;
-  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
-  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
-  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
-  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
-  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
-  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
-  return val;
-}
-
 enum {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,  // Interrupt mask that triggers when the UART overflows.
   DMX_INTR_RX_FRAMING_ERR = (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR),  // Interrupt mask that represents a byte framing error.

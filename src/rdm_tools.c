@@ -1,5 +1,6 @@
 #include "rdm_tools.h"
 
+#include <stdint.h>
 #include <string.h>
 
 #include "dmx_caps.h"
@@ -15,6 +16,17 @@
 #define RDM_DEFAULT_MANUFACTURER_ID (0x05e0)
 
 static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
+
+inline __attribute__((always_inline)) uint64_t uidcpy(const void *buf) {
+  uint64_t val;
+  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
+  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
+  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
+  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
+  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
+  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
+  return val;
+}
 
 uint64_t rdm_get_uid() { 
   // Initialize the RDM UID
