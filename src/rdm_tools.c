@@ -8,8 +8,8 @@
 #include "esp_system.h"
 
 /**
- * @brief This is the RDM Manufacturer ID that was registered with ESTA for this 
- * use with this software. Any device that uses this ID is associated with this
+ * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
+ * with this software. Any device that uses this ID is associated with this
  * library. Users of this library are welcome to use this manufacturer ID or may
  * choose to register their own manufacturer ID.
  */
