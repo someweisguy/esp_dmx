@@ -247,24 +247,23 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   /* If this ISR is called on a positive edge and the current DMX frame is in a
   break and a negative edge condition has already occurred, then the break has
   just finished, so we can update the length of the break as well as unset the
-  rx_is_in_brk flag. If this ISR is called on a negative edge and the
+  is_in_break flag. If this ISR is called on a negative edge and the 
   mark-after-break has not been recorded while the break has been recorded,
   then we know that the mark-after-break has just completed so we should record
   its duration. */
-  // TODO
-/*
+
   if (dmx_hal_get_rx_level(&(dmx_context[driver->dmx_num].hal))) {
-    if (driver->rx.is_in_brk && driver->rx.last_neg_edge_ts > -1) {
-      driver->rx.break_len = now - driver->rx.last_neg_edge_ts;
-      driver->rx.is_in_brk = false;
+    if (driver->is_in_break && driver->sniffer.last_neg_edge_ts > -1) {
+      driver->sniffer.break_len = now - driver->sniffer.last_neg_edge_ts;
+      driver->is_in_break = false;
     }
-    driver->rx.last_pos_edge_ts = now;
+    driver->sniffer.last_pos_edge_ts = now;
   } else {
-    if (driver->rx.mab_len == -1 && driver->rx.break_len != -1)
-      driver->rx.mab_len = now - driver->rx.last_pos_edge_ts;
-    driver->rx.last_neg_edge_ts = now;
+    if (driver->sniffer.mab_len == -1 && driver->sniffer.break_len != -1)
+      driver->sniffer.mab_len = now - driver->sniffer.last_pos_edge_ts;
+    driver->sniffer.last_neg_edge_ts = now;
+    // TODO: send to queue
   }
-  */
 }
 
 static bool IRAM_ATTR dmx_timer_isr(void *arg) {
