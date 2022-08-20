@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dmx_types.h"
 #include "esp_dmx.h"
 #include "driver/timer.h"
 #include "impl/dmx_hal.h"

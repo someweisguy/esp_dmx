@@ -92,6 +92,21 @@ typedef struct {
 } dmx_event_t;
 
 /**
+ * @brief A type for evaluating RDM UIDs. Allows for easy string formatting UIDs
+ * to RDM specification.
+ */
+typedef struct __attribute__((__packed__)) {
+  uint32_t device_id;        // The device ID of the RDM device.
+  uint16_t manufacturer_id;  // The manufacturer ID of the RDM device.
+} rdm_uid_t;
+
+/**
+ * @brief UID which indicates an RDM packet is being broadcast. Responders shall
+ * not respond to RDM broadcast messages.
+ */
+static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
+
+/**
  * @brief A struct which can be used to help process raw RDM packets instead of 
  * reading slots by index alone. RDM sends data in most-significant byte first,
  * so endianness must be swapped when using values larger than 8 bits.
