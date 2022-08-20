@@ -6,9 +6,11 @@
  * hardware. Many of these functions are labelled with IRAM_ATTR to place them
  * in Instruction RAM memory. This is done to every function that is called from
  * the DMX interrupt service routines. Functions labelled with IRAM_ATTR must 
- * not call any functions that are not also labelled with IRAM_ATTR nor are not
- * inlined. Doing so will cause the ESP32 to crash when the DMX interrupt
- * service routines are called while the ESP32 cache is also disabled.
+ * not call any functions that are not also labelled with IRAM_ATTR. Functions
+ * called from IRAM HAL functions must be inlined if they are not also in IRAM.
+ * Calling non-IRAM, non-inlined functions will cause the ESP32 to crash when 
+ * the DMX interrupt service routines are called while the ESP32 cache is also 
+ * disabled.
  */
 #pragma once
 
