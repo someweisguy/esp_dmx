@@ -34,6 +34,22 @@ enum {
   RDM_RESPONSE_LOST_TIMEOUT = 2800,         // The amount of time that must pass before the RDM controller considers a discovery response packet lost. 
 };
 
+#define DMX_CONTEXT_INIT(uart_num)                                 \
+  {                                                                \
+    .hal.dev = UART_LL_GET_HW(uart_num),                           \
+    .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
+  }
+
+DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
+    DMX_CONTEXT_INIT(DMX_NUM_0),
+    DMX_CONTEXT_INIT(DMX_NUM_1),
+#if DMX_NUM_MAX > 2
+    DMX_CONTEXT_INIT(DMX_NUM_2),
+#endif
+};
+
+DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
+
 static void dmx_module_enable(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
   if (dmx_context[dmx_num].hw_enabled != true) {

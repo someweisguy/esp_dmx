@@ -11,12 +11,6 @@
 extern "C" {
 #endif
 
-#define DMX_CONTEXT_INIT(uart_num)                                 \
-  {                                                                \
-    .hal.dev = UART_LL_GET_HW(uart_num),                           \
-    .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
-  }
-
 /**
  * @brief The DMX driver object used to handle reading and writing DMX data on 
  * the UART port. It storese all the information needed to run and analyze DMX
@@ -70,15 +64,8 @@ typedef struct {
     int hw_enabled;          // True if the UART hardware has been initialized.
 } dmx_context_t;
 
-static DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
-
-static DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
-    DMX_CONTEXT_INIT(DMX_NUM_0),
-    DMX_CONTEXT_INIT(DMX_NUM_1),
-#if DMX_NUM_MAX > 2
-    DMX_CONTEXT_INIT(DMX_NUM_2),
-#endif
-};
+extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
+extern dmx_context_t dmx_context[DMX_NUM_MAX];
 
 #ifdef __cplusplus
 }
