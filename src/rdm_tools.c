@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "dmx_caps.h"
+#include "dmx_constants.h"
 #include "endian.h"
 #include "esp_system.h"
 

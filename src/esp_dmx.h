@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dmx_caps.h"
+#include "dmx_constants.h"
 #include "dmx_types.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
