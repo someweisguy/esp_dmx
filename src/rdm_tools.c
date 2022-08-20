@@ -5,7 +5,9 @@
 
 #include "dmx_constants.h"
 #include "endian.h"
+#include "esp_log.h"
 #include "esp_system.h"
+#include "impl/driver.h"
 
 /**
  * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
@@ -14,6 +16,8 @@
  * choose to register their own manufacturer ID.
  */
 #define RDM_DEFAULT_MANUFACTURER_ID (0x05e0)
+
+static const char *TAG = "rdm";
 
 static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
@@ -89,4 +93,41 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
   }
 
   return false;
+}
+
+bool rdm_send_discovery_response(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
+  // TODO: check args
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Block until the mutex can be taken and decrement timeout accordingly
+  const TickType_t start_tick = xTaskGetTickCount();
+  if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
+    return false;
+  }
+  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+
+  // Build the discovery response packet
+  uint8_t disc_response[24] = {RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
+                               RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
+                               RDM_PREAMBLE, RDM_DELIMITER};
+  const uint64_t uid = rdm_get_uid();
+  uint16_t checksum = 0;
+  for (int i = 8, j = 5; i < 20; i += 2, --j) {
+    disc_response[i] = ((uint8_t *)&uid)[j] | 0xaa;
+    disc_response[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
+    checksum += ((uint8_t *)&uid)[j] + (0xaa + 0x55);
+  }
+  disc_response[20] = (checksum >> 8) | 0xaa;
+  disc_response[21] = (checksum >> 8) | 0x55;
+  disc_response[22] = checksum | 0xaa;
+  disc_response[23] = checksum | 0x55;
+
+  // Write and send the response
+  dmx_write(dmx_num, disc_response, sizeof(disc_response));
+  const size_t sent = dmx_send(dmx_num, sizeof(disc_response), ticks_to_wait);
+
+  // Give the mutex back
+  xSemaphoreGiveRecursive(driver->mux);
+  return sent > 0;
 }

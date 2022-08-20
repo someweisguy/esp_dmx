@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "dmx_types.h"
+#include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +51,8 @@ void rdm_set_uid(uint64_t uid);
  * @return false if the data is not a valid RDM packet.
  */
 bool rdm_parse(void *data, size_t size, rdm_event_t *event);
+
+bool rdm_send_discovery_response(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
 #ifdef __cplusplus
 }

@@ -545,16 +545,21 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
     driver->data.previous_uid = 0;
   }
   driver->data.sent_previous = true;
-
+  
   // Determine if a DMX break is required and send the packet
   if (driver->data.previous_type == RDM_DISCOVERY_COMMAND_RESPONSE) {
     // RDM discovery responses do not send a DMX break - write immediately
+    taskENTER_CRITICAL(&hardware->spinlock);
+    driver->is_sending = true;
+    driver->data.tx_size = size;
+
     size_t write_size = driver->data.tx_size;
     dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
-    driver->data.head += write_size;
-
+    driver->data.head = write_size;
+    
     // Enable DMX write interrupts
     dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
+    taskEXIT_CRITICAL(&hardware->spinlock);
   } else {
     // Use the hardware timer to send a DMX break and mark-after-break
     taskENTER_CRITICAL(&hardware->spinlock);
