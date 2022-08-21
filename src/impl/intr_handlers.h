@@ -260,8 +260,9 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
     }
     driver->sniffer.last_pos_edge_ts = now;
   } else {
-    if (driver->sniffer.mab_len == -1 && driver->sniffer.break_len != -1)
+    if (driver->sniffer.mab_len == -1 && driver->sniffer.break_len != -1) {
       driver->sniffer.mab_len = now - driver->sniffer.last_pos_edge_ts;
+    }
     driver->sniffer.last_neg_edge_ts = now;
     // TODO: send to queue
   }
