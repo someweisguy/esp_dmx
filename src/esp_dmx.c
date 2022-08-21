@@ -669,12 +669,3 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   xSemaphoreGiveRecursive(driver->mux);
   return result;
 }
-
-void *memcpyswap(void *dest, const void *src, size_t n) {
-  char *chrdest = (char *)dest;
-  char *chrsrc = (char *)src + n - 1;
-  for (; (void *)chrsrc >= src; --chrsrc, chrdest++) {
-    *chrdest = *chrsrc;
-  }
-  return chrdest;
-}

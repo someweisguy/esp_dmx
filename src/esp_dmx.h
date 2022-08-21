@@ -201,9 +201,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait);
 // TODO: docs
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait);
 
-
-void *memcpyswap(void *dest, const void *src, size_t n);
-
 #ifdef __cplusplus
 }
 #endif
