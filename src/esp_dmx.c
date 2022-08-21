@@ -141,8 +141,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->data.head = DMX_MAX_PACKET_SIZE;  // Don't read before a DMX break
 
   // Initialize DMX transmit settings
-  driver->break_len = DMX_BREAK_LEN_US;
-  driver->mab_len = DMX_WRITE_MIN_MAB_LEN_US;
+  driver->break_len = RDM_BREAK_LEN_US;
+  driver->mab_len = RDM_MAB_LEN_US;
 
   // Initialize sniffer in the disabled state
   driver->sniffer.queue = NULL;
