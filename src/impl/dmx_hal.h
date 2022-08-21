@@ -163,7 +163,6 @@ bool dmx_hal_get_rts(uart_hal_context_t *hal) {
   return hal->dev->uart_conf0_reg_t.sw_rts;
 #else
 #error Unknown target hardware.
-  return 0;
 #endif
 }
 
