@@ -71,7 +71,7 @@ enum dmx_parameter {
   DMX_MIN_MAB_LEN_US = 12,      // The minimum DMX mark-after-break length in microseconds.
   DMX_MAX_MAB_LEN_US = 999999,  // The maximum DMX mark-after-break length in microseconds.
 
-  DMX_RECEIVE_TIMEOUT_TICK = pdMS_TO_TICKS(1250),  // The DMX receive timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
+  DMX_TIMEOUT_TICK = pdMS_TO_TICKS(1250),  // The DMX receive timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
 
   RDM_BREAK_LEN_US = 176,      // The typical RDM break length in microseconds.
   RDM_MIN_BREAK_LEN_US = 176,  // The minimum RDM break length in microseconds.
