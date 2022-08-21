@@ -5,11 +5,11 @@
  * contains low-level functions to perform tasks relating to the ESP32 UART
  * hardware. Many of these functions are labelled with IRAM_ATTR to place them
  * in Instruction RAM memory. This is done to every function that is called from
- * the DMX interrupt service routines. Functions labelled with IRAM_ATTR must 
+ * the DMX interrupt service routines. Functions labelled with IRAM_ATTR must
  * not call any functions that are not also labelled with IRAM_ATTR. Functions
  * called from IRAM HAL functions must be inlined if they are not also in IRAM.
- * Calling non-IRAM, non-inlined functions will cause the ESP32 to crash when 
- * the DMX interrupt service routines are called while the ESP32 cache is also 
+ * Calling non-IRAM, non-inlined functions will cause the ESP32 to crash when
+ * the DMX interrupt service routines are called while the ESP32 cache is also
  * disabled.
  */
 #pragma once
@@ -21,9 +21,9 @@ extern "C" {
 #endif
 
 /**
- * @brief The the interrupt status mask from the UART.
+ * @brief Gets the interrupt status mask from the UART.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @return The interrupt status mask.
  */
 IRAM_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
@@ -33,7 +33,7 @@ IRAM_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
 /**
  * @brief Enables UART interrupts using an interrupt mask.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is enabled.
  */
 IRAM_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
@@ -43,7 +43,7 @@ IRAM_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
 /**
  * @brief Disables UART interrupts using an interrupt mask.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is disabled.
  */
 IRAM_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
@@ -53,7 +53,7 @@ IRAM_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
 /**
  * @brief Clears UART interrupts using a mask.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is cleared.
  */
 IRAM_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
@@ -61,10 +61,10 @@ IRAM_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
 }
 
 /**
- * @brief Get the current length of the bytes in the rx FIFO.
+ * @brief Gets the current length of the bytes in the UART RX FIFO.
  *
- * @param hal Context of the HAL layer
- * @return Number of bytes in the rx FIFO
+ * @param hal A pointer to a UART HAL context.
+ * @return The number of bytes in the UART RX FIFO.
  */
 IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
   return uart_ll_get_rxfifo_len(hal->dev);
@@ -73,7 +73,7 @@ IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
 /**
  * @brief Inverts or un-inverts the TX line on the UART.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @param invert_mask 1 to invert, 0 to un-invert.
  */
 void dmx_hal_invert_tx(uart_hal_context_t *hal, uint32_t invert) {
@@ -95,20 +95,20 @@ void dmx_hal_invert_tx(uart_hal_context_t *hal, uint32_t invert) {
 }
 
 /**
- * @brief Gets the level of the rx line on the UART bus.
+ * @brief Gets the level of the UART RX line.
  *
- * @param hal Pointer to a UART HAL context.
- * @return UART rx line level.
+ * @param hal A pointer to a UART HAL context.
+ * @return The UART RX line level.
  */
 IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->status.rxd;
 // #elif defined(CONFIG_IDF_TARGET_ESP32C2)
-  // Not yet supported by ESP-IDF.
+// Not yet supported by ESP-IDF.
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   return hal->dev->status.rxd;
 // #elif defined(CONFIG_IDF_TARGET_ESP32H2)
-  // Not yet supported by ESP-IDF.
+// Not yet supported by ESP-IDF.
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   return hal->dev->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
@@ -120,13 +120,13 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 }
 
 /**
- * @brief Read the first num characters from the rxfifo.
+ * @brief Reads from the UART RX FIFO.
  *
- * @param hal Pointer to a UART HAL context.
- * @param buf Destination buffer to be read into
+ * @param hal A pointer to a UART HAL context.
+ * @param buf Destination buffer to be read into.
  * @param num The maximum number of characters to read. Set to 0 to read all
  * data.
- * @return The number of characters read
+ * @return The number of characters read.
  */
 IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
                                    size_t *size) {
@@ -140,8 +140,8 @@ IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
 /**
  * @brief Enables or disables the UART RTS line.
  *
- * @param hal Pointer to a UART HAL context.
- * @param set 1 to enable the RTS line (set low; read), 0 to disable the RTS 
+ * @param hal A pointer to a UART HAL context.
+ * @param set 1 to enable the RTS line (set low; read), 0 to disable the RTS
  * line (set high; write).
  */
 IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
@@ -167,9 +167,9 @@ bool dmx_hal_get_rts(uart_hal_context_t *hal) {
 }
 
 /**
- * @brief Initializes the UART for DMX mode.
+ * @brief Initializes the UART for DMX.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  */
 void dmx_hal_init(uart_hal_context_t *hal) {
   uart_ll_set_sclk(hal->dev, UART_SCLK_APB);
@@ -193,7 +193,7 @@ void dmx_hal_init(uart_hal_context_t *hal) {
 /**
  * @brief Sets the baud rate for the UART.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @param baud_rate The baud rate to use.
  */
 void dmx_hal_set_baud_rate(uart_hal_context_t *hal, uint32_t baud_rate) {
@@ -201,9 +201,9 @@ void dmx_hal_set_baud_rate(uart_hal_context_t *hal, uint32_t baud_rate) {
 }
 
 /**
- * @brief Get the UART baud rate of the selected UART hardware.
+ * @brief Gets the UART baud rate of the selected UART hardware.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @return The baud rate of the UART hardware.
  */
 uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
@@ -213,12 +213,11 @@ uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
 }
 
 /**
- * @brief Set the duration for the UART RX inactivity timeout that triggers the
+ * @brief Sets the duration for the UART RX inactivity timeout that triggers the
  * RX timeout interrupt.
  *
- * @param hal Pointer to a UART HAL context.
- * @param threshold The RX timeout duration (unit: time of sending
- * one byte).
+ * @param hal A pointer to a UART HAL context.
+ * @param threshold The RX timeout duration (unit: time of sending one byte).
  */
 void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, uint8_t threshold) {
   uart_hal_set_rx_timeout(hal, threshold);
@@ -228,9 +227,9 @@ void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, uint8_t threshold) {
  * @brief Sets the number of bytes that the UART must receive to trigger a RX
  * FIFO full interrupt.
  *
- * @param hal Pointer to a UART HAL context.
- * @param rxfifo_full_threshold The number of bytes needed to trigger an RX FIFO
- * full interrupt.
+ * @param hal A pointer to a UART HAL context.
+ * @param threshold The number of bytes needed to trigger an RX FIFO full
+ * interrupt.
  */
 void dmx_hal_set_rxfifo_full(uart_hal_context_t *hal, uint8_t threshold) {
   uart_hal_set_rxfifo_full_thr(hal, threshold);
@@ -240,7 +239,7 @@ void dmx_hal_set_rxfifo_full(uart_hal_context_t *hal, uint8_t threshold) {
  * @brief Sets the number of bytes that the UART TX FIFO must have remaining in
  * it to trigger a TX FIFO empty interrupt.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @param threshold The number of bytes remaining to trigger a TX FIFO empty
  * interrupt.
  */
@@ -251,23 +250,29 @@ void dmx_hal_set_txfifo_empty(uart_hal_context_t *hal, uint8_t threshold) {
 /**
  * @brief Resets the UART RX FIFO.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  */
 IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
   uart_ll_rxfifo_rst(hal->dev);
 }
 
 /**
- * @brief Get the length of the UART TX FIFO.
+ * @brief Gets the length of the UART TX FIFO.
  *
- * @param hal Pointer to a UART HAL context.
+ * @param hal A pointer to a UART HAL context.
  * @return The length of the UART TX FIFO.
  */
 IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
   return uart_ll_get_txfifo_len(hal->dev);
 }
 
-// TODO: documentation
+/**
+ * @brief Writes to the UART TX FIFO.
+ *
+ * @param hal A pointer to a UART HAL context.
+ * @param buf The source buffer from which to write.
+ * @param size The number of bytes to write.
+ */
 IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
                                     size_t *size) {
   const size_t txfifo_len = uart_ll_get_txfifo_len(hal->dev);
@@ -277,7 +282,11 @@ IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
   uart_ll_write_txfifo(hal->dev, buf, *size);
 }
 
-// TODO: documentation
+/**
+ * @brief Resets the UART TX FIFO.
+ *
+ * @param hal A pointer to a UART HAL context.
+ */
 IRAM_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
   uart_ll_txfifo_rst(hal->dev);
 }
