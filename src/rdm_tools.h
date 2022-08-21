@@ -12,6 +12,21 @@ extern "C" {
 #endif
 
 /**
+ * @brief The recommended method for representing the UID in text by separating
+ * the manufacturer ID and the device ID. For use with printf-like functions.
+ */
+#define UIDSTR "%04x:%08x"
+
+/**
+ * @brief Used to generate arguments for the UIDSTR macro for representing the
+ * UID in text by separating the manufacturer ID and device ID. For use with
+ * printf-like functions.
+ */
+#define UID2STR(uid) \
+  ((rdm_uid_t *)(&uid))->manufacturer_id, ((rdm_uid_t *)(&uid))->device_id
+
+
+/**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
  * first buffer and copies it to least-significant-byte first endianness, which
  * is what ESP32 uses.
