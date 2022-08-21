@@ -451,14 +451,18 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
     return 0;
   }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  if (ticks_to_wait != portMAX_DELAY) {
+    ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  }
 
   // Ensure the driver isn't sending and decrement timeout accordingly
   start_tick = xTaskGetTickCount();
   if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
     return 0;
   }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  if (ticks_to_wait != portMAX_DELAY) {
+    ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  }
 
   // Set the RTS pin to read from the DMX bus
   taskENTER_CRITICAL(&hardware->spinlock);
@@ -550,14 +554,18 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
     return 0;
   }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  if (ticks_to_wait != portMAX_DELAY) {
+    ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  }
 
   // Ensure the driver isn't sending and decrement timeout accordingly
   start_tick = xTaskGetTickCount();
   if (!dmx_wait_sent(dmx_num, ticks_to_wait)) {
     return 0;
   }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  if (ticks_to_wait != portMAX_DELAY) {
+    ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  }
 
 
   // Determine if an alarm needs to be set to wait until driver is ready
@@ -672,7 +680,9 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t ticks_to_wait) {
   if (!xSemaphoreTakeRecursive(driver->mux, ticks_to_wait)) {
     return false;
   }
-  ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  if (ticks_to_wait != portMAX_DELAY) {
+    ticks_to_wait -= xTaskGetTickCount() - start_tick;
+  }
 
   // Determine if the task needs to block
   bool result = true;
