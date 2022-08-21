@@ -299,73 +299,97 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
 }
 
 /// Transmit Configuration  ###################################################
-esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
+size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate) {
   // TODO: check args
-  // TODO: check that the new baud_rate is within DMX specification
+  
+  // Clamp the baud rate to within DMX specification
+  if (baud_rate < DMX_MIN_BAUD_RATE) {
+    baud_rate = DMX_MIN_BAUD_RATE;
+  } else if (baud_rate > DMX_MAX_BAUD_RATE) {
+    baud_rate = DMX_MAX_BAUD_RATE;
+  }
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
+
   taskENTER_CRITICAL(&hardware->spinlock);
   dmx_hal_set_baud_rate(&hardware->hal, baud_rate);
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  return ESP_OK;
+  return baud_rate;
 }
 
-esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate) {
+size_t dmx_get_baud_rate(dmx_port_t dmx_num) {
   // TODO: Check args
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
+
   taskENTER_CRITICAL(&hardware->spinlock);
-  *baud_rate = dmx_hal_get_baud_rate(&hardware->hal);
+  const size_t baud_rate = dmx_hal_get_baud_rate(&hardware->hal);
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  return ESP_OK;
+  return baud_rate;
 }
 
-esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
+size_t dmx_set_break_len(dmx_port_t dmx_num, size_t break_len) {
   // TODO: check args
-  // TODO: ensure break_len is within DMX spec
+  
+  // Clamp the break length to within DMX specification
+  if (break_len < DMX_MIN_BREAK_LEN_US) {
+    break_len = DMX_MIN_BREAK_LEN_US;
+  } else if (break_len > DMX_MAX_BREAK_LEN_US) {
+    break_len = DMX_MAX_BREAK_LEN_US;
+  }
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
+
   taskENTER_CRITICAL(&hardware->spinlock);
   dmx_driver[dmx_num]->break_len = break_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  return ESP_OK;
+  return break_len;
 }
 
-esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len) {
+size_t dmx_get_break_len(dmx_port_t dmx_num) {
   // TODO: check args
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
+
   taskENTER_CRITICAL(&hardware->spinlock);
-  *break_len = dmx_driver[dmx_num]->break_len;
+  const size_t break_len = dmx_driver[dmx_num]->break_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  return ESP_OK;
+  return break_len;
 }
 
-esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
+size_t dmx_set_mab_len(dmx_port_t dmx_num, size_t mab_len) {
   // TODO: check args
-  // TODO: ensure mab_len is within DMX spec
+  
+  // Clamp the mark-after-break length to within DMX specification
+  if (mab_len < DMX_MIN_MAB_LEN_US) {
+    mab_len = DMX_MIN_MAB_LEN_US;
+  } else if (mab_len > DMX_MAX_MAB_LEN_US) {
+    mab_len = DMX_MAX_MAB_LEN_US;
+  }
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
+
   taskENTER_CRITICAL(&hardware->spinlock);
   dmx_driver[dmx_num]->mab_len = mab_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  return ESP_OK;
+  return mab_len;
 }
 
-esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len) {
+size_t dmx_get_mab_len(dmx_port_t dmx_num) {
   // TODO: check args
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
+
   taskENTER_CRITICAL(&hardware->spinlock);
-  *mab_len = dmx_driver[dmx_num]->mab_len;
+  const size_t mab_len = dmx_driver[dmx_num]->mab_len;
   taskEXIT_CRITICAL(&hardware->spinlock);
 
-  return ESP_OK;
+  return mab_len;
 }
 
 /// Read/Write  ###############################################################

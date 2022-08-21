@@ -104,85 +104,77 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
                       int rts_io_num);
 
 /**
- * @brief Set the DMX baud rate.
- *
- * @note The baud rate must be within DMX specification. The lowest value is
- * DMX_MIN_BAUD_RATE and the highest value is DMX_MAX_BAUD_RATE (inclusive). The
- * macro DMX_BAUD_RATE_IS_VALID() may be used to check if a baud rate is to DMX
- * specification.
+ * @brief Set the DMX baud rate. The baud rate will be clamped to DMX 
+ * specification. If the input baud rate is lower than DMX_MIN_BAUD_RATE it will
+ * be set to DMX_MIN_BAUD_RATE. If the input baud rate is higher than 
+ * DMX_MAX_BAUD_RATE it will be set to DMX_MAX_BAUD_RATE.
  *
  * @param dmx_num The DMX port number.
- * @param baud_rate The baud rate to set the DMX port to.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @param baud_rate The baud rate to which to set the DMX driver.
+ * @return the value that the baud rate was set to or 0 on error.
  */
-esp_err_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate);
+size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate);
 
 /**
  * @brief Get the DMX baud rate.
  *
  * @param dmx_num The DMX port number.
- * @param[out] baud_rate The baud rate returned from the DMX configuration.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @return the current baud rate or 0 on error.
  */
-esp_err_t dmx_get_baud_rate(dmx_port_t dmx_num, uint32_t *baud_rate);
+size_t dmx_get_baud_rate(dmx_port_t dmx_num);
 
 /**
- * @brief Set the DMX break length.
- *
- * @note The break length must be within DMX specification. The lowest value is
- * DMX_TX_MIN_SPACE_FOR_BRK_US. The macro DMX_TX_BRK_DURATION_IS_VALID() may be
- * used to check if a break length is to DMX specification. It should also be
- * noted that there are different timing requirements depending on whether the
- * DMX devices acts as a transmitter or receiver. When checking whether a
- * received break length is valid, use DMX_RX_BRK_DURATION_IS_VALID() instead.
+ * @brief Set the DMX break length in microseconds. The break length will be 
+ * clamped to DMX specification. If the input break length is lower than 
+ * DMX_MIN_BREAK_LEN_US it will be set to DMX_MIN_BREAK_LEN_US. If the input
+ * break length is higher than DMX_MAX_BREAK_LEN_US it will be set to 
+ * DMX_MAX_BREAK_LEN_US.
+ * 
+ * @note The DMX break length specification is not the same as the RDM break
+ * length specification. It is possible to use this function to set the DMX 
+ * break length so that RDM is unusable. This function should be used carefully
+ * to ensure correct RDM functionality!
  *
  * @param dmx_num The DMX port number.
  * @param break_num The length in microseconds of the DMX break.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @return the value that the DMX break length was set to or 0 on error.
  */
-esp_err_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len);
+size_t dmx_set_break_len(dmx_port_t dmx_num, size_t break_len);
 
 /**
- * @brief Get the DMX break length.
+ * @brief Get the DMX break length in microseconds.
  *
  * @param dmx_num The DMX port number.
- * @param[out] break_num The length in microseconds of the DMX break.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @return the current DMX break length or 0 on error.
  */
-esp_err_t dmx_get_break_len(dmx_port_t dmx_num, uint32_t *break_len);
+size_t dmx_get_break_len(dmx_port_t dmx_num);
 
 /**
- * @brief Set the DMX mark-after-break length.
- *
- * @note The mark-after-break length must be within DMX specification. The
- * lowest value is DMX_TX_MIN_MRK_AFTER_BRK_US and the highest value is
- * DMX_TX_MAX_MRK_AFTER_BRK_US (inclusive). The macro
- * DMX_TX_MAB_DURATION_IS_VALID() may be used to check if a mark-after-break
- * length is to DMX specification. It should also be noted that there are
- * different timing requirements depending on whether the DMX
- * devices acts as a transmitter or receiver. When checking whether a received
- * mark-after-break length is valid, use DMX_RX_MAB_DURATION_IS_VALID() instead.
+ * @brief Set the DMX mark-after-break length in microseconds. The 
+ * mark-after-break length will be clamped to DMX specification. If the input 
+ * mark-after-break length is lower than DMX_MIN_MAB_LEN_US it will be set to 
+ * DMX_MIN_MAB_LEN_US. If the input mark-after-break length is higher than 
+ * DMX_MAX_MAB_LEN_US it will be set to DMX_MAX_MAB_LEN_US.
+ * 
+ * @note The DMX mark-after-break length specification is not the same as the 
+ * RDM mark-after-break length specification. It is possible to use this 
+ * function to set the DMX mark-after-break length so that RDM is unusable. This
+ * function should be used carefully to ensure correct RDM functionality!
  *
  * @param dmx_num The DMX port number.
- * @param break_num The length in microseconds of the DMX mark-after-break.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @param mab_len The length in microseconds of the DMX mark-after-break.
+ * @return the value that the DMX mark-after-break length was set to or 0 on 
+ * error.
  */
-esp_err_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
+size_t dmx_set_mab_len(dmx_port_t dmx_num, size_t mab_len);
 
 /**
- * @brief Get the DMX mark-after-break length.
+ * @brief Get the DMX mark-after-break length in microseconds.
  *
  * @param dmx_num The DMX port number.
- * @param[out] break_num The length in microseconds of the DMX mark-after-break.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @return the current DMX mark-after-break length or 0 on error.
  */
-esp_err_t dmx_get_mab_len(dmx_port_t dmx_num, uint32_t *mab_len);
+size_t dmx_get_mab_len(dmx_port_t dmx_num);
 
 /// Read/Write  ###############################################################
 // TODO: docs
