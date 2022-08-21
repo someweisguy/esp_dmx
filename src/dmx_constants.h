@@ -242,7 +242,6 @@ enum dmx_start_code {
 #define DMX_BAUD_RATE_IS_VALID(baud) \
   (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
 
-// TODO: Should the below macros test on RDM timing values or DMX?
 /**
  * @brief Evaluates to true if the received break duration is within DMX
  * specification.
@@ -256,6 +255,18 @@ enum dmx_start_code {
  */
 #define DMX_MAB_LEN_IS_VALID(mab) \
   (mab >= DMX_WRITE_MIN_MAB_LEN_US && mab <= DMX_WRITE_MAX_MAB_LEN_US)
+
+// TODO: docs
+#define RDM_BAUD_RATE_IS_VALID(baud) \
+  (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
+
+// TODO: docs
+#define RDM_BREAK_LEN_IS_VALID(brk) \
+  (brk >= RDM_MIN_BREAK_LEN_US && brk <= RDM_MAX_BREAK_LEN_US)
+
+// TODO: docs
+#define RDM_MAB_LEN_IS_VALID(mab) \
+  (mab >= RDM_MIN_MAB_LEN_US && mab <= RDM_MAX_MAB_LEN_US)
 
 #ifdef __cplusplus
 }
