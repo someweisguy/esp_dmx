@@ -545,6 +545,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
 size_t dmx_send(dmx_port_t dmx_num, size_t size, TickType_t ticks_to_wait) {
   // TODO: Check arguments
+
+  // Clamp size to the maximum DMX packet size
+  if (size > DMX_MAX_PACKET_SIZE) {
+    size = DMX_MAX_PACKET_SIZE;
+  }
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
