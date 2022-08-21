@@ -1,3 +1,9 @@
+/**
+ * @file dmx_constants.h
+ * @author Mitch Weisbrod
+ * @brief This file contains constants used in DMX and RDM. It also contains
+ * macros for checking DMX and RDM timing constraints.
+ */
 #pragma once
 
 #include "freertos/FreeRTOS.h"
