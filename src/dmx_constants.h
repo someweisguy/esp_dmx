@@ -50,7 +50,7 @@ enum dmx_parameter {
   DMX_MAX_BAUD_RATE = 255000,  // The maximum baud rate of DMX.
 
   DMX_BREAK_LEN_US = 176,  // The typical break length of DMX in microseconds.
-  DMX_MAB_LEN_US = 21,     // The typical mark-after-break length of DMX in microseconds.
+  DMX_MAB_LEN_US = 12,     // The typical mark-after-break length of DMX in microseconds.
 
   DMX_PACKET_SIZE = 513,     // The typical packet size of DMX.
   DMX_MAX_PACKET_SIZE = 513  // The maximum packet size of DMX.
