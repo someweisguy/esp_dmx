@@ -395,7 +395,11 @@ size_t dmx_get_mab_len(dmx_port_t dmx_num) {
 /// Read/Write  ###############################################################
 size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
   // TODO: Check arguments
-  // TODO: clamp size
+  
+  // Clamp size to the maximum DMX packet size
+  if (size > DMX_MAX_PACKET_SIZE) {
+    size = DMX_MAX_PACKET_SIZE;
+  }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -407,7 +411,12 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
 
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   // TODO: check args
-  // TODO: clamp size
+  
+  
+  // Clamp size to the maximum DMX packet size
+  if (size > DMX_MAX_PACKET_SIZE) {
+    size = DMX_MAX_PACKET_SIZE;
+  }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const hardware = &dmx_context[dmx_num];
