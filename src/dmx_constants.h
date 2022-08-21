@@ -39,11 +39,12 @@ enum dmx_num {
 };
 
 enum dmx_pin {
-  // Constant for dmx_set_pin(). Indicates the pin should not be changed.
+  /**
+   * @brief Constant for dmx_set_pin(). Indicates the pin should not be changed.
+   */
   DMX_PIN_NO_CHANGE = -1
 };
 
-// General DMX parameters
 enum dmx_parameter {
   DMX_BAUD_RATE = 250000,      // The typical baud rate of DMX.
   DMX_MIN_BAUD_RATE = 245000,  // The minimum baud rate of DMX.
@@ -56,7 +57,6 @@ enum dmx_parameter {
   DMX_MAX_PACKET_SIZE = 513  // The maximum packet size of DMX.
 };
 
-// DMX Read timing parameters
 enum dmx_read_timing {
   DMX_READ_TIMEOUT_US = 1250000,                                      // The DMX responder timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
   DMX_READ_TIMEOUT_TICK = pdMS_TO_TICKS(DMX_READ_TIMEOUT_US / 1000),  // The DMX responder timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
@@ -68,7 +68,6 @@ enum dmx_read_timing {
   DMX_READ_MAX_MAB_LEN_US = 999999,  // The maximum DMX responder mark-after-break length in microseconds.
 };
 
-// DMX Write timing parameters
 enum dmx_write_timing {
   DMX_WRITE_TIMEOUT_US = 1000000,                                       // The DMX controller timeout length in microseconds. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
   DMX_WRITE_TIMEOUT_TICK = pdMS_TO_TICKS(DMX_WRITE_TIMEOUT_US / 1000),  // The DMX controller timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
@@ -81,11 +80,11 @@ enum dmx_write_timing {
 };
 
 enum rdm_timing {
-  RDM_MIN_BREAK_LEN_US = 176,
-  RDM_MAX_BREAK_LEN_US = 352,
+  RDM_MIN_BREAK_LEN_US = 176,  // The minimum RDM break length in microseconds.
+  RDM_MAX_BREAK_LEN_US = 352,  // The maximum RDM break length in microseconds.
 
-  RDM_MIN_MAB_LEN_US = 12,
-  RDM_MAX_MAB_LEN_US = 88,
+  RDM_MIN_MAB_LEN_US = 12,  // The minimum RDM mark-after-break length in microseconds.
+  RDM_MAX_MAB_LEN_US = 88,  // The maximum RDM mark-after-break length in microseconds.
 };
 
 // DMX start codes
@@ -253,15 +252,23 @@ enum dmx_start_code {
 #define DMX_MAB_LEN_IS_VALID(mab) \
   (mab >= DMX_WRITE_MIN_MAB_LEN_US && mab <= DMX_WRITE_MAX_MAB_LEN_US)
 
-// TODO: docs
+/**
+ * @brief Evaluates to true if the baud rate is within RDM specification.
+ */
 #define RDM_BAUD_RATE_IS_VALID(baud) \
   (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
 
-// TODO: docs
+/**
+ * @brief Evaluates to true if the received break duration is within RDM
+ * specification.
+ */
 #define RDM_BREAK_LEN_IS_VALID(brk) \
   (brk >= RDM_MIN_BREAK_LEN_US && brk <= RDM_MAX_BREAK_LEN_US)
 
-// TODO: docs
+/**
+ * @brief Evaluates to true if the received mark-after-break duration is within
+ * RDM specification.
+ */
 #define RDM_MAB_LEN_IS_VALID(mab) \
   (mab >= RDM_MIN_MAB_LEN_US && mab <= RDM_MAX_MAB_LEN_US)
 
