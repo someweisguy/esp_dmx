@@ -145,7 +145,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->mab_len = DMX_WRITE_MIN_MAB_LEN_US;
 
   // Initialize sniffer in the disabled state
-  driver->sniffer.intr_io_num = -1;
+  driver->sniffer.queue = NULL;
 
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
   if (!(dmx_config->intr_alloc_flags & ESP_INTR_FLAG_IRAM)) {
@@ -204,7 +204,10 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
     esp_intr_free(driver->uart_isr_handle);
   }
 
-  // TODO: Uninstall sniffer ISR
+  // Uninstall sniffer ISR
+  if (dmx_is_sniffer_enabled(dmx_num)) {
+    dmx_sniffer_disable(dmx_num);
+  }
 
   // Free driver data buffer
   if (driver->data.buffer != NULL) {
@@ -277,7 +280,7 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
 
 bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
   return dmx_is_driver_installed(dmx_num) &&
-         dmx_driver[dmx_num]->sniffer.intr_io_num != -1;
+         dmx_driver[dmx_num]->sniffer.queue != NULL;
 }
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
