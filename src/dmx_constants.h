@@ -83,6 +83,14 @@ enum dmx_write_timing {
   DMX_WRITE_MAX_MAB_LEN_US = 999999,  // The maximum DMX controller mark-after-break length in microseconds.
 };
 
+enum rdm_timing {
+  RDM_MIN_BREAK_LEN_US = 176,
+  RDM_MAX_BREAK_LEN_US = 352,
+
+  RDM_MIN_MAB_LEN_US = 12,
+  RDM_MAX_MAB_LEN_US = 88,
+};
+
 // DMX start codes
 enum dmx_start_code {
   /**
