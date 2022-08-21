@@ -1,3 +1,10 @@
+/**
+ * @file dmx_types.h
+ * @author Mitch Weisbrod
+ * @brief This file contains all the types used for processing both DMX and RDM 
+ * data. Anonymous enums and other constants should not be put in this file but
+ * should be placed in dmx_constants.h instead.
+ */
 #pragma once
 
 #include <stdbool.h>
