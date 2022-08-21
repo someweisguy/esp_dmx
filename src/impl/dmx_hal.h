@@ -141,14 +141,21 @@ IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
  * @brief Enables or disables the UART RTS line.
  *
  * @param hal A pointer to a UART HAL context.
- * @param set 1 to enable the RTS line (set low; read), 0 to disable the RTS
- * line (set high; write).
+ * @param set 1 to enable the UART RTS line (set low; read), 0 to disable the
+ * UART RTS line (set high; write).
  */
 IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
   uart_ll_set_rts_active_level(hal->dev, set);
 }
 
-bool dmx_hal_get_rts(uart_hal_context_t *hal) {
+/**
+ * @brief Gets the level of the UART RTS line.
+ *
+ * @param hal A pointer to a UART HAL context.
+ * @return 1 if the UART RTS line is enabled (set low; read), 0 if the UART RTS
+ * line is disable (set high; write).
+ */
+int dmx_hal_get_rts(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->conf0.sw_rts;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
