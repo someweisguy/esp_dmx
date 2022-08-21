@@ -67,7 +67,8 @@ void rdm_set_uid(uint64_t uid);
  */
 bool rdm_parse(void *data, size_t size, rdm_event_t *event);
 
-bool rdm_send_discovery_response(dmx_port_t dmx_num, TickType_t ticks_to_wait);
+// TODO: docs
+bool rdm_write_discovery_response(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
 }
