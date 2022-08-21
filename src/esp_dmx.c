@@ -231,13 +231,48 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num) {
 }
 
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
-  ESP_LOGE(TAG, "This function not supported yet.");  // FIXME
-  return ESP_ERR_NOT_SUPPORTED;
+  // TODO: Check args
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  
+  // Add the GPIO interrupt handler
+  esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_gpio_isr, driver);
+  if (err) {
+    return err;
+  }
+  driver->sniffer.intr_io_num = intr_io_num;
+
+  // TODO: Initialize the sniffer queue
+
+  // Indicate that a negative edge has not yet been seen by the sniffer
+  driver->sniffer.last_neg_edge_ts = -1;
+
+  // Enable the interrupt
+  gpio_set_intr_type(intr_io_num, GPIO_INTR_ANYEDGE);
+
+  return ESP_OK;
 }
 
 esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
-  ESP_LOGE(TAG, "This function not supported yet.");  // FIXME
-  return ESP_ERR_NOT_SUPPORTED;
+  // TODO: check args
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  
+  // Disable the interrupt and remove the interrupt handler
+  taskENTER_CRITICAL(&hardware->spinlock);
+  const int intr_io_num = driver->sniffer.intr_io_num;
+  taskEXIT_CRITICAL(&hardware->spinlock);
+  gpio_set_intr_type(intr_io_num, GPIO_INTR_DISABLE);
+  esp_err_t err = gpio_isr_handler_remove(intr_io_num);
+  if (err) {
+    return err;
+  }
+  driver->sniffer.intr_io_num = -1;
+
+  // TODO: Uninitialize the sniffer queue
+
+  return ESP_OK;
 }
 
 bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {

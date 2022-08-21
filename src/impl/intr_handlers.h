@@ -243,6 +243,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  dmx_context_t *const hardware = &dmx_context[driver->dmx_num];
 
   /* If this ISR is called on a positive edge and the current DMX frame is in a
   break and a negative edge condition has already occurred, then the break has
@@ -252,7 +253,7 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   then we know that the mark-after-break has just completed so we should record
   its duration. */
 
-  if (dmx_hal_get_rx_level(&(dmx_context[driver->dmx_num].hal))) {
+  if (dmx_hal_get_rx_level(&hardware->hal)) {
     if (driver->is_in_break && driver->sniffer.last_neg_edge_ts > -1) {
       driver->sniffer.break_len = now - driver->sniffer.last_neg_edge_ts;
       driver->is_in_break = false;
