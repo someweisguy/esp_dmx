@@ -220,7 +220,7 @@ uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
  * @param threshold The RX timeout duration (unit: time of sending
  * one byte).
  */
-void dmx_hal_set_rx_timeout_threshold(uart_hal_context_t *hal, uint8_t threshold) {
+void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, uint8_t threshold) {
   uart_hal_set_rx_timeout(hal, threshold);
 }
 
@@ -232,7 +232,7 @@ void dmx_hal_set_rx_timeout_threshold(uart_hal_context_t *hal, uint8_t threshold
  * @param rxfifo_full_threshold The number of bytes needed to trigger an RX FIFO
  * full interrupt.
  */
-void dmx_hal_set_rxfifo_full_threshold(uart_hal_context_t *hal, uint8_t threshold) {
+void dmx_hal_set_rxfifo_full(uart_hal_context_t *hal, uint8_t threshold) {
   uart_hal_set_rxfifo_full_thr(hal, threshold);
 }
 
@@ -244,7 +244,7 @@ void dmx_hal_set_rxfifo_full_threshold(uart_hal_context_t *hal, uint8_t threshol
  * @param threshold The number of bytes remaining to trigger a TX FIFO empty
  * interrupt.
  */
-void dmx_hal_set_txfifo_empty_threshold(uart_hal_context_t *hal, uint8_t threshold) {
+void dmx_hal_set_txfifo_empty(uart_hal_context_t *hal, uint8_t threshold) {
   uart_hal_set_txfifo_empty_thr(hal, threshold);
 }
 

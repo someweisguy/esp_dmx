@@ -156,8 +156,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   // Install UART interrupt
   dmx_hal_disable_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
-  dmx_hal_set_txfifo_empty_threshold(&hardware->hal, DMX_UART_EMPTY_DEFAULT);
-  dmx_hal_set_rxfifo_full_threshold(&hardware->hal, DMX_UART_FULL_DEFAULT);
+  dmx_hal_set_txfifo_empty(&hardware->hal, DMX_UART_EMPTY_DEFAULT);
+  dmx_hal_set_rxfifo_full(&hardware->hal, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags,
                  &dmx_uart_isr, driver, &driver->uart_isr_handle);
 
