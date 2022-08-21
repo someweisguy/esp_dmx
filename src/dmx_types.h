@@ -58,13 +58,25 @@ typedef enum rdm_command_class {
   RDM_SET_COMMAND_RESPONSE = 0x31,        // The packet is a response to an RDM set request.
 } rdm_cc_t;
 
+/**
+ * @brief The response type field is used in messages from Responders to 
+ * indicate the acknowledgement type of the response.
+ */
 typedef enum rdm_response_type {
-  RDM_RESPONSE_TYPE_ACK = 0x00,
-  RDM_RESPONSE_TYPE_ACK_TIMER = 0x01,
-  RDM_RESPONSE_TYPE_NACK_REASON = 0x02,
-  RDM_RESPONSE_TYPE_ACK_OVERFLOW = 0x03
+  RDM_RESPONSE_TYPE_ACK = 0x00,          // Indicates that the responder has correctly received the controller message and is acting upon the message.
+  RDM_RESPONSE_TYPE_ACK_TIMER = 0x01,    // Indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time.
+  RDM_RESPONSE_TYPE_NACK_REASON = 0x02,  // Indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command.
+  RDM_RESPONSE_TYPE_ACK_OVERFLOW = 0x03, // Indicates that the responder has correctly received the controller message and is acting upon the message, but there is more response data available than will fit in a single response message.
 } rdm_response_type_t;
 
+/**
+ * @brief The parameter ID (PID) is a 16-bit number that identifies a specific 
+ * type of parameter data. The PID may represent either a well known parameter 
+ * such as those defined in the RDM standard document, or a 
+ * manufacturer-specific parameter whose details are either published by the 
+ * manufacturer for third-party support or proprietary for the manufacturer's 
+ * own use.
+ */
 typedef enum rdm_pid {
   RDM_DISC_UNIQUE_BRANCH = 0x0001,
   RDM_DISC_MUTE = 0x0002,
@@ -75,6 +87,10 @@ typedef enum rdm_pid {
   // TODO: Add the rest of the PIDs
 } rdm_pid_t;
 
+/**
+ * @brief Provides a synopsis of the received RDM packet so that users may
+ * quickly and easily process and respond to RDM data.
+ */
 typedef struct rdm_event {
   uint64_t destination_uid;             // The UID of the target device(s).
   uint64_t source_uid;                  // The UID of the device originating this packet.
@@ -91,12 +107,16 @@ typedef struct rdm_event {
   bool checksum_is_valid;               // True if the RDM checksum is valid.
 } rdm_event_t;
 
+/**
+ * @brief Provides a synopsis of the received DMX packet so that users may 
+ * quickly and easily process and respond to DMX data.
+ */
 typedef struct dmx_event {
   dmx_err_t err;    // Evaluates to true if an error occurred reading DMX data. Refer to dmx_err_t to evaluate the type of error.
   uint8_t sc;       // Start code of the DMX packet.
   size_t size;      // The size of the received DMX packet in bytes.
   bool is_rdm;      // True if the received packet is RDM.
-  rdm_event_t rdm;  // An RDM event struct.
+  rdm_event_t rdm;  // An RDM event struct. Is garbage data if is_rdm is false.
 } dmx_event_t;
 
 /**
