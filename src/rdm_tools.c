@@ -21,7 +21,7 @@ static const char *TAG = "rdm";
 
 static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
-inline __attribute__((always_inline)) uint64_t uidcpy(const void *buf) {
+inline __attribute__((always_inline)) uint64_t buf_to_uid(const void *buf) {
   uint64_t val;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
@@ -30,6 +30,11 @@ inline __attribute__((always_inline)) uint64_t uidcpy(const void *buf) {
   ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
   ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
   return val;
+}
+
+void *uid_to_buf(void *buf, uint64_t uid) {
+  uid = bswap64(uid) >> 16;
+  return memcpy(buf, &uid, 6);
 }
 
 uint64_t rdm_get_uid() { 

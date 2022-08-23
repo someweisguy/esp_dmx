@@ -39,7 +39,19 @@ extern "C" {
  * @param buf A pointer to an RDM buffer.
  * @return uint64_t The properly formatted RDM UID.
  */
-uint64_t uidcpy(const void *buf);
+uint64_t buf_to_uid(const void *buf);
+
+/**
+ * @brief Helper function that converts an RDM UID stored as a 64-bit integer
+ * and copies it into a 48-bit buffer. It also converts endianness to compensate
+ * for the fact that the ESP32 stores values in least-significant-byte first 
+ * endianness and RDM requires most-significant-byte first.
+ * 
+ * @param buf A pointer to the destination buffer.
+ * @param uid The 64-bit representation of the UID.
+ * @return void* A pointer to the destination buffer.
+ */
+void *uid_to_buf(void *buf, uint64_t uid);
 
 /**
  * @brief Returns the 48 bit unique ID of this device.

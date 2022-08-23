@@ -605,7 +605,7 @@ size_t dmx_send(dmx_port_t dmx_num) {
   if (sc == RDM_SC && driver->data.buffer[1] == RDM_SUB_SC) {
     const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
     driver->data.previous_type = rdm->cc;
-    driver->data.previous_uid = uidcpy(rdm->destination_uid);
+    driver->data.previous_uid = buf_to_uid(rdm->destination_uid);
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
     driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
     driver->data.previous_uid = RDM_BROADCAST_UID;
