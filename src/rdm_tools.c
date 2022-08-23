@@ -127,6 +127,12 @@ bool rdm_write_discovery_response(dmx_port_t dmx_num) {
 bool rdm_write_discovery_mute(dmx_port_t dmx_num, uint64_t uid, bool mute) {
   // TODO: check args
 
+  /*
+  TODO: mute messages require an ACK from the receiver to ensure that the 
+  message has been received. If the arg UID is not a broadcast message, flip the
+  bus and handle a response
+  */
+
   uint8_t command[RDM_BASE_PACKET_SIZE];
   rdm_data_t *const rdm = (rdm_data_t *)command;
   rdm->sc = RDM_SC;
