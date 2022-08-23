@@ -123,3 +123,34 @@ bool rdm_write_discovery_response(dmx_port_t dmx_num) {
   // Write the response
   return dmx_write(dmx_num, response, sizeof(response));
 }
+
+bool rdm_write_discovery_mute(dmx_port_t dmx_num, uint64_t uid, bool mute) {
+  // TODO: check args
+
+  uint8_t command[RDM_BASE_PACKET_SIZE];
+  rdm_data_t *const rdm = (rdm_data_t *)command;
+  rdm->sc = RDM_SC;
+  rdm->sub_sc = RDM_SUB_SC;
+  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
+  uid_to_buf(rdm->destination_uid, uid);
+  uid_to_buf(rdm->source_uid, rdm_get_uid());
+  rdm->tn = 0; // TODO: Driver can track transaction num
+  rdm ->port_id = dmx_num + 1;
+  rdm->message_count = 0;
+  rdm->sub_device = bswap16(0);
+  rdm->cc = RDM_DISCOVERY_COMMAND;
+  rdm->pid = bswap16(mute ? RDM_DISC_MUTE : RDM_DISC_UN_MUTE);
+  rdm->pdl = 0;
+
+  uint16_t checksum = 0;
+  for (int i = 0; i < rdm->message_len; ++i) {
+    checksum += command[i];
+  }
+  checksum = bswap16(checksum);
+  memcpy(&command[rdm->message_len], &checksum, 2);
+  
+
+  ESP_LOG_BUFFER_HEX(TAG, command, RDM_BASE_PACKET_SIZE);
+  
+  return dmx_write(dmx_num, command, sizeof(command));
+}

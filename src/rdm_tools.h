@@ -82,6 +82,8 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event);
 // TODO: docs
 bool rdm_write_discovery_response(dmx_port_t dmx_num);
 
+bool rdm_write_discovery_mute(dmx_port_t dmx_num, uint64_t uid, bool mute);
+
 #ifdef __cplusplus
 }
 #endif
