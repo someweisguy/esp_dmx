@@ -244,14 +244,14 @@ enum dmx_start_code {
  * specification.
  */
 #define DMX_BREAK_LEN_IS_VALID(brk) \
-  (brk >= DMX_WRITE_MIN_BREAK_LEN_US && brk <= DMX_WRITE_MAX_BREAK_LEN_US)
+  (brk >= DMX_MIN_BREAK_LEN_US && brk <= DMX_MAX_BREAK_LEN_US)
 
 /**
  * @brief Evaluates to true if the received mark-after-break duration is within
  * DMX specification.
  */
 #define DMX_MAB_LEN_IS_VALID(mab) \
-  (mab >= DMX_WRITE_MIN_MAB_LEN_US && mab <= DMX_WRITE_MAX_MAB_LEN_US)
+  (mab >= DMX_MIN_MAB_LEN_US && mab <= DMX_MAX_MAB_LEN_US)
 
 /**
  * @brief Evaluates to true if the baud rate is within RDM specification.
