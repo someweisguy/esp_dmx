@@ -52,7 +52,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
  * @retval true if the driver is installed.
  * @retval false if the driver is not installed or DMX port does not exist.
  * */
-bool dmx_is_driver_installed(dmx_port_t dmx_num);
+bool dmx_driver_is_installed(dmx_port_t dmx_num);
 
 /**
  * @brief Sets DMX pin number.
@@ -107,7 +107,7 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num);
  * @retval true if the sniffer is installed.
  * @retval false if the sniffer is not installed or DMX port does not exist.
  */
-bool dmx_is_sniffer_enabled(dmx_port_t dmx_num);
+bool dmx_sniffer_is_enabled(dmx_port_t dmx_num);
 
 /**
  * @brief Sets the DMX baud rate. The baud rate will be clamped to DMX 

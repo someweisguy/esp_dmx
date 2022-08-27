@@ -228,7 +228,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-bool dmx_is_driver_installed(dmx_port_t dmx_num) {
+bool dmx_driver_is_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
@@ -290,8 +290,8 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
-  return dmx_is_driver_installed(dmx_num) &&
+bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
+  return dmx_driver_is_installed(dmx_num) &&
          dmx_driver[dmx_num]->sniffer.queue != NULL;
 }
 
