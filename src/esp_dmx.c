@@ -204,7 +204,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Uninstall sniffer ISR
-  if (dmx_is_sniffer_enabled(dmx_num)) {
+  if (dmx_sniffer_is_enabled(dmx_num)) {
     dmx_sniffer_disable(dmx_num);
   }
 
