@@ -1,3 +1,13 @@
+/**
+ * @file esp_dmx.h
+ * @author Mitch Weisbrod
+ * @brief This is the main header file for esp_dmx. This file declares functions
+ * needed for installing the DMX driver and sending or receiving DMX data. It is
+ * possible to implement RDM using the functions found in this header file
+ * alone. However, RDM can be complex to users who aren't familiar with the 
+ * standard. Functions found in rdm_tools.h can be used to simplify basic RDM
+ * tasks.
+ */
 #pragma once
 
 #include "dmx_constants.h"
