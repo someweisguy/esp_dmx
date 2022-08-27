@@ -81,7 +81,6 @@ static void dmx_module_disable(dmx_port_t dmx_num) {
   taskEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
 }
 
-/// Driver Functions  #########################################################
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
@@ -233,17 +232,30 @@ bool dmx_is_driver_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_num, int rx_num, int rts_num) {
+  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
+                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(tx_num < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_num),
+                      ESP_ERR_INVALID_ARG, TAG, "tx_num error");
+  ESP_RETURN_ON_FALSE(rx_num < 0 || GPIO_IS_VALID_GPIO(rx_num),
+                      ESP_ERR_INVALID_ARG, TAG, "rx_num error");
+  ESP_RETURN_ON_FALSE(rts_num < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_num),
+                      ESP_ERR_INVALID_ARG, TAG, "rts_num error");
+
+  return uart_set_pin(dmx_num, tx_num, rx_num, rts_num, DMX_PIN_NO_CHANGE);
+}
+
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_num) {
   // TODO: Check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   
   // Add the GPIO interrupt handler
-  esp_err_t err = gpio_isr_handler_add(intr_io_num, dmx_gpio_isr, driver);
+  esp_err_t err = gpio_isr_handler_add(intr_num, dmx_gpio_isr, driver);
   if (err) {
     return err;
   }
-  driver->sniffer.intr_io_num = intr_io_num;
+  driver->sniffer.intr_io_num = intr_num;
 
   // TODO: Initialize the sniffer queue
 
@@ -251,7 +263,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_io_num) {
   driver->sniffer.last_neg_edge_ts = -1;
 
   // Enable the interrupt
-  gpio_set_intr_type(intr_io_num, GPIO_INTR_ANYEDGE);
+  gpio_set_intr_type(intr_num, GPIO_INTR_ANYEDGE);
 
   return ESP_OK;
 }
@@ -283,22 +295,6 @@ bool dmx_is_sniffer_enabled(dmx_port_t dmx_num) {
          dmx_driver[dmx_num]->sniffer.queue != NULL;
 }
 
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_io_num, int rx_io_num,
-                      int rts_io_num) {
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(tx_io_num < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_io_num),
-                      ESP_ERR_INVALID_ARG, TAG, "tx_io_num error");
-  ESP_RETURN_ON_FALSE(rx_io_num < 0 || GPIO_IS_VALID_GPIO(rx_io_num),
-                      ESP_ERR_INVALID_ARG, TAG, "rx_io_num error");
-  ESP_RETURN_ON_FALSE(rts_io_num < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_io_num),
-                      ESP_ERR_INVALID_ARG, TAG, "rts_io_num error");
-
-  return uart_set_pin(dmx_num, tx_io_num, rx_io_num, rts_io_num,
-                      DMX_PIN_NO_CHANGE);
-}
-
-/// Transmit Configuration  ###################################################
 size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate) {
   // TODO: check args
   
@@ -392,7 +388,6 @@ size_t dmx_get_mab_len(dmx_port_t dmx_num) {
   return mab_len;
 }
 
-/// Read/Write  ###############################################################
 size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
   // TODO: Check arguments
   
