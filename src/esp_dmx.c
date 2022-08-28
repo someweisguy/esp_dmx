@@ -119,8 +119,6 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->received_packet = false;
       driver->is_in_break = true;
       driver->data.head = 0;
-
-      // TODO: reset sniffer values
     }
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
