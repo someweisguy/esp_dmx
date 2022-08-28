@@ -14,6 +14,7 @@
 #include "impl/driver.h"
 #include "rdm_tools.h"
 
+// Used for argument checking at the beginning of each function.
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
