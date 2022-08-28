@@ -85,13 +85,13 @@ enum dmx_parameter {
 };
 
 enum rdm_packet_spacing {
-  RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,  // The amount of time that must pass between the RDM controller sending a discovery packet and then sending any other packet.
-  RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,    // The amount of time that must pass between the RDM controller sending a request, considering the response lost, and sending any other packet.
-  RDM_BROADCAST_PACKET_SPACING = 176,               // The amount of time that must pass between the RDM controller sending a broadcast packet and then sending any other packet.
-  RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,      // The amount of time that must pass between the RDM controller sending a request and the RDM responder sending a response packet.
+  RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,  // Spacing between the RDM controller sending a discovery packet and sending any other packet.
+  RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,    // Spacing between the RDM controller sending a request, considering the response lost, and sending any other packet.
+  RDM_BROADCAST_PACKET_SPACING = 176,               // Spacing between the RDM controller sending a broadcast packet and sending any other packet.
+  RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,      // Spacing between the RDM controller sending a request and the RDM responder sending a response packet.
 
-  RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT = 2800,  // The amount of time that must pass before the RDM controller considers a response packet lost. 
-  RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000    // The amount of time that must pass before the RDM responder considers a response packet lost.
+  RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT = 2800,  // The timeout at which the RDM controller considers a response packet lost. 
+  RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000    // The timeout at which the RDM responder considers a response packet lost.
 };
 
 /**
