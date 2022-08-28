@@ -113,6 +113,19 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num);
 bool dmx_sniffer_is_enabled(dmx_port_t dmx_num);
 
 /**
+ * @brief Gets sniffer data if it is available.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] sniffer_data A pointer to a dmx_sniffer_data_t struct into which 
+ * to copy DMX sniffer data.
+ * @param timeout The number of ticks to wait before this function times out.
+ * @return true if data was copied.
+ * @return false if data was not copied.
+ */
+bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
+                          TickType_t timeout);
+
+/**
  * @brief Sets the DMX baud rate. The baud rate will be clamped to DMX 
  * specification. If the input baud rate is lower than DMX_MIN_BAUD_RATE it will
  * be set to DMX_MIN_BAUD_RATE. If the input baud rate is higher than 

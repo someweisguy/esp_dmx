@@ -246,27 +246,36 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
-
-  /* If this ISR is called on a positive edge and the current DMX frame is in a
-  break and a negative edge condition has already occurred, then the break has
-  just finished, so we can update the length of the break as well as unset the
-  is_in_break flag. If this ISR is called on a negative edge and the 
-  mark-after-break has not been recorded while the break has been recorded,
-  then we know that the mark-after-break has just completed so we should record
-  its duration. */
+  int task_awoken = false;
 
   if (dmx_hal_get_rx_level(&context->hal)) {
+
+    /* If this ISR is called on a positive edge and the current DMX frame is in
+    a break and a negative edge timestamp has been recorded then a break has 
+    just finished. Therefore the DMX break length is able to be recorded. It can
+    also be deduced that the driver is now in a DMX mark-after-break. */
+
     if (driver->is_in_break && driver->sniffer.last_neg_edge_ts > -1) {
-      driver->sniffer.break_len = now - driver->sniffer.last_neg_edge_ts;
+      driver->sniffer.data.break_len = now - driver->sniffer.last_neg_edge_ts;
+      driver->sniffer.is_in_mab = true;
       driver->is_in_break = false;
     }
     driver->sniffer.last_pos_edge_ts = now;
   } else {
-    if (driver->sniffer.mab_len == -1 && driver->sniffer.break_len != -1) {
-      driver->sniffer.mab_len = now - driver->sniffer.last_pos_edge_ts;
+
+    /* If this ISR is called on a negative edge in a DMX mark-after-break then
+    the DMX mark-after-break has just finished. It can be recorded. Sniffer data
+    is now available to be read by the user. */
+
+    if (driver->sniffer.is_in_mab) {
+      driver->sniffer.data.mab_len = now - driver->sniffer.last_pos_edge_ts;
+      driver->sniffer.is_in_mab = false;
+
+      // Send the sniffer data to the queue
+      xQueueOverwriteFromISR(driver->sniffer.queue, &driver->sniffer.data,
+                             &task_awoken);
     }
     driver->sniffer.last_neg_edge_ts = now;
-    // TODO: send to queue
   }
 }
 

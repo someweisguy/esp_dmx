@@ -20,6 +20,11 @@ extern "C" {
  */
 typedef unsigned int dmx_port_t;
 
+typedef struct dmx_sniffer_data {
+  uint32_t break_len;  // Length in microseconds of the last received DMX break.
+  uint32_t mab_len;    // Length in microseconds of the last received DMX mark-after-break.
+} dmx_sniffer_data_t ;
+
 /**
  * @brief DMX error codes. These values indicate problem in receiving DMX data 
  * or processing RDM packets.

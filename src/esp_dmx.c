@@ -245,18 +245,27 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
             "sniffer is already enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Allocate the sniffer queue
+  driver->sniffer.queue = xQueueCreate(1, sizeof(dmx_sniffer_data_t));
+  if (driver->sniffer.queue == NULL) {
+    ESP_LOGE(TAG, "DMX sniffer queue malloc error");
+    return ESP_ERR_NO_MEM;
+  }
   
   // Add the GPIO interrupt handler
   esp_err_t err = gpio_isr_handler_add(intr_pin, dmx_gpio_isr, driver);
   if (err) {
-    return err;
+    ESP_LOGE(TAG, "DMX sniffer ISR handler error");
+    vQueueDelete(driver->sniffer.queue);
+    driver->sniffer.queue = NULL;
+    return ESP_FAIL;
   }
   driver->sniffer.intr_pin = intr_pin;
-
-  // TODO: Initialize the sniffer queue
-
-  // Indicate that a negative edge has not yet been seen by the sniffer
-  driver->sniffer.last_neg_edge_ts = -1;
+  
+  // Set sniffer default values
+  driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
+  driver->sniffer.is_in_mab = false;
 
   // Enable the interrupt
   gpio_set_intr_type(intr_pin, GPIO_INTR_ANYEDGE);
@@ -270,20 +279,18 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
             "sniffer is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const context = &dmx_context[dmx_num];
   
   // Disable the interrupt and remove the interrupt handler
-  taskENTER_CRITICAL(&context->spinlock);
-  const int sniffer_pin = driver->sniffer.intr_pin;
-  taskEXIT_CRITICAL(&context->spinlock);
-  gpio_set_intr_type(sniffer_pin, GPIO_INTR_DISABLE);
-  esp_err_t err = gpio_isr_handler_remove(sniffer_pin);
+  gpio_set_intr_type(driver->sniffer.intr_pin, GPIO_INTR_DISABLE);
+  esp_err_t err = gpio_isr_handler_remove(driver->sniffer.intr_pin);
   if (err) {
-    return err;
+    ESP_LOGE(TAG, "DMX sniffer ISR handler error");
+    return ESP_FAIL;
   }
-  driver->sniffer.intr_pin = -1;
 
-  // TODO: Uninitialize the sniffer queue
+  // Deallocate the sniffer queue
+  vQueueDelete(driver->sniffer.queue);
+  driver->sniffer.queue = NULL;
 
   return ESP_OK;
 }
@@ -291,6 +298,18 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
 bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
   return dmx_driver_is_installed(dmx_num) &&
          dmx_driver[dmx_num]->sniffer.queue != NULL;
+}
+
+bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
+                          TickType_t timeout) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(sniffer_data, ESP_ERR_INVALID_ARG, "sniffer_data is null");
+  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
+            "sniffer is not enabled");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  return xQueueReceive(driver->sniffer.queue, sniffer_data, timeout);
 }
 
 size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate) {

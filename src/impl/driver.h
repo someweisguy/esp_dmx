@@ -49,10 +49,11 @@ typedef __attribute__((aligned(4))) struct {
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
   struct {
-    QueueHandle_t queue;       // The handle to the DMX sniffer queue.
+    QueueHandle_t queue;       // The queue handle used to receive sniffer data.
+    dmx_sniffer_data_t data;   // The data received by the DMX sniffer.
+
     int intr_pin;              // The GPIO number of the DMX sniffer interrupt pin.
-    int32_t break_len;         // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
-    int32_t mab_len;           // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
+    int is_in_mab;             // True if the sniffer is receiving a DMX mark-after-break.
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
