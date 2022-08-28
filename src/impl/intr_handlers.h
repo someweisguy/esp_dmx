@@ -11,21 +11,23 @@
 extern "C" {
 #endif
 
-enum {
-  DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,  // Interrupt mask that triggers when the UART overflows.
-  DMX_INTR_RX_FRAMING_ERR = (UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR | UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR),  // Interrupt mask that represents a byte framing error.
-  DMX_INTR_RX_ERR = (DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR),  // Interrupt mask that triggers when an error occurs.
+enum dmx_interrupt_mask {
+  DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
+  DMX_INTR_RX_FRAMING_ERR = UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR |
+                            UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR,
+  DMX_INTR_RX_ERR = DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR,
 
-  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,  // Interrupt mask that triggers when a DMX break is received.
-  DMX_INTR_RX_DATA = UART_INTR_RXFIFO_FULL,  // Interrupt mask that is triggered when it is time to service the receive FIFO.
-  DMX_INTR_RX_CLASH = UART_INTR_RS485_CLASH,  // Interrupt mask that represents a DMX collision.
-  DMX_INTR_RX_ALL = (DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR | DMX_INTR_RX_CLASH),  // Interrupt mask that represents all receive conditions.
+  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,
+  DMX_INTR_RX_DATA = UART_INTR_RXFIFO_FULL,
+  DMX_INTR_RX_CLASH = UART_INTR_RS485_CLASH,
+  DMX_INTR_RX_ALL = DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR |
+                    DMX_INTR_RX_CLASH,
 
-  DMX_INTR_TX_DATA = UART_INTR_TXFIFO_EMPTY,  // Interrupt mask that is triggered when the UART is ready to send data.
-  DMX_INTR_TX_DONE = UART_INTR_TX_DONE,  // Interrupt mask that is triggered when the UART has finished writing data.
-  DMX_INTR_TX_ALL = (DMX_INTR_TX_DATA | DMX_INTR_TX_DONE),  // Interrupt mask that represents all send conditions.
+  DMX_INTR_TX_DATA = UART_INTR_TXFIFO_EMPTY,
+  DMX_INTR_TX_DONE = UART_INTR_TX_DONE,
+  DMX_INTR_TX_ALL = DMX_INTR_TX_DATA | DMX_INTR_TX_DONE,
 
-  DMX_ALL_INTR_MASK = -1  // Interrupt mask for all interrupts.
+  DMX_ALL_INTR_MASK = -1
 };
 
 static void IRAM_ATTR dmx_uart_isr(void *arg) {
