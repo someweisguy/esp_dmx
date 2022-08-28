@@ -251,7 +251,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   if (err) {
     return err;
   }
-  driver->sniffer.intr_io_num = intr_pin;
+  driver->sniffer.intr_pin = intr_pin;
 
   // TODO: Initialize the sniffer queue
 
@@ -274,14 +274,14 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   
   // Disable the interrupt and remove the interrupt handler
   taskENTER_CRITICAL(&context->spinlock);
-  const int sniffer_pin = driver->sniffer.intr_io_num;
+  const int sniffer_pin = driver->sniffer.intr_pin;
   taskEXIT_CRITICAL(&context->spinlock);
   gpio_set_intr_type(sniffer_pin, GPIO_INTR_DISABLE);
   esp_err_t err = gpio_isr_handler_remove(sniffer_pin);
   if (err) {
     return err;
   }
-  driver->sniffer.intr_io_num = -1;
+  driver->sniffer.intr_pin = -1;
 
   // TODO: Uninitialize the sniffer queue
 

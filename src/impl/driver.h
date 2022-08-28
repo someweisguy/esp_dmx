@@ -50,7 +50,7 @@ typedef __attribute__((aligned(4))) struct {
 
   struct {
     QueueHandle_t queue;       // The handle to the DMX sniffer queue.
-    int intr_io_num;           // The GPIO number of the DMX sniffer interrupt pin.
+    int intr_pin;              // The GPIO number of the DMX sniffer interrupt pin.
     int32_t break_len;         // Length in microseconds of the last received break. Is always -1 unless the DMX sniffer is enabled.
     int32_t mab_len;           // Length in microseconds of the last received mark-after-break. Is always -1 unless the DMX sniffer is enabled.
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
