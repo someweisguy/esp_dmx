@@ -25,7 +25,6 @@ extern "C" {
 #define UID2STR(uid) \
   ((rdm_uid_t *)(&uid))->manufacturer_id, ((rdm_uid_t *)(&uid))->device_id
 
-
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
  * first buffer and copies it to least-significant-byte first endianness, which
