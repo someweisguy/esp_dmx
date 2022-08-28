@@ -34,7 +34,8 @@ extern "C" {
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config);
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
+                             unsigned int timer_idx, int intr_flags);
 
 /**
  * @brief Uninstalls the DMX driver.

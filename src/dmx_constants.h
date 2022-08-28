@@ -18,11 +18,11 @@ extern "C" {
 #define DMX_NUM_MAX SOC_UART_NUM
 
 /**
- * @brief The default configuration for DMX. This macro may be used to
- * initialize a dmx_config_t to the standard's defined typical values.
+ * @brief The default configuration for DMX. This macro may be used as the last
+ * argument in dmx_driver_install() to initialize the DMX driver to the 
+ * standard's defined typical values.
  */
-#define DMX_DEFAULT_CONFIG \
-  { .timer_group = 0, .timer_num = 0, .intr_alloc_flags = ESP_INTR_FLAG_IRAM }
+#define DMX_DEFAULT_CONFIG 0, 0, ESP_INTR_FLAG_IRAM
 
 /**
  * @brief UID which indicates an RDM packet is being broadcast. Responders shall
@@ -36,7 +36,7 @@ static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 enum dmx_num {
   DMX_NUM_0,  // DMX port 0.
   DMX_NUM_1,  // DMX port 1.
-#if DMX_NUM_MAX > 2
+#if SOC_UART_NUM > 2
   DMX_NUM_2,  // DMX port 2.
 #endif
 };

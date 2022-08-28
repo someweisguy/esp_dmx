@@ -42,13 +42,12 @@ enum dmx_default_interrupt_values {
   DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
 };
 
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
+                             unsigned int timer_idx, int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(dmx_config, ESP_ERR_INVALID_ARG, "dmx_config is null");
-  DMX_CHECK(dmx_config->timer_group < TIMER_GROUP_MAX, ESP_ERR_INVALID_ARG,
+  DMX_CHECK(timer_group < TIMER_GROUP_MAX, ESP_ERR_INVALID_ARG,
             "timer_group error");
-  DMX_CHECK(dmx_config->timer_num < TIMER_MAX, ESP_ERR_INVALID_ARG,
-            "timer_num error");
+  DMX_CHECK(timer_idx < TIMER_MAX, ESP_ERR_INVALID_ARG, "timer_idx error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
 
@@ -104,8 +103,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
-  driver->timer_group = dmx_config->timer_group;
-  driver->timer_num = dmx_config->timer_num;
+  driver->timer_group = timer_group;
+  driver->timer_num = timer_idx;
   driver->task_waiting = NULL;
 
   // Initialize driver flags
@@ -131,9 +130,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   driver->sniffer.queue = NULL;
 
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
-  if (!(dmx_config->intr_alloc_flags & ESP_INTR_FLAG_IRAM)) {
+  if (!(intr_flags & ESP_INTR_FLAG_IRAM)) {
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
-    dmx_config->intr_alloc_flags |= ESP_INTR_FLAG_IRAM;
+    intr_flags |= ESP_INTR_FLAG_IRAM;
   }
 
   // Install UART interrupt
@@ -141,8 +140,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
   dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
   dmx_hal_set_txfifo_empty(&hardware->hal, DMX_UART_EMPTY_DEFAULT);
   dmx_hal_set_rxfifo_full(&hardware->hal, DMX_UART_FULL_DEFAULT);
-  esp_intr_alloc(uart_periph_signal[dmx_num].irq, dmx_config->intr_alloc_flags,
-                 &dmx_uart_isr, driver, &driver->uart_isr_handle);
+  esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_flags, &dmx_uart_isr,
+                 driver, &driver->uart_isr_handle);
 
   // Install hardware timer interrupt if specified by the user
   if (driver->timer_group != -1) {
@@ -153,10 +152,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
         .alarm_en = true,
         .auto_reload = true,
     };
-    timer_init(dmx_config->timer_group, dmx_config->timer_num, &timer_config);
-    timer_isr_callback_add(dmx_config->timer_group, dmx_config->timer_num,
-                           dmx_timer_isr, driver, dmx_config->intr_alloc_flags);
-    timer_enable_intr(dmx_config->timer_group, dmx_config->timer_num);
+    timer_init(timer_group, timer_idx, &timer_config);
+    timer_isr_callback_add(timer_group, timer_idx, dmx_timer_isr, driver,
+                           intr_flags);
+    timer_enable_intr(timer_group, timer_idx);
   }
 
   // Enable UART read interrupt and set RTS low

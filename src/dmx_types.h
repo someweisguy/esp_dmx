@@ -21,16 +21,6 @@ extern "C" {
 typedef unsigned int dmx_port_t;
 
 /**
- * @brief Struct that contains DMX driver constants that cannot be changed
- * without first deleting the driver.
- */
-typedef struct dmx_config {
-  int timer_group;       // The hardware to use to generate the DMX reset sequence. Can be set to -1 to use busy-wait mode.
-  int timer_num;         // The timer index to use to generate the DMX reset sequence.
-  int intr_alloc_flags;  // Interrupt allocation flags as specified in esp_intr_alloc.h
-} dmx_config_t;
-
-/**
  * @brief DMX error codes. These values indicate problem in receiving DMX data 
  * or processing RDM packets.
  */
