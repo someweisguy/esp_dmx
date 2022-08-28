@@ -18,10 +18,12 @@
 #define DMX_UART_FULL_DEFAULT  (1)  // The default value for the RX FIFO full interrupt threshold.
 #define DMX_UART_EMPTY_DEFAULT (8)  // The default value for the TX FIFO empty interrupt threshold.
 
-#define DMX_FUNCTION_NOT_SUPPORTED()                         \
-  ESP_LOGE(TAG, "%s() is not supported on %s", __FUNCTION__, \
-           CONFIG_IDF_TARGET);                               \
-  return ESP_ERR_NOT_SUPPORTED;
+// Initializes the DMX context.
+#define DMX_CONTEXT_INIT(uart_num)                                 \
+  {                                                                \
+    .hal.dev = UART_LL_GET_HW(uart_num),                           \
+    .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
+  }
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
@@ -33,12 +35,6 @@ enum rdm_packet_spacing {
 
   RDM_RESPONSE_LOST_TIMEOUT = 2800,         // The amount of time that must pass before the RDM controller considers a discovery response packet lost. 
 };
-
-#define DMX_CONTEXT_INIT(uart_num)                                 \
-  {                                                                \
-    .hal.dev = UART_LL_GET_HW(uart_num),                           \
-    .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
-  }
 
 DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEXT_INIT(DMX_NUM_0),
