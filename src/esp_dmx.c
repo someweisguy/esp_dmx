@@ -579,7 +579,7 @@ size_t dmx_send(dmx_port_t dmx_num) {
   // Determine if it is too late to send a response packet
   int64_t elapsed = 0;
   taskENTER_CRITICAL(&context->spinlock);
-  rdm_data_t *const rdm = driver->data.buffer;
+  rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
       (rdm->cc == RDM_DISCOVERY_COMMAND_RESPONSE ||
        rdm->cc == RDM_GET_COMMAND_RESPONSE ||
