@@ -51,9 +51,9 @@ enum dmx_pin {
 /**
  * @brief DMX parameter constants. These constants are simplified significantly
  * to ensure ease of use for the end user. When used with this library, these 
- * constants will ensure that library settings are within DMX specification, but
- * it is possible for other values to be used that also fall within DMX
- * specification.
+ * constants will ensure that library settings are always within DMX 
+ * specification, but it is possible for other values to be used that also fall
+ * within DMX specification.
  */
 enum dmx_parameter {
   DMX_PACKET_SIZE = 513,      // The typical packet size of DMX.
