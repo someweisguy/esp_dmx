@@ -41,6 +41,11 @@ DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
 
 DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
 
+enum dmx_default_interrupt_values {
+  DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
+  DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
+};
+
 enum dmx_interrupt_mask {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
   DMX_INTR_RX_FRAMING_ERR = UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR |
@@ -347,11 +352,6 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
 }
 
 static const char *TAG = "dmx";  // The log tagline for the file.
-
-enum dmx_default_interrupt_values {
-  DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
-  DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
-};
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
                              unsigned int timer_idx, int intr_flags) {
