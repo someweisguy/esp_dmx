@@ -22,22 +22,6 @@
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
-static const char *TAG = "dmx";  // The log tagline for the file.
-
-enum rdm_packet_spacing {
-  RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,  // The amount of time that must pass between the RDM controller sending a discovery packet and then sending any other packet.
-  RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,  // The amount of time that must pass between the RDM controller sending a request, considering the response lost, and sending any other packet.
-  RDM_BROADCAST_PACKET_SPACING = 176,  // The amount of time that must pass between the RDM controller sending a broadcast packet and then sending any other packet.
-  RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,  // The amount of time that must pass between the RDM controller sending a request and the RDM responder sending a response packet.
-
-  RDM_RESPONSE_LOST_TIMEOUT = 2800,  // The amount of time that must pass before the RDM controller considers a discovery response packet lost. 
-};
-
-enum dmx_default_interrupt_values {
-  DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
-  DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
-};
-
 DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEXT_INIT(DMX_NUM_0),
     DMX_CONTEXT_INIT(DMX_NUM_1),
@@ -47,6 +31,13 @@ DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
 };
 
 DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
+
+static const char *TAG = "dmx";  // The log tagline for the file.
+
+enum dmx_default_interrupt_values {
+  DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
+  DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
+};
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
