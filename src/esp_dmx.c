@@ -232,30 +232,29 @@ bool dmx_driver_is_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_num, int rx_num, int rts_num) {
-  ESP_RETURN_ON_FALSE(dmx_num >= 0 && dmx_num < DMX_NUM_MAX,
-                      ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
-  ESP_RETURN_ON_FALSE(tx_num < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_num),
-                      ESP_ERR_INVALID_ARG, TAG, "tx_num error");
-  ESP_RETURN_ON_FALSE(rx_num < 0 || GPIO_IS_VALID_GPIO(rx_num),
-                      ESP_ERR_INVALID_ARG, TAG, "rx_num error");
-  ESP_RETURN_ON_FALSE(rts_num < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_num),
-                      ESP_ERR_INVALID_ARG, TAG, "rts_num error");
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
+  ESP_RETURN_ON_FALSE(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, TAG, "dmx_num error");
+  ESP_RETURN_ON_FALSE(tx_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_pin),
+                      ESP_ERR_INVALID_ARG, TAG, "tx_pin error");
+  ESP_RETURN_ON_FALSE(rx_pin < 0 || GPIO_IS_VALID_GPIO(rx_pin),
+                      ESP_ERR_INVALID_ARG, TAG, "rx_pin error");
+  ESP_RETURN_ON_FALSE(rts_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_pin),
+                      ESP_ERR_INVALID_ARG, TAG, "rts_pin error");
 
-  return uart_set_pin(dmx_num, tx_num, rx_num, rts_num, DMX_PIN_NO_CHANGE);
+  return uart_set_pin(dmx_num, tx_pin, rx_pin, rts_pin, DMX_PIN_NO_CHANGE);
 }
 
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_num) {
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   // TODO: Check args
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   
   // Add the GPIO interrupt handler
-  esp_err_t err = gpio_isr_handler_add(intr_num, dmx_gpio_isr, driver);
+  esp_err_t err = gpio_isr_handler_add(intr_pin, dmx_gpio_isr, driver);
   if (err) {
     return err;
   }
-  driver->sniffer.intr_io_num = intr_num;
+  driver->sniffer.intr_io_num = intr_pin;
 
   // TODO: Initialize the sniffer queue
 
@@ -263,7 +262,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_num) {
   driver->sniffer.last_neg_edge_ts = -1;
 
   // Enable the interrupt
-  gpio_set_intr_type(intr_num, GPIO_INTR_ANYEDGE);
+  gpio_set_intr_type(intr_pin, GPIO_INTR_ANYEDGE);
 
   return ESP_OK;
 }

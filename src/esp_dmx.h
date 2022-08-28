@@ -58,13 +58,13 @@ bool dmx_driver_is_installed(dmx_port_t dmx_num);
  * @brief Sets DMX pin number.
  *
  * @param dmx_num The DMX port number.
- * @param tx_num The pin to which the TX signal will be assigned.
- * @param rx_num The pin to which the RX signal will be assigned.
- * @param rts_num The pin to which the RTS signal will be assigned.
+ * @param tx_pin The pin to which the TX signal will be assigned.
+ * @param rx_pin The pin to which the RX signal will be assigned.
+ * @param rts_pin The pin to which the RTS signal will be assigned.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  * */
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_num, int rx_num, int rts_num);
+esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin);
 
 /**
  * @brief Enables the DMX sniffer to determine the DMX break and 
@@ -81,13 +81,13 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_num, int rx_num, int rts_num);
  * possible.
  *
  * @param dmx_num The DMX port number.
- * @param intr_num The pin to which to assign the interrupt.
+ * @param intr_pin The pin to which to assign the interrupt.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
  * @retval ESP_ERR_INVALID_STATE if the driver is not installed or sniffer 
  * already enabled.
  */
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_num);
+esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin);
 
 /**
  * @brief Disables the DMX sniffer.
