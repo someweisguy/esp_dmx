@@ -28,7 +28,9 @@ extern "C" {
  * that this function is running on. 
  *
  * @param dmx_num The DMX port number.
- * @param[in] dmx_config A pointer to a dmx_config_t.
+ * @param timer_group The hardware timer group to use.
+ * @param timer_idx The hardware timer index to use.
+ * @param intr_flags The interrupt allocation flags to use.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there is an argument error.
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
