@@ -18,7 +18,7 @@ extern "C" {
 /**
  * @brief DMX port type.
  */
-typedef int dmx_port_t;
+typedef unsigned int dmx_port_t;
 
 /**
  * @brief Struct that contains DMX driver constants that cannot be changed
