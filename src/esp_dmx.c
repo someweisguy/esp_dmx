@@ -51,31 +51,31 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
   dmx_driver_t *driver;
 
   // Enable module and configure the UART hardware
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (!hardware->hw_enabled) {
+  taskENTER_CRITICAL(&context->spinlock);
+  if (!context->hw_enabled) {
     periph_module_enable(uart_periph_signal[dmx_num].module);
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
 #if SOC_UART_REQUIRE_CORE_RESET
       // ESP32-C3 workaround to prevent UART outputting garbage data.
-      uart_hal_set_reset_core(&hardware->hal, true);
+      uart_hal_set_reset_core(&context->hal, true);
       periph_module_reset(uart_periph_signal[dmx_num].module);
-      uart_hal_set_reset_core(&hardware->hal), false);
+      uart_hal_set_reset_core(&context->hal), false);
 #else
       periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
     }
-    hardware->hw_enabled = true;
+    context->hw_enabled = true;
   }
-  taskEXIT_CRITICAL(&hardware->spinlock);
-  dmx_hal_init(&hardware->hal);
+  taskEXIT_CRITICAL(&context->spinlock);
+  dmx_hal_init(&context->hal);
 
   // Flush the hardware FIFOs
-  dmx_hal_rxfifo_rst(&hardware->hal);
-  dmx_hal_txfifo_rst(&hardware->hal);
+  dmx_hal_rxfifo_rst(&context->hal);
+  dmx_hal_txfifo_rst(&context->hal);
 
   // Allocate the DMX driver dynamically
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_32BIT);
@@ -136,10 +136,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
   }
 
   // Install UART interrupt
-  dmx_hal_disable_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
-  dmx_hal_clear_interrupt(&hardware->hal, DMX_ALL_INTR_MASK);
-  dmx_hal_set_txfifo_empty(&hardware->hal, DMX_UART_EMPTY_DEFAULT);
-  dmx_hal_set_rxfifo_full(&hardware->hal, DMX_UART_FULL_DEFAULT);
+  dmx_hal_disable_interrupt(&context->hal, DMX_ALL_INTR_MASK);
+  dmx_hal_clear_interrupt(&context->hal, DMX_ALL_INTR_MASK);
+  dmx_hal_set_txfifo_empty(&context->hal, DMX_UART_EMPTY_DEFAULT);
+  dmx_hal_set_rxfifo_full(&context->hal, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_flags, &dmx_uart_isr,
                  driver, &driver->uart_isr_handle);
 
@@ -159,10 +159,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
   }
 
   // Enable UART read interrupt and set RTS low
-  taskENTER_CRITICAL(&hardware->spinlock);
-  dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-  dmx_hal_set_rts(&hardware->hal, 1);
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
+  dmx_hal_enable_interrupt(&context->hal, DMX_INTR_RX_ALL);
+  dmx_hal_set_rts(&context->hal, 1);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   // Give the mutex and return
   xSemaphoreGiveRecursive(driver->mux);
@@ -174,7 +174,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is not installed");
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Free driver mutex
@@ -209,14 +209,14 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   dmx_driver[dmx_num] = NULL;
 
   // Disable UART module
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (hardware->hw_enabled) {
+  taskENTER_CRITICAL(&context->spinlock);
+  if (context->hw_enabled) {
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
       periph_module_disable(uart_periph_signal[dmx_num].module);
     }
-    hardware->hw_enabled = false;
+    context->hw_enabled = false;
   }
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   return ESP_OK;
 }
@@ -270,12 +270,12 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
             "sniffer is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
   
   // Disable the interrupt and remove the interrupt handler
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   const int sniffer_pin = driver->sniffer.intr_io_num;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
   gpio_set_intr_type(sniffer_pin, GPIO_INTR_DISABLE);
   esp_err_t err = gpio_isr_handler_remove(sniffer_pin);
   if (err) {
@@ -303,11 +303,11 @@ size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate) {
     baud_rate = DMX_MAX_BAUD_RATE;
   }
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
-  taskENTER_CRITICAL(&hardware->spinlock);
-  dmx_hal_set_baud_rate(&hardware->hal, baud_rate);
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
+  dmx_hal_set_baud_rate(&context->hal, baud_rate);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   return baud_rate;
 }
@@ -315,11 +315,11 @@ size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate) {
 size_t dmx_get_baud_rate(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
-  taskENTER_CRITICAL(&hardware->spinlock);
-  const size_t baud_rate = dmx_hal_get_baud_rate(&hardware->hal);
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
+  const size_t baud_rate = dmx_hal_get_baud_rate(&context->hal);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   return baud_rate;
 }
@@ -335,11 +335,11 @@ size_t dmx_set_break_len(dmx_port_t dmx_num, size_t break_len) {
     break_len = DMX_MAX_BREAK_LEN_US;
   }
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   dmx_driver[dmx_num]->break_len = break_len;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   return break_len;
 }
@@ -348,11 +348,11 @@ size_t dmx_get_break_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   const size_t break_len = dmx_driver[dmx_num]->break_len;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   return break_len;
 }
@@ -368,11 +368,11 @@ size_t dmx_set_mab_len(dmx_port_t dmx_num, size_t mab_len) {
     mab_len = DMX_MAX_MAB_LEN_US;
   }
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   dmx_driver[dmx_num]->mab_len = mab_len;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   return mab_len;
 }
@@ -381,11 +381,11 @@ size_t dmx_get_mab_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   const size_t mab_len = dmx_driver[dmx_num]->mab_len;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   return mab_len;
 }
@@ -423,20 +423,20 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   if (driver->is_sending && driver->data.previous_type != RDM_NON_RDM_PACKET) {
     // Do not allow asynchronous writes when sending an RDM packet
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&context->spinlock);
     return 0;
-  } else if (dmx_hal_get_rts(&hardware->hal) == 1) {
+  } else if (dmx_hal_get_rts(&context->hal) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&hardware->hal, 0);
+    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&context->hal, 0);
   }
   driver->data.tx_size = size;  // Update driver transmit size
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data.buffer, source, size);
@@ -449,7 +449,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
   // Block until the mutex can be taken
   if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
@@ -462,18 +462,18 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   }
 
   // Set the RTS pin to read from the DMX bus
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (dmx_hal_get_rts(&hardware->hal) == 0) {
-    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
-    dmx_hal_set_rts(&hardware->hal, 1);
-    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
+  taskENTER_CRITICAL(&context->spinlock);
+  if (dmx_hal_get_rts(&context->hal) == 0) {
+    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_TX_ALL);
+    dmx_hal_set_rts(&context->hal, 1);
+    dmx_hal_enable_interrupt(&context->hal, DMX_INTR_RX_ALL);
   }
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   // Receive the latest data packet or check if the driver must wait
   dmx_err_t err = DMX_OK;
   uint32_t packet_size = 0;
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   if (!driver->received_packet) {
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   } else {
@@ -486,7 +486,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   const int previous_type = driver->data.previous_type;
   const uint64_t previous_uid = driver->data.previous_uid;
   const int64_t previous_ts = driver->data.previous_ts;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   // If a packet hasn't been received, the driver must wait
   if (!received_packet) {
@@ -499,7 +499,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
     }
 
     // Set the timeout alarm if the timeout hasn't elapsed yet
-    taskENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&context->spinlock);
     const int64_t elapsed = esp_timer_get_time() - previous_ts;
     if (elapsed < timeout) {
       timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
@@ -507,13 +507,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
       timer_start(driver->timer_group, driver->timer_num);
       driver->timer_running = true;
     }
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&context->spinlock);
 
     // Fail immediately if the timeout has elapsed and a response was expected
     if (timeout > 0 && elapsed >= timeout) {
-      taskENTER_CRITICAL(&hardware->spinlock);
+      taskENTER_CRITICAL(&context->spinlock);
       driver->task_waiting = NULL;
-      taskEXIT_CRITICAL(&hardware->spinlock);
+      taskEXIT_CRITICAL(&context->spinlock);
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
       return 0;
@@ -527,10 +527,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
 
   // Process DMX packet data
   if (packet_size > 0 && err == DMX_OK && event != NULL) {
-    taskENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&context->spinlock);
     bool is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
     event->sc = driver->data.buffer[0];
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&context->spinlock);
     event->size = packet_size;
     event->is_rdm = is_rdm;
   }
@@ -545,7 +545,7 @@ size_t dmx_send(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
   // Block until the mutex can be taken
   if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
@@ -559,7 +559,7 @@ size_t dmx_send(dmx_port_t dmx_num) {
 
   // Determine if an alarm needs to be set to wait until driver is ready
   uint32_t timeout = 0;
-  taskENTER_CRITICAL(&hardware->spinlock);
+  taskENTER_CRITICAL(&context->spinlock);
   if (driver->data.sent_previous) {
     if (driver->data.previous_type == RDM_DISCOVERY_COMMAND) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
@@ -579,7 +579,7 @@ size_t dmx_send(dmx_port_t dmx_num) {
     timer_start(driver->timer_group, driver->timer_num);
     driver->timer_running = true;
   }
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   // Block if an alarm was set
   if (elapsed < timeout) {
@@ -597,13 +597,13 @@ size_t dmx_send(dmx_port_t dmx_num) {
   }
 
   // Turn the DMX bus around and get the send size
-  taskENTER_CRITICAL(&hardware->spinlock);
-  if (dmx_hal_get_rts(&hardware->hal) == 1) {
-    dmx_hal_disable_interrupt(&hardware->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&hardware->hal, 0);
+  taskENTER_CRITICAL(&context->spinlock);
+  if (dmx_hal_get_rts(&context->hal) == 1) {
+    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&context->hal, 0);
   }
   const size_t size = driver->data.tx_size;
-  taskEXIT_CRITICAL(&hardware->spinlock);
+  taskEXIT_CRITICAL(&context->spinlock);
 
   // Record the outgoing packet type
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
@@ -623,33 +623,33 @@ size_t dmx_send(dmx_port_t dmx_num) {
   // Determine if a DMX break is required and send the packet
   if (driver->data.previous_type == RDM_DISCOVERY_COMMAND_RESPONSE) {
     // RDM discovery responses do not send a DMX break - write immediately
-    taskENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&context->spinlock);
     driver->is_sending = true;
 
     size_t write_size = driver->data.tx_size;
-    dmx_hal_write_txfifo(&hardware->hal, driver->data.buffer, &write_size);
+    dmx_hal_write_txfifo(&context->hal, driver->data.buffer, &write_size);
     driver->data.head = write_size;
     
     // Enable DMX write interrupts
-    dmx_hal_enable_interrupt(&hardware->hal, DMX_INTR_TX_ALL);
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    dmx_hal_enable_interrupt(&context->hal, DMX_INTR_TX_ALL);
+    taskEXIT_CRITICAL(&context->spinlock);
   } else {
     // Use the hardware timer to send a DMX break and mark-after-break
-    taskENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&context->spinlock);
     const uint32_t break_len = driver->break_len;
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&context->spinlock);
     timer_set_counter_value(driver->timer_group, driver->timer_num, 0);
     timer_set_alarm_value(driver->timer_group, driver->timer_num, break_len);
     
     // Send the packet by starting the DMX break
-    taskENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&context->spinlock);
     driver->is_sending = true;
     driver->is_in_break = true;
     driver->data.head = 0;
-    dmx_hal_invert_tx(&hardware->hal, 1);
+    dmx_hal_invert_tx(&context->hal, 1);
     timer_start(driver->timer_group, driver->timer_num);
     driver->timer_running = true;
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&context->spinlock);
   }
 
   // Give the mutex back
@@ -662,7 +662,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const hardware = &dmx_context[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
 
   // Block until the mutex can be taken
   if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
@@ -673,12 +673,12 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout) {
   bool result = true;
   if (timeout > 0) {
     bool task_waiting = false;
-    taskENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&context->spinlock);
     if (driver->is_sending) {
       driver->task_waiting = xTaskGetCurrentTaskHandle();
       task_waiting = true;
     }
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&context->spinlock);
 
     // Wait for a notification that the driver is done sending
     if (task_waiting) {
@@ -686,11 +686,11 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout) {
       driver->task_waiting = NULL;
     }
   } else {
-    taskENTER_CRITICAL(&hardware->spinlock);
+    taskENTER_CRITICAL(&context->spinlock);
     if (driver->is_sending) {
       result = false;
     }
-    taskEXIT_CRITICAL(&hardware->spinlock);
+    taskEXIT_CRITICAL(&context->spinlock);
   }
 
   // Give the mutex back and return

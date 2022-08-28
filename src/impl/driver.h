@@ -59,9 +59,9 @@ typedef __attribute__((aligned(4))) struct {
 } dmx_driver_t;
 
 typedef struct {
-    uart_hal_context_t hal;  // The hardware abstraction layer of the UART. Contains a pointer to the UART registers.
-    spinlock_t spinlock;     // A spinlock for ensuring synchronized driver and hardware operations.
-    int hw_enabled;          // True if the UART hardware has been initialized.
+  uart_hal_context_t hal;  // The UART context. Points to UART registers.
+  spinlock_t spinlock;     // Synchronizes hardware and driver operations.
+  int hw_enabled;          // True if the UART hardware has been initialized.
 } dmx_context_t;
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
