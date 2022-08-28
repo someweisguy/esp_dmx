@@ -46,44 +46,28 @@ DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
 
 DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
 
-static void dmx_module_enable(dmx_port_t dmx_num) {
-  taskENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_context[dmx_num].hw_enabled != true) {
-    periph_module_enable(uart_periph_signal[dmx_num].module);
-    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-#if SOC_UART_REQUIRE_CORE_RESET
-      /* Workaround for ESP32C3: enable core reset before enabling UART module
-      clock to prevent UART output garbage value. */
-      uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), true);
-      periph_module_reset(uart_periph_signal[dmx_num].module);
-      uart_hal_set_reset_core(&(dmx_context[dmx_num].hal), false);
-#else
-      periph_module_reset(uart_periph_signal[dmx_num].module);
-#endif
-    }
-    dmx_context[dmx_num].hw_enabled = true;
-  }
-  taskEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-}
-
-static void dmx_module_disable(dmx_port_t dmx_num) {
-  taskENTER_CRITICAL(&(dmx_context[dmx_num].spinlock));
-  if (dmx_context[dmx_num].hw_enabled != false) {
-    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-      periph_module_disable(uart_periph_signal[dmx_num].module);
-    }
-    dmx_context[dmx_num].hw_enabled = false;
-  }
-  taskEXIT_CRITICAL(&(dmx_context[dmx_num].spinlock));
-}
-
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 
   dmx_context_t *const hardware = &dmx_context[dmx_num];
   dmx_driver_t *driver;
 
-  // Configure the UART hardware
-  dmx_module_enable(dmx_num);
+  // Enable module and configure the UART hardware
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (!hardware->hw_enabled) {
+    periph_module_enable(uart_periph_signal[dmx_num].module);
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+#if SOC_UART_REQUIRE_CORE_RESET
+      // ESP32-C3 workaround to prevent UART outputting garbage data.
+      uart_hal_set_reset_core(&hardware->hal, true);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
+      uart_hal_set_reset_core(&hardware->hal), false);
+#else
+      periph_module_reset(uart_periph_signal[dmx_num].module);
+#endif
+    }
+    hardware->hw_enabled = true;
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
   dmx_hal_init(&hardware->hal);
 
   // Flush the hardware FIFOs
@@ -185,6 +169,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *dmx_config) {
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // TODO: check args
 
+  dmx_context_t *const hardware = &dmx_context[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Free driver mutex
@@ -219,7 +204,14 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   dmx_driver[dmx_num] = NULL;
 
   // Disable UART module
-  dmx_module_disable(dmx_num);
+  taskENTER_CRITICAL(&hardware->spinlock);
+  if (hardware->hw_enabled) {
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+      periph_module_disable(uart_periph_signal[dmx_num].module);
+    }
+    hardware->hw_enabled = false;
+  }
+  taskEXIT_CRITICAL(&hardware->spinlock);
 
   return ESP_OK;
 }
