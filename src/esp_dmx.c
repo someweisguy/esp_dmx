@@ -34,8 +34,8 @@ enum rdm_packet_spacing {
 };
 
 enum dmx_default_interrupt_values {
-  DMX_UART_FULL_DEFAULT = 1,  // The default value for the RX FIFO full interrupt threshold.
-  DMX_UART_EMPTY_DEFAULT = 8,  // The default value for the TX FIFO empty interrupt threshold.
+  DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
+  DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
 };
 
 DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
