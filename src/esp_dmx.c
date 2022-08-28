@@ -576,6 +576,21 @@ size_t dmx_send(dmx_port_t dmx_num) {
     return 0;
   }
 
+  // Determine if it is too late to send a response packet
+  int64_t elapsed = 0;
+  taskENTER_CRITICAL(&context->spinlock);
+  rdm_data_t *const rdm = driver->data.buffer;
+  if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
+      (rdm->cc == RDM_DISCOVERY_COMMAND_RESPONSE ||
+       rdm->cc == RDM_GET_COMMAND_RESPONSE ||
+       rdm->cc == RDM_SET_COMMAND_RESPONSE)) {
+    elapsed = esp_timer_get_time() - driver->data.previous_ts;
+  }
+  taskEXIT_CRITICAL(&context->spinlock);
+  if (elapsed >= RDM_RESPONDER_RESPONSE_LOST_TIMEOUT) {
+    return 0;
+  }
+
   // Determine if an alarm needs to be set to wait until driver is ready
   uint32_t timeout = 0;
   taskENTER_CRITICAL(&context->spinlock);

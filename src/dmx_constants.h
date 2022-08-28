@@ -90,7 +90,8 @@ enum rdm_packet_spacing {
   RDM_BROADCAST_PACKET_SPACING = 176,               // The amount of time that must pass between the RDM controller sending a broadcast packet and then sending any other packet.
   RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,      // The amount of time that must pass between the RDM controller sending a request and the RDM responder sending a response packet.
 
-  RDM_RESPONSE_LOST_TIMEOUT = 2800,  // The amount of time that must pass before the RDM controller considers a discovery response packet lost. 
+  RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT = 2800,  // The amount of time that must pass before the RDM controller considers a response packet lost. 
+  RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000    // The amount of time that must pass before the RDM responder considers a response packet lost.
 };
 
 /**
