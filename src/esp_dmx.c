@@ -25,6 +25,11 @@
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
+/**
+ * @brief The context for the DMX driver. Contains a pointer to UART registers
+ * as well as a spinlock for synchronizing access to resources and tracks if the
+ * UART hardware has been enabled.
+ */
 typedef struct dmx_context {
   uart_hal_context_t hal;  // The UART context. Points to UART registers.
   spinlock_t spinlock;     // Synchronizes hardware and driver operations.
