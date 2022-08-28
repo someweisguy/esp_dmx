@@ -514,7 +514,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
     if (sent_previous && previous_uid != RDM_BROADCAST_UID &&
         (previous_type == RDM_GET_COMMAND || previous_type == RDM_SET_COMMAND ||
          previous_type == RDM_DISCOVERY_COMMAND)) {
-      timeout = RDM_RESPONSE_LOST_TIMEOUT;
+      timeout = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT;
     }
 
     // Set the timeout alarm if the timeout hasn't elapsed yet
@@ -605,7 +605,7 @@ size_t dmx_send(dmx_port_t dmx_num) {
   } else {
     timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
   }
-  const int64_t elapsed = esp_timer_get_time() - driver->data.previous_ts;
+  elapsed = esp_timer_get_time() - driver->data.previous_ts;
   if (elapsed < timeout) {
     timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
     timer_set_alarm_value(driver->timer_group, driver->timer_num, timeout);
