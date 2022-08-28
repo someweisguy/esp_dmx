@@ -24,7 +24,7 @@
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
-typedef struct {
+typedef struct dmx_context {
   uart_hal_context_t hal;  // The UART context. Points to UART registers.
   spinlock_t spinlock;     // Synchronizes hardware and driver operations.
   int hw_enabled;          // True if the UART hardware has been initialized.
