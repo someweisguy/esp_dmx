@@ -16,7 +16,7 @@ extern "C" {
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.
  */
-typedef __attribute__((aligned(4))) struct {
+typedef __attribute__((aligned(4))) struct dmx_driver {
   dmx_port_t dmx_num;  // The driver's DMX port number.
   int timer_group;     // The timer group being used fro the DMX reset sequence. Can be set to -1 to use busy-waits instead of a hardware timer.
   int timer_num;       // The timer number being used for the DMX reset sequence.
@@ -26,7 +26,7 @@ typedef __attribute__((aligned(4))) struct {
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
-  struct {
+  struct dmx_data {
     size_t head;      // The index of the current slot being either transmitted or received.
     uint8_t *buffer;  // The buffer that stores the DMX packet.
     size_t tx_size;   // The size of the outgoing data packet.
@@ -48,7 +48,7 @@ typedef __attribute__((aligned(4))) struct {
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
-  struct {
+  struct dmx_sniffer {
     QueueHandle_t queue;       // The queue handle used to receive sniffer data.
     dmx_sniffer_data_t data;   // The data received by the DMX sniffer.
 
