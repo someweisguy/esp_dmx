@@ -210,19 +210,18 @@ IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
 IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->status.rxd;
-// #elif defined(CONFIG_IDF_TARGET_ESP32C2)
-// Not yet supported by ESP-IDF.
+#elif defined(CONFIG_IDF_TARGET_ESP32C2)
+#error ESP32-C2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   return hal->dev->status.rxd;
-// #elif defined(CONFIG_IDF_TARGET_ESP32H2)
-// Not yet supported by ESP-IDF.
+#elif defined(CONFIG_IDF_TARGET_ESP32H2)
+#error ESP32-H2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   return hal->dev->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   return hal->dev->uart_status_reg_t.rxd;
 #else
-#define DMX_GET_RX_LEVEL_NOT_IMPLEMENTED
-  return 0;
+#error Unknown target hardware.
 #endif
 }
 
