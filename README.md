@@ -142,7 +142,7 @@ Optionally, the macro `DMX_DEFAULT_CONFIG` may be used to simplify installation 
 dmx_driver_install(DMX_NUM_2, DMX_DEFAULT_CONFIG);
 ```
 
-Hardware timers are used for several purposes including the generation of the DMX reset sequence. It is not possible for separate DMX drivers to share hardware timers. In cases where multiple DMX ports are in use, each DMX port must use different hardware timers.
+Hardware timers are used for several purposes including the generation of the DMX reset sequence. It is not possible for individual DMX drivers to share hardware timers. In cases where multiple DMX ports are in use, each DMX port must use different hardware timers.
 
 ### Parameter Configuration
 
