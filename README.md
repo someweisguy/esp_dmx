@@ -48,62 +48,53 @@ This library is compatible with the PlatformIO IDE. Search for this library in t
 
 To get started, call the following code in your `setup()` function if using Arduino, or `app_main()` in your `main.c` file if using ESP-IDF.
 
-```cpp
+```c
 const dmx_port_t dmx_num = DMX_NUM_2;
 
-// first configure the UART...
-const dmx_config_t config = DMX_DEFAULT_CONFIG;
-dmx_param_config(dmx_num, &config);
+// First set the communication pins...
+const int tx_pin = 17;
+const int rx_pin = 16;
+const int rts_pin = 21;
+dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
 
-// then set the communication pins...
-const int tx_io_num = 17, rx_io_num = 16, rts_io_num = 21;
-dmx_set_pin(dmx_num, tx_io_num, rx_io_num, rts_io_num);
-
-// and install the driver!
-QueueHandle_t dmx_queue;
-dmx_driver_install(dmx_num, DMX_MAX_PACKET_SIZE, 10, &dmx_queue, 
-      ESP_INTR_FLAG_IRAM);
+// ...and then install the driver!
+dmx_driver_install(dmx_num, DMX_DEFAULT_CONFIG);
 ```
 
-Before the user is able to write to the DMX bus, the driver mode must be set. Call `dmx_set_mode()` and pass either `DMX_MODE_READ` or `DMX_MODE_WRITE`. After the driver is installed `DMX_MODE_READ` is the default.
+To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
 
-```cpp
-// configure for tx
-dmx_set_mode(dmx_num, DMX_MODE_WRITE);
-```
+```c
+uint8_t data[DMX_PACKET_SIZE] = {0};
 
-To write data to the DMX bus, two functions are provided. The function `dmx_write_packet()` writes data to the DMX buffer and `dmx_send_packet()` sends the data out onto the bus. The function `dmx_wait_send_done()` is used to block the task until the DMX bus is idle.
+while (true) {
+  // Write to the packet and send it.
+  dmx_write(dmx_num, data, DMX_PACKET_SIZE);
+  dmx_send(dmx_num);
+  
+  // Do work here...
 
-```cpp
-uint8_t data[DMX_MAX_PACKET_SIZE] = {0};
-while (1) {
-    // write to the packet and send it
-    dmx_write_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
-    dmx_send_packet(dmx_num, DMX_MAX_PACKET_SIZE);
-    
-    // do work here...
-
-    // block until the packet is finished sending
-    dmx_wait_send_done(dmx_num, DMX_TX_PACKET_TOUT_TICK);
+  // Block until the packet is finished sending.
+  dmx_wait_sent(dmx_num, DMX_TIMEOUT_TICK);
 }
 ```
 
-To read from the DMX bus, use the queue handle passed to `dmx_driver_install()`. The function `dmx_read_packet()` is provided to read from the driver buffer into an array.
+To read from the DMX bus, two additional functions are provided. The function `dmx_receive()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
 
-```cpp
+```c
 dmx_event_t event;
-while (1) {
-    if (xQueueReceive(dmx_queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
-        // read the packet from the driver buffer into 'data'
-        dmx_read_packet(dmx_num, data, DMX_MAX_PACKET_SIZE);
-    }
+while (true) {
+  const int size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+  if (size > 0) {
+    dmx_read(dmx_num, data, size);
+    // Process data here...
+  }
 
-    // do other work here...
+  // Do other work here...
 
 }
 ```
 
-That's it! For more detailed information on how this library works, keep reading.
+That's it! For more detailed information on how this library works including details on RDM tools, keep reading.
 
 ## What is DMX?
 
