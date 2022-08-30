@@ -124,9 +124,9 @@ dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 
 After the communication pins are set, install the driver by calling `dmx_driver_install()`. This function will allocate the necessary resources for the DMX driver. It instantiates the driver to default DMX settings. The following parameters are passed to this function:
 
-- The hardware timer group to use
-- The hardware timer number to use
-- Flags to allocate interrupts
+- The hardware timer group to use.
+- The hardware timer number to use.
+- Flags to allocate interrupts.
 
 ```c
 const int timer_group = 0;
