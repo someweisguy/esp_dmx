@@ -15,7 +15,6 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
   - [Installing the Driver](#installing-the-driver)
   - [Parameter Configuration](#parameter-configuration)
 - [Reading and Writing](#reading-and-writing)
-  - [Device Mode](#device-mode)
   - [Reading](#reading)
   - [DMX Sniffer](#dmx-sniffer)
   - [Writing](#writing)
@@ -160,19 +159,7 @@ The above functions each have `_get_` counterparts to retrieve the currently set
 
 ## Reading and Writing
 
-### Device Mode
-
-DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once.
-
-To set the driver mode call `dmx_set_mode()` and pass to it either `DMX_MODE_READ` or `DMX_MODE_WRITE`. After the driver is installed `DMX_MODE_READ` is the default.
-
-```cpp
-// set the DMX driver to transmit mode
-dmx_set_mode(DMX_NUM_2, DMX_MODE_WRITE);
-// dmx_set_mode(DMX_NUM_2, DMX_MODE_READ); // don't need to read now
-```
-
-If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports. It should be noted that this is an unusual use case. This library is not meant to act as a DMX optoisolator or splitter.
+DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once. If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports.
 
 ### Reading
 
