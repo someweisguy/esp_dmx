@@ -11,9 +11,9 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
 - [Quick-Start Guide](#quick-start-guide)
 - [What is DMX?](#what-is-dmx)
 - [Configuring the DMX Port](#configuring-the-dmx-port)
-  - [Parameter Configuration](#parameter-configuration)
   - [Setting Communication Pins](#setting-communication-pins)
   - [Installing the Driver](#installing-the-driver)
+  - [Parameter Configuration](#parameter-configuration)
 - [Reading and Writing](#reading-and-writing)
   - [Device Mode](#device-mode)
   - [Reading](#reading)
@@ -112,70 +112,51 @@ For in-depth information on DMX, see the [E1.11 standards document](https://tsp.
 
 The DMX driver’s functions identify each of the UART controllers using `dmx_port_t`. This identification is needed for all the following function calls.
 
-### Parameter Configuration
-
-#### Single Step
-
-Call the function `dmx_param_config()` and pass it a `dmx_config_t` structure. It contains all the parameters needed to configure the DMX packet settings. In most situations, custom packet configuration isn't necessary. The macro `DMX_DEFAULT_CONFIG` is provided to simplify this process.
-
-```cpp
-const dmx_config_t dmx_config = DMX_DEFAULT_CONFIG;
-dmx_param_config(DMX_NUM_2, &dmx_config);
-```
-
-If using a custom DMX configuration is desired, the `dmx_config_t` parameters can be set manually.
-
-```cpp
-const dmx_config_t dmx_config = {
-    .baud_rate = 250000, // typical baud rate   
-    .break_num = 45,     // 180us 
-    .idle_num = 5        // 20us
-};
-dmx_param_config(DMX_NUM_2, &dmx_config);
-```
-
-The `break_num` corresponds to the duration of the packet break and `idle_num` corresponds to the duration of the mark after break. Both values are set in units of time that it takes to send one bit at the current baud rate. If the current baud rate is 250k, it takes 4μs to send one bit. Setting `break_num` to 45 and `idle_num` to 5 in this example sets the break and mark after break to 180μs and 20μs respectively.
-
-#### Multiple Steps
-
-Parameters may be configured individually by calling the below dedicated functions. These functions are also useful if re-configuring a single parameter.
-
-```cpp
-dmx_set_baud_rate(DMX_NUM_2, 250000);
-dmx_set_break_num(DMX_NUM_2, 44);
-dmx_set_idle_num(DMX_NUM_2, 3);
-```
-
-Each of the above functions has a `_get_` counterpart to check the currently set value. For example, to check the current baud rate, call `dmx_get_baud_rate()`.
-
 ### Setting Communication Pins
 
 Configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro `DMX_PIN_NO_CHANGE`. This macro should also be used if a pin isn't used.
 
-```cpp
-// set TX: IO16 (port 2 default), RX: IO17 (port 2 default), RTS: IO21
+```c
+// Set TX: GPIO16 (port 2 default), RX: GPIO17 (port 2 default), RTS: GPIO21.
 dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 ```
 
 ### Installing the Driver
 
-After the communication pins are set, install the driver by calling `dmx_driver_install()`. The following parameters are passed to this function:
+After the communication pins are set, install the driver by calling `dmx_driver_install()`. This function will allocate the necessary resources for the DMX driver. It instantiates the driver to default DMX settings. The following parameters are passed to this function:
 
-- Size of the driver double-buffer
-- Size of the event queue
-- Handle to the queue
+- The hardware timer group to use
+- The hardware timer number to use
 - Flags to allocate interrupts
 
-This function will allocate the necessary resources for the DMX driver. Note that the driver uses a double-buffer system. The driver will allocate twice the size of the passed buffer size argument.
-
-```cpp
-QueueHandle_t dmx_queue;
-const int buffer_size = DMX_MAX_PACKET_SIZE; // 513 bytes
-// install DMX driver using an event queue
-dmx_driver_install(DMX_NUM_2, buffer_size, 10, &dmx_queue, 0);
+```c
+const int timer_group = 0;
+const int timer_num = 0;
+const int interrupt_flags = ESP_INTR_FLAG_IRAM;  // Place interrupt in IRAM.
+dmx_driver_install(DMX_NUM_2, timer_group, timer_num, interrupt_flags);
 ```
 
-Once this step is complete, DMX devices can be connected to check for communication.
+Optionally, the macro `DMX_DEFAULT_CONFIG` may be used to simplify installation of the DMX driver.
+
+```c
+dmx_driver_install(DMX_NUM_2, DMX_DEFAULT_CONFIG);
+```
+
+Hardware timers are used for several purposes including the generation of the DMX reset sequence. It is not possible for separate DMX drivers to share hardware timers. In cases where multiple DMX ports are in use, each DMX port must use different hardware timers.
+
+### Parameter Configuration
+
+In most situations it is not necessary to adjust the default parameters of the DMX driver. Nonetheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break. After the DMX driver has been installed, the following functions may be called.
+
+```c
+dmx_set_baud_rate(DMX_NUM_2, DMX_BAUD_RATE);     // Set DMX baud rate.
+dmx_set_break_len(DMX_NUM_2, DMX_BREAK_LEN_US);  // Set DMX break length.
+dmx_set_mab_len(DMX_NUM_2, DMX_MAB_LEN_US);      // Set DMX MAB length.
+```
+
+If parameters values that are not within the DMX specification are passed to these functions, the values will be clamped so that they are within DMX specification. Note that it is possible to set driver parameters to be within DMX specification but not within RDM specification. Care must be used when using these functions to ensure that RDM capabilities are maintained.
+
+The above functions each have `_get_` counterparts to retrieve the currently set DMX parameters.
 
 ## Reading and Writing
 
