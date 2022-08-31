@@ -68,7 +68,7 @@ uint8_t data[DMX_PACKET_SIZE] = {0};
 while (true) {
   // Write to the packet and send it.
   dmx_write(dmx_num, data, DMX_PACKET_SIZE);
-  dmx_send(dmx_num);
+  dmx_send(dmx_num, DMX_PACKET_SIZE);
   
   // Do work here...
 
