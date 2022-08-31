@@ -227,10 +227,10 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
  * @brief Reads a single slot of DMX data.
  * 
  * @param dmx_num The DMX port number.
- * @param address The DMX address to read.
+ * @param slot_num The DMX slot number to read.
  * @return The value of the DMX address or -1 on error.
  */
-int dmx_read_slot(dmx_port_t dmx_num, size_t address);
+int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
 
 /**
  * @brief Writes DMX data from a source buffer into the DMX driver buffer. Data

@@ -767,15 +767,15 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
   return size;
 }
 
-int dmx_read_slot(dmx_port_t dmx_num, size_t address) {
+int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
-  DMX_CHECK(address < DMX_MAX_PACKET_SIZE, -1, "address error");
+  DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Return data from the driver buffer asynchronously
-  return driver->data.buffer[address];
+  return driver->data.buffer[slot_num];
 }
 
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
