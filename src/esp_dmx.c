@@ -745,6 +745,39 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
   return size;
 }
 
+size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
+                       size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
+  DMX_CHECK(destination, 0, "destination is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // Clamp size to the maximum DMX packet size
+  if (size + offset > DMX_MAX_PACKET_SIZE) {
+    size = DMX_MAX_PACKET_SIZE - offset;
+  } else if (size == 0) {
+    return 0;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Copy data from the driver buffer to the destination asynchronously
+  memcpy(destination, driver->data.buffer + offset, size);
+
+  return size;
+}
+
+int dmx_read_slot(dmx_port_t dmx_num, size_t address) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
+  DMX_CHECK(address < DMX_MAX_PACKET_SIZE, -1, "address error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Return data from the driver buffer asynchronously
+  return driver->data.buffer[address];
+}
+
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(source, 0, "source is null");

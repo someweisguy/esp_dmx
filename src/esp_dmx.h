@@ -209,6 +209,30 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size);
 
 /**
+ * @brief Reads DMX data from the driver into a destination buffer with an
+ * offset. This can be useful when a receiving DMX device only needs to process
+ * a small footprint of the DMX packet.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param offset The number of slots with which to offset the read. If set to 0
+ * this function is equivalent to dmx_read().
+ * @param destination The destination buffer into which to read the DMX data.
+ * @param size The size of the destination buffer.
+ * @return The number of bytes read from the DMX driver.
+ */
+size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
+                       size_t size);
+
+/**
+ * @brief Reads a single slot of DMX data.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param address The DMX address to read.
+ * @return The value of the DMX address or -1 on error.
+ */
+int dmx_read_slot(dmx_port_t dmx_num, size_t address);
+
+/**
  * @brief Writes DMX data from a source buffer into the DMX driver buffer. Data
  * written into the DMX driver buffer can then be sent to DMX devices.
  * 
@@ -218,6 +242,13 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size);
  * @return The number of bytes written into the DMX driver.
  */
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
+
+// TODO: docs
+size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
+                        size_t size);
+
+// TODO: docs
+int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 
 /**
  * @brief Receives a DMX packet from the DMX bus. This is a blocking function.
