@@ -169,7 +169,7 @@ To read synchronously from the DMX bus the DMX driver must wait for a new packet
 
 ```c
 dmx_event_t event;
-// Wait for a new packet. Returns the size of the received packet or 0 on error.
+// Wait for a packet. Returns the size of the received packet or 0 on timeout.
 size_t packet_size = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
 ```
 
