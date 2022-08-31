@@ -170,7 +170,7 @@ To read synchronously from the DMX bus the DMX driver must wait for a new packet
 ```c
 dmx_event_t event;
 // Wait for a packet. Returns the size of the received packet or 0 on timeout.
-size_t packet_size = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
+int packet_size = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
 ```
 
 The function `dmx_receive()` takes three arguments. The first argument is the `dmx_port_t` which identifies which DMX port to use. The second argument is a pointer to a `dmx_event_t` struct. Data about the received packet is copied into the `dmx_event_t` struct when a packet is received. This data includes:
@@ -193,18 +193,38 @@ uint8_t data[DMX_PACKET_SIZE];
 
 dmx_event_t event;
 if (dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK)) {
+
   // Check that no errors occurred.
   if (event.err == DMX_OK) {
     dmx_read(DMX_NUM_2, data, event.size);
   } else {
     printf("An error occurred receiving DMX!");
   }
+
 } else {
   printf("Timed out waiting for DMX.");
 }
 ```
 
-// TODO: documentation for `dmx_read_slot()`.
+There are two variations to the `dmx_read()` function. The function `dmx_read_offset()` is similar to `dmx_read()` but allows a small footprint of the entire DMX packet to be read.
+
+```c
+const int size = 12;   // The size of this device's DMX footprint.
+const int offset = 5;  // The start address of this device.
+uint8_t data[size];
+
+// Read slots 5 through 17. Returns the number of slots that were read.
+int slots_read = dmx_read_offset(DMX_NUM_2, offset, data, size);
+```
+
+Lastly, `dmx_read_slot()` can be used to read a single slot of DMX data.
+
+```c
+const int slot_num = 0;  // The slot to read. Slot 0 is the DMX start-code!
+
+// Read slot 0. Returns the value of the desired slot or -1 on error.
+int value = dmx_read_slot(DMX_NUM_2, slot_num);
+```
 
 ### DMX Sniffer
 
