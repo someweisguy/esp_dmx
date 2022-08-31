@@ -812,6 +812,73 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   return size;
 }
 
+size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
+                        size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
+  DMX_CHECK(source, 0, "source is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  
+  // Clamp size to the maximum DMX packet size
+  if (size + offset > DMX_MAX_PACKET_SIZE) {
+    size = DMX_MAX_PACKET_SIZE - offset;
+  } else if (size == 0) {
+    return 0;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
+
+  taskENTER_CRITICAL(&context->spinlock);
+  if (driver->is_sending && driver->data.previous_type != RDM_NON_RDM_PACKET) {
+    // Do not allow asynchronous writes when sending an RDM packet
+    taskEXIT_CRITICAL(&context->spinlock);
+    return 0;
+  } else if (dmx_hal_get_rts(&context->hal) == 1) {
+    // Flip the bus to stop writes from being overwritten by incoming data
+    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&context->hal, 0);
+  }
+  driver->data.tx_size = offset + size;  // Update driver transmit size
+  taskEXIT_CRITICAL(&context->spinlock);
+
+  // Copy data from the source to the driver buffer asynchronously
+  memcpy(driver->data.buffer + offset, source, size);
+
+  return size;
+}
+
+int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
+  DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
+
+  taskENTER_CRITICAL(&context->spinlock);
+  if (driver->is_sending && driver->data.previous_type != RDM_NON_RDM_PACKET) {
+    // Do not allow asynchronous writes when sending an RDM packet
+    taskEXIT_CRITICAL(&context->spinlock);
+    return 0;
+  } else if (dmx_hal_get_rts(&context->hal) == 1) {
+    // Flip the bus to stop writes from being overwritten by incoming data
+    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
+    dmx_hal_set_rts(&context->hal, 0);
+  }
+
+  // Ensure that the next packet to be sent includes this slot
+  if (driver->data.tx_size < slot_num) {
+    driver->data.tx_size = slot_num;
+  }
+  taskEXIT_CRITICAL(&context->spinlock);
+
+  // Set the driver buffer slot to the assigned value asynchronously
+  driver->data.buffer[slot_num] = value;
+
+  return value;
+}
+
 size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");

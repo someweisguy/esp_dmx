@@ -228,7 +228,7 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
  * 
  * @param dmx_num The DMX port number.
  * @param slot_num The DMX slot number to read.
- * @return The value of the DMX address or -1 on error.
+ * @return The value of the DMX slot or -1 on error.
  */
 int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
 
@@ -243,11 +243,28 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
  */
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
 
-// TODO: docs
+/**
+ * @brief Writes DMX data from a source buffer into the DMX driver buffer with 
+ * an offset. Allows a source buffer to be written to a specific slot number in
+ * the DMX driver buffer.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param offset The number of slots with which to offset the write. If set to 0
+ * this function is equivalent to dmx_write().
+ * @param source The source buffer which is copied to the DMX driver.
+ * @param size The size of the source buffer.
+ * @return The number of bytes written into the DMX driver.
+ */
 size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
                         size_t size);
 
-// TODO: docs
+/**
+ * @brief Writes a single slot of DMX data.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param slot_num The DMX slot number to write.
+ * @return The value written to the DMX slot or -1 on error.
+ */
 int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 
 /**
