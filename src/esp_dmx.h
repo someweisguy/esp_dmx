@@ -135,7 +135,7 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
  * @param baud_rate The baud rate to which to set the DMX driver.
  * @return the value that the baud rate was set to or 0 on error.
  */
-size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate);
+uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate);
 
 /**
  * @brief Gets the DMX baud rate.
@@ -143,7 +143,7 @@ size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate);
  * @param dmx_num The DMX port number.
  * @return the current baud rate or 0 on error.
  */
-size_t dmx_get_baud_rate(dmx_port_t dmx_num);
+uint32_t dmx_get_baud_rate(dmx_port_t dmx_num);
 
 /**
  * @brief Sets the DMX break length in microseconds. The break length will be 
@@ -161,7 +161,7 @@ size_t dmx_get_baud_rate(dmx_port_t dmx_num);
  * @param break_num The length in microseconds of the DMX break.
  * @return the value that the DMX break length was set to or 0 on error.
  */
-size_t dmx_set_break_len(dmx_port_t dmx_num, size_t break_len);
+uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len);
 
 /**
  * @brief Gets the DMX break length in microseconds.
@@ -169,7 +169,7 @@ size_t dmx_set_break_len(dmx_port_t dmx_num, size_t break_len);
  * @param dmx_num The DMX port number.
  * @return the current DMX break length or 0 on error.
  */
-size_t dmx_get_break_len(dmx_port_t dmx_num);
+uint32_t dmx_get_break_len(dmx_port_t dmx_num);
 
 /**
  * @brief Sets the DMX mark-after-break length in microseconds. The 
@@ -188,7 +188,7 @@ size_t dmx_get_break_len(dmx_port_t dmx_num);
  * @return the value that the DMX mark-after-break length was set to or 0 on 
  * error.
  */
-size_t dmx_set_mab_len(dmx_port_t dmx_num, size_t mab_len);
+uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
 
 /**
  * @brief Gets the DMX mark-after-break length in microseconds.
@@ -196,7 +196,7 @@ size_t dmx_set_mab_len(dmx_port_t dmx_num, size_t mab_len);
  * @param dmx_num The DMX port number.
  * @return the current DMX mark-after-break length or 0 on error.
  */
-size_t dmx_get_mab_len(dmx_port_t dmx_num);
+uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 
 /**
  * @brief Reads DMX data from the driver into a destination buffer.

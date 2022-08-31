@@ -628,7 +628,7 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
   return xQueueReceive(driver->sniffer.queue, sniffer_data, timeout);
 }
 
-size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate) {
+uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   
   // Clamp the baud rate to within DMX specification
@@ -647,19 +647,19 @@ size_t dmx_set_baud_rate(dmx_port_t dmx_num, size_t baud_rate) {
   return baud_rate;
 }
 
-size_t dmx_get_baud_rate(dmx_port_t dmx_num) {
+uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
 
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  const size_t baud_rate = dmx_hal_get_baud_rate(&context->hal);
+  const uint32_t baud_rate = dmx_hal_get_baud_rate(&context->hal);
   taskEXIT_CRITICAL(&context->spinlock);
 
   return baud_rate;
 }
 
-size_t dmx_set_break_len(dmx_port_t dmx_num, size_t break_len) {
+uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   
@@ -679,20 +679,20 @@ size_t dmx_set_break_len(dmx_port_t dmx_num, size_t break_len) {
   return break_len;
 }
 
-size_t dmx_get_break_len(dmx_port_t dmx_num) {
+uint32_t dmx_get_break_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  const size_t break_len = dmx_driver[dmx_num]->break_len;
+  const uint32_t break_len = dmx_driver[dmx_num]->break_len;
   taskEXIT_CRITICAL(&context->spinlock);
 
   return break_len;
 }
 
-size_t dmx_set_mab_len(dmx_port_t dmx_num, size_t mab_len) {
+uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   
@@ -712,14 +712,14 @@ size_t dmx_set_mab_len(dmx_port_t dmx_num, size_t mab_len) {
   return mab_len;
 }
 
-size_t dmx_get_mab_len(dmx_port_t dmx_num) {
+uint32_t dmx_get_mab_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  const size_t mab_len = dmx_driver[dmx_num]->mab_len;
+  const uint32_t mab_len = dmx_driver[dmx_num]->mab_len;
   taskEXIT_CRITICAL(&context->spinlock);
 
   return mab_len;
