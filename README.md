@@ -80,7 +80,7 @@ while (true) {
 To read from the DMX bus, two additional functions are provided. The function `dmx_receive()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
 
 ```c
-dmx_event_t event;
+dmx_event_t event;  // Read more about the dmx_event_t in Reading and Writing
 while (true) {
   const int size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
   if (size > 0) {
@@ -163,56 +163,48 @@ DMX is a unidirectional protocol. This means that on the DMX bus only one device
 
 ### Reading
 
-To read from the DMX bus, the event queue handle passed to `dmx_driver_install()` can be used to determine when a packet has been received. A `dmx_event_t` message will be posted to the event queue. Then the packet can be read from the DMX driver double-buffer into a user buffer using `dmx_read_packet()`.
+Reading may be performed synchronously or asynchronously from the DMX bus. It is typically desired to perform reads synchronously. This means that reads are only performed when a new DMX packet is received. This is ideal because it is not commonly desired to perform reads on the same data multiple times.
 
-The macro `DMX_RX_PACKET_TOUT_TICK` can be used to block the task until a packet is received or a DMX timeout occurs.
+To read synchronously from the DMX bus the DMX driver must wait for a new packet. The blocking function `dmx_receive()` can be used for this purpose.
 
-```cpp
-// allocate a buffer that is the max size of a DMX packet
-uint8_t data[DMX_MAX_PACKET_SIZE];
+```c
+dmx_event_t event;
+// Wait for a new packet. Returns the size of the received packet or 0 on error.
+size_t packet_size = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
+```
+
+The function `dmx_receive()` takes three arguments. The first argument is the `dmx_port_t` which identifies which DMX port to use. The second argument is a pointer to a `dmx_event_t` struct. Data about the received packet is copied into the `dmx_event_t` struct when a packet is received. This data includes:
+
+- `err` reports any errors that occurred while receiving the packet (see: [Error Handling](#error-handling)).
+- `sc` is the DMX start-code of the packet.
+- `size` is the size of the packet in bytes, including the DMX start-code.
+- `is_rdm` evaluates to true if the packet is an RDM packet.
+
+The `dmx_event_t` struct also contains detailed information about received RDM packets. If `is_rdm` is true, RDM information can be read from the `dmx_event_t` struct. More information about parsing RDM data can be found in //TODO add link.
+
+Using the `dmx_event_t` struct is optional. If processing DMX or RDM packet data is not desired, users can pass `NULL` in place of a pointer to a `dmx_event_t` struct.
+
+The final argument to `dmx_receive()` is the amount of FreeRTOS ticks to block until the function times out. This library defines a constant, `DMX_TIMEOUT_TICK`, which is the length of time that must be waited until the DMX signal is considered lost according to DMX specification. According to DMX specification this constant is equivalent to 1250 milliseconds.
+
+After a packet is received, `dmx_read()` can be called to read the packet into a user buffer. It is recommended to check for DMX errors before reading data but it is not required.
+
+```c
+uint8_t data[DMX_PACKET_SIZE];
 
 dmx_event_t event;
-while (1) {
-    if (xQueueReceive(dmx_queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
-        // read back the size of the packet into our buffer
-        dmx_read_packet(DMX_NUM_2, data, event.size);
-    } else {
-        // handle packet timeout...
-    }
+if (dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK)) {
+  // Check that no errors occurred.
+  if (event.err == DMX_OK) {
+    dmx_read(DMX_NUM_2, data, event.size);
+  } else {
+    printf("An error occurred receiving DMX!");
+  }
+} else {
+  printf("Timed out waiting for DMX.");
 }
 ```
 
-The `dmx_event_t` structure contains some helpful information about the packet that was received. Some of the information includes:
-
-- Packet errors
-- Start code
-- Size in bytes
-- Duration in microseconds
-
-These values can be used to determine if the received data should be processed or ignored.
-
-```cpp
-// if there are no errors and the start code is correct, read the packet
-if (event.status == DMX_OK && event.start_code == DMX_SC) {
-    dmx_read_packet(DMX_NUM_2, data, event.size);
-
-    printf("Packet took %i microseconds!", event.duration);
-}
-```
-
-Individual DMX slots can be read using `dmx_read_slot()`. To verify that the DMX slot exists, the size of the packet should be verified.
-
-```cpp
-const int slot_idx = 5;
-if (event.status == DMX_OK && event.size >= slot_idx) {
-  uint8_t slot_data;
-  dmx_read_slot(DMX_NUM_2, slot_idx, &slot_data);
-
-  printf("Slot %i == %i", slot_idx, slot_data);
-}
-```
-
-This library offers tools to perform robust error-checking. For more information on errors, see the [Error Handling](#error-handling) section.
+// TODO: documentation for `dmx_read_slot()`.
 
 ### DMX Sniffer
 
