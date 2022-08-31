@@ -247,9 +247,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout);
  * can lead to undesired behavior and program instability.
  * 
  * @param dmx_num The DMX port number.
+ * @param size The size of the packet to send or 0 to send the number of bytes
+ * that was previously written using dmx_write() or dmx_send().
  * @return The number of bytes sent on the DMX bus.
  */
-size_t dmx_send(dmx_port_t dmx_num);
+size_t dmx_send(dmx_port_t dmx_num, size_t size);
 
 /**
  * @brief Waits until the DMX packet is done being sent. This function can be 

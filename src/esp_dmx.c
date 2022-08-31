@@ -875,7 +875,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   return packet_size;
 }
 
-size_t dmx_send(dmx_port_t dmx_num) {
+size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   
@@ -952,8 +952,17 @@ size_t dmx_send(dmx_port_t dmx_num) {
     dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
     dmx_hal_set_rts(&context->hal, 0);
   }
-  const size_t size = driver->data.tx_size;
   taskEXIT_CRITICAL(&context->spinlock);
+
+  // Update the transmit size if desired
+  if (size > 0) {
+    if (size > DMX_MAX_PACKET_SIZE) {
+      size = DMX_MAX_PACKET_SIZE;
+    }
+    taskENTER_CRITICAL(&context->spinlock);
+    driver->data.tx_size = size;
+    taskEXIT_CRITICAL(&context->spinlock);
+  }
 
   // Record the outgoing packet type
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
