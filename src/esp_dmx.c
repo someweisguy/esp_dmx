@@ -152,7 +152,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
       // Stop the receive timeout if it is running
       if (driver->timer_running) {
-        timer_pause(driver->timer_group, driver->timer_num);
+        timer_pause(driver->timer_group, driver->timer_num);  // FIXME: Use HAL.
         driver->timer_running = false;
       }
 
@@ -324,7 +324,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
 
   if (!driver->is_sending && driver->task_waiting) {
     // Notify the task and pause the timer
-    timer_pause(driver->timer_group, driver->timer_num);
+    timer_pause(driver->timer_group, driver->timer_num);  // FIXME: Use HAL
     driver->timer_running = false;
     xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                        eSetValueWithOverwrite, &task_awoken);
@@ -346,7 +346,7 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
     size_t write_size = driver->data.tx_size;
     dmx_hal_write_txfifo(&context->hal, driver->data.buffer, &write_size);
     driver->data.head += write_size;
-    timer_pause(driver->timer_group, driver->timer_num);
+    timer_pause(driver->timer_group, driver->timer_num);  // FIXME: Use HAL.
     driver->timer_running = false;
 
     // Enable DMX write interrupts
