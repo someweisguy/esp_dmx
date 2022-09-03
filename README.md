@@ -57,7 +57,7 @@ const int rts_pin = 21;
 dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
 
 // ...and then install the driver!
-dmx_driver_install(dmx_num, DMX_DEFAULT_CONFIG);
+dmx_driver_install(DMX_DEFAULT_CONFIG(dmx_num));
 ```
 
 To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
@@ -135,10 +135,10 @@ const int interrupt_flags = ESP_INTR_FLAG_IRAM;  // Place interrupt in IRAM.
 dmx_driver_install(DMX_NUM_2, timer_group, timer_num, interrupt_flags);
 ```
 
-Optionally, the macro `DMX_DEFAULT_CONFIG` may be used to simplify installation of the DMX driver.
+Optionally, the macro `DMX_DEFAULT_CONFIG()` may be used to simplify installation of the DMX driver.
 
 ```c
-dmx_driver_install(DMX_NUM_2, DMX_DEFAULT_CONFIG);
+dmx_driver_install(DMX_DEFAULT_CONFIG(DMX_NUM_2));
 ```
 
 Hardware timers are used for several purposes including the generation of the DMX reset sequence. It is not possible for individual DMX drivers to share hardware timers. In cases where multiple DMX ports are in use, each DMX port must use different hardware timers.

@@ -22,7 +22,8 @@ extern "C" {
  * argument in dmx_driver_install() to initialize the DMX driver to the 
  * standard's defined typical values.
  */
-#define DMX_DEFAULT_CONFIG 0, 0, ESP_INTR_FLAG_IRAM
+#define DMX_DEFAULT_CONFIG(dmx_num) \
+  dmx_num, (dmx_num / 2), (dmx_num % 2), ESP_INTR_FLAG_IRAM
 
 /**
  * @brief UID which indicates an RDM packet is being broadcast. Responders shall
