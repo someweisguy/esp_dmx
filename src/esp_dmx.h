@@ -21,11 +21,19 @@ extern "C" {
 /**
  * @brief Installs the DMX driver and sets the default configuration. To
  * generate the DMX reset sequence, users may choose to use either the hardware
- * timers or busy-waiting. The default configuration sets the DMX break to 176 
- * microseconds and the DMX mark-after-break to 12 microseconds. 
- * 
+ * timers or busy-waiting. The default configuration sets the DMX break to 176
+ * microseconds and the DMX mark-after-break to 12 microseconds.
+ *
+ * @note If desired, the DMX driver will allocate a hardware timer for the DMX
+ * driver to use. When using ESP-IDF v4.4 the DMX driver will allocate a
+ * hardware timer group and timer relative to the DMX port number. The function
+ * to determine which timer group and number to use is
+ * timer_group == (dmx_num / 2) and timer_num == (dmx_num % 2). It is not
+ * recommended to use the hardware timer that the DMX driver is using while the
+ * DMX driver is installed.
+ *
  * @note The DMX interrupt service routine is installed on the same CPU core
- * that this function is running on. 
+ * that this function is running on.
  *
  * @param dmx_num The DMX port number.
  * @param use_timer True to use timers with the DMX driver.

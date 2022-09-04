@@ -57,7 +57,8 @@ const int rts_pin = 21;
 dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
 
 // ...and then install the driver!
-dmx_driver_install(DMX_DEFAULT_CONFIG(dmx_num));
+const bool use_timer = true;
+dmx_driver_install(dmx_num, use_timer, DMX_DEFAULT_INTR_FLAGS);
 ```
 
 To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
@@ -124,24 +125,16 @@ dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 
 After the communication pins are set, install the driver by calling `dmx_driver_install()`. This function will allocate the necessary resources for the DMX driver. It instantiates the driver to default DMX settings. The following parameters are passed to this function:
 
-- The hardware timer group to use.
-- The hardware timer number to use.
-- Flags to allocate interrupts.
+- The DMX port to use.
+- Whether to use the ESP32 hardware timer with the DMX driver.
+- Flags to allocate interrupts. The macro `DMX_DEFAULT_INTR_FLAGS` can be used to allocate the interrupts using the default interrupt flags.
 
 ```c
-const int timer_group = 0;
-const int timer_num = 0;
-const int interrupt_flags = ESP_INTR_FLAG_IRAM;  // Place interrupt in IRAM.
-dmx_driver_install(DMX_NUM_2, timer_group, timer_num, interrupt_flags);
+const bool use_timer = true;
+dmx_driver_install(DMX_NUM_2, use_timer, DMX_DEFAULT_INTR_FLAGS);
 ```
 
-Optionally, the macro `DMX_DEFAULT_CONFIG()` may be used to simplify installation of the DMX driver.
-
-```c
-dmx_driver_install(DMX_DEFAULT_CONFIG(DMX_NUM_2));
-```
-
-Hardware timers are used for several purposes including the generation of the DMX reset sequence. It is not possible for individual DMX drivers to share hardware timers. In cases where multiple DMX ports are in use, each DMX port must use different hardware timers.
+Hardware timers are used for several purposes including the generation of the DMX reset sequence. Users may opt to use busy-waits instead of the hardware timer. If this is desired, the DMX driver will still be able to send and receive proper DMX but some RDM functions may take longer than normal.
 
 ### Parameter Configuration
 
