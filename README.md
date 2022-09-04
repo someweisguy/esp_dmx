@@ -250,49 +250,49 @@ if (dmx_sniffer_get_data(DMX_NUM_2, &sniffer_data, DMX_TIMEOUT_TICK)) {
 
 ### Writing
 
-Writing to the DMX bus does not require the use of an event queue. To write to the DMX bus, `dmx_write_packet()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_send_packet()` can be called.
+To write to the DMX bus, `dmx_write()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_send()` must be called.
 
-```cpp
-uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
+```c
+uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
-dmx_set_mode(DMX_NUM_2, DMX_MODE_WRITE); // enable tx mode
-
-// write the packet and send it out on the DMX bus
-dmx_write_packet(DMX_NUM_2, data, DMX_MAX_PACKET_SIZE);
-dmx_send_packet(DMX_NUM_2, DMX_MAX_PACKET_SIZE);
+// Write the packet and send it out on the DMX bus.
+const int num_bytes_to_send = DMX_PACKET_SIZE;
+dmx_write_packet(DMX_NUM_2, data, num_bytes_to_send);
+dmx_send_packet(DMX_NUM_2);
 ```
 
-Calling `dmx_send_packet()` will fail if the DMX driver is currently transmitting a packet of DMX data. To ensure that packets are continuously sent, `dmx_wait_send_done()` can be used.
+The size of the packet that is sent when calling `dmx_send()` is equal to either the size of the last call to `dmx_write()` or the slot number used in the last call to `dmx_write_slot()` - whichever is higher.
 
-```cpp
-uint8_t data[DMX_MAX_PACKET_SIZE] = { 0, 1, 2, 3 };
+It takes a typical DMX packet approximately 22 milliseconds to send. During this time, it is possible to write new data to the DMX driver with `dmx_write()` if non-RDM data is being sent. To do so would result in an asynchronous write which may not be desired. To write data synchronously it is required to wait until the DMX packet is finished being sent. The function `dmx_wait_sent()` is used for this purpose.
 
-dmx_set_mode(DMX_NUM_2, DMX_MODE_WRITE); // enable tx mode
+```c
+uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
-while (1) {
-    // write and send the packet
-    const int num_slots = 100;
-    dmx_write_packet(DMX_NUM_2, data, num_slots);
-    dmx_send_packet(DMX_NUM_2, num_slots);
+while (true) {
+  // Write and send the packet.
+  dmx_write(DMX_NUM_2, data, DMX_PACKET_SIZE);
+  dmx_send(DMX_NUM_2);
 
-    // do other work here...
+  // Process the next DMX packet here...
+  // For example, increment the value of each slot (excluding the start-code).
+  for (int i = 1; i < DMX_PACKET_SIZE; ++i) {
+    ++data[i];
+  }
 
-    // block until we are ready to send another packet
-    dmx_wait_send_done(DMX_NUM_2, DMX_TX_PACKET_TOUT_TICK);
+  // Wait until the packet is finished being sent before proceeding.
+  dmx_wait_sent(DMX_NUM_2, DMX_TIMEOUT_TICK);
 }
 ```
 
-The DMX driver will automatically check if the DMX transmission has timed out between sending the last packet and the current packet. If it has, it will simulate a DMX reset sequence in software before sending a new packet. Simulating the reset sequence uses inefficient busy-waiting to recreate a break and mark after break. ESP32 busy-waiting is imprecise at the microsecond resolution that is needed for the reset sequence. If the DMX task is not preempted it is usually precise within 30μs. Because this should only happen after sending the first packet and because 30μs is well within DMX timing requirements, this behavior is acceptable for this library.
-
-Individual DMX slots can be written using `dmx_write_slot()`.
+Individual DMX slots can be written using `dmx_write_slot()` similarly to reading individual slots with `dmx_read_slot()`.
 
 ```cpp
-// set slot 5 to 127
-const int slot_idx = 5;
-uint8_t slot_val = 127;
-dmx_write_slot(DMX_NUM_2, slot_idx, slot_val);
+// Set slot number 5 to value 127.
+const int slot_num = 5;
+uint8_t value = 127;
+dmx_write_slot(DMX_NUM_2, slot_num, value);
 
-// don't forget to call dmx_send_packet()!
+// Don't forget to call dmx_send()!
 ```
 
 ## Error Handling
