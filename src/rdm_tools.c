@@ -145,7 +145,7 @@ bool rdm_write_discovery_mute(dmx_port_t dmx_num, uint64_t uid, bool mute) {
   rdm->message_count = 0;
   rdm->sub_device = bswap16(0);
   rdm->cc = RDM_DISCOVERY_COMMAND;
-  rdm->pid = bswap16(mute ? RDM_DISC_MUTE : RDM_DISC_UN_MUTE);
+  rdm->pid = bswap16(mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE);
   rdm->pdl = 0;
 
   uint16_t checksum = 0;
