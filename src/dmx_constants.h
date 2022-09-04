@@ -18,12 +18,9 @@ extern "C" {
 #define DMX_NUM_MAX SOC_UART_NUM
 
 /**
- * @brief The default configuration for DMX. This macro may be used as the last
- * argument in dmx_driver_install() to initialize the DMX driver to the 
- * standard's defined typical values.
+ * @brief The default interrupt flags for the DMX driver.
  */
-#define DMX_DEFAULT_CONFIG(dmx_num) \
-  dmx_num, (dmx_num / 2), (dmx_num % 2), ESP_INTR_FLAG_IRAM
+#define DMX_DEFAULT_INTR_FLAGS ESP_INTR_FLAG_IRAM
 
 /**
  * @brief UID which indicates an RDM packet is being broadcast. Responders shall
