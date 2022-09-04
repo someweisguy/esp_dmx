@@ -73,6 +73,7 @@ typedef enum rdm_response_type {
  * own use.
  */
 typedef enum rdm_pid {
+  // Category: Network Management
   RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,
   RDM_PID_DISC_MUTE = 0x0002,
   RDM_PID_DISC_UN_MUTE = 0x0003,
@@ -80,15 +81,18 @@ typedef enum rdm_pid {
   RDM_PID_PROXIED_DEVICE_COUNT = 0x0011,
   RDM_PID_COMMS_STATUS = 0x0015,
 
-  RDM_PID_QUEUED_MESSAGE = 0x0020,
-  RDM_PID_STATUS_MESSAGE = 0x0030,
+  // Category: Status Collection
+  RDM_PID_QUEUED_MESSAGE = 0x0020,  // TODO: See rdm_status_t
+  RDM_PID_STATUS_MESSAGE = 0x0030,  // TODO: See rdm_status_t
   RDM_PID_STATUS_ID_DESCRIPTION = 0x0031,
   RDM_PID_CLEAR_STATUS_ID = 0x0032,
-  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,
+  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,  // TODO: See rdm_status_t
 
+  // Category: RDM Information
   RDM_PID_SUPORTED_PARAMETERS = 0x0050,
   RDM_PID_PARAMTER_DESCRIPTION = 0x0051,
   
+  // Category: Product Information
   RDM_PID_DEVICE_INFO = 0x0060,
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
   RDM_PID_DEVICE_MODEL_DESCRIPTION = 0x0080,
@@ -101,6 +105,7 @@ typedef enum rdm_pid {
   RDM_PID_BOOT_SOFTWARE_VERSION_ID = 0x00c1,
   RDM_PID_BOOT_SOFTWARE_VERSION_LABEL = 0x00c2,
 
+  // Category: DMX512 Setup
   RDM_PID_DMX_PERSONALITY = 0x00e0,
   RDM_PID_DMX_PERSONALITY_DESCRIPTION = 0x00e1,
   RDM_PID_DMX_START_ADDRESS = 0x00f0,
@@ -108,32 +113,40 @@ typedef enum rdm_pid {
   RDM_PID_SLOT_DESCRIPTION = 0x0121,
   RDM_PID_DEFAULT_SLOT_VALUE = 0x0122,
 
+  // Category: Sensors (0x02xx)
   RDM_PID_SENSOR_DEFINITION = 0x0200,
   RDM_PID_SENSOR_VALUE = 0x0201,
   RDM_PID_RECORD_SENSORS = 0x0202,
 
+  // Category: Dimmer Settings (0x03xx)
+  // Not yet defined by ANSI/ESTA e1.20
+
+  // Category: Power/Lamp Settings (0x04xx)
   RDM_PID_DEVICE_HOURS = 0x0400,
   RDM_PID_LAMP_HOURS = 0x0401,
   RDM_PID_LAMP_STRIKES = 0x0402,
-  RDM_PID_LAMP_STATE = 0x0403,
-  RDM_PID_LAMP_ON_MODE = 0x0404,
+  RDM_PID_LAMP_STATE = 0x0403,  // TODO: See rdm_lamp_state_t
+  RDM_PID_LAMP_ON_MODE = 0x0404,  // TODO: See rdm_lamp_on_mode_t
   RDM_PID_DEVICE_POWER_CYCLES = 0x0405,
-
+  
+  // Category: Display Settings (0x05xx)
   RDM_PID_DISPLAY_INVERT = 0x0500,
   RDM_PID_DISPLAY_LEVEL = 0x0501,
 
+  // Category: Configuration (0x06xx)
   RDM_PID_PAN_INVERT = 0x0600,
   RDM_PID_TILT_INVERT = 0x0601,
   RDM_PID_PAN_TILT_SWAP = 0x0602,
   RDM_PID_REAL_TIME_CLOCK = 0x0603,
 
+  // Category: Control (0x10xx)
   RDM_PID_IDENTIFY_DEVICE = 0x1000,
   RDM_PID_RESET_DEVICE = 0x1001, 
-  RDM_PID_POWER_STATE = 0x1010,
-  RDM_PID_PERFORM_SELF_TEST = 0x1020,
+  RDM_PID_POWER_STATE = 0x1010,  // TODO: See rdm_power_state_t
+  RDM_PID_PERFORM_SELF_TEST = 0x1020,  // TODO: See rdm_self_test_t
   RDM_PID_SELF_TEST_DESCRIPTION = 0x1021,
   RDM_PID_CAPTURE_PRESET = 0x1030,
-  RDM_PID_PRESET_PLAYBACK = 0x1031,
+  RDM_PID_PRESET_PLAYBACK = 0x1031,  // TODO: See rdm_preset_playback_t
 } rdm_pid_t;
 
 /**
