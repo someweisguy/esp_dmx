@@ -74,9 +74,9 @@ typedef enum rdm_response_type {
  */
 typedef enum rdm_pid {
   // Category: Network Management
-  RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,
-  RDM_PID_DISC_MUTE = 0x0002,
-  RDM_PID_DISC_UN_MUTE = 0x0003,
+  RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,  // TODO: required
+  RDM_PID_DISC_MUTE = 0x0002,  // TODO: required
+  RDM_PID_DISC_UN_MUTE = 0x0003,  // TODO: required
   RDM_PID_PROXIED_DEVICES = 0x0010,
   RDM_PID_PROXIED_DEVICE_COUNT = 0x0011,
   RDM_PID_COMMS_STATUS = 0x0015,
@@ -89,11 +89,11 @@ typedef enum rdm_pid {
   RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,  // TODO: See rdm_status_t
 
   // Category: RDM Information
-  RDM_PID_SUPORTED_PARAMETERS = 0x0050,
-  RDM_PID_PARAMTER_DESCRIPTION = 0x0051,
+  RDM_PID_SUPPORTED_PARAMETERS = 0x0050,  // TODO: req'd if using more than minimum PIDs
+  RDM_PID_PARAMETER_DESCRIPTION = 0x0051,  // TODO: req'd if using manufacturer specific PIDs
   
   // Category: Product Information
-  RDM_PID_DEVICE_INFO = 0x0060,
+  RDM_PID_DEVICE_INFO = 0x0060,  // TODO: required
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
   RDM_PID_DEVICE_MODEL_DESCRIPTION = 0x0080,
   RDM_PID_MANUFACTURER_LABEL = 0x0081,
@@ -101,14 +101,14 @@ typedef enum rdm_pid {
   RDM_PID_FACTORY_DEFAULTS = 0x0090,
   RDM_PID_LANGUAGE_CAPABILITIES = 0x00a0,
   RDM_PID_LANGUAGE = 0x00b0,
-  RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,
+  RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,  // TODO: required
   RDM_PID_BOOT_SOFTWARE_VERSION_ID = 0x00c1,
   RDM_PID_BOOT_SOFTWARE_VERSION_LABEL = 0x00c2,
 
   // Category: DMX512 Setup
   RDM_PID_DMX_PERSONALITY = 0x00e0,
   RDM_PID_DMX_PERSONALITY_DESCRIPTION = 0x00e1,
-  RDM_PID_DMX_START_ADDRESS = 0x00f0,
+  RDM_PID_DMX_START_ADDRESS = 0x00f0,  // TODO: required
   RDM_PID_SLOT_INFO = 0x0120,
   RDM_PID_SLOT_DESCRIPTION = 0x0121,
   RDM_PID_DEFAULT_SLOT_VALUE = 0x0122,
@@ -140,13 +140,17 @@ typedef enum rdm_pid {
   RDM_PID_REAL_TIME_CLOCK = 0x0603,
 
   // Category: Control (0x10xx)
-  RDM_PID_IDENTIFY_DEVICE = 0x1000,
+  RDM_PID_IDENTIFY_DEVICE = 0x1000,  // TODO: required
   RDM_PID_RESET_DEVICE = 0x1001, 
   RDM_PID_POWER_STATE = 0x1010,  // TODO: See rdm_power_state_t
   RDM_PID_PERFORM_SELF_TEST = 0x1020,  // TODO: See rdm_self_test_t
   RDM_PID_SELF_TEST_DESCRIPTION = 0x1021,
   RDM_PID_CAPTURE_PRESET = 0x1030,
   RDM_PID_PRESET_PLAYBACK = 0x1031,  // TODO: See rdm_preset_playback_t
+
+  // Reserved for Future RDM Development: 0x7fe0-0x7fff
+  // Manufacturer Specific PIDs:          0x8000-0xffdf
+  // Reserved for Future RDM Development: 0xffe0-0xffff
 } rdm_pid_t;
 
 /**
