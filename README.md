@@ -221,7 +221,7 @@ int value = dmx_read_slot(DMX_NUM_2, slot_num);
 
 ### DMX Sniffer
 
-This library offers an option to measure break and mark after break timings of received data packets. This tool is much more resource intensive than the default DMX receive driver, so it must be explicitly enabled by calling `dmx_sniffer_enable()`.
+This library offers an option to measure DMX break and mark-after-break timings of received data packets. This tool is much more resource intensive than the default DMX driver, so it must be explicitly enabled by calling `dmx_sniffer_enable()`.
 
 The DMX sniffer installs an edge-triggered interrupt on the specified GPIO pin. This library uses the ESP-IDF provided GPIO ISR which allows the use of individual interrupt handlers for specific GPIO interrupts. The interrupt handler works by iterating through each GPIO to determine if it triggered an interrupt and if so, it calls the appropriate handler.
 
@@ -229,22 +229,22 @@ A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed
 
 It is important to note that the sniffer requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the sniffer, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig` if the ESP-IDF is used.
 
-Before enabling the sniffer tool, `gpio_install_isr_service()` must be called.
+Before enabling the sniffer tool, `gpio_install_isr_service()` must be called with the required DMX sniffer interrupt flags. The macro `DMX_SNIFFER_INTR_FLAGS` can be used to provide the proper interrupt flags.
 
-```cpp
-gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
-const int sniffer_io_num = 4; // lowest exposed pin on the Feather breakout board
-dmx_sniffer_enable(DMX_NUM_2, sniffer_io_num);
+```c
+gpio_install_isr_service(DMX_SNIFFER_INTR_FLAGS);
+
+const int sniffer_pin = 4; // Lowest exposed pin on the Feather breakout board.
+dmx_sniffer_enable(DMX_NUM_2, sniffer_pin);
 ```
 
-Break and mark after break timings are reported to the event queue when the DMX sniffer is enabled. If the sniffer is disabled, either because `dmx_sniffer_disable()` was called or because `dmx_sniffer_enable()` was not called, the reported break and mark after break durations will default to -1.
+Break and mark after break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()`. This will wait until the sniffer receives a packet and copy the sniffer data so that it may be processed by the user. If data is copied, this function will return `true`.
 
-```cpp
-dmx_event_t event;
-if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK) == pdTRUE) {
-  // read back break and mark after break
-  printf("The break was %ius, ", event.timing.brk);
-  printf("and the mark after break was %ius.\n", event.timing.mab);
+```c
+dmx_sniffer_data_t sniffer_data;
+if (dmx_sniffer_get_data(DMX_NUM_2, &sniffer_data, DMX_TIMEOUT_TICK)) {
+  printf("The DMX break length was: %i\n", sniffer_data.break_len);
+  printf("The DMX mark-after-break length was: %i\n", sniffer_data.mab_len);
 }
 ```
 
