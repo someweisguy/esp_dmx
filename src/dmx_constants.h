@@ -243,8 +243,8 @@ enum dmx_start_code {
  * alternate start codes 0xF0-0xF7.
  */
 #define DMX_START_CODE_IS_VALID(sc)                              \
-  (!((sc >= 0x92 && sc <= 0xa9) || (sc >= 0xab && sc <= 0xcd) || \
-     (sc >= 0xf0 && sc <= 0xf7)))
+  (!((sc >= 0x92 && sc <= 0xa9) || (sc >= 0xab && sc <= 0xcb) || \
+     (sc == 0xcd) || (sc >= 0xf0 && sc <= 0xf7)))
 
 /**
  * @brief Evaluates to true if the baud rate is within DMX specification.
