@@ -171,8 +171,8 @@ int packet_size = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
 The function `dmx_receive()` takes three arguments. The first argument is the `dmx_port_t` which identifies which DMX port to use. The second argument is a pointer to a `dmx_event_t` struct. Data about the received packet is copied into the `dmx_event_t` struct when a packet is received. This data includes:
 
 - `err` reports any errors that occurred while receiving the packet (see: [Error Handling](#error-handling)).
-- `sc` is the DMX start code of the packet.
-- `size` is the size of the packet in bytes, including the DMX start code.
+- `sc` is the start code of the packet.
+- `size` is the size of the packet in bytes, including the DMX start code. This value will never be higher than `DMX_PACKET_SIZE`.
 - `is_rdm` evaluates to true if the packet is an RDM packet.
 
 The `dmx_event_t` struct also contains detailed information about received RDM packets. If `is_rdm` is true, RDM information can be read from the `dmx_event_t` struct. More information about parsing RDM data can be found in //TODO add link.
@@ -259,11 +259,11 @@ uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
 // Write the packet and send it out on the DMX bus.
 const int num_bytes_to_send = DMX_PACKET_SIZE;
-dmx_write_packet(DMX_NUM_2, data, num_bytes_to_send);
-dmx_send_packet(DMX_NUM_2);
+dmx_write(DMX_NUM_2, data, num_bytes_to_send);
+dmx_send(DMX_NUM_2, num_bytes_to_send);
 ```
 
-The size of the packet that is sent when calling `dmx_send()` is equal to either the size of the last call to `dmx_write()` or the slot number used in the last call to `dmx_write_slot()` - whichever is higher.
+The size of the packet that is sent when calling `dmx_send()` can be specified in the second argument of the function. If the size is set to 0 then the size will be equal to either the size of the last call to `dmx_write()` or the slot number used in the last call to `dmx_write_slot()`, whichever is higher.
 
 It takes a typical DMX packet approximately 22 milliseconds to send. During this time, it is possible to write new data to the DMX driver with `dmx_write()` if non-RDM data is being sent. To do so would result in an asynchronous write which may not be desired. To write data synchronously it is required to wait until the DMX packet is finished being sent. The function `dmx_wait_sent()` is used for this purpose.
 
@@ -272,7 +272,7 @@ uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
 while (true) {
   // Send the DMX packet.
-  dmx_send(DMX_NUM_2);
+  dmx_send(DMX_NUM_2, DMX_PACKET_SIZE);
 
   // Process the next DMX packet (while the previous is being sent) here...
   // For example, increment the value of each slot excluding the start code.
@@ -331,7 +331,7 @@ while (true) {
         printf("Received packet with start code: %02X and size: %i.\n",
           event.sc, event.size);
         // Data is OK. Now read the packet into the buffer.
-        dmx_read_packet(DMX_NUM_2, data, event.size);
+        dmx_read(DMX_NUM_2, data, event.size);
         break;
 
       case DMX_ERR_IMPROPER_SLOT:
