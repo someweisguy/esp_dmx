@@ -101,7 +101,7 @@ That's it! For more detailed information on how this library works including det
 
 DMX is a unidirectional communication protocol used primarily in the entertainment industry to control lighting and stage equipment. DMX is transmitted as a continuous stream of packets using half-duplex RS-485 signalling with a standard UART port. DMX devices are typically connected using XLR5 in a daisy-chain configuration but other connectors such as XLR3 are common in consumer products.
 
-Each DMX packet begins with a high-to-low transition called the break, followed by a low-to-high transition called the mark after break, followed by an eight-bit byte. This first byte is called the start code. The start-of-packet break, mark after break, and start code is called the reset sequence. After the reset sequence, a packet of up to 512 data bytes may be sent.
+Each DMX packet begins with a high-to-low transition called the break, followed by a low-to-high transition called the mark-after-break, followed by an eight-bit byte. This first byte is called the start code. The start-of-packet break, mark-after-break, and start code is called the reset sequence. After the reset sequence, a packet of up to 512 data bytes may be sent.
 
 DMX imposes very strict timing requirements to allow for backwards compatibility with older lighting equipment. Frame rates may range from 1fps to up to approximately 830fps. A typical DMX controller transmits packets between approximately 25fps to 44fps. DMX receivers and transmitters have different timing requirements which must be adhered to carefully to ensure commands are processed.
 
@@ -170,8 +170,8 @@ int packet_size = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
 The function `dmx_receive()` takes three arguments. The first argument is the `dmx_port_t` which identifies which DMX port to use. The second argument is a pointer to a `dmx_event_t` struct. Data about the received packet is copied into the `dmx_event_t` struct when a packet is received. This data includes:
 
 - `err` reports any errors that occurred while receiving the packet (see: [Error Handling](#error-handling)).
-- `sc` is the DMX start-code of the packet.
-- `size` is the size of the packet in bytes, including the DMX start-code.
+- `sc` is the DMX start code of the packet.
+- `size` is the size of the packet in bytes, including the DMX start code.
 - `is_rdm` evaluates to true if the packet is an RDM packet.
 
 The `dmx_event_t` struct also contains detailed information about received RDM packets. If `is_rdm` is true, RDM information can be read from the `dmx_event_t` struct. More information about parsing RDM data can be found in //TODO add link.
@@ -214,7 +214,7 @@ int slots_read = dmx_read_offset(DMX_NUM_2, offset, data, size);
 Lastly, `dmx_read_slot()` can be used to read a single slot of DMX data.
 
 ```c
-const int slot_num = 0;  // The slot to read. Slot 0 is the DMX start-code!
+const int slot_num = 0;  // The slot to read. Slot 0 is the DMX start code!
 
 // Read slot 0. Returns the value of the desired slot or -1 on error.
 int value = dmx_read_slot(DMX_NUM_2, slot_num);
@@ -239,7 +239,7 @@ const int sniffer_pin = 4; // Lowest exposed pin on the Feather breakout board.
 dmx_sniffer_enable(DMX_NUM_2, sniffer_pin);
 ```
 
-Break and mark after break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()`. This will wait until the sniffer receives a packet and copy the sniffer data so that it may be processed by the user. If data is copied, this function will return `true`.
+Break and mark-after-break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()`. This will wait until the sniffer receives a packet and copy the sniffer data so that it may be processed by the user. If data is copied, this function will return `true`.
 
 ```c
 dmx_sniffer_data_t sniffer_data;
@@ -274,7 +274,7 @@ while (true) {
   dmx_send(DMX_NUM_2);
 
   // Process the next DMX packet (while the previous is being sent) here...
-  // For example, increment the value of each slot excluding the start-code.
+  // For example, increment the value of each slot excluding the start code.
   for (int i = 1; i < DMX_PACKET_SIZE; ++i) {
     ++data[i];
   }
