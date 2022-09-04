@@ -19,7 +19,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
   - [DMX Sniffer](#dmx-sniffer)
   - [Writing](#writing)
 - [Error Handling](#error-handling)
-  - [Packet Status](#packet-status)
+  - [Packet Errors](#packet-errors)
   - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
@@ -300,89 +300,84 @@ dmx_write_slot(DMX_NUM_2, slot_num, value);
 
 ## Error Handling
 
-### Packet Status
+### Packet Errors
 
-On rare occasions, DMX packets can become corrupted. Errors can be checked by reading the status from the `dmx_event_t` structure. The error types are as follows:
+On rare occasions, DMX packets can become corrupted. Errors are typically detected upon initially connecting to an active DMX bus but are resolved on receiving the next packet. Errors can be checked by reading the error code from the `dmx_event_t` structure. The error types are as follows:
 
-- `DMX_OK` occurs when the packet is received successfully.
-- `DMX_ERR_IMPROPER_SLOT` occurs when a slot is missing a start or stop bit.
-- `DMX_ERR_PACKET_SIZE` occurs when the number of data bytes received exceeds `DMX_MAX_PACKET_SIZE`
-- `DMX_ERR_BUFFER_SIZE` occurs when the driver buffer size is smaller than the number of packets received. This error will not occur if the driver buffer size is set to `DMX_MAX_PACKET_SIZE`.
-- `DMX_ERR_DATA_OVERFLOW` occurs when the UART hardware is not able to process data quickly enough and it overflows.
+- `DMX_OK` indicates data was read successfully.
+- `DMX_ERR_IMPROPERLY_FRAMED_SLOT` occurs when the DMX driver detects missing stop bits. If a missing stop bit is detected the driver shall discard the improperly framed slot data and all following slots in the packet.
+- `DMX_ERR_DATA_COLLISION` occurs when a data collision is detected. This typically occurs during RDM discovery.
+- `DMX_ERR_HARDWARE_OVERFLOW` occurs when the ESP32 hardware overflows resulting in loss of data.
 
-In most errors, the event size can be read to determine at which byte the error occurred. In every error condition except for `DMX_ERR_BUFFER_SIZE` the event start code will default to -1.
+In most errors the `dmx_event_t` size can be read to determine at which slot the error occurred.
 
-```cpp
+```c
+uint8_t data[DMX_PACKET_SIZE];
+
 dmx_event_t event;
-while (1) {
-  if (xQueueReceive(queue, &event, DMX_RX_PACKET_TOUT_TICK)) {
-    switch (event.status) {
+while (true) {
+  if (dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK)) {
+    switch (event.err) {
       case DMX_OK:
-        printf("Received packet with start code: %02X and size: %i\n",
-          event.start_code, event.size);
-        // data is ok - read the packet into our buffer
+        printf("Received packet with start code: %02X and size: %i.\n",
+          event.sc, event.size);
+        // Data is OK. Now read the packet into the buffer.
         dmx_read_packet(DMX_NUM_2, data, event.size);
         break;
 
       case DMX_ERR_IMPROPER_SLOT:
-        printf("Received malformed byte at slot %i\n", event.size);
-        // a slot in the packet is malformed - possibly a glitch due to the
-        //  XLR connector? will need some more investigation
-        // data can be recovered up until event.size
+        printf("Received malformed byte at slot %i.\n", event.size);
+        // A slot in the packet is malformed. Data can be recovered up until 
+        //  event.size
         break;
 
-      case DMX_ERR_PACKET_SIZE:
-        printf("Packet size %i is invalid\n", event.size);
-        // the host DMX device is sending a bigger packet than it should
-        // data may be recoverable but something went very wrong to get here
-        break;
-
-      case DMX_ERR_BUFFER_SIZE:
-        printf("User DMX buffer is too small - received %i slots\n", 
-          event.size);
-        // whoops - our buffer isn't big enough
-        // this code will not run if buffer size is set to DMX_MAX_PACKET_SIZE
+      case DMX_ERR_DATA_COLLISION:
+        printf("A data collision was detected.\n");
+        // A data collision was detected. This typically happens using RDM.
         break;
 
       case DMX_ERR_DATA_OVERFLOW:
-        printf("Data could not be processed in time\n");
-        // the UART FIFO overflowed
-        // this could occur if the interrupt mask is misconfigured or if the
-        //  DMX ISR is constantly preempted
+        printf("Data could not be processed in time.\n");
+        // The ESP32 UART overflowed. This could occur if the DMX ISR is being
+        //  constantly preempted.
         break;
     }
   } else {
     printf("Lost DMX signal\n");
-    // haven't received a packet in DMX_RX_PACKET_TOUT_TICK ticks
-    // handle packet timeout...
+    // A packet hasn't been received in DMX_TIMEOUT_TICK ticks.
+    // Handle packet timeout here...
   }
 }
 ```
 
-It should be noted that this library does not automatically check for DMX timing errors. This library does provide macros to assist with timing error checking, but it is left to the user to implement such measures. The following macros can be used to assist with timing error checking.
+It should be noted that this library does not automatically check for DMX timing errors. This library does provide macros to assist with timing error checking, but it is left to the user to implement such measures. DMX and RDM each have their own timing requirements so macros for checking DMX and RDM are both provided. The following macros can be used to assist with timing error checking.
 
-- `DMX_RX_PKT_DURATION_IS_VALID()` evaluates to true if the packet duration is valid.
-- `DMX_RX_BRK_DURATION_IS_VALID()` evaluates to true if the break duration is valid.
-- `DMX_RX_MAB_DURATION_IS_VALID()` evaluates to true if the mark after break duration is valid.
+- `DMX_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid for DMX.
+- `DMX_BREAK_LEN_IS_VALID()` evaluates to true if the DMX break duration is valid.
+- `DMX_MAB_LEN_IS_VALID()` evaluates to true if the DMX mark-after-break duration is valid.
+- `RDM_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid for RDM.
+- `RDM_BREAK_LEN_IS_VALID()` evaluates to true if the RDM break duration is valid.
+- `RDM_MAB_LEN_IS_VALID()` evaluates to true if the RDM mark-after-break duration is valid.
 
-DMX specifies different timing requirements for receivers and transmitters. In situations where it is necessary to check if transmitted timing values are valid, this library provides `_TX_` versions of the above macros.
-
-Finally, the following macros can be used in both transmit and receive scenarios.
-
-- `DMX_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid.
-- `DMX_START_CODE_IS_VALID()` evaluates to true if the start code is permitted in the DMX standard.
+DMX and RDM specify different timing requirements for receivers and transmitters. This library attempts to simplify error checking by combining timing requirements for receiving and transmitting. Therefore there are only the above six timing error checking macros instead of six macros each for receiving and transmitting.
 
 ### DMX Start Codes
 
-This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in `dmx_caps.h`.
+This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in `dmx_constants.h`.
 
 - `DMX_SC` is the standard DMX null start code.
 - `RDM_SC` is the standard Remote Device Management start code.
-- `DMX_TEXT_ASC` is the ASCII text alternate start code.
-- `DMX_TEST_ASC` is the test packet alternate start code.
-- `DMX_UTF8_ASC` is the UTF-8 text packet alternate start code.
-- `DMX_ORG_ID_ASC` is the organization/manufacturer ID alternate start code.
-- `DMX_SIP_ASC` is the System Information Packet alternate start code.
+- `DMX_TEXT_SC` is the ASCII text start code.
+- `DMX_TEST_SC` is the test packet start code.
+- `DMX_UTF8_SC` is the UTF-8 text packet start code.
+- `DMX_ORG_ID_SC` is the organization/manufacturer ID start code.
+- `DMX_SIP_SC` is the System Information Packet start code.
+
+Additional macros constants include the following:
+
+- `RDM_SUB_SC` is the sub-start code for Remote Device Management. It is the first byte received after the RDM start code.
+- `RDM_PREAMBLE` is not considered a start code but is often the first byte received in an RDM discovery response packet.
+- `RDM_DELIMITER` is not considered a start code but is the delimiter byte received at the end of an RDM discovery response preamble.
 
 Some start codes are considered invalid and should not be used in a DMX packet. The validity of the start code can be checked using the macro `DMX_START_CODE_IS_VALID()`. If the start code is valid, this macro will evaluate to true. This library does not automatically check for valid start codes. Such error checking is left to the user to implement.
 
