@@ -8,14 +8,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "impl/driver.h"
-
-/**
- * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
- * with this software. Any device that uses this ID is associated with this
- * library. Users of this library are welcome to use this manufacturer ID or may
- * choose to register their own manufacturer ID.
- */
-#define RDM_DEFAULT_MANUFACTURER_ID (0x05e0)
+#include "rdm_constants.h"
 
 static const char *TAG = "rdm";
 

@@ -10,6 +10,15 @@ extern "C" {
 #endif
 
 /**
+ * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
+ * with this software. Any device that uses this ID is associated with this
+ * library. Users of this library are welcome to use this manufacturer ID (as 
+ * long as it is used responsibly) or may choose to register their own 
+ * manufacturer ID.
+ */
+#define RDM_DEFAULT_MANUFACTURER_ID (0x05e0)
+
+/**
  * @brief UID which indicates an RDM packet is being broadcast. Responders shall
  * not respond to RDM broadcast messages.
  */
