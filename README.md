@@ -25,6 +25,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
   - [Hardware Specifications](#hardware-specifications)
   - [Remote Device Management](#remote-device-management)
+- [API Reference](#api-reference)
 - [To Do](#to-do)
 
 ## Library Installation
@@ -288,7 +289,7 @@ while (true) {
 
 Individual DMX slots can be written using `dmx_write_slot()` similarly to reading individual slots with `dmx_read_slot()`.
 
-```cpp
+```c
 // Set slot number 5 to value 127.
 const int slot_num = 5;
 const uint8_t value = 127;
@@ -410,6 +411,10 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 ### Remote Device Management
 
 Support for RDM is currently in progress.
+
+## API Reference
+
+// TODO
 
 ## To Do
 
