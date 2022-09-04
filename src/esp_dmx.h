@@ -28,16 +28,15 @@ extern "C" {
  * that this function is running on. 
  *
  * @param dmx_num The DMX port number.
- * @param timer_group The hardware timer group to use.
- * @param timer_idx The hardware timer index to use.
+ * @param use_timer True to use timers with the DMX driver.
  * @param intr_flags The interrupt allocation flags to use.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there is an argument error.
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
-                             unsigned int timer_idx, int intr_flags);
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
+                             int intr_flags);
 
 /**
  * @brief Uninstalls the DMX driver.

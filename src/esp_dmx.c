@@ -368,14 +368,13 @@ static bool IRAM_ATTR dmx_timer_isr(void *arg) {
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
-                             unsigned int timer_idx, int intr_flags) {
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
+                             int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(timer_group < TIMER_GROUP_MAX, ESP_ERR_INVALID_ARG,
-            "timer_group error");
-  DMX_CHECK(timer_idx < TIMER_MAX, ESP_ERR_INVALID_ARG, "timer_idx error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
+  
+  // TODO: set intr_flags
 
   dmx_context_t *const context = &dmx_context[dmx_num];
   dmx_driver_t *driver;
@@ -429,8 +428,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
-  driver->timer_group = timer_group;
-  driver->timer_num = timer_idx;
+  if (use_timer) {
+    driver->timer_group = dmx_num / 2;
+    driver->timer_num = dmx_num % 2;
+  } else {
+    driver->timer_group = -1;
+    driver->timer_num = -1;
+  }
   driver->task_waiting = NULL;
 
   // Initialize driver flags
@@ -470,7 +474,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
                  driver, &driver->uart_isr_handle);
 
   // Install hardware timer interrupt if specified by the user
-  if (driver->timer_group != -1) {
+  if (use_timer) {
     const timer_config_t timer_config = {
         .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
         .counter_dir = TIMER_COUNT_UP,
@@ -478,10 +482,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, unsigned int timer_group,
         .alarm_en = true,
         .auto_reload = true,
     };
-    timer_init(timer_group, timer_idx, &timer_config);
-    timer_isr_callback_add(timer_group, timer_idx, dmx_timer_isr, driver,
-                           intr_flags);
-    timer_enable_intr(timer_group, timer_idx);
+    timer_init(driver->timer_group, driver->timer_num, &timer_config);
+    timer_isr_callback_add(driver->timer_group, driver->timer_num,
+                           dmx_timer_isr, driver, intr_flags);
+    timer_enable_intr(driver->timer_group, driver->timer_num);
   }
 
   // Enable UART read interrupt and set RTS low
