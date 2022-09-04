@@ -18,6 +18,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A usin
   - [Reading](#reading)
   - [DMX Sniffer](#dmx-sniffer)
   - [Writing](#writing)
+- [RDM Tools](#rdm-tools)
 - [Error Handling](#error-handling)
   - [Packet Errors](#packet-errors)
   - [DMX Start Codes](#dmx-start-codes)
@@ -297,6 +298,14 @@ dmx_write_slot(DMX_NUM_2, slot_num, value);
 
 // Don't forget to call dmx_send()!
 ```
+
+## RDM Tools
+
+Using only the functions listed above it is possible to send and receive RDM packets. When an RDM packet is written using `dmx_write()` the DMX driver will respond accordingly and ensure that RDM timing requirements are met. For example, calls to `dmx_send()` typically send a DMX break and mark-after-break when sending a DMX packet with a null start code. When sending an RDM discovery response packet the DMX driver automatically removes the DMX break and mark-after-break which is required per the RDM standard. Sending RDM responses with `dmx_send()` may also fail when the DMX driver has detected that the RDM response timeout has already elapsed. This is done to reduce the number of data collisions on the RDM bus and keeps the RDM bus operating properly.
+
+Likewise, the function `dmx_receive()` behaves contextually when receiving DMX or RDM packets. When receiving DMX, calls to `dmx_receive()` may timeout according to the timeout value provided, such as `DMX_TIMEOUT_TICK`. When receiving RDM packets, the DMX driver may timeout much more quickly than the provided timeout value as the timing requirements for receiving RDM packets are much smaller. This feature of the DMX driver is only enabled when the DMX driver is configured to use a hardware timer.
+
+// TODO
 
 ## Error Handling
 
