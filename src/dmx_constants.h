@@ -25,8 +25,7 @@ extern "C" {
 /**
  * @brief The default interrupt flags for the DMX sniffer.
  */
-#define DMX_SNIFFER_DEFAULT_INTR_FLAGS \
-  (ESP_INTR_FLAG_EDGE | DMX_DEFAULT_INTR_FLAGS)
+#define DMX_SNIFFER_INTR_FLAGS (ESP_INTR_FLAG_EDGE | DMX_DEFAULT_INTR_FLAGS)
 
 /**
  * @brief UID which indicates an RDM packet is being broadcast. Responders shall
