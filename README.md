@@ -269,18 +269,20 @@ It takes a typical DMX packet approximately 22 milliseconds to send. During this
 uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
 while (true) {
-  // Write and send the packet.
-  dmx_write(DMX_NUM_2, data, DMX_PACKET_SIZE);
+  // Send the DMX packet.
   dmx_send(DMX_NUM_2);
 
-  // Process the next DMX packet here...
-  // For example, increment the value of each slot (excluding the start-code).
+  // Process the next DMX packet (while the previous is being sent) here...
+  // For example, increment the value of each slot excluding the start-code.
   for (int i = 1; i < DMX_PACKET_SIZE; ++i) {
     ++data[i];
   }
 
   // Wait until the packet is finished being sent before proceeding.
   dmx_wait_sent(DMX_NUM_2, DMX_TIMEOUT_TICK);
+
+  // Now write the packet synchronously!
+  dmx_write(DMX_NUM_2, data, DMX_PACKET_SIZE);
 }
 ```
 
@@ -289,7 +291,7 @@ Individual DMX slots can be written using `dmx_write_slot()` similarly to readin
 ```cpp
 // Set slot number 5 to value 127.
 const int slot_num = 5;
-uint8_t value = 127;
+const uint8_t value = 127;
 dmx_write_slot(DMX_NUM_2, slot_num, value);
 
 // Don't forget to call dmx_send()!
