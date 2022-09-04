@@ -82,13 +82,32 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     }
 
     // Return DMX data to the caller
+    event->cc = RDM_DISCOVERY_COMMAND_RESPONSE;
+    event->pid = RDM_PID_DISC_UNIQUE_BRANCH;
     event->source_uid = uid;
     event->checksum_is_valid = (sum == checksum);
     return true;
 
   } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
              rdm->message_len >= size) {
-    // TODO:
+    // Verify the packet checksum
+    uint16_t sum = 0;
+    for (int i = 0; i < rdm->message_len; ++i) {
+      sum += ((uint8_t *)data)[i];
+    }
+    const uint16_t checksum = bswap16(*(uint16_t *)(data + rdm->message_len));
+    event->checksum_is_valid = (sum == checksum);
+
+    // Copy the packet data to the event if the checksum is valid
+    event->destination_uid = buf_to_uid(rdm->destination_uid);
+    event->source_uid = buf_to_uid(rdm->source_uid);
+    event->tn = rdm->tn;
+    event->port_id = rdm->port_id;  // Also copies response_type
+    event->message_count = rdm->message_count;
+    event->sub_device = bswap16(rdm->sub_device);
+    event->cc = rdm->cc;
+    event->pid = bswap16(rdm->pid);
+    event->pdl = rdm->pdl;
   }
 
   return false;
