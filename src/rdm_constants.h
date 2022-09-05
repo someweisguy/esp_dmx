@@ -25,8 +25,8 @@ extern "C" {
 static const uint64_t RDM_BROADCAST_UID = 0xffffffffffff;
 
 /**
- * @brief The maximum RDM UID possible. Any UID above this value is considered
- * invalid.
+ * @brief The maximum RDM UID possible. Any UID above this value (except
+ * RDM_BROADCAST_UID) is considered invalid.
  */
 static const uint64_t RDM_MAX_UID = 0xfffffffffffe;
 
