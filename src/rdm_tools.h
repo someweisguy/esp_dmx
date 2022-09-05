@@ -83,10 +83,10 @@ bool rdm_write_discovery_response(dmx_port_t dmx_num);
 
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
                              dmx_event_t *event, size_t *num_params,
-                             rdm_disc_mute_t *params);
+                             rdm_disc_mute_param_t *params);
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
-                          size_t *num_params, rdm_disc_mute_t *params);
+                          size_t *num_params, rdm_disc_mute_param_t *params);
 
 #ifdef __cplusplus
 }
