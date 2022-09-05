@@ -5,12 +5,18 @@
 
 #include "dmx_constants.h"
 #include "endian.h"
+#include "esp_check.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "impl/driver.h"
 #include "rdm_constants.h"
 
-static const char *TAG = "rdm";
+
+// Used for argument checking at the beginning of each function.
+#define RDM_CHECK(a, err_code, format, ...) \
+  ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
+
+static const char *TAG = "rdm";  // The log tagline for the file.
 
 static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
@@ -221,16 +227,17 @@ bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
 bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
                              dmx_event_t *event, size_t *num_params,
                              rdm_disc_mute_response_t *params) {
-  // TODO: check args
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Take mutex so driver values may be accessed
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
-  // Write the RDM mute command packet
+  // Prepare the RDM request
   uint8_t request[RDM_BASE_PACKET_SIZE];
-  rdm_data_t *const rdm = (rdm_data_t *)request;
+  rdm_data_t *rdm = (rdm_data_t *)request;
   rdm->sc = RDM_SC;
   rdm->sub_sc = RDM_SUB_SC;
   rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
@@ -244,14 +251,14 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
   rdm->pid = bswap16(RDM_PID_DISC_MUTE);
   rdm->pdl = 0;
 
-  // Calculate and write the checksum
+  // Calculate the checksum
   uint16_t checksum = 0;
   for (int i = 0; i < rdm->message_len; ++i) {
     checksum += request[i];
   }
   *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
 
-  // Wait, write, and send the command
+  // Send the RDM request
   dmx_wait_sent(dmx_num, portMAX_DELAY);
   dmx_write(dmx_num, request, rdm->message_len + 2);
   dmx_send(dmx_num, 0);
@@ -272,20 +279,17 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
     *num_params = 0;
   }
 
-  if (response_size > 0) {
+  if (response_size > 0 && event != NULL) {
     // Guard clause to ensure the received packet is valid
-    if (event->err || !event->is_rdm) {
-      return response_size;  // Invalid response
-    } else if (!event->rdm.checksum_is_valid) {
-      return response_size;  // Checksum is invalid
-    } else if (event->rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
-               event->rdm.pid != RDM_PID_DISC_MUTE ||
-               event->rdm.response_type != RDM_RESPONSE_TYPE_ACK) {
-      // Mute response type must only be RDM_RESPONSE_TYPE_ACK
+    if (event->err) {
+      return response_size;  // Receive error
+    } else if (!event->is_rdm || !event->rdm.checksum_is_valid ||
+               event->rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
+               event->rdm.pid != RDM_PID_DISC_MUTE) {
       return response_size;  // Invalid response
     } else if (event->rdm.source_uid != uid ||
                event->rdm.destination_uid != rdm_get_uid()) {
-      return response_size;  // Invalid response
+      return response_size;  // Invalid UID
     }
 
     // Read the data into a buffer
@@ -293,23 +297,21 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
     dmx_read(dmx_num, response, response_size);
 
     /*
-    Discovery Mute RDM Parameters:
-      struct {
-        uint16_t control_field;
-        uint8_t binding_uid[6];  // Optional
-      };
-    */
+     * Number of Discovery Mute RDM Parameters: 1
+     *   control_field:  2 bytes
+     *   binding_uid:    6 bytes, optional
+     */
 
     // Copy RDM packet parameters
     uint16_t control_field = 0;
     uint64_t binding_uid = 0;
     if (max_params > 0 && event->rdm.pdl >= 2) {
-      rdm_data_t *const rdm = (rdm_data_t *)response;
+      rdm = (rdm_data_t *)response;
       control_field = bswap16(*(uint16_t *)(&rdm->pd));
       if (event->rdm.pdl >= 8) {
         binding_uid = buf_to_uid(*(uint8_t *)(&rdm->pd + 2));
       }
-      *num_params += 1;
+      *num_params = 1;
     }
     if (params != NULL) {
       params->control_field = control_field;
