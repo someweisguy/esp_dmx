@@ -941,7 +941,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   if (!received_packet) {
     // Determine if a fail-quick timeout must be set
     uint32_t timeout = 0;
-    if (sent_previous && previous_uid != RDM_BROADCAST_UID &&
+    if (sent_previous &&
+        (previous_uid != RDM_BROADCAST_UID ||
+         previous_type == RDM_DISCOVERY_COMMAND) &&
         (previous_type == RDM_GET_COMMAND || previous_type == RDM_SET_COMMAND ||
          previous_type == RDM_DISCOVERY_COMMAND)) {
       timeout = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT;
@@ -980,6 +982,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
     bool is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
     event->sc = driver->data.buffer[0];
     taskEXIT_CRITICAL(&context->spinlock);
+    event->err = err;
     event->size = packet_size;
     event->is_rdm = is_rdm;
   }
@@ -1075,6 +1078,10 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     }
     taskENTER_CRITICAL(&context->spinlock);
     driver->data.tx_size = size;
+    taskEXIT_CRITICAL(&context->spinlock);
+  } else {
+    taskENTER_CRITICAL(&context->spinlock);
+    size = driver->data.tx_size;
     taskEXIT_CRITICAL(&context->spinlock);
   }
 
