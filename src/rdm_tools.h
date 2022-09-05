@@ -86,8 +86,8 @@ bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
                                rdm_disc_mute_response_t *params);
 
 bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
-                             rdm_event_t *event, int *control_field,
-                             uint64_t *binding_uid);
+                             dmx_event_t *event, size_t *num_params,
+                             rdm_disc_mute_response_t *params);
 
 #ifdef __cplusplus
 }

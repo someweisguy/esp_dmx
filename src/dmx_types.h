@@ -103,20 +103,8 @@ typedef struct __attribute__((__packed__)) rdm_data {
   void *pd;                    // The parameter data (PD) is of variable length. The content format is PID dependent.
 } rdm_data_t;
 
-typedef struct __attribute__((__packed__)) rdm_raw_disc_mute_response {
-  uint8_t managed_proxy : 1;
-  uint8_t sub_device : 1;
-  uint8_t boot_loader : 1;
-  uint8_t proxied_device : 1;
-  uint16_t : 12;
-  uint8_t binding_uid[6];
-} rdm_raw_disc_mute_response_t;
-
 typedef struct rdm_disc_mute_response {
-  bool proxied_device;
-  bool boot_loader;
-  bool sub_device;
-  bool managed_proxy;
+  uint16_t control_field;
   uint64_t binding_uid;  
 } rdm_disc_mute_response_t;
 

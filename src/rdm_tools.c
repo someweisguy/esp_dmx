@@ -219,23 +219,21 @@ bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
 }
 
 bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
-                             rdm_event_t *event, int *control_field,
-                             uint64_t *binding_uid) {
-  // FIXME: bool rdm_func(dmx_num, uid, *dmx_event_t, *num_params, *params);
-  // FIXME: use dmx_event_t instead of rdm_event_t
+                             dmx_event_t *event, size_t *num_params,
+                             rdm_disc_mute_response_t *params) {
   // TODO: check args
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Block so driver values may be accessed
+  // Take mutex so driver values may be accessed
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Write the RDM mute command packet
-  uint8_t command[26];
-  rdm_data_t *const rdm = (rdm_data_t *)command;
+  uint8_t request[RDM_BASE_PACKET_SIZE];
+  rdm_data_t *const rdm = (rdm_data_t *)request;
   rdm->sc = RDM_SC;
   rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = sizeof(command) - 2;
+  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
   uid_to_buf(rdm->destination_uid, uid);
   uid_to_buf(rdm->source_uid, rdm_get_uid());
   rdm->tn = 0; // TODO: Driver can track transaction num
@@ -249,64 +247,75 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
   // Calculate and write the checksum
   uint16_t checksum = 0;
   for (int i = 0; i < rdm->message_len; ++i) {
-    checksum += command[i];
+    checksum += request[i];
   }
-  *(uint16_t *)(&command[rdm->message_len]) = bswap16(checksum);
+  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
 
   // Wait, write, and send the command
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, command, sizeof(command));
-  dmx_send(dmx_num, sizeof(command));
+  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_send(dmx_num, 0);
 
   // Determine if a response is expected
-  dmx_event_t dmx_event;
-  size_t ack_size = 0;
-  const bool expected_reply = (uid != RDM_BROADCAST_UID);
-  if (expected_reply) {
-    ack_size = dmx_receive(dmx_num, &dmx_event, DMX_TIMEOUT_TICK);
+  size_t response_size = 0;
+  if (uid != RDM_BROADCAST_UID) {
+    response_size = dmx_receive(dmx_num, event, DMX_TIMEOUT_TICK);
   } else {
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
   xSemaphoreGiveRecursive(driver->mux);
 
-  if (ack_size > 0) {
-    // Copy the RDM message data block
-    if (event != NULL) {
-      memcpy(event, &dmx_event.rdm, sizeof(rdm_event_t));
-    }
-
-    // Ensure the received packet is valid
-    if (dmx_event.err || !dmx_event.is_rdm) {
-      return false;  // Invalid response
-    } else if (!dmx_event.rdm.checksum_is_valid) {
-      return false;  // Checksum is invalid
-    } else if (dmx_event.rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
-               dmx_event.rdm.pid != RDM_PID_DISC_MUTE || 
-               dmx_event.rdm.response_type != RDM_RESPONSE_TYPE_ACK) {
-      // Mute response type must only be RDM_RESPONSE_TYPE_ACK
-      return false;  // Invalid response
-    } else if (dmx_event.rdm.source_uid != uid ||
-               dmx_event.rdm.destination_uid != rdm_get_uid()) {
-      return false;  // Invalid response
-    }
-    
-    // Read the data into a buffer
-    uint8_t ack[26 + 14];
-    dmx_read(dmx_num, ack, sizeof(ack));
-    rdm_data_t *const rdm = (rdm_data_t *)ack;
-
-    // Copy RDM packet parameters
-    if (control_field != NULL) {
-      uint16_t *pd = &rdm->pd;
-      *control_field = dmx_event.rdm.pdl >= 2 ? bswap16(*pd) : 0;
-    }
-    if (binding_uid != NULL) {
-      uint8_t *pd = (&rdm->pd) + 2;
-      *binding_uid = dmx_event.rdm.pdl >= 8 ? buf_to_uid(pd) : 0;
-    }
-
-    return true;
+  // Get the number of parameters that can be reported to the caller
+  size_t max_params = 0;
+  if (num_params != NULL) {
+    max_params = *num_params;
+    *num_params = 0;
   }
 
-  return false;
+  if (response_size > 0) {
+    // Guard clause to ensure the received packet is valid
+    if (event->err || !event->is_rdm) {
+      return response_size;  // Invalid response
+    } else if (!event->rdm.checksum_is_valid) {
+      return response_size;  // Checksum is invalid
+    } else if (event->rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
+               event->rdm.pid != RDM_PID_DISC_MUTE ||
+               event->rdm.response_type != RDM_RESPONSE_TYPE_ACK) {
+      // Mute response type must only be RDM_RESPONSE_TYPE_ACK
+      return response_size;  // Invalid response
+    } else if (event->rdm.source_uid != uid ||
+               event->rdm.destination_uid != rdm_get_uid()) {
+      return response_size;  // Invalid response
+    }
+
+    // Read the data into a buffer
+    uint8_t response[RDM_BASE_PACKET_SIZE + 8];
+    dmx_read(dmx_num, response, response_size);
+
+    /*
+    Discovery Mute RDM Parameters:
+      struct {
+        uint16_t control_field;
+        uint8_t binding_uid[6];  // Optional
+      };
+    */
+
+    // Copy RDM packet parameters
+    uint16_t control_field = 0;
+    uint64_t binding_uid = 0;
+    if (max_params > 0 && event->rdm.pdl >= 2) {
+      rdm_data_t *const rdm = (rdm_data_t *)response;
+      control_field = bswap16(*(uint16_t *)(&rdm->pd));
+      if (event->rdm.pdl >= 8) {
+        binding_uid = buf_to_uid(*(uint8_t *)(&rdm->pd + 2));
+      }
+      *num_params += 1;
+    }
+    if (params != NULL) {
+      params->control_field = control_field;
+      params->binding_uid = binding_uid;
+    }
+  }
+
+  return response_size;
 }
