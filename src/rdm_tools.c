@@ -88,7 +88,7 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     }
 
     // Return DMX data to the caller
-    event->cc = RDM_DISCOVERY_COMMAND_RESPONSE;
+    event->cc = RDM_CC_DISC_COMMAND_RESPONSE;
     event->pid = RDM_PID_DISC_UNIQUE_BRANCH;
     event->source_uid = uid;
     event->checksum_is_valid = (sum == checksum);
@@ -167,7 +167,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
   rdm->port_id = dmx_num + 1;
   rdm->message_count = 0;
   rdm->sub_device = bswap16(0);
-  rdm->cc = RDM_DISCOVERY_COMMAND;
+  rdm->cc = RDM_CC_DISC_COMMAND;
   rdm->pid = bswap16(RDM_PID_DISC_UN_MUTE);
   rdm->pdl = 0;
 
@@ -204,7 +204,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
     if (event->err) {
       return response_size;  // Receive error
     } else if (!event->is_rdm || !event->rdm.checksum_is_valid ||
-               event->rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
+               event->rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
                event->rdm.pid != RDM_PID_DISC_UN_MUTE) {
       return response_size;  // Invalid response
     } else if (event->rdm.source_uid != uid ||
@@ -264,7 +264,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
   rdm->port_id = dmx_num + 1;
   rdm->message_count = 0;
   rdm->sub_device = bswap16(0);
-  rdm->cc = RDM_DISCOVERY_COMMAND;
+  rdm->cc = RDM_CC_DISC_COMMAND;
   rdm->pid = bswap16(RDM_PID_DISC_MUTE);
   rdm->pdl = 0;
 
@@ -301,7 +301,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
     if (event->err) {
       return response_size;  // Receive error
     } else if (!event->is_rdm || !event->rdm.checksum_is_valid ||
-               event->rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
+               event->rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
                event->rdm.pid != RDM_PID_DISC_MUTE) {
       return response_size;  // Invalid response
     } else if (event->rdm.source_uid != uid ||
