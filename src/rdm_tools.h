@@ -85,20 +85,11 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num);
 int64_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
                                     int64_t upper_bound);
 
+// TODO: docs
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
                           rdm_disc_mute_param_t *param);
 
-/*
 // TODO: docs
-size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
-                             dmx_event_t *event, size_t *num_params,
-                             rdm_disc_mute_param_t *params);
-
-// TODO: docs
-size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
-                          size_t *num_params, rdm_disc_mute_param_t *params);
-*/
-
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, uint64_t *uids);
 
 #ifdef __cplusplus
