@@ -44,7 +44,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
   int received_packet;  // True if the driver is receiving data.
   int is_sending;       // True if the driver is sending data.
   int timer_running;    // True if the hardware timer is running.
-  uint8_t rdm_tn;       // RDM Transaction number. Increments with every RDM packet sent.
+  size_t rdm_tn;        // RDM Transaction number. Increments with every RDM packet sent.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
