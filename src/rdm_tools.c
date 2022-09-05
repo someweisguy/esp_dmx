@@ -109,12 +109,14 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     event->pdl = rdm->pdl;
     return true;
   }
-  
+
   return false;
 }
 
 bool rdm_write_discovery_response(dmx_port_t dmx_num) {
   // TODO: check args
+
+  // TODO: return true if a response is sent, false if the driver is muted
 
   // Build the discovery response packet
   uint8_t response[24] = {RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
@@ -136,20 +138,22 @@ bool rdm_write_discovery_response(dmx_port_t dmx_num) {
   return dmx_write(dmx_num, response, sizeof(response));
 }
 
-bool rdm_write_discovery_mute(dmx_port_t dmx_num, uint64_t uid, bool mute) {
+bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
+                               rdm_event_t *event, size_t *num_params,
+                               rdm_disc_mute_response_t *params) {
   // TODO: check args
+  
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  /*
-  TODO: mute messages require an ACK from the receiver to ensure that the 
-  message has been received. If the arg UID is not a broadcast message, flip the
-  bus and handle a response
-  */
+  // Block so driver values may be accessed
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
-  uint8_t command[RDM_BASE_PACKET_SIZE];
+  // Write the RDM mute command packet
+  uint8_t command[26];
   rdm_data_t *const rdm = (rdm_data_t *)command;
   rdm->sc = RDM_SC;
   rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
+  rdm->message_len = sizeof(command) - 2;
   uid_to_buf(rdm->destination_uid, uid);
   uid_to_buf(rdm->source_uid, rdm_get_uid());
   rdm->tn = 0; // TODO: Driver can track transaction num
@@ -157,18 +161,154 @@ bool rdm_write_discovery_mute(dmx_port_t dmx_num, uint64_t uid, bool mute) {
   rdm->message_count = 0;
   rdm->sub_device = bswap16(0);
   rdm->cc = RDM_DISCOVERY_COMMAND;
-  rdm->pid = bswap16(mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE);
+  rdm->pid = bswap16(RDM_PID_DISC_UN_MUTE);
   rdm->pdl = 0;
 
+  // Calculate and write the checksum
   uint16_t checksum = 0;
   for (int i = 0; i < rdm->message_len; ++i) {
     checksum += command[i];
   }
-  checksum = bswap16(checksum);
-  memcpy(&command[rdm->message_len], &checksum, 2);
-  
+  *(uint16_t *)(&command[rdm->message_len]) = bswap16(checksum);
 
-  ESP_LOG_BUFFER_HEX(TAG, command, RDM_BASE_PACKET_SIZE);
+  // Wait, write, and send the command
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+  dmx_write(dmx_num, command, sizeof(command));
+  dmx_send(dmx_num, sizeof(command));
+
+  // Determine if a response is expected
+  dmx_event_t dmx_event;
+  size_t ack_size = 0;
+  const bool expected_reply = (uid != RDM_BROADCAST_UID);
+  if (expected_reply) {
+    ack_size = dmx_receive(dmx_num, &dmx_event, DMX_TIMEOUT_TICK);
+  } else {
+    dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
+  }
+  xSemaphoreGiveRecursive(driver->mux);
+
+  if (ack_size > 0) {
+    // Ensure the received packet is valid
+
+    if (dmx_event.err || !dmx_event.is_rdm) {
+      return false;  // Invalid response
+    } else if (!dmx_event.rdm.checksum_is_valid) {
+      return false;  // Checksum is invalid
+    } else if (dmx_event.rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
+               dmx_event.rdm.pid != RDM_PID_DISC_UN_MUTE || 
+               dmx_event.rdm.response_type != RDM_RESPONSE_TYPE_ACK) {
+      // Mute response type must only be RDM_RESPONSE_TYPE_ACK
+      return false;  // Invalid response
+    } else if (dmx_event.rdm.source_uid != uid ||
+               dmx_event.rdm.destination_uid != rdm_get_uid()) {
+      return false;  // Invalid response
+    }
+    
+    // Read the data into a buffer
+    // uint8_t ack[26 + 14];
+    // dmx_read(dmx_num, ack, sizeof(ack));
+
+    // Copy RDM message data block and parameters
+    // TODO: 
+
+
+    return true;
+  }
+
+  return false;
+}
+
+bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
+                             rdm_event_t *event, size_t *num_params,
+                             rdm_disc_mute_response_t *params) {
+  // TODO: check args
   
-  return dmx_write(dmx_num, command, sizeof(command));
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Block so driver values may be accessed
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+
+  // Write the RDM mute command packet
+  uint8_t command[26];
+  rdm_data_t *const rdm = (rdm_data_t *)command;
+  rdm->sc = RDM_SC;
+  rdm->sub_sc = RDM_SUB_SC;
+  rdm->message_len = sizeof(command) - 2;
+  uid_to_buf(rdm->destination_uid, uid);
+  uid_to_buf(rdm->source_uid, rdm_get_uid());
+  rdm->tn = 0; // TODO: Driver can track transaction num
+  rdm ->port_id = dmx_num + 1;
+  rdm->message_count = 0;
+  rdm->sub_device = bswap16(0);
+  rdm->cc = RDM_DISCOVERY_COMMAND;
+  rdm->pid = bswap16(RDM_PID_DISC_MUTE);
+  rdm->pdl = 0;
+
+  // Calculate and write the checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < rdm->message_len; ++i) {
+    checksum += command[i];
+  }
+  *(uint16_t *)(&command[rdm->message_len]) = bswap16(checksum);
+
+  // Wait, write, and send the command
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+  dmx_write(dmx_num, command, sizeof(command));
+  dmx_send(dmx_num, sizeof(command));
+
+  // Determine if a response is expected
+  dmx_event_t dmx_event;
+  size_t ack_size = 0;
+  const bool expected_reply = (uid != RDM_BROADCAST_UID);
+  if (expected_reply) {
+    ack_size = dmx_receive(dmx_num, &dmx_event, DMX_TIMEOUT_TICK);
+  } else {
+    dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
+  }
+  xSemaphoreGiveRecursive(driver->mux);
+
+  if (ack_size > 0) {
+    // Ensure the received packet is valid
+
+    if (dmx_event.err || !dmx_event.is_rdm) {
+      return false;  // Invalid response
+    } else if (!dmx_event.rdm.checksum_is_valid) {
+      return false;  // Checksum is invalid
+    } else if (dmx_event.rdm.cc != RDM_DISCOVERY_COMMAND_RESPONSE ||
+               dmx_event.rdm.pid != RDM_PID_DISC_MUTE || 
+               dmx_event.rdm.response_type != RDM_RESPONSE_TYPE_ACK) {
+      // Mute response type must only be RDM_RESPONSE_TYPE_ACK
+      return false;  // Invalid response
+    } else if (dmx_event.rdm.source_uid != uid ||
+               dmx_event.rdm.destination_uid != rdm_get_uid()) {
+      return false;  // Invalid response
+    }
+    
+    // Read the data into a buffer
+    uint8_t ack[26 + 14];
+    dmx_read(dmx_num, ack, sizeof(ack));
+
+    // Copy RDM message data block and parameters
+    rdm_data_t *const rdm = (rdm_data_t *)ack;
+    if (event != NULL) {
+      memcpy(event, &dmx_event.rdm, sizeof(rdm_event_t));
+    }
+    if (num_params != NULL) {
+      /*
+      if (*num_params > 0 && params != NULL) {
+        rdm_raw_disc_mute_response_t *raw = rdm->pd;
+        params->managed_proxy = raw->managed_proxy;
+        params->sub_device = raw->sub_device;
+        params->boot_loader = raw->boot_loader;
+        params->proxied_device = raw->boot_loader;
+        params->binding_uid = buf_to_uid(raw->binding_uid);
+      }
+      */
+      *num_params = dmx_event.rdm.pdl / sizeof(rdm_raw_disc_mute_response_t);
+    }
+
+    return true;
+  }
+
+  return false;
 }
