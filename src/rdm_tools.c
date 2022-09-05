@@ -230,7 +230,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
       rdm = (rdm_data_t *)response;
       control_field = bswap16(*(uint16_t *)(&rdm->pd));
       if (event->rdm.pdl >= 8) {
-        binding_uid = buf_to_uid((&rdm->pd + 2));
+        binding_uid = buf_to_uid((void *)&rdm->pd + 2);
       }
       *num_params = 1;
     }
@@ -327,7 +327,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
       rdm = (rdm_data_t *)response;
       control_field = bswap16(*(uint16_t *)(&rdm->pd));
       if (event->rdm.pdl >= 8) {
-        binding_uid = buf_to_uid((&rdm->pd + 2));
+        binding_uid = buf_to_uid((void *)&rdm->pd + 2);
       }
       *num_params = 1;
     }
