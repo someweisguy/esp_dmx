@@ -234,8 +234,8 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       driver->data.err = DMX_ERR_DATA_COLLISION;
       taskENTER_CRITICAL_ISR(&context->spinlock);
       if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
-                           eSetValueWithOverwrite, &task_awoken);
+        xTaskNotifyFromISR(driver->task_waiting, 0, eSetValueWithOverwrite,
+                           &task_awoken);
       }
       taskEXIT_CRITICAL_ISR(&context->spinlock);
     }
@@ -996,13 +996,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
     }
 
     // Wait for a task notification
-    xTaskNotifyWait(0, ULONG_MAX, &packet_size, timeout);
+    if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, timeout)) {
+      err = driver->data.err;
+    } else {
+      err = DMX_ERR_TIMEOUT;
+    }
     driver->task_waiting = NULL;
-    err = driver->data.err;
   }
 
   // Process DMX packet data
   if (event != NULL) {
+    event->err = err;
     if (packet_size > 0) {
       bool is_rdm = false;
       if (!err) {
@@ -1010,12 +1014,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
         is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
         taskEXIT_CRITICAL(&context->spinlock);
       }
-      event->err = err;
       event->size = packet_size;
       event->sc = driver->data.buffer[0];
       event->is_rdm = is_rdm;
     } else {
-      event->err = DMX_ERR_TIMEOUT;
       event->size = 0;
       event->sc = -1;
       event->is_rdm = false;
