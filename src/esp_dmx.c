@@ -386,6 +386,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
   
   // TODO: set intr_flags
 
+  // TODO: implement busy-waiting
+  if (!use_timer) {
+    ESP_LOGW(TAG, "Using busy-waits are not yet supported.");
+    use_timer = true;
+  }
+
   dmx_context_t *const context = &dmx_context[dmx_num];
   dmx_driver_t *driver;
 
