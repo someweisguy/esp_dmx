@@ -150,6 +150,16 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   return dmx_send(dmx_num, 0);
 }
 
+/*
+uint64_t rdm_send_disc_unique_branch(dmx_num, lower_bound, upper_bound);
+returns: 0 on no response, -1 on multiple response, uid on single response
+
+
+size_t rdm_send_disc_mute(dmx_num, uid, mute, &params);
+returns: num params received
+
+*/
+
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, dmx_event_t *event,
                                    rdm_disc_unique_branch_param_t *param) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -200,13 +210,14 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, dmx_event_t *event,
   return response_size;
 }
 
-size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
-                             dmx_event_t *event, size_t *num_params,
-                             rdm_disc_mute_param_t *params) {
+size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
+                          rdm_disc_mute_param_t *param) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  const uint16_t pid = mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE;
 
   // Take mutex so driver values may be accessed
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
@@ -224,7 +235,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
   rdm->message_count = 0;
   rdm->sub_device = bswap16(0);
   rdm->cc = RDM_CC_DISC_COMMAND;
-  rdm->pid = bswap16(RDM_PID_DISC_UN_MUTE);
+  rdm->pid = bswap16(pid);
   rdm->pdl = 0;
 
   // Calculate the checksum
@@ -240,32 +251,27 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
   dmx_send(dmx_num, 0);
 
   // Determine if a response is expected
+  dmx_event_t event;
   size_t response_size = 0;
   if (uid != RDM_BROADCAST_UID) {
-    response_size = dmx_receive(dmx_num, event, DMX_TIMEOUT_TICK);
+    response_size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
   } else {
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
   xSemaphoreGiveRecursive(driver->mux);
 
-  // Get the number of parameters that can be reported to the caller
-  size_t max_params = 0;
-  if (num_params != NULL) {
-    max_params = *num_params;
-    *num_params = 0;
-  }
-
-  if (response_size > 0 && event != NULL) {
+  size_t num_params = 0;
+  if (response_size > 0) {
     // Guard clause to ensure the received packet is valid
-    if (event->err) {
-      return response_size;  // Receive error
-    } else if (!event->is_rdm || !event->rdm.checksum_is_valid ||
-               event->rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
-               event->rdm.pid != RDM_PID_DISC_UN_MUTE) {
-      return response_size;  // Invalid response
-    } else if (event->rdm.source_uid != uid ||
-               event->rdm.destination_uid != rdm_get_uid()) {
-      return response_size;  // Invalid UID
+    if (event.err) {
+      return 0;  // Receive error
+    } else if (!event.is_rdm || !event.rdm.checksum_is_valid ||
+               event.rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
+               event.rdm.pid != pid) {
+      return 0;  // Invalid response
+    } else if (event.rdm.source_uid != uid ||
+               event.rdm.destination_uid != rdm_get_uid()) {
+      return 0;  // Invalid UID
     }
 
     // Read the data into a buffer
@@ -273,7 +279,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
     dmx_read(dmx_num, response, response_size);
 
     /*
-     * Number of Discovery Un-Mute RDM Parameters: 1
+     * Number of Discovery Mute/Un-Mute RDM Parameters: 1
      *   control_field:  2 bytes
      *   binding_uid:    6 bytes, optional
      */
@@ -281,116 +287,53 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
     // Copy RDM packet parameters
     uint16_t control_field = 0;
     uint64_t binding_uid = 0;
-    if (max_params > 0 && event->rdm.pdl >= 2) {
+    if (event.rdm.pdl >= 2) {
       rdm = (rdm_data_t *)response;
       control_field = bswap16(*(uint16_t *)(&rdm->pd));
-      if (event->rdm.pdl >= 8) {
+      if (event.rdm.pdl >= 8) {
         binding_uid = buf_to_uid((void *)&rdm->pd + 2);
       }
-      *num_params = 1;
+      num_params = 1;
     }
-    if (params != NULL) {
-      params->control_field = control_field;
-      params->binding_uid = binding_uid;
+    if (param != NULL) {
+      param->control_field = control_field;
+      param->binding_uid = binding_uid;
     }
   }
 
-  return response_size;
+  return num_params;
 }
 
-size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
-                          size_t *num_params, rdm_disc_mute_param_t *params) {
+/*
+size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, uint64_t *uids) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Take mutex so driver values may be accessed
-  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-
-  // Prepare the RDM request
-  uint8_t request[RDM_BASE_PACKET_SIZE];
-  rdm_data_t *rdm = (rdm_data_t *)request;
-  rdm->sc = RDM_SC;
-  rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
-  uid_to_buf(rdm->destination_uid, uid);
-  uid_to_buf(rdm->source_uid, rdm_get_uid());
-  rdm->tn = driver->rdm_tn;
-  rdm->port_id = dmx_num + 1;
-  rdm->message_count = 0;
-  rdm->sub_device = bswap16(0);
-  rdm->cc = RDM_CC_DISC_COMMAND;
-  rdm->pid = bswap16(RDM_PID_DISC_MUTE);
-  rdm->pdl = 0;
-
-  // Calculate the checksum
-  uint16_t checksum = 0;
-  for (int i = 0; i < rdm->message_len; ++i) {
-    checksum += request[i];
-  }
-  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
-
-  // Send the RDM request
-  dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, rdm->message_len + 2);
-  dmx_send(dmx_num, 0);
-
-  // Determine if a response is expected
-  size_t response_size = 0;
-  if (uid != RDM_BROADCAST_UID) {
-    response_size = dmx_receive(dmx_num, event, DMX_TIMEOUT_TICK);
-  } else {
-    dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
-  }
-  xSemaphoreGiveRecursive(driver->mux);
-
-  // Get the number of parameters that can be reported to the caller
-  size_t max_params = 0;
-  if (num_params != NULL) {
-    max_params = *num_params;
-    *num_params = 0;
+  if (uids == NULL) {
+    size = 0;
   }
 
-  if (response_size > 0 && event != NULL) {
-    // Guard clause to ensure the received packet is valid
-    if (event->err) {
-      return response_size;  // Receive error
-    } else if (!event->is_rdm || !event->rdm.checksum_is_valid ||
-               event->rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
-               event->rdm.pid != RDM_PID_DISC_MUTE) {
-      return response_size;  // Invalid response
-    } else if (event->rdm.source_uid != uid ||
-               event->rdm.destination_uid != rdm_get_uid()) {
-      return response_size;  // Invalid UID
+  uint64_t upper_bound = RDM_MAX_UID;
+  uint64_t lower_bound = 0;
+
+  rdm_disc_unique_branch_param_t params = {
+    .upper_bound = RDM_MAX_UID,
+    .lower_bound = 0
+  };
+
+  size_t uids_found = 0;
+  while (true) {
+    if (params.upper_bound == params.lower_bound) {
+      
+      
+    } else {
+      // send disc command
     }
 
-    // Read the data into a buffer
-    uint8_t response[RDM_BASE_PACKET_SIZE + 8];
-    dmx_read(dmx_num, response, response_size);
 
-    /*
-     * Number of Discovery Mute RDM Parameters: 1
-     *   control_field:  2 bytes
-     *   binding_uid:    6 bytes, optional
-     */
-
-    // Copy RDM packet parameters
-    uint16_t control_field = 0;
-    uint64_t binding_uid = 0;
-    if (max_params > 0 && event->rdm.pdl >= 2) {
-      rdm = (rdm_data_t *)response;
-      control_field = bswap16(*(uint16_t *)(&rdm->pd));
-      if (event->rdm.pdl >= 8) {
-        binding_uid = buf_to_uid((void *)&rdm->pd + 2);
-      }
-      *num_params = 1;
-    }
-    if (params != NULL) {
-      params->control_field = control_field;
-      params->binding_uid = binding_uid;
-    }
   }
 
-  return response_size;
+
+  return 0;
 }
+*/
