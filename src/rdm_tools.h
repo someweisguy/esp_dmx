@@ -81,10 +81,12 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event);
 // TODO: docs
 size_t rdm_send_disc_response(dmx_port_t dmx_num);
 
+// TODO: docs
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
                              dmx_event_t *event, size_t *num_params,
                              rdm_disc_mute_param_t *params);
 
+// TODO: docs
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
                           size_t *num_params, rdm_disc_mute_param_t *params);
 
