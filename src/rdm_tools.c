@@ -232,7 +232,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
       rdm = (rdm_data_t *)response;
       control_field = bswap16(*(uint16_t *)(&rdm->pd));
       if (event->rdm.pdl >= 8) {
-        binding_uid = buf_to_uid(*(uint8_t *)(&rdm->pd + 2));
+        binding_uid = buf_to_uid((&rdm->pd + 2));
       }
       *num_params = 1;
     }
