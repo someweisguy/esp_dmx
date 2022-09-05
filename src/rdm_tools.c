@@ -219,8 +219,8 @@ bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
 }
 
 bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
-                             rdm_event_t *event, size_t *num_params,
-                             rdm_disc_mute_response_t *params) {
+                             rdm_event_t *event, int *control_field,
+                             uint64_t *binding_uid) {
   // TODO: check args
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -267,6 +267,7 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
   }
   xSemaphoreGiveRecursive(driver->mux);
 
+
   if (ack_size > 0) {
     // Ensure the received packet is valid
 
@@ -287,24 +288,19 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
     // Read the data into a buffer
     uint8_t ack[26 + 14];
     dmx_read(dmx_num, ack, sizeof(ack));
+    rdm_data_t *const rdm = (rdm_data_t *)ack;
 
     // Copy RDM message data block and parameters
-    rdm_data_t *const rdm = (rdm_data_t *)ack;
     if (event != NULL) {
       memcpy(event, &dmx_event.rdm, sizeof(rdm_event_t));
     }
-    if (num_params != NULL) {
-      /*
-      if (*num_params > 0 && params != NULL) {
-        rdm_raw_disc_mute_response_t *raw = rdm->pd;
-        params->managed_proxy = raw->managed_proxy;
-        params->sub_device = raw->sub_device;
-        params->boot_loader = raw->boot_loader;
-        params->proxied_device = raw->boot_loader;
-        params->binding_uid = buf_to_uid(raw->binding_uid);
-      }
-      */
-      *num_params = dmx_event.rdm.pdl / sizeof(rdm_raw_disc_mute_response_t);
+    if (control_field != NULL) {
+      uint16_t *pd = &rdm->pd;
+      *control_field = dmx_event.rdm.pdl >= 2 ? bswap16(*pd) : 0;
+    }
+    if (binding_uid != NULL) {
+      uint8_t *pd = (&rdm->pd) + 2;
+      *binding_uid = dmx_event.rdm.pdl >= 8 ? buf_to_uid(pd) : 0;
     }
 
     return true;
