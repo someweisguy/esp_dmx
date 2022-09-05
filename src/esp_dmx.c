@@ -442,6 +442,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
   driver->received_packet = false;
   driver->is_sending = false;
   driver->timer_running = false;
+  driver->rdm_tn = 0;
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
@@ -1091,6 +1092,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
     driver->data.previous_type = rdm->cc;
     driver->data.previous_uid = buf_to_uid(rdm->destination_uid);
+    ++driver->rdm_tn;
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
     driver->data.previous_type = RDM_DISCOVERY_COMMAND_RESPONSE;
     driver->data.previous_uid = RDM_BROADCAST_UID;
@@ -1099,7 +1101,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->data.previous_uid = 0;
   }
   driver->data.sent_previous = true;
-  
+
   // Determine if a DMX break is required and send the packet
   if (driver->data.previous_type == RDM_DISCOVERY_COMMAND_RESPONSE) {
     // RDM discovery responses do not send a DMX break - write immediately

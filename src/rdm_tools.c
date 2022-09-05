@@ -236,8 +236,8 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
   rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
   uid_to_buf(rdm->destination_uid, uid);
   uid_to_buf(rdm->source_uid, rdm_get_uid());
-  rdm->tn = 0; // TODO: Driver can track transaction num
-  rdm ->port_id = dmx_num + 1;
+  rdm->tn = driver->rdm_tn;
+  rdm->port_id = dmx_num + 1;
   rdm->message_count = 0;
   rdm->sub_device = bswap16(0);
   rdm->cc = RDM_DISCOVERY_COMMAND;
