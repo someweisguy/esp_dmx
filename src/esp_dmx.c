@@ -978,13 +978,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   }
 
   // Process DMX packet data
-  if (packet_size > 0 && err == DMX_OK && event != NULL) {
-    taskENTER_CRITICAL(&context->spinlock);
-    bool is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
-    event->sc = driver->data.buffer[0];
-    taskEXIT_CRITICAL(&context->spinlock);
+  if (packet_size > 0 && event != NULL) {
+    bool is_rdm = false;
+    if (!err) {
+      taskENTER_CRITICAL(&context->spinlock);
+      is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
+      taskEXIT_CRITICAL(&context->spinlock);
+    }
     event->err = err;
     event->size = packet_size;
+    event->sc = driver->data.buffer[0];
     event->is_rdm = is_rdm;
   }
 
