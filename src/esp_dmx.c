@@ -275,7 +275,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
         // If packet was RDM and non-broadcast expect a response
         if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND) {
-          const uint64_t destination_uid = buf_to_uid(rdm->destination_uid);
+          const int64_t destination_uid = buf_to_uid(rdm->destination_uid);
           if (destination_uid != RDM_BROADCAST_UID) {
             turn_bus_around = true;
           }
@@ -951,7 +951,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   const bool received_packet = driver->received_packet;
   const bool sent_previous = driver->data.sent_previous;
   const int previous_type = driver->data.previous_type;
-  const uint64_t previous_uid = driver->data.previous_uid;
+  const int64_t previous_uid = driver->data.previous_uid;
   const int64_t previous_ts = driver->data.previous_ts;
   taskEXIT_CRITICAL(&context->spinlock);
 

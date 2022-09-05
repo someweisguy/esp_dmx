@@ -38,7 +38,7 @@ extern "C" {
  * @param buf A pointer to an RDM buffer.
  * @return uint64_t The properly formatted RDM UID.
  */
-uint64_t buf_to_uid(const void *buf);
+int64_t buf_to_uid(const void *buf);
 
 /**
  * @brief Helper function that converts an RDM UID stored as a 64-bit integer
@@ -50,14 +50,14 @@ uint64_t buf_to_uid(const void *buf);
  * @param uid The 64-bit representation of the UID.
  * @return void* A pointer to the destination buffer.
  */
-void *uid_to_buf(void *buf, uint64_t uid);
+void *uid_to_buf(void *buf, int64_t uid);
 
 /**
  * @brief Returns the 48 bit unique ID of this device.
  *
  * @return The UID of this device.
  */
-uint64_t rdm_get_uid();
+int64_t rdm_get_uid();
 
 /**
  * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
@@ -65,7 +65,7 @@ uint64_t rdm_get_uid();
  *
  * @param uid The custom value to which to set the device UID.
  */
-void rdm_set_uid(uint64_t uid);
+void rdm_set_uid(int64_t uid);
 
 /**
  * @brief // TODO

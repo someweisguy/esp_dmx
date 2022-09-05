@@ -33,7 +33,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
     size_t rx_size;   // The expected size of the incoming data packet.
  
     int previous_type;      // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
-    uint64_t previous_uid;  // The destination UID of the previous packet. Is 0 if the previous packet was not RDM.
+    int64_t previous_uid;  // The destination UID of the previous packet. Is 0 if the previous packet was not RDM.
     int64_t previous_ts;    // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     int sent_previous;      // Is true if this device sent the previous data packet.
 

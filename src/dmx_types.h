@@ -44,8 +44,8 @@ typedef enum dmx_err {
  * quickly and easily process and respond to RDM data.
  */
 typedef struct rdm_event {
-  uint64_t destination_uid;             // The UID of the target device(s).
-  uint64_t source_uid;                  // The UID of the device originating this packet.
+  int64_t destination_uid;             // The UID of the target device(s).
+  int64_t source_uid;                  // The UID of the device originating this packet.
   size_t tn;                            // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
   union {
     int port_id;                        // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.

@@ -18,9 +18,9 @@
 
 static const char *TAG = "rdm";  // The log tagline for the file.
 
-static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
+static int64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
-IRAM_ATTR uint64_t buf_to_uid(const void *buf) {
+IRAM_ATTR int64_t buf_to_uid(const void *buf) {
   uint64_t val = 0;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
@@ -31,7 +31,7 @@ IRAM_ATTR uint64_t buf_to_uid(const void *buf) {
   return val;
 }
 
-void *uid_to_buf(void *buf, uint64_t uid) {
+void *uid_to_buf(void *buf, int64_t uid) {
   ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
   ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
   ((uint8_t *)buf)[2] = ((uint8_t *)&uid)[3];
@@ -41,7 +41,7 @@ void *uid_to_buf(void *buf, uint64_t uid) {
   return buf;
 }
 
-uint64_t rdm_get_uid() {
+int64_t rdm_get_uid() {
   // Initialize the RDM UID
   if (rdm_uid == 0) {
     uint8_t mac[8];
@@ -53,7 +53,7 @@ uint64_t rdm_get_uid() {
   return rdm_uid;
 }
 
-void rdm_set_uid(uint64_t uid) { rdm_uid = uid; }
+void rdm_set_uid(int64_t uid) { rdm_uid = uid; }
 
 bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
   // TODO: check args
