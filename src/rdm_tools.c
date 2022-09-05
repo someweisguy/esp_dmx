@@ -6,6 +6,7 @@
 #include "dmx_constants.h"
 #include "endian.h"
 #include "esp_check.h"
+#include "esp_dmx.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "impl/driver.h"

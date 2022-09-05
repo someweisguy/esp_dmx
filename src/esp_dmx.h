@@ -14,6 +14,7 @@
 #include "dmx_types.h"
 #include "freertos/FreeRTOS.h"
 #include "rdm_constants.h"
+#include "rdm_tools.h"
 
 #ifdef __cplusplus
 extern "C" {

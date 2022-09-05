@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#include "dmx_types.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
@@ -12,7 +11,9 @@
 #include "esp_log.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
+#include "rdm_constants.h"
 #include "rdm_tools.h"
+#include "rdm_types.h"
 
 // Used for argument checking at the beginning of each function.
 #define DMX_CHECK(a, err_code, format, ...) \
