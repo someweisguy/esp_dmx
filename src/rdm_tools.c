@@ -150,6 +150,56 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   return dmx_send(dmx_num, 0);
 }
 
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, dmx_event_t *event,
+                                   rdm_disc_unique_branch_param_t *param) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(param != NULL, 0, "param error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Take mutex so driver values may be accessed
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+
+  // Prepare the RDM request
+  uint8_t request[RDM_BASE_PACKET_SIZE + 12];
+  rdm_data_t *rdm = (rdm_data_t *)request;
+  rdm->sc = RDM_SC;
+  rdm->sub_sc = RDM_SUB_SC;
+  rdm->message_len = RDM_BASE_PACKET_SIZE + 12 - 2;
+  uid_to_buf(rdm->destination_uid, RDM_BROADCAST_UID);
+  uid_to_buf(rdm->source_uid, rdm_get_uid());
+  rdm->tn = driver->rdm_tn;
+  rdm->port_id = dmx_num + 1;
+  rdm->message_count = 0;
+  rdm->sub_device = bswap16(0);
+  rdm->cc = RDM_CC_DISC_COMMAND;
+  rdm->pid = bswap16(RDM_PID_DISC_UNIQUE_BRANCH);
+  rdm->pdl = 12;
+
+  // Prepare the RDM request parameters
+  uid_to_buf((void *)&rdm->pd, param->lower_bound);
+  uid_to_buf((void *)&rdm->pd + 6, param->upper_bound);
+
+  // Calculate the checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < rdm->message_len; ++i) {
+    checksum += request[i];
+  }
+  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
+
+  // Send the RDM request
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_send(dmx_num, 0);
+
+  // Wait for a response
+  size_t response_size = dmx_receive(dmx_num, event, DMX_TIMEOUT_TICK);
+  xSemaphoreGiveRecursive(driver->mux);
+
+  return response_size;
+}
+
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
                              dmx_event_t *event, size_t *num_params,
                              rdm_disc_mute_param_t *params) {

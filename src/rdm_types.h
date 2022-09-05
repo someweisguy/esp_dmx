@@ -16,6 +16,11 @@
 extern "C" {
 #endif
 
+typedef struct rdm_disc_unique_branch_param {
+  uint64_t lower_bound;
+  uint64_t upper_bound;
+} rdm_disc_unique_branch_param_t;
+
 /**
  * @brief The parameter data area included in the responses to mute and un-mute
  * messages includes a control field to inform the controller about specific
