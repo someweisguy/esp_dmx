@@ -71,7 +71,7 @@ enum dmx_parameter {
 
   DMX_TIMEOUT_TICK = pdMS_TO_TICKS(1250),  // The DMX receive timeout length in FreeRTOS ticks. If it takes longer than this amount of time to receive the next DMX packet the signal is considered lost.
 
-  RDM_MDB_SIZE = 26,  // The size of the RDM message data block.
+  RDM_BASE_PACKET_SIZE = 26,  // The base size of an RDM packet. This is the size of the packet if the parameter data length is 0.
 
   RDM_BREAK_LEN_US = 176,      // The typical RDM break length in microseconds.
   RDM_MIN_BREAK_LEN_US = 176,  // The minimum RDM break length in microseconds.

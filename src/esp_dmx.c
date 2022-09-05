@@ -183,7 +183,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
       // Determine if a full packet has been received and notify the task
       const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-        if (driver->data.head >= RDM_MDB_SIZE) {
+        if (driver->data.head >= RDM_BASE_PACKET_SIZE) {
           // An RDM packet's length should match the message length slot value
           const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
           if (driver->data.head >= rdm->message_len + 2) {

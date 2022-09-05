@@ -162,11 +162,11 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Prepare the RDM request
-  uint8_t request[RDM_MDB_SIZE];
+  uint8_t request[RDM_BASE_PACKET_SIZE];
   rdm_data_t *rdm = (rdm_data_t *)request;
   rdm->sc = RDM_SC;
   rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_MDB_SIZE - 2;
+  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
   uid_to_buf(rdm->destination_uid, uid);
   uid_to_buf(rdm->source_uid, rdm_get_uid());
   rdm->tn = driver->rdm_tn;
@@ -219,7 +219,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
     }
 
     // Read the data into a buffer
-    uint8_t response[RDM_MDB_SIZE + 8];
+    uint8_t response[RDM_BASE_PACKET_SIZE + 8];
     dmx_read(dmx_num, response, response_size);
 
     /*
@@ -259,11 +259,11 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Prepare the RDM request
-  uint8_t request[RDM_MDB_SIZE];
+  uint8_t request[RDM_BASE_PACKET_SIZE];
   rdm_data_t *rdm = (rdm_data_t *)request;
   rdm->sc = RDM_SC;
   rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_MDB_SIZE - 2;
+  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
   uid_to_buf(rdm->destination_uid, uid);
   uid_to_buf(rdm->source_uid, rdm_get_uid());
   rdm->tn = driver->rdm_tn;
@@ -316,7 +316,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
     }
 
     // Read the data into a buffer
-    uint8_t response[RDM_MDB_SIZE + 8];
+    uint8_t response[RDM_BASE_PACKET_SIZE + 8];
     dmx_read(dmx_num, response, response_size);
 
     /*
