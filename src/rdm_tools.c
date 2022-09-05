@@ -11,7 +11,6 @@
 #include "impl/driver.h"
 #include "rdm_constants.h"
 
-
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
@@ -36,7 +35,7 @@ void *uid_to_buf(void *buf, uint64_t uid) {
   return memcpy(buf, &uid, 6);
 }
 
-uint64_t rdm_get_uid() { 
+uint64_t rdm_get_uid() {
   // Initialize the RDM UID
   if (rdm_uid == 0) {
     uint8_t mac[8];
@@ -48,15 +47,13 @@ uint64_t rdm_get_uid() {
   return rdm_uid;
 }
 
-void rdm_set_uid(uint64_t uid) { 
-  rdm_uid = uid;
-}
+void rdm_set_uid(uint64_t uid) { rdm_uid = uid; }
 
 bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
   // TODO: check args
 
   const rdm_data_t *const rdm = (rdm_data_t *)data;
-  
+
   if ((rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) && size > 17) {
     // Find the length of the discovery response preamble (0-7 bytes)
     int preamble_len = 0;
@@ -144,7 +141,7 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   // Write and send the response
   dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   dmx_write(dmx_num, response, sizeof(response));
-  return dmx_send(dmx_num, 0);  
+  return dmx_send(dmx_num, 0);
 }
 
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
