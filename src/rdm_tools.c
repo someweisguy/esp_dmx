@@ -217,7 +217,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  const uint16_t pid = mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE;
+  const uint16_t request_pid = mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE;
 
   // Take mutex so driver values may be accessed
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
@@ -235,7 +235,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   rdm->message_count = 0;
   rdm->sub_device = bswap16(0);
   rdm->cc = RDM_CC_DISC_COMMAND;
-  rdm->pid = bswap16(pid);
+  rdm->pid = bswap16(request_pid);
   rdm->pdl = 0;
 
   // Calculate the checksum
@@ -260,7 +260,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
         return 0;  // Receive error
       } else if (!event.is_rdm || !event.rdm.checksum_is_valid ||
                  event.rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
-                 event.rdm.pid != pid) {
+                 event.rdm.pid != request_pid) {
         return 0;  // Invalid response
       } else if (event.rdm.source_uid != uid ||
                  event.rdm.destination_uid != rdm_get_uid()) {
