@@ -252,54 +252,51 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
 
   // Determine if a response is expected
   dmx_event_t event;
-  size_t response_size = 0;
+  size_t num_params = 0;
   if (uid != RDM_BROADCAST_UID) {
-    response_size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+    if (dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK)) {
+      // Guard clause to ensure the received packet is valid
+      if (event.err) {
+        return 0;  // Receive error
+      } else if (!event.is_rdm || !event.rdm.checksum_is_valid ||
+                 event.rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
+                 event.rdm.pid != pid) {
+        return 0;  // Invalid response
+      } else if (event.rdm.source_uid != uid ||
+                 event.rdm.destination_uid != rdm_get_uid()) {
+        return 0;  // Invalid UID
+      }
+
+      // Read the data into a buffer
+      uint8_t response[RDM_BASE_PACKET_SIZE + 8];
+      dmx_read(dmx_num, response, event.size);
+
+      /*
+       * Number of Discovery Mute/Un-Mute RDM Parameters: 1
+       *   control_field:  2 bytes
+       *   binding_uid:    6 bytes, optional
+       */
+
+      // Copy RDM packet parameters
+      uint16_t control_field = 0;
+      uint64_t binding_uid = 0;
+      if (event.rdm.pdl >= 2) {
+        rdm = (rdm_data_t *)response;
+        control_field = bswap16(*(uint16_t *)(&rdm->pd));
+        if (event.rdm.pdl >= 8) {
+          binding_uid = buf_to_uid((void *)&rdm->pd + 2);
+        }
+        num_params = 1;
+      }
+      if (param != NULL) {
+        param->control_field = control_field;
+        param->binding_uid = binding_uid;
+      }
+    }
   } else {
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
   xSemaphoreGiveRecursive(driver->mux);
-
-  size_t num_params = 0;
-  if (response_size > 0) {
-    // Guard clause to ensure the received packet is valid
-    if (event.err) {
-      return 0;  // Receive error
-    } else if (!event.is_rdm || !event.rdm.checksum_is_valid ||
-               event.rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
-               event.rdm.pid != pid) {
-      return 0;  // Invalid response
-    } else if (event.rdm.source_uid != uid ||
-               event.rdm.destination_uid != rdm_get_uid()) {
-      return 0;  // Invalid UID
-    }
-
-    // Read the data into a buffer
-    uint8_t response[RDM_BASE_PACKET_SIZE + 8];
-    dmx_read(dmx_num, response, response_size);
-
-    /*
-     * Number of Discovery Mute/Un-Mute RDM Parameters: 1
-     *   control_field:  2 bytes
-     *   binding_uid:    6 bytes, optional
-     */
-
-    // Copy RDM packet parameters
-    uint16_t control_field = 0;
-    uint64_t binding_uid = 0;
-    if (event.rdm.pdl >= 2) {
-      rdm = (rdm_data_t *)response;
-      control_field = bswap16(*(uint16_t *)(&rdm->pd));
-      if (event.rdm.pdl >= 8) {
-        binding_uid = buf_to_uid((void *)&rdm->pd + 2);
-      }
-      num_params = 1;
-    }
-    if (param != NULL) {
-      param->control_field = control_field;
-      param->binding_uid = binding_uid;
-    }
-  }
 
   return num_params;
 }
