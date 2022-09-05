@@ -221,6 +221,7 @@ bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
 bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
                              rdm_event_t *event, int *control_field,
                              uint64_t *binding_uid) {
+  // FIXME: bool rdm_func(dmx_num, uid, *rdm_event_t, *num_params, *params);
   // TODO: check args
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
