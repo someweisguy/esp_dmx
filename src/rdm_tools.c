@@ -119,12 +119,13 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
   return false;
 }
 
-bool rdm_write_discovery_response(dmx_port_t dmx_num) {
-  // TODO: check args
+size_t rdm_send_disc_response(dmx_port_t dmx_num) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // TODO: return true if a response is sent, false if the driver is muted
+  // TODO: Return 0 if the driver is muted
 
-  // Build the discovery response packet
+  // Prepare and encode the response
   uint8_t response[24] = {RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
                           RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
                           RDM_PREAMBLE, RDM_DELIMITER};
@@ -140,8 +141,10 @@ bool rdm_write_discovery_response(dmx_port_t dmx_num) {
   response[22] = checksum | 0xaa;
   response[23] = checksum | 0x55;
 
-  // Write the response
-  return dmx_write(dmx_num, response, sizeof(response));
+  // Write and send the response
+  dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
+  dmx_write(dmx_num, response, sizeof(response));
+  return dmx_send(dmx_num, 0);  
 }
 
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, uint64_t uid,
