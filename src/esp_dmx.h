@@ -210,7 +210,7 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
  * @brief Reads DMX data from the driver into a destination buffer.
  * 
  * @param dmx_num The DMX port number.
- * @param destination The destination buffer into which to read the DMX data.
+ * @param[out] destination The destination buffer into which to read the DMX data.
  * @param size The size of the destination buffer.
  * @return The number of bytes read from the DMX driver.
  */
@@ -224,7 +224,7 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size);
  * @param dmx_num The DMX port number.
  * @param offset The number of slots with which to offset the read. If set to 0
  * this function is equivalent to dmx_read().
- * @param destination The destination buffer into which to read the DMX data.
+ * @param[out] destination The destination buffer into which to read the DMX data.
  * @param size The size of the destination buffer.
  * @return The number of bytes read from the DMX driver.
  */
@@ -245,7 +245,7 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
  * written into the DMX driver buffer can then be sent to DMX devices.
  * 
  * @param dmx_num The DMX port number.
- * @param source The source buffer which is copied to the DMX driver.
+ * @param[in] source The source buffer which is copied to the DMX driver.
  * @param size The size of the source buffer.
  * @return The number of bytes written into the DMX driver.
  */
@@ -259,7 +259,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
  * @param dmx_num The DMX port number.
  * @param offset The number of slots with which to offset the write. If set to 0
  * this function is equivalent to dmx_write().
- * @param source The source buffer which is copied to the DMX driver.
+ * @param[in] source The source buffer which is copied to the DMX driver.
  * @param size The size of the source buffer.
  * @return The number of bytes written into the DMX driver.
  */
@@ -286,8 +286,8 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
  * can lead to undesired behavior and program instability.
  * 
  * @param dmx_num The DMX port number.
- * @param[out] event A pointer to a dmx_event_t which contains information about
- * the received DMX packet.
+ * @param[out] event A optional pointer to a dmx_event_t which contains
+ * information about the received DMX packet.
  * @param timeout The number of ticks to wait before this function times out.
  * @return The size of the received DMX packet or 0 if no packet was received. 
  */
@@ -295,16 +295,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout);
 
 /**
  * @brief Sends a DMX packet on the DMX bus. This function blocks indefinitely
- * until the DMX driver is idle and then it sends a packet. The size of the
- * packet is equal to the size passed to the previous call to dmx_write().
+ * until the DMX driver is idle and then sends a packet.
  * 
  * @note This function uses FreeRTOS direct-to-task notifications to block and
  * unblock. Using task notifications on the same task that calls this function
  * can lead to undesired behavior and program instability.
  * 
  * @param dmx_num The DMX port number.
- * @param size The size of the packet to send or 0 to send the number of bytes
- * that was previously written using dmx_write() or dmx_send().
+ * @param size The size of the packet to send. If 0, sends the number of bytes
+ * equal to the highest slot number that was written or sent in the previous
+ * call to dmx_write(), dmx_write_offset(), dmx_write_slot(), or dmx_send().
  * @return The number of bytes sent on the DMX bus.
  */
 size_t dmx_send(dmx_port_t dmx_num, size_t size);
