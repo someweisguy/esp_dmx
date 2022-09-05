@@ -14,8 +14,8 @@ static const char *TAG = "rdm";
 
 static uint64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
-inline __attribute__((always_inline)) uint64_t buf_to_uid(const void *buf) {
-  uint64_t val;
+IRAM_ATTR uint64_t buf_to_uid(const void *buf) {
+  uint64_t val = 0;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
   ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
