@@ -146,7 +146,7 @@ bool rdm_write_discovery_response(dmx_port_t dmx_num) {
 
 bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
                                rdm_event_t *event, size_t *num_params,
-                               rdm_disc_mute_response_t *params) {
+                               rdm_disc_mute_t *params) {
   // TODO: check args
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -224,12 +224,11 @@ bool rdm_send_discovery_unmute(dmx_port_t dmx_num, uint64_t uid,
   return false;
 }
 
-bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
-                             dmx_event_t *event, size_t *num_params,
-                             rdm_disc_mute_response_t *params) {
+size_t rdm_send_disc_mute(dmx_port_t dmx_num, uint64_t uid, dmx_event_t *event,
+                          size_t *num_params, rdm_disc_mute_t *params) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Take mutex so driver values may be accessed
