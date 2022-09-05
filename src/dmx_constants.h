@@ -7,6 +7,7 @@
 #pragma once
 
 #include "freertos/FreeRTOS.h"
+#include "esp_intr_alloc.h"
 
 #ifdef __cplusplus
 extern "C" {
