@@ -227,7 +227,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   rdm_data_t *rdm = (rdm_data_t *)request;
   rdm->sc = RDM_SC;
   rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;
+  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;  // exclude checksum
   uid_to_buf(rdm->destination_uid, uid);
   uid_to_buf(rdm->source_uid, rdm_get_uid());
   rdm->tn = driver->rdm_tn;
