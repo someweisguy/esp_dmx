@@ -985,6 +985,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
       driver->task_waiting = NULL;
       taskEXIT_CRITICAL(&context->spinlock);
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+      if (event != NULL) {
+        event->err = DMX_ERR_TIMEOUT;
+        event->size = 0;
+        event->sc = -1;
+        event->is_rdm = false;
+      }
       xSemaphoreGiveRecursive(driver->mux);
       return 0;
     }
@@ -996,17 +1002,24 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   }
 
   // Process DMX packet data
-  if (packet_size > 0 && event != NULL) {
-    bool is_rdm = false;
-    if (!err) {
-      taskENTER_CRITICAL(&context->spinlock);
-      is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
-      taskEXIT_CRITICAL(&context->spinlock);
+  if (event != NULL) {
+    if (packet_size > 0) {
+      bool is_rdm = false;
+      if (!err) {
+        taskENTER_CRITICAL(&context->spinlock);
+        is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
+        taskEXIT_CRITICAL(&context->spinlock);
+      }
+      event->err = err;
+      event->size = packet_size;
+      event->sc = driver->data.buffer[0];
+      event->is_rdm = is_rdm;
+    } else {
+      event->err = DMX_ERR_TIMEOUT;
+      event->size = 0;
+      event->sc = -1;
+      event->is_rdm = false;
     }
-    event->err = err;
-    event->size = packet_size;
-    event->sc = driver->data.buffer[0];
-    event->is_rdm = is_rdm;
   }
 
   // Give the mutex back and return
