@@ -32,7 +32,7 @@ extern "C" {
  *
  * @note This function is designed to be the quickest way to swap endianness of
  * a 48-bit number on the Xtensa compiler which is important because it will be
- * used in an interrupt handler. It must be inlined in order to prevent cache 
+ * used in an interrupt handler. It must be inlined in order to prevent cache
  * misses in IRAM interrupts.
  *
  * @param buf A pointer to an RDM buffer.
@@ -43,9 +43,9 @@ uint64_t buf_to_uid(const void *buf);
 /**
  * @brief Helper function that converts an RDM UID stored as a 64-bit integer
  * and copies it into a 48-bit buffer. It also converts endianness to compensate
- * for the fact that the ESP32 stores values in least-significant-byte first 
+ * for the fact that the ESP32 stores values in least-significant-byte first
  * endianness and RDM requires most-significant-byte first.
- * 
+ *
  * @param buf A pointer to the destination buffer.
  * @param uid The 64-bit representation of the UID.
  * @return void* A pointer to the destination buffer.
@@ -54,25 +54,25 @@ void *uid_to_buf(void *buf, uint64_t uid);
 
 /**
  * @brief Returns the 48 bit unique ID of this device.
- * 
+ *
  * @return The UID of this device.
  */
 uint64_t rdm_get_uid();
 
 /**
- * @brief Set the device UID to a custom value. Setting the UID to 0 will reset 
+ * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
  * the UID to its default value.
- * 
+ *
  * @param uid The custom value to which to set the device UID.
  */
 void rdm_set_uid(uint64_t uid);
 
 /**
  * @brief // TODO
- * 
- * @param data 
- * @param size 
- * @param[out] event 
+ *
+ * @param data
+ * @param size
+ * @param[out] event
  * @return true if the data is a valid RDM packet.
  * @return false if the data is not a valid RDM packet.
  */

@@ -305,9 +305,8 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   int task_awoken = false;
 
   if (dmx_hal_get_rx_level(&context->hal)) {
-
     /* If this ISR is called on a positive edge and the current DMX frame is in
-    a break and a negative edge timestamp has been recorded then a break has 
+    a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
     also be deduced that the driver is now in a DMX mark-after-break. */
 
@@ -318,7 +317,6 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
     }
     driver->sniffer.last_pos_edge_ts = now;
   } else {
-
     /* If this ISR is called on a negative edge in a DMX mark-after-break then
     the DMX mark-after-break has just finished. It can be recorded. Sniffer data
     is now available to be read by the user. */
@@ -383,7 +381,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
-  
+
   // TODO: set intr_flags
 
   // TODO: implement busy-waiting
@@ -599,7 +597,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
     ESP_LOGE(TAG, "DMX sniffer queue malloc error");
     return ESP_ERR_NO_MEM;
   }
-  
+
   // Add the GPIO interrupt handler
   esp_err_t err = gpio_isr_handler_add(intr_pin, dmx_gpio_isr, driver);
   if (err) {
@@ -609,7 +607,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
     return ESP_FAIL;
   }
   driver->sniffer.intr_pin = intr_pin;
-  
+
   // Set sniffer default values
   driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
   driver->sniffer.is_in_mab = false;
@@ -626,7 +624,7 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
             "sniffer is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  
+
   // Disable the interrupt and remove the interrupt handler
   gpio_set_intr_type(driver->sniffer.intr_pin, GPIO_INTR_DISABLE);
   esp_err_t err = gpio_isr_handler_remove(driver->sniffer.intr_pin);
@@ -661,7 +659,7 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  
+
   // Clamp the baud rate to within DMX specification
   if (baud_rate < DMX_MIN_BAUD_RATE) {
     baud_rate = DMX_MIN_BAUD_RATE;
@@ -693,7 +691,7 @@ uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
 uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   // Clamp the break length to within DMX specification
   if (break_len < DMX_MIN_BREAK_LEN_US) {
     break_len = DMX_MIN_BREAK_LEN_US;
@@ -726,7 +724,7 @@ uint32_t dmx_get_break_len(dmx_port_t dmx_num) {
 uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   // Clamp the mark-after-break length to within DMX specification
   if (mab_len < DMX_MIN_MAB_LEN_US) {
     mab_len = DMX_MIN_MAB_LEN_US;
@@ -760,7 +758,7 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(destination, 0, "destination is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   // Clamp size to the maximum DMX packet size
   if (size > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE;
@@ -813,7 +811,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   // Clamp size to the maximum DMX packet size or fail quickly on invalid size
   if (size > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE;
@@ -825,7 +823,8 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  if (driver->is_sending && driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
+  if (driver->is_sending &&
+      driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
@@ -849,7 +848,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   // Clamp size to the maximum DMX packet size
   if (size + offset > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE - offset;
@@ -861,7 +860,8 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  if (driver->is_sending && driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
+  if (driver->is_sending &&
+      driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
@@ -888,7 +888,8 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  if (driver->is_sending && driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
+  if (driver->is_sending &&
+      driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
@@ -961,7 +962,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
     if (sent_previous &&
         (previous_uid != RDM_BROADCAST_UID ||
          previous_type == RDM_CC_DISC_COMMAND) &&
-        (previous_type == RDM_CC_GET_COMMAND || previous_type == RDM_CC_SET_COMMAND ||
+        (previous_type == RDM_CC_GET_COMMAND ||
+         previous_type == RDM_CC_SET_COMMAND ||
          previous_type == RDM_CC_DISC_COMMAND)) {
       timeout = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT;
     }
@@ -1015,7 +1017,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
 size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const context = &dmx_context[dmx_num];
 
@@ -1130,7 +1132,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     size_t write_size = driver->data.tx_size;
     dmx_hal_write_txfifo(&context->hal, driver->data.buffer, &write_size);
     driver->data.head = write_size;
-    
+
     // Enable DMX write interrupts
     dmx_hal_enable_interrupt(&context->hal, DMX_INTR_TX_ALL);
     taskEXIT_CRITICAL(&context->spinlock);
@@ -1141,7 +1143,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     taskEXIT_CRITICAL(&context->spinlock);
     timer_set_counter_value(driver->timer_group, driver->timer_num, 0);
     timer_set_alarm_value(driver->timer_group, driver->timer_num, break_len);
-    
+
     // Send the packet by starting the DMX break
     taskENTER_CRITICAL(&context->spinlock);
     driver->is_sending = true;
@@ -1161,7 +1163,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const context = &dmx_context[dmx_num];
 
