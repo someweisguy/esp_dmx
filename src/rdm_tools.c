@@ -267,10 +267,13 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
   }
   xSemaphoreGiveRecursive(driver->mux);
 
-
   if (ack_size > 0) {
-    // Ensure the received packet is valid
+    // Copy the RDM message data block
+    if (event != NULL) {
+      memcpy(event, &dmx_event.rdm, sizeof(rdm_event_t));
+    }
 
+    // Ensure the received packet is valid
     if (dmx_event.err || !dmx_event.is_rdm) {
       return false;  // Invalid response
     } else if (!dmx_event.rdm.checksum_is_valid) {
@@ -290,10 +293,7 @@ bool rdm_send_discovery_mute(dmx_port_t dmx_num, uint64_t uid,
     dmx_read(dmx_num, ack, sizeof(ack));
     rdm_data_t *const rdm = (rdm_data_t *)ack;
 
-    // Copy RDM message data block and parameters
-    if (event != NULL) {
-      memcpy(event, &dmx_event.rdm, sizeof(rdm_event_t));
-    }
+    // Copy RDM packet parameters
     if (control_field != NULL) {
       uint16_t *pd = &rdm->pd;
       *control_field = dmx_event.rdm.pdl >= 2 ? bswap16(*pd) : 0;
