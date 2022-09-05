@@ -88,8 +88,7 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     event->checksum_is_valid = (sum == checksum);
     return true;
 
-  } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
-             rdm->message_len >= size) {
+  } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
     // Verify the packet checksum
     uint16_t sum = 0;
     for (int i = 0; i < rdm->message_len; ++i) {
@@ -108,8 +107,9 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     event->cc = rdm->cc;
     event->pid = bswap16(rdm->pid);
     event->pdl = rdm->pdl;
+    return true;
   }
-
+  
   return false;
 }
 
