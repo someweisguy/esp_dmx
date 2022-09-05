@@ -81,16 +81,6 @@ enum dmx_parameter {
   RDM_MAX_MAB_LEN_US = 88,  // The maximum RDM mark-after-break length in microseconds.
 };
 
-enum rdm_packet_timing {
-  RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,  // Spacing between the RDM controller sending a discovery packet and sending any other packet.
-  RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,    // Spacing between the RDM controller sending a request, considering the response lost, and sending any other packet.
-  RDM_BROADCAST_PACKET_SPACING = 176,               // Spacing between the RDM controller sending a broadcast packet and sending any other packet.
-  RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,      // Spacing between the RDM controller sending a request and the RDM responder sending a response packet.
-
-  RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT = 2800,  // The timeout at which the RDM controller considers a response packet lost. 
-  RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000    // The timeout at which the RDM responder considers a response packet lost.
-};
-
 /**
  * @brief DMX start codes. These are the start codes used within the DMX
  * specification. This enum also includes RDM specific codes than can be used in

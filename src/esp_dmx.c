@@ -70,6 +70,16 @@ enum dmx_interrupt_mask {
   DMX_ALL_INTR_MASK = -1
 };
 
+enum rdm_packet_timing {
+  RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,
+  RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,
+  RDM_BROADCAST_PACKET_SPACING = 176,
+  RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,
+
+  RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT = 2800,
+  RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000
+};
+
 static void IRAM_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
