@@ -150,16 +150,6 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   return dmx_send(dmx_num, 0);
 }
 
-/*
-uint64_t rdm_send_disc_unique_branch(dmx_num, lower_bound, upper_bound);
-returns: 0 on no response, -1 on multiple response, uid on single response
-
-
-size_t rdm_send_disc_mute(dmx_num, uid, mute, &params);
-returns: num params received
-
-*/
-
 int64_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
                                     int64_t upper_bound) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
