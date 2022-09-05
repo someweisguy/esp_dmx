@@ -103,10 +103,10 @@ typedef struct __attribute__((__packed__)) rdm_data {
   void *pd;                    // The parameter data (PD) is of variable length. The content format is PID dependent.
 } rdm_data_t;
 
-typedef struct rdm_disc_mute_response {
+typedef struct rdm_disc_mute {
   uint16_t control_field;
   uint64_t binding_uid;  
-} rdm_disc_mute_response_t;
+} rdm_disc_mute_t;
 
 #ifdef __cplusplus
 }
