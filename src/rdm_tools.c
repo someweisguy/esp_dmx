@@ -160,10 +160,9 @@ returns: num params received
 
 */
 
-size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, dmx_event_t *event,
-                                   rdm_disc_unique_branch_param_t *param) {
+int64_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
+                                    int64_t upper_bound) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(param != NULL, 0, "param error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -188,8 +187,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, dmx_event_t *event,
   rdm->pdl = 12;
 
   // Prepare the RDM request parameters
-  uid_to_buf((void *)&rdm->pd, param->lower_bound);
-  uid_to_buf((void *)&rdm->pd + 6, param->upper_bound);
+  uid_to_buf((void *)&rdm->pd, lower_bound);
+  uid_to_buf((void *)&rdm->pd + 6, upper_bound);
 
   // Calculate the checksum
   uint16_t checksum = 0;
@@ -204,10 +203,29 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, dmx_event_t *event,
   dmx_send(dmx_num, 0);
 
   // Wait for a response
-  size_t response_size = dmx_receive(dmx_num, event, DMX_TIMEOUT_TICK);
+  dmx_event_t event;
+  int64_t response_uid = 0;
+  if (dmx_receive(dmx_num, &event, pdMS_TO_TICKS(10))) {
+    // Guard clause to ensure the received packet is valid
+    if (event.err && event.err != DMX_ERR_DATA_COLLISION) {
+      return 0;  // Receive error
+    } else if (!event.is_rdm || !event.rdm.checksum_is_valid ||
+               event.rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
+               event.rdm.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
+      return 0;  // Invalid response
+    }
+
+    // Data collisions are an acceptable response for this function only
+    if (event.err == DMX_ERR_DATA_COLLISION) {
+      response_uid = -1;
+    } else {
+      response_uid = event.rdm.source_uid;
+    }
+
+  }
   xSemaphoreGiveRecursive(driver->mux);
 
-  return response_size;
+  return response_uid;
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
