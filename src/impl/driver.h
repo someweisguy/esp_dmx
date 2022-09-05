@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
 #include "esp_intr_alloc.h"
@@ -42,11 +40,12 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
     dmx_err_t err;  // The error state of the received DMX data.
   } data;
 
-  bool is_in_break;      // True if the driver is sending or receiving a DMX break.
-  bool received_packet;  // True if the driver is receiving data.
-  bool is_sending;       // True if the driver is sending data.
-  bool timer_running;    // True if the hardware timer is running.
-  size_t rdm_tn;         // RDM Transaction number. Increments with every RDM packet sent.
+  int is_in_break;      // True if the driver is sending or receiving a DMX break.
+  int received_packet;  // True if the driver is receiving data.
+  int is_sending;       // True if the driver is sending data.
+  int timer_running;    // True if the hardware timer is running.
+
+  uint32_t rdm_tn;      // RDM Transaction number. Increments with every RDM packet sent.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
@@ -56,7 +55,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
     dmx_sniffer_data_t data;   // The data received by the DMX sniffer.
 
     int intr_pin;              // The GPIO number of the DMX sniffer interrupt pin.
-    bool is_in_mab;            // True if the sniffer is receiving a DMX mark-after-break.
+    int is_in_mab;             // True if the sniffer is receiving a DMX mark-after-break.
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
