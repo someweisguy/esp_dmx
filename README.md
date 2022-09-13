@@ -173,7 +173,7 @@ The function `dmx_receive()` takes three arguments. The first argument is the `d
 - `err` reports any errors that occurred while receiving the packet (see: [Error Handling](#error-handling)).
 - `sc` is the start code of the packet.
 - `size` is the size of the packet in bytes, including the DMX start code. This value will never be higher than `DMX_PACKET_SIZE`.
-- `is_rdm` evaluates to true if the packet is an RDM packet.
+- `is_rdm` evaluates to true if the packet is an RDM packet and if the RDM checksum is valid.
 
 The `dmx_event_t` struct also contains detailed information about received RDM packets. If `is_rdm` is true, RDM information can be read from the `dmx_event_t` struct. More information about parsing RDM data can be found in //TODO add link.
 
