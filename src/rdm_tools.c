@@ -95,7 +95,7 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     event->pid = RDM_PID_DISC_UNIQUE_BRANCH;
     event->source_uid = uid;
     event->checksum_is_valid = (sum == checksum);
-    return true;
+    return (sum == checksum);
 
   } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
     // Verify the packet checksum
@@ -116,7 +116,7 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     event->cc = rdm->cc;
     event->pid = bswap16(rdm->pid);
     event->pdl = rdm->pdl;
-    return true;
+    return (sum == checksum);
   }
 
   return false;
