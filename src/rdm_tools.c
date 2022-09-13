@@ -305,17 +305,72 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   return response_size;
 }
 
-static bool rdm_search(dmx_port_t dmx_num, int64_t lower_bound,
+static void rdm_search(dmx_port_t dmx_num, int64_t lower_bound,
                        int64_t upper_bound, const size_t size,
-                       size_t *const found, int64_t *const uids) {
-  
-  return false;
+                       int64_t *const uids, size_t *const found) {
+  bool response_is_valid;
+  int attempts = 0;
+  size_t response;
+
+  if (lower_bound == upper_bound) {
+    ESP_LOGW(TAG, "Branched all the way down to %012llx", lower_bound);
+    uint64_t control_field;
+    int64_t binding_uid;
+    do {
+      response = rdm_send_disc_mute(dmx_num, lower_bound, true, &control_field,
+                                    &binding_uid, &response_is_valid);
+    } while (!response && attempts++ < 3);
+    if (response && response_is_valid) {
+      // TODO: Add the UID to the list
+
+      ESP_LOGI(TAG, "Found UID: " UIDSTR, UID2STR(lower_bound));
+      if (*found < size && uids != NULL) {
+        uids[*found] = binding_uid ? binding_uid : lower_bound;
+      }
+      ++(*found);
+    }    
+    vTaskDelay(100);
+  } else {
+    // lower_bound != upper_bound
+    int64_t uid;
+    do {
+      response = rdm_send_disc_unique_branch(dmx_num, lower_bound, upper_bound,
+                                             &uid, &response_is_valid);
+    } while (!response && attempts++ < 3);
+    if (response) {
+      bool found_a_device = true;
+
+      /*
+      // Comment out during debugging
+      if (response_is_valid) {
+        found_a_device = quick_find(dmx_num, event.rdm.source_uid, lower_bound, 
+                                    upper_bound);
+      }
+      */
+
+      if (found_a_device) {
+        const int64_t mid_bound =
+            ((lower_bound & (0x800000000000 - 1)) +
+             (upper_bound & (0x800000000000 - 1))) /
+                2 +
+            ((upper_bound & 0x800000000000) ? 0x400000000000 : 0) +
+            ((lower_bound & 0x800000000000) ? 0x400000000000 : 0);
+
+        //const int64_t mid_bound = (lower_bound + upper_bound) / 2;
+        rdm_search(dmx_num, mid_bound + 1, upper_bound, size, uids, found);
+        rdm_search(dmx_num, lower_bound, mid_bound, size, uids, found);
+      }
+    }
+  }
+  //return devices_found;
 }
 
-size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, uint64_t *uids) {
+size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  size_t found = 0;
+  rdm_search(dmx_num, 0, RDM_MAX_UID, size, uids, &found);
 
-  return 0;
+  return found;
 }

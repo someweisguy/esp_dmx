@@ -93,7 +93,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
                           bool *response_is_valid);
 
 // TODO: docs
-size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, uint64_t *uids);
+size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids);
 
 #ifdef __cplusplus
 }
