@@ -22,6 +22,7 @@ extern "C" {
  * UID in text by separating the manufacturer ID and device ID. For use with
  * printf-like functions.
  */
+// FIXME: allow use of int literals in this macro
 #define UID2STR(uid) \
   ((rdm_uid_t *)(&uid))->manufacturer_id, ((rdm_uid_t *)(&uid))->device_id
 
