@@ -82,12 +82,14 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event);
 size_t rdm_send_disc_response(dmx_port_t dmx_num);
 
 // TODO: docs
-int64_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
-                                    int64_t upper_bound);
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
+                                   int64_t upper_bound, int64_t *response_uid,
+                                   bool *response_is_valid);
 
 // TODO: docs
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
-                          rdm_disc_mute_param_t *param);
+                          uint16_t *control_field, int64_t *binding_uid,
+                          bool *response_is_valid);
 
 // TODO: docs
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, uint64_t *uids);

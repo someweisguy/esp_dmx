@@ -150,8 +150,9 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   return dmx_send(dmx_num, 0);
 }
 
-int64_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
-                                    int64_t upper_bound) {
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
+                                   int64_t upper_bound, int64_t *response_uid,
+                                   bool *response_is_valid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -194,32 +195,30 @@ int64_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
 
   // Wait for a response
   dmx_event_t event;
-  int64_t response_uid = 0;
-  if (dmx_receive(dmx_num, &event, pdMS_TO_TICKS(10))) {
-    // Guard clause to ensure the received packet is valid
-    if (event.err && event.err != DMX_ERR_DATA_COLLISION) {
-      return 0;  // Receive error
-    } else if (!event.is_rdm || !event.rdm.checksum_is_valid ||
-               event.rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
-               event.rdm.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-      return 0;  // Invalid response
+  const size_t response_size = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(10));
+  if (response_size) {
+    if (response_is_valid != NULL) {
+      if (!event.err && event.is_rdm && event.rdm.checksum_is_valid &&
+          event.rdm.cc == RDM_CC_DISC_COMMAND_RESPONSE &&
+          event.rdm.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+        *response_is_valid = true;
+      } else {
+        *response_is_valid = false;
+      }
     }
-
-    // Data collisions are an acceptable response for this function only
-    if (event.err == DMX_ERR_DATA_COLLISION) {
-      response_uid = -1;
-    } else {
-      response_uid = event.rdm.source_uid;
+    
+    if (response_uid != NULL) {
+      *response_uid = event.rdm.source_uid;
     }
-
   }
   xSemaphoreGiveRecursive(driver->mux);
 
-  return response_uid;
+  return response_size;
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
-                          rdm_disc_mute_param_t *param) {
+                          uint16_t *control_field, int64_t *binding_uid,
+                          bool *response_is_valid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -260,24 +259,25 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
 
   // Determine if a response is expected
   dmx_event_t event;
-  size_t num_params = 0;
+  size_t response_size = 0;
   if (uid != RDM_BROADCAST_UID) {
-    if (dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK)) {
-      // Guard clause to ensure the received packet is valid
-      if (event.err) {
-        return 0;  // Receive error
-      } else if (!event.is_rdm || !event.rdm.checksum_is_valid ||
-                 event.rdm.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
-                 event.rdm.pid != request_pid) {
-        return 0;  // Invalid response
-      } else if (event.rdm.source_uid != uid ||
-                 event.rdm.destination_uid != rdm_get_uid()) {
-        return 0;  // Invalid UID
+    response_size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+    if (response_size) {
+      if (response_is_valid != NULL) {
+        if (!event.err && event.is_rdm && event.rdm.checksum_is_valid &&
+            event.rdm.cc == RDM_CC_DISC_COMMAND_RESPONSE &&
+            event.rdm.pid == request_pid && event.rdm.source_uid == uid &&
+            event.rdm.destination_uid == rdm_get_uid()) {
+          *response_is_valid = true;
+        } else {
+          *response_is_valid = false;
+        }
       }
 
       // Read the data into a buffer
       uint8_t response[RDM_BASE_PACKET_SIZE + 8];
       dmx_read(dmx_num, response, event.size);
+      rdm = (rdm_data_t *)response;
 
       /*
        * Number of Discovery Mute/Un-Mute RDM Parameters: 1
@@ -286,19 +286,15 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
        */
 
       // Copy RDM packet parameters
-      uint16_t control_field = 0;
-      uint64_t binding_uid = 0;
-      if (event.rdm.pdl >= 2) {
-        rdm = (rdm_data_t *)response;
-        control_field = bswap16(*(uint16_t *)(&rdm->pd));
-        if (event.rdm.pdl >= 8) {
-          binding_uid = buf_to_uid((void *)&rdm->pd + 2);
+      if (event.rdm.pdl >= 2 && control_field != NULL) {
+          *control_field = bswap16(*(uint16_t *)(&rdm->pd));
+        if (binding_uid != NULL) {
+          if (event.rdm.pdl >= 8) {
+            *binding_uid = buf_to_uid((void *)&rdm->pd + 2);
+          } else {
+            *binding_uid = 0;
+          }
         }
-        num_params = 1;
-      }
-      if (param != NULL) {
-        param->control_field = control_field;
-        param->binding_uid = binding_uid;
       }
     }
   } else {
@@ -306,39 +302,20 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   }
   xSemaphoreGiveRecursive(driver->mux);
 
-  return num_params;
+  return response_size;
 }
 
-/*
+static bool rdm_search(dmx_port_t dmx_num, int64_t lower_bound,
+                       int64_t upper_bound, const size_t size,
+                       size_t *const found, int64_t *const uids) {
+  
+  return false;
+}
+
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, uint64_t *uids) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  if (uids == NULL) {
-    size = 0;
-  }
-
-  uint64_t upper_bound = RDM_MAX_UID;
-  uint64_t lower_bound = 0;
-
-  rdm_disc_unique_branch_param_t params = {
-    .upper_bound = RDM_MAX_UID,
-    .lower_bound = 0
-  };
-
-  size_t uids_found = 0;
-  while (true) {
-    if (params.upper_bound == params.lower_bound) {
-      
-      
-    } else {
-      // send disc command
-    }
-
-
-  }
-
 
   return 0;
 }
-*/
