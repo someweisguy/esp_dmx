@@ -16,15 +16,18 @@
 extern "C" {
 #endif
 
+// TODO: docs
 typedef struct rdm_device_info {
   int rdm_version;
-  int device_model_id;
+  int model_id;
   int product_category;
   uint32_t software_version;
-  size_t dmx_footprint;
-  int dmx_personality;
-  size_t dmx_start_address;
+  size_t footprint;
+  size_t current_personality;
+  size_t personality_count;
+  size_t start_address;
   size_t sub_device_count;
+  size_t sensor_count;
 } rdm_device_info_t;
 
 

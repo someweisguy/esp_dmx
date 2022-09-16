@@ -284,6 +284,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
        *   control_field:  2 bytes
        *   binding_uid:    6 bytes, optional
        */
+      // FIXME: use a struct
 
       // Copy RDM packet parameters
       if (control_field != NULL) {
@@ -487,8 +488,97 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   return devices_found;
 }
 
-size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid,
-                           rdm_device_info_t *device_info) {
-  // TODO
-  return 0;
+size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid, uint16_t sub_device,
+                           rdm_device_info_t *device_info,
+                           bool *response_is_valid) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Take mutex so driver values may be accessed
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+
+  // Prepare the RDM request
+  uint8_t request[RDM_BASE_PACKET_SIZE];
+  rdm_data_t *rdm = (rdm_data_t *)request;
+  rdm->sc = RDM_SC;
+  rdm->sub_sc = RDM_SUB_SC;
+  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;  // exclude checksum
+  uid_to_buf(rdm->destination_uid, uid);
+  uid_to_buf(rdm->source_uid, rdm_get_uid());
+  rdm->tn = driver->rdm_tn;
+  rdm->port_id = dmx_num + 1;
+  rdm->message_count = 0;
+  rdm->sub_device = bswap16(sub_device);
+  rdm->cc = RDM_CC_GET_COMMAND;
+  rdm->pid = bswap16(RDM_PID_DEVICE_INFO);
+  rdm->pdl = 0;
+
+  // Calculate the checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < rdm->message_len; ++i) {
+    checksum += request[i];
+  }
+  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
+
+  // Send the RDM request
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_send(dmx_num, 0);
+
+  dmx_event_t event;
+  size_t response_size = 0;
+  if (uid != RDM_BROADCAST_UID) {
+    response_size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+    if (response_size) {
+      if (response_is_valid != NULL) {
+        if (!event.err && event.is_rdm && event.rdm.checksum_is_valid &&
+            event.rdm.cc == RDM_CC_GET_COMMAND_RESPONSE &&
+            event.rdm.pid == RDM_PID_DEVICE_INFO &&
+            event.rdm.source_uid == uid &&
+            event.rdm.destination_uid == rdm_get_uid()) {
+          *response_is_valid = true;
+        } else {
+          *response_is_valid = false;
+        }
+      }
+
+      // Read the data into a buffer
+      uint8_t response[RDM_BASE_PACKET_SIZE + 19];
+      dmx_read(dmx_num, response, event.size);
+      rdm = (rdm_data_t *)response;
+
+      if (device_info != NULL && event.rdm.pdl >= 19) {
+        struct __attribute__((__packed__)) dev_info_data_t {
+          uint16_t rdm_version;
+          uint16_t model_id;
+          uint16_t product_category;
+          uint32_t software_version;
+          uint16_t footprint;
+          uint8_t current_personality;
+          uint8_t personality_count;
+          uint16_t start_address;
+          uint16_t sub_device_count;
+          uint8_t sensor_count;
+        } *p = (struct dev_info_data_t *)&rdm->pd;
+
+        device_info->rdm_version = bswap16(p->rdm_version);
+        device_info->model_id = bswap16(p->model_id);
+        device_info->product_category = bswap16(p->product_category);
+        device_info->software_version = bswap32(p->software_version);
+        device_info->footprint = bswap16(p->footprint);
+        device_info->current_personality = p->current_personality;
+        device_info->personality_count = p->personality_count;
+        device_info->start_address = bswap16(p->start_address);
+        device_info->sub_device_count = bswap16(p->sub_device_count);
+        device_info->sensor_count = p->sensor_count;
+      }
+    }
+  } else {
+    dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
+  }
+  xSemaphoreGiveRecursive(driver->mux);
+
+  return response_size;
 }

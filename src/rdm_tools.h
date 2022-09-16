@@ -94,8 +94,9 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids);
 
 // TODO: docs
-size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid,
-                           rdm_device_info_t *device_info);
+size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid, uint16_t sub_device,
+                           rdm_device_info_t *device_info,
+                           bool *response_is_valid);
 
 // TODO: get software version label
 
