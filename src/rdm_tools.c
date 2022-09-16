@@ -12,9 +12,6 @@
 #include "impl/driver.h"
 #include "rdm_constants.h"
 
-// TODO: Remove this line when not debugging RDM discovery
-//#define RDM_DEVICE_DISCOVERY_DEBUG
-
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
@@ -392,12 +389,13 @@ static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
     if (response) {
       bool devices_remaining = true;
 
+#ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
       /*
       Stop the RDM controller from branching all the way down to the individual
-      address if it is not necessary. When debugging, this function should be
-      commented out as it can hide bugs in the discovery algorithm.
+      address if it is not necessary. When debugging, this function should not 
+      be used as it can hide bugs in the discovery algorithm. Users can use the 
+      sdkconfig to enable or disable discovery debugging.
       */
-#ifndef RDM_DEVICE_DISCOVERY_DEBUG
       if (response_is_valid) {
         devices_remaining = rdm_quick_find(dmx_num, lower_bound, upper_bound,
                                            uid, size, uids, found);
@@ -414,6 +412,7 @@ static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
   }
 }
 
+#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
 struct rdm_disc_args_t {
   dmx_port_t dmx_num;
   int64_t *uids;
@@ -437,17 +436,15 @@ static void rdm_dev_disc_task(void *args) {
   xSemaphoreGive(disc->sem);
   vTaskDelete(NULL);
 }
+#endif
 
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   size_t devices_found = 0;
 
-  // TODO: allow discovery without dynamic memory use
-
+#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
   /*
   By default, the ESP32 main task does not have enough stack space to execute
   the RDM discovery algorithm all the way down to the bottom branch. Running the
@@ -471,7 +468,21 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
               priority, NULL);
   xSemaphoreTake(disc.sem, portMAX_DELAY);
   vSemaphoreDelete(disc.sem);
+#else
+  /*
+  Users may enable discovery without allocating extra memory by enabling this 
+  option in the ESP32 sdkconfig. This must be done with caution as it may result
+  in stack overflows!
+  */
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
- 
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+
+  rdm_send_disc_mute(dmx_num, RDM_BROADCAST_UID, false, NULL, NULL, NULL);
+  rdm_find_devices(dmx_num, 0, RDM_MAX_UID, size, uids, &devices_found);
+
+  xSemaphoreGiveRecursive(driver->mux);
+#endif
+
   return devices_found;
 }

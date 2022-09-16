@@ -1,0 +1,21 @@
+menu "RDM Configuration"
+
+    config RDM_DEBUG_DEVICE_DISCOVERY
+        bool "Enable debugging for RDM device discovery"
+        default n
+        help
+            Enabling this option can help to find bugs within the RDM discovery
+            algorithm, but it can make the discovery process take significantly
+            longer.
+
+    config RDM_STATIC_DEVICE_DISCOVERY
+        bool "Enable static memory use for RDM device discovery"
+        default n
+        help
+            In some situations, RDM device discovery can take several kilobytes
+            of memory to execute. This is more stack space than the ESP32 main
+            task has by default. When this option is enabled, RDM device 
+            discovery does not allocate any more memory before its search. Use
+            caution when enabling this option as it can lead to stack overflows!
+
+endmenu
