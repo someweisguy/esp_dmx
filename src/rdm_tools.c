@@ -405,8 +405,8 @@ static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
       // Recursively search the next two RDM address spaces
       if (devices_remaining) {
         const int64_t mid = (lower_bound + upper_bound) / 2;
-        rdm_find_devices(dmx_num, mid + 1, upper_bound, size, uids, found);
         rdm_find_devices(dmx_num, lower_bound, mid, size, uids, found);
+        rdm_find_devices(dmx_num, mid + 1, upper_bound, size, uids, found);
       }
     }
   }
