@@ -13,7 +13,7 @@
 #include "rdm_constants.h"
 
 // TODO: Remove this line when not debugging RDM discovery
-#define RDM_DEVICE_DISCOVERY_DEBUG
+//#define RDM_DEVICE_DISCOVERY_DEBUG
 
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
@@ -329,7 +329,7 @@ static bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound,
   // Add the UID to the list
   if (response && response_is_valid) {
     if (*found < size && uids != NULL) {
-      uids[*found] = binding_uid ? binding_uid : lower_bound;
+      uids[*found] = binding_uid ? binding_uid : uid;
     }
     ++(*found);
   }
