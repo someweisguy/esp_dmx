@@ -49,8 +49,8 @@ int64_t rdm_get_uid() {
   if (rdm_uid == 0) {
     uint8_t mac[8];
     esp_efuse_mac_get_default(mac);
-    ((rdm_uid_t *)(&rdm_uid))->manufacturer_id = RDM_DEFAULT_MANUFACTURER_ID;
-    ((rdm_uid_t *)(&rdm_uid))->device_id = bswap32(*(uint32_t *)(mac + 2));
+    rdm_uid = (int64_t)RDM_DEFAULT_MANUFACTURER_ID << 32;
+    rdm_uid |= bswap32(*(uint32_t *)(mac + 2));
   }
 
   return rdm_uid;
