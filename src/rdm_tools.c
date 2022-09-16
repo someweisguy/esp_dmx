@@ -387,9 +387,16 @@ struct rdm_disc_args_t {
 
 static void rdm_dev_disc_task(void *args) {
   struct rdm_disc_args_t *disc = (struct rdm_disc_args_t *)args;
+  dmx_driver_t *const driver = dmx_driver[disc->dmx_num];
+
+  // Mutex must be taken in the same task as the discovery
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+
   rdm_find_devices(disc->dmx_num, 0, RDM_MAX_UID, disc->size, disc->uids,
                    disc->found);
-  xSemaphoreGive(disc->sem);
+  xSemaphoreGive(disc->sem);  // Signal task complete
+
+  xSemaphoreGiveRecursive(driver->mux);
   vTaskDelete(NULL);
 }
 
@@ -399,12 +406,9 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Take mutex so driver values may be accessed
-  //xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-
   size_t devices_found = 0;
 
-  // TODO: allow static discovery
+  // TODO: allow discovery without dynamic memory use
 
   /*
   By default, the ESP32 main task does not have enough stack space to execute
@@ -428,7 +432,6 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   xSemaphoreTake(disc.sem, portMAX_DELAY);
   vSemaphoreDelete(disc.sem);
 
-  //xSemaphoreGiveRecursive(driver->mux);
 
   return devices_found;
 }
