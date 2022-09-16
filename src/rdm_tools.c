@@ -12,6 +12,9 @@
 #include "impl/driver.h"
 #include "rdm_constants.h"
 
+// TODO: Remove this line when not debugging RDM discovery
+#define RDM_DISCOVERY_DEBUG
+
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
@@ -309,10 +312,14 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   return response_size;
 }
 
-#define RDM_DISCOVERY_DEBUG
-static void rdm_search(dmx_port_t dmx_num, int64_t lower_bound,
-                       int64_t upper_bound, const size_t size,
-                       int64_t *const uids, size_t *const found) {
+static bool rdm_quick_find() {
+  // TODO
+  return true;
+}
+
+static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
+                             int64_t upper_bound, const size_t size,
+                             int64_t *const uids, size_t *const found) {
   bool response_is_valid;
   int attempts = 0;
   size_t response;
@@ -356,29 +363,72 @@ static void rdm_search(dmx_port_t dmx_num, int64_t lower_bound,
       */
 #ifndef RDM_DISCOVERY_DEBUG
       if (response_is_valid) {
-        found_a_device = quick_find(dmx_num, uid, lower_bound, upper_bound);
+        found_a_device = rdm_quick_find(dmx_num, uid, lower_bound, upper_bound);
       }
 #endif
 
       // Recursively search the next two RDM address spaces
       if (found_a_device) {
-        const int64_t mid_bound = (lower_bound + upper_bound) / 2;
-        rdm_search(dmx_num, mid_bound + 1, upper_bound, size, uids, found);
-        rdm_search(dmx_num, lower_bound, mid_bound, size, uids, found);
+        const int64_t mid = (lower_bound + upper_bound) / 2;
+        rdm_find_devices(dmx_num, mid + 1, upper_bound, size, uids, found);
+        rdm_find_devices(dmx_num, lower_bound, mid, size, uids, found);
       }
     }
   }
+}
+
+struct rdm_disc_args_t {
+  dmx_port_t dmx_num;
+  int64_t *uids;
+  size_t *found;
+  size_t size;
+  SemaphoreHandle_t sem;
+};
+
+static void rdm_dev_disc_task(void *args) {
+  struct rdm_disc_args_t *disc = (struct rdm_disc_args_t *)args;
+  rdm_find_devices(disc->dmx_num, 0, RDM_MAX_UID, disc->size, disc->uids,
+                   disc->found);
+  xSemaphoreGive(disc->sem);
+  vTaskDelete(NULL);
 }
 
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // Create a task with enough stack to handle this function
-  size_t found = 0;
-  rdm_search(dmx_num, 0, RDM_MAX_UID, size, uids, &found);
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  ESP_LOGI(TAG, "Stack high water mark: %i", uxTaskGetStackHighWaterMark(NULL));
+  // Take mutex so driver values may be accessed
+  //xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
-  return found;
+  size_t devices_found = 0;
+
+  // TODO: allow static discovery
+
+  /*
+  By default, the ESP32 main task does not have enough stack space to execute
+  the RDM discovery algorithm all the way down to the bottom branch. Running the
+  RDM discovery algorithm on the main task using the default stack size results
+  in a stack overflow crash. To fix this error, a new task with an appropriately
+  sized stack is needed.
+  */
+  UBaseType_t priority = 1;
+#if (INCLUDE_uxTaskPriorityGet == 1)
+  priority = uxTaskPriorityGet(NULL);
+#endif
+  struct rdm_disc_args_t disc;
+  disc.dmx_num = dmx_num;
+  disc.uids = uids;
+  disc.found = &devices_found;
+  disc.size = size;
+  StaticSemaphore_t buffer;
+  disc.sem = xSemaphoreCreateBinaryStatic(&buffer);
+  xTaskCreate(&rdm_dev_disc_task, "rdm_dev_disc", 5120, &disc, priority, NULL);
+  xSemaphoreTake(disc.sem, portMAX_DELAY);
+  vSemaphoreDelete(disc.sem);
+
+  //xSemaphoreGiveRecursive(driver->mux);
+
+  return devices_found;
 }
