@@ -456,6 +456,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
   driver->received_packet = false;
   driver->is_sending = false;
   driver->timer_running = false;
+  driver->rdm_is_muted = false;
   driver->rdm_tn = 0;
 
   // Initialize the driver buffer
