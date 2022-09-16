@@ -13,7 +13,7 @@
 #include "rdm_constants.h"
 
 // TODO: Remove this line when not debugging RDM discovery
-#define RDM_DISCOVERY_DEBUG
+#define RDM_DEVICE_DISCOVERY_DEBUG
 
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
@@ -312,17 +312,53 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   return response_size;
 }
 
-static bool rdm_quick_find() {
-  // TODO
-  return true;
+static bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound, 
+                           int64_t upper_bound, int64_t uid, const size_t size, 
+                           int64_t *const uids, size_t *const found) {
+  bool response_is_valid;
+  size_t response;
+  int attempts = 0;
+
+  // Attempt to mute the device
+  int64_t binding_uid;
+  do {
+    response = rdm_send_disc_mute(dmx_num, uid, true, NULL, &binding_uid,
+                                  &response_is_valid);
+  } while (!response && attempts++ < 3);
+
+  // Add the UID to the list
+  if (response && response_is_valid) {
+    if (*found < size && uids != NULL) {
+      uids[*found] = binding_uid ? binding_uid : lower_bound;
+    }
+    ++(*found);
+  }
+
+  // Check if there are more devices in this branch
+  attempts = 0;
+  do {
+    response = rdm_send_disc_unique_branch(dmx_num, lower_bound, upper_bound,
+                                           &uid, &response_is_valid);
+  } while (!response && attempts++ < 3);
+  if (response && response_is_valid) {
+    // There is another single device in this branch
+    return rdm_quick_find(dmx_num, lower_bound, upper_bound, uid, size, uids,
+                          found);
+  } else if (response && !response_is_valid) {
+    // There are more devices in this branch - branch further
+    return true;
+  } else {
+    // There are no more devices in this branch
+    return false;
+  }
 }
 
 static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
                              int64_t upper_bound, const size_t size,
                              int64_t *const uids, size_t *const found) {
   bool response_is_valid;
-  int attempts = 0;
   size_t response;
+  int attempts = 0;
 
   if (lower_bound == upper_bound) {
     // Can't branch further so attempt to mute the device
@@ -354,21 +390,22 @@ static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
                                              &uid, &response_is_valid);
     } while (!response && attempts++ < 3);
     if (response) {
-      bool found_a_device = true;
+      bool devices_remaining = true;
 
       /*
       Stop the RDM controller from branching all the way down to the individual
       address if it is not necessary. When debugging, this function should be
       commented out as it can hide bugs in the discovery algorithm.
       */
-#ifndef RDM_DISCOVERY_DEBUG
+#ifndef RDM_DEVICE_DISCOVERY_DEBUG
       if (response_is_valid) {
-        found_a_device = rdm_quick_find(dmx_num, uid, lower_bound, upper_bound);
+        devices_remaining = rdm_quick_find(dmx_num, lower_bound, upper_bound,
+                                           uid, size, uids, found);
       }
 #endif
 
       // Recursively search the next two RDM address spaces
-      if (found_a_device) {
+      if (devices_remaining) {
         const int64_t mid = (lower_bound + upper_bound) / 2;
         rdm_find_devices(dmx_num, mid + 1, upper_bound, size, uids, found);
         rdm_find_devices(dmx_num, lower_bound, mid, size, uids, found);
@@ -391,12 +428,13 @@ static void rdm_dev_disc_task(void *args) {
 
   // Mutex must be taken in the same task as the discovery
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-
+  rdm_send_disc_mute(disc->dmx_num, RDM_BROADCAST_UID, false, NULL, NULL, NULL);
   rdm_find_devices(disc->dmx_num, 0, RDM_MAX_UID, disc->size, disc->uids,
                    disc->found);
-  xSemaphoreGive(disc->sem);  // Signal task complete
-
   xSemaphoreGiveRecursive(driver->mux);
+
+  // Signal task complete
+  xSemaphoreGive(disc->sem);
   vTaskDelete(NULL);
 }
 
@@ -404,7 +442,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  // dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   size_t devices_found = 0;
 
@@ -428,10 +466,12 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   disc.size = size;
   StaticSemaphore_t buffer;
   disc.sem = xSemaphoreCreateBinaryStatic(&buffer);
-  xTaskCreate(&rdm_dev_disc_task, "rdm_dev_disc", 5120, &disc, priority, NULL);
+  const size_t stack_size = 5120;  // 20.5KB - use with caution!
+  xTaskCreate(&rdm_dev_disc_task, "RDM Device Discovery", stack_size, &disc,
+              priority, NULL);
   xSemaphoreTake(disc.sem, portMAX_DELAY);
   vSemaphoreDelete(disc.sem);
 
-
+ 
   return devices_found;
 }
