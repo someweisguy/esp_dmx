@@ -286,14 +286,18 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
        */
 
       // Copy RDM packet parameters
-      if (event.rdm.pdl >= 2 && control_field != NULL) {
+      if (control_field != NULL) {
+        if (event.rdm.pdl >= 2) {
           *control_field = bswap16(*(uint16_t *)(&rdm->pd));
-        if (binding_uid != NULL) {
-          if (event.rdm.pdl >= 8) {
-            *binding_uid = buf_to_uid((void *)&rdm->pd + 2);
-          } else {
-            *binding_uid = 0;
-          }
+        } else {
+          *control_field = 0;
+        }
+      }
+      if (binding_uid != NULL) {
+        if (event.rdm.pdl >= 8) {
+          *binding_uid = buf_to_uid((void *)&rdm->pd + 2);
+        } else {
+          *binding_uid = 0;
         }
       }
     }
