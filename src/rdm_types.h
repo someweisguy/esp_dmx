@@ -16,6 +16,18 @@
 extern "C" {
 #endif
 
+typedef struct rdm_device_info {
+  int rdm_version;
+  int device_model_id;
+  int product_category;
+  uint32_t software_version;
+  size_t dmx_footprint;
+  int dmx_personality;
+  size_t dmx_start_address;
+  size_t sub_device_count;
+} rdm_device_info_t;
+
+
 #ifdef __cplusplus
 }
 #endif

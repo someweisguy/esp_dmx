@@ -67,11 +67,11 @@ int64_t rdm_get_uid();
 void rdm_set_uid(int64_t uid);
 
 /**
- * @brief // TODO
+ * @brief Helper function to parse RDM data into a user-friendly format.
  *
- * @param data
- * @param size
- * @param[out] event
+ * @param data A pointer to the RDM data buffer.
+ * @param size The size of the RDM data buffer.
+ * @param[out] event A structure containing information about the RDM packet.
  * @return true if the data is a valid RDM packet.
  * @return false if the data is not a valid RDM packet.
  */
@@ -92,6 +92,20 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
 
 // TODO: docs
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids);
+
+// TODO: docs
+size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid,
+                           rdm_device_info_t *device_info);
+
+// TODO: get software version label
+
+// TODO: get/set identify device
+
+// TODO: get/set dmx start address
+
+// TODO: get supported parameters
+
+// TODO: get parameter description
 
 #ifdef __cplusplus
 }

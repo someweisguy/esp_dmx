@@ -486,3 +486,9 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
 
   return devices_found;
 }
+
+size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid,
+                           rdm_device_info_t *device_info) {
+  // TODO
+  return 0;
+}
