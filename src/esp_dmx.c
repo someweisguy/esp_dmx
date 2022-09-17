@@ -96,7 +96,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
     if (intr_flags & DMX_INTR_RX_ERR) {
       // Read from the FIFO on a framing error then clear the FIFO and interrupt
       if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
-        size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
+        int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
         if (!driver->received_packet && read_len > 0) {
           uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
           dmx_hal_read_rxfifo(&context->hal, data_ptr, &read_len);
@@ -152,7 +152,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
       // Read from the FIFO if ready and clear the interrupt
-      size_t read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
+      int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
       if (!driver->received_packet && read_len > 0) {
         uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
         dmx_hal_read_rxfifo(&context->hal, data_ptr, &read_len);
