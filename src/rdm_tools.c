@@ -97,7 +97,8 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     event->checksum_is_valid = (sum == checksum);
     return (sum == checksum);
 
-  } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
+  } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
+             size >= RDM_BASE_PACKET_SIZE) {
     // Verify the packet checksum
     uint16_t sum = 0;
     for (int i = 0; i < rdm->message_len; ++i) {
