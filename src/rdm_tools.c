@@ -218,7 +218,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
-                          uint16_t *control_field, int64_t *binding_uid,
+                          rdm_disc_mute_t *mute_params,
                           bool *response_is_valid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -280,26 +280,30 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
       dmx_read(dmx_num, response, event.size);
       rdm = (rdm_data_t *)response;
 
-      /*
-       * Number of Discovery Mute/Un-Mute RDM Parameters: 1
-       *   control_field:  2 bytes
-       *   binding_uid:    6 bytes, optional
-       */
-      // FIXME: use a struct
-
       // Copy RDM packet parameters
-      if (control_field != NULL) {
-        if (event.rdm.pdl >= 2) {
-          *control_field = bswap16(*(uint16_t *)(&rdm->pd));
-        } else {
-          *control_field = 0;
-        }
-      }
-      if (binding_uid != NULL) {
+      if (mute_params != NULL && event.rdm.pdl >= 2) {
+        struct __attribute__((__packed__)) disc_mute_data_t {
+          union {
+            struct {
+              uint8_t managed_proxy : 1;
+              uint8_t sub_device : 1;
+              uint8_t boot_loader : 1;
+              uint8_t proxied_device : 1;
+            };
+            uint16_t control_field;
+          };
+          uint8_t binding_uid[6];
+        } *p = (struct disc_mute_data_t *)&rdm->pd;
+
+        mute_params->managed_proxy = p->managed_proxy;
+        mute_params->sub_device = p->sub_device;
+        mute_params->boot_loader = p->boot_loader;
+        mute_params->proxied_device = p->proxied_device;
+
         if (event.rdm.pdl >= 8) {
-          *binding_uid = buf_to_uid((void *)&rdm->pd + 2);
+          mute_params->binding_uid = buf_to_uid(p->binding_uid);
         } else {
-          *binding_uid = 0;
+          mute_params->binding_uid = 0;
         }
       }
     }
@@ -319,16 +323,16 @@ static bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound,
   int attempts = 0;
 
   // Attempt to mute the device
-  int64_t binding_uid;
+  rdm_disc_mute_t mute;
   do {
-    response = rdm_send_disc_mute(dmx_num, uid, true, NULL, &binding_uid,
-                                  &response_is_valid);
+    response =
+        rdm_send_disc_mute(dmx_num, uid, true, &mute, &response_is_valid);
   } while (!response && attempts++ < 3);
 
   // Add the UID to the list
   if (response && response_is_valid) {
     if (*found < size && uids != NULL) {
-      uids[*found] = binding_uid ? binding_uid : uid;
+      uids[*found] = mute.binding_uid ? mute.binding_uid : uid;
     }
     ++(*found);
   }
@@ -361,23 +365,23 @@ static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
 
   if (lower_bound == upper_bound) {
     // Can't branch further so attempt to mute the device
-    int64_t binding_uid = 0;
+    rdm_disc_mute_t mute;
     do {
-      response = rdm_send_disc_mute(dmx_num, lower_bound, true, NULL,
-                                    &binding_uid, &response_is_valid);
+      response = rdm_send_disc_mute(dmx_num, lower_bound, true, &mute,
+                                    &response_is_valid);
     } while (!response && attempts++ < 3);
 
     // Attempt to fix possible error where responder is flipping its own UID
     if (!(response && response_is_valid)) {
       lower_bound = bswap64(lower_bound) >> 16;  // Flip UID
-      response = rdm_send_disc_mute(dmx_num, lower_bound, true, NULL,
-                                    &binding_uid, &response_is_valid);
+      response = rdm_send_disc_mute(dmx_num, lower_bound, true, &mute,
+                                    &response_is_valid);
     }
 
     // Add the UID to the list
     if (response && response_is_valid) {
       if (*found < size && uids != NULL) {
-        uids[*found] = binding_uid ? binding_uid : lower_bound;
+        uids[*found] = mute.binding_uid ? mute.binding_uid : lower_bound;
       }
       ++(*found);
     }
@@ -429,10 +433,15 @@ static void rdm_dev_disc_task(void *args) {
 
   // Mutex must be taken in the same task as the discovery
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-  rdm_send_disc_mute(disc->dmx_num, RDM_BROADCAST_UID, false, NULL, NULL, NULL);
+  rdm_send_disc_mute(disc->dmx_num, RDM_BROADCAST_UID, false, NULL, NULL);
   rdm_find_devices(disc->dmx_num, 0, RDM_MAX_UID, disc->size, disc->uids,
                    disc->found);
   xSemaphoreGiveRecursive(driver->mux);
+
+#ifdef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
+  const size_t hwm = uxTaskGetStackHighWaterMark(NULL);
+  ESP_LOGI(TAG, "Discovery task high water mark is %i words.", hwm);
+#endif
 
   // Signal task complete
   xSemaphoreGive(disc->sem);
@@ -458,14 +467,14 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
 #if (INCLUDE_uxTaskPriorityGet == 1)
   priority = uxTaskPriorityGet(NULL);
 #endif
-  struct rdm_disc_args_t disc;
-  disc.dmx_num = dmx_num;
-  disc.uids = uids;
-  disc.found = &devices_found;
-  disc.size = size;
   StaticSemaphore_t buffer;
-  disc.sem = xSemaphoreCreateBinaryStatic(&buffer);
-  const size_t stack_size = 5120;  // 20.5KB - use with caution!
+  const struct rdm_disc_args_t disc = {
+      .dmx_num = dmx_num,
+      .uids = uids,
+      .found = &devices_found,
+      .size = size,
+      .sem = xSemaphoreCreateBinaryStatic(&buffer)};
+  const size_t stack_size = 5632;  // 22KB - use with caution!
   xTaskCreate(&rdm_dev_disc_task, "RDM Device Discovery", stack_size, &disc,
               priority, NULL);
   xSemaphoreTake(disc.sem, portMAX_DELAY);
@@ -484,6 +493,12 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   rdm_find_devices(dmx_num, 0, RDM_MAX_UID, size, uids, &devices_found);
 
   xSemaphoreGiveRecursive(driver->mux);
+
+#ifdef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
+  const size_t hwm = uxTaskGetStackHighWaterMark(NULL);
+  ESP_LOGI(TAG, "Discovery high water mark is %i words.", hwm);
+#endif
+
 #endif
 
   return devices_found;

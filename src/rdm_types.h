@@ -17,6 +17,15 @@ extern "C" {
 #endif
 
 // TODO: docs
+typedef struct rdm_disc_mute {
+  bool managed_proxy;
+  bool sub_device;
+  bool boot_loader;
+  bool proxied_device;
+  int64_t binding_uid;
+} rdm_disc_mute_t;
+
+// TODO: docs
 typedef struct rdm_device_info {
   int rdm_version;
   int model_id;

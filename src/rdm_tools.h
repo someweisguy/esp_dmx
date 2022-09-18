@@ -87,7 +87,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
 
 // TODO: docs
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
-                          uint16_t *control_field, int64_t *binding_uid,
+                          rdm_disc_mute_t *mute_params,
                           bool *response_is_valid);
 
 // TODO: docs
