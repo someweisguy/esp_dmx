@@ -315,9 +315,9 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   return response_size;
 }
 
-static bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound, 
-                           int64_t upper_bound, int64_t uid, const size_t size, 
-                           int64_t *const uids, size_t *const found) {
+bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound,
+                    int64_t upper_bound, int64_t uid, const size_t size,
+                    int64_t *const uids, size_t *const found) {
   bool response_is_valid;
   size_t response;
   int attempts = 0;
@@ -356,9 +356,9 @@ static bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound,
   }
 }
 
-static void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
-                             int64_t upper_bound, const size_t size,
-                             int64_t *const uids, size_t *const found) {
+void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
+                      int64_t upper_bound, const size_t size,
+                      int64_t *const uids, size_t *const found) {
   bool response_is_valid;
   size_t response;
   int attempts = 0;
@@ -468,7 +468,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   priority = uxTaskPriorityGet(NULL);
 #endif
   StaticSemaphore_t buffer;
-  const struct rdm_disc_args_t disc = {
+  struct rdm_disc_args_t disc = {
       .dmx_num = dmx_num,
       .uids = uids,
       .found = &devices_found,
