@@ -35,7 +35,8 @@ int64_t rdm_get_uid() {
 void rdm_set_uid(int64_t uid) { rdm_uid = uid; }
 
 bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
-  // TODO: check args
+  RDM_CHECK(data != NULL, false, "data is null");
+  RDM_CHECK(event != NULL, false, "event is null");
 
   const rdm_data_t *const rdm = (rdm_data_t *)data;
 
