@@ -146,7 +146,7 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   response[23] = checksum | 0x55;
 
   // Write and send the response
-  dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
   dmx_write(dmx_num, response, sizeof(response));
   return dmx_send(dmx_num, 0);
 }
@@ -191,7 +191,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
 
   // Send the RDM request
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_write(dmx_num, request, sizeof(request));
   dmx_send(dmx_num, 0);
 
   // Wait for a response
@@ -255,7 +255,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
 
   // Send the RDM request
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_write(dmx_num, request, sizeof(request));
   dmx_send(dmx_num, 0);
 
   // Determine if a response is expected
@@ -525,7 +525,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid, uint16_t sub_device,
 
   // Send the RDM request
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_write(dmx_num, request, sizeof(request));
   dmx_send(dmx_num, 0);
 
   dmx_event_t event;
@@ -621,7 +621,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, int64_t uid,
 
   // Send the RDM request
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_write(dmx_num, request, sizeof(request));
   dmx_send(dmx_num, 0);
 
   dmx_event_t event;
