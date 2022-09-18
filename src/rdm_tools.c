@@ -651,7 +651,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, int64_t uid,
 
       if (software_label != NULL) {
         if (event.rdm.pdl > 0) {
-          strncpy(software_label, &rdm->pd, 32);
+          strncpy(software_label, (char *)&rdm->pd, 32);
         } else {
           software_label[0] = 0;
         }
