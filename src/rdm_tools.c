@@ -583,3 +583,85 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid, uint16_t sub_device,
 
   return response_size;
 }
+
+size_t rdm_get_software_version_label(dmx_port_t dmx_num, int64_t uid,
+                                      uint16_t sub_device,
+                                      char software_label[32],
+                                      bool *response_is_valid) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Take mutex so driver values may be accessed
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+
+  // Prepare the RDM request
+  uint8_t request[RDM_BASE_PACKET_SIZE];
+  rdm_data_t *rdm = (rdm_data_t *)request;
+  rdm->sc = RDM_SC;
+  rdm->sub_sc = RDM_SUB_SC;
+  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;  // exclude checksum
+  uid_to_buf(rdm->destination_uid, uid);
+  uid_to_buf(rdm->source_uid, rdm_get_uid());
+  rdm->tn = driver->rdm_tn;
+  rdm->port_id = dmx_num + 1;
+  rdm->message_count = 0;
+  rdm->sub_device = bswap16(sub_device);
+  rdm->cc = RDM_CC_GET_COMMAND;
+  rdm->pid = bswap16(RDM_PID_BOOT_SOFTWARE_VERSION_LABEL);
+  rdm->pdl = 0;
+
+  // Calculate the checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < rdm->message_len; ++i) {
+    checksum += request[i];
+  }
+  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
+
+  // Send the RDM request
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+  dmx_write(dmx_num, request, rdm->message_len + 2);
+  dmx_send(dmx_num, 0);
+
+  dmx_event_t event;
+  size_t response_size = 0;
+  if (uid != RDM_BROADCAST_UID) {
+    response_size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+    if (response_size) {
+      if (response_is_valid != NULL) {
+        if (!event.err && event.is_rdm && event.rdm.checksum_is_valid &&
+            event.rdm.cc == RDM_CC_GET_COMMAND_RESPONSE &&
+            event.rdm.pid == RDM_PID_BOOT_SOFTWARE_VERSION_LABEL &&
+            event.rdm.response_type == RDM_RESPONSE_TYPE_ACK && 
+            event.rdm.source_uid == uid &&
+            event.rdm.destination_uid == rdm_get_uid()) {
+          *response_is_valid = true;
+        } else {
+          *response_is_valid = false;
+        }
+      }
+
+      // Read the data into a buffer
+      uint8_t response[RDM_BASE_PACKET_SIZE + 32];
+      dmx_read(dmx_num, response, event.size);
+      rdm = (rdm_data_t *)response;
+
+      ESP_LOG_BUFFER_HEX(TAG, response, event.size);
+
+      if (software_label != NULL) {
+        if (event.rdm.pdl > 0) {
+          strncpy(software_label, &rdm->pd, 32);
+        } else {
+          software_label[0] = 0;
+        }
+      }
+
+    }
+  } else {
+    dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
+  }
+  xSemaphoreGiveRecursive(driver->mux);
+
+  return response_size;
+}
