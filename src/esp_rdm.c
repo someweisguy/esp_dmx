@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "dmx_constants.h"
+#include "dmx_types.h"
 #include "endian.h"
 #include "esp_check.h"
 #include "esp_dmx.h"
@@ -18,21 +19,21 @@
 
 static const char *TAG = "rdm";  // The log tagline for the file.
 
-static int64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
+static rdm_uid_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
-int64_t rdm_get_uid() {
+rdm_uid_t rdm_get_uid() {
   // Initialize the RDM UID
   if (rdm_uid == 0) {
     uint8_t mac[8];
     esp_efuse_mac_get_default(mac);
-    rdm_uid = (int64_t)RDM_DEFAULT_MANUFACTURER_ID << 32;
+    rdm_uid = (rdm_uid_t)RDM_DEFAULT_MANUFACTURER_ID << 32;
     rdm_uid |= bswap32(*(uint32_t *)(mac + 2));
   }
 
   return rdm_uid;
 }
 
-void rdm_set_uid(int64_t uid) { rdm_uid = uid; }
+void rdm_set_uid(rdm_uid_t uid) { rdm_uid = uid; }
 
 bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
   RDM_CHECK(data != NULL, false, "data is null");
@@ -54,7 +55,7 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
     }
 
     // Decode the 6-byte UID and get the packet sum
-    uint64_t uid = 0;
+    rdm_uid_t uid = 0;
     uint16_t sum = 0;
     response = &((uint8_t *)data)[preamble_len + 1];
     for (int i = 5, j = 0; i >= 0; --i, j += 2) {
@@ -113,7 +114,7 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   uint8_t response[24] = {RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
                           RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
                           RDM_PREAMBLE, RDM_DELIMITER};
-  const uint64_t uid = rdm_get_uid();
+  const rdm_uid_t uid = rdm_get_uid();
   uint16_t checksum = 0;
   for (int i = 8, j = 5; i < 20; i += 2, --j) {
     response[i] = ((uint8_t *)&uid)[j] | 0xaa;
@@ -131,8 +132,8 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   return dmx_send(dmx_num, 0);
 }
 
-size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
-                                   int64_t upper_bound, int64_t *response_uid,
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_uid_t lower_bound,
+                                   rdm_uid_t upper_bound, rdm_uid_t *response_uid,
                                    bool *response_is_valid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -197,7 +198,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
   return response_size;
 }
 
-size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
+size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
                           rdm_disc_mute_t *mute_params,
                           bool *response_is_valid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -295,9 +296,9 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
   return response_size;
 }
 
-bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound,
-                    int64_t upper_bound, int64_t uid, const size_t size,
-                    int64_t *const uids, size_t *const found) {
+bool rdm_quick_find(dmx_port_t dmx_num, rdm_uid_t lower_bound,
+                    rdm_uid_t upper_bound, rdm_uid_t uid, const size_t size,
+                    rdm_uid_t *const uids, size_t *const found) {
   bool response_is_valid;
   size_t response;
   int attempts = 0;
@@ -336,9 +337,9 @@ bool rdm_quick_find(dmx_port_t dmx_num, int64_t lower_bound,
   }
 }
 
-void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
-                      int64_t upper_bound, const size_t size,
-                      int64_t *const uids, size_t *const found) {
+void rdm_find_devices(dmx_port_t dmx_num, rdm_uid_t lower_bound,
+                      rdm_uid_t upper_bound, const size_t size,
+                      rdm_uid_t *const uids, size_t *const found) {
   bool response_is_valid;
   size_t response;
   int attempts = 0;
@@ -367,7 +368,7 @@ void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
     }
   } else {  // lower_bound != upper_bound
     // Search the current branch in the RDM address space
-    int64_t uid;
+    rdm_uid_t uid;
     do {
       response = rdm_send_disc_unique_branch(dmx_num, lower_bound, upper_bound,
                                              &uid, &response_is_valid);
@@ -390,7 +391,7 @@ void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
 
       // Recursively search the next two RDM address spaces
       if (devices_remaining) {
-        const int64_t mid = (lower_bound + upper_bound) / 2;
+        const rdm_uid_t mid = (lower_bound + upper_bound) / 2;
         rdm_find_devices(dmx_num, lower_bound, mid, size, uids, found);
         rdm_find_devices(dmx_num, mid + 1, upper_bound, size, uids, found);
       }
@@ -401,7 +402,7 @@ void rdm_find_devices(dmx_port_t dmx_num, int64_t lower_bound,
 #ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
 struct rdm_disc_args_t {
   dmx_port_t dmx_num;
-  int64_t *uids;
+  rdm_uid_t *uids;
   size_t *found;
   size_t size;
   SemaphoreHandle_t sem;
@@ -429,7 +430,7 @@ static void rdm_dev_disc_task(void *args) {
 }
 #endif
 
-size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
+size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, rdm_uid_t *uids) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -484,8 +485,8 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids) {
   return devices_found;
 }
 
-size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid, uint16_t sub_device,
-                           rdm_device_info_t *device_info,
+size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
+                           uint16_t sub_device, rdm_device_info_t *device_info,
                            bool *response_is_valid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -579,7 +580,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid, uint16_t sub_device,
   return response_size;
 }
 
-size_t rdm_get_software_version_label(dmx_port_t dmx_num, int64_t uid,
+size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
                                       char software_label[32],
                                       bool *response_is_valid) {

@@ -12,6 +12,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "dmx_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,7 +24,7 @@ typedef struct rdm_disc_mute {
   bool sub_device;
   bool boot_loader;
   bool proxied_device;
-  int64_t binding_uid;
+  rdm_uid_t binding_uid;
 } rdm_disc_mute_t;
 
 // TODO: docs

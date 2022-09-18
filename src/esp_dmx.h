@@ -340,9 +340,9 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks);
  * misses in IRAM interrupts.
  *
  * @param buf A pointer to an RDM buffer.
- * @return uint64_t The properly formatted RDM UID.
+ * @return The properly formatted RDM UID.
  */
-int64_t buf_to_uid(const void *buf);
+rdm_uid_t buf_to_uid(const void *buf);
 
 /**
  * @brief Helper function that converts an RDM UID stored as a 64-bit integer
@@ -354,7 +354,7 @@ int64_t buf_to_uid(const void *buf);
  * @param uid The 64-bit representation of the UID.
  * @return void* A pointer to the destination buffer.
  */
-void *uid_to_buf(void *buf, int64_t uid);
+void *uid_to_buf(void *buf, rdm_uid_t uid);
 
 #ifdef __cplusplus
 }

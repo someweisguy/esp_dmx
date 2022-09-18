@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "dmx_types.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
@@ -32,10 +33,10 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
     size_t tx_size;   // The size of the outgoing data packet.
     size_t rx_size;   // The expected size of the incoming data packet.
  
-    int previous_type;      // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
-    int64_t previous_uid;  // The destination UID of the previous packet. Is 0 if the previous packet was not RDM.
-    int64_t previous_ts;    // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
-    int sent_previous;      // Is true if this device sent the previous data packet.
+    int previous_type;       // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
+    rdm_uid_t previous_uid;  // The destination UID of the previous packet. Is 0 if the previous packet was not RDM.
+    int64_t previous_ts;     // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
+    int sent_previous;       // Is true if this device sent the previous data packet.
 
     dmx_err_t err;  // The error state of the received DMX data.
   } data;

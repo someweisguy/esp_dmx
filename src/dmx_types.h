@@ -22,6 +22,11 @@ extern "C" {
  */
 typedef unsigned int dmx_port_t;
 
+/**
+ * @brief RDM unique ID type.
+ */
+typedef int64_t rdm_uid_t;
+
 typedef struct dmx_sniffer_data {
   uint32_t break_len;  // Length in microseconds of the last received DMX break.
   uint32_t mab_len;    // Length in microseconds of the last received DMX mark-after-break.
@@ -44,19 +49,19 @@ typedef enum dmx_err {
  * quickly and easily process and respond to RDM data.
  */
 typedef struct rdm_event {
-  int64_t destination_uid;             // The UID of the target device(s).
-  int64_t source_uid;                  // The UID of the device originating this packet.
-  size_t tn;                            // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
+  rdm_uid_t destination_uid;  // The UID of the target device(s).
+  rdm_uid_t source_uid;       // The UID of the device originating this packet.
+  size_t tn;                  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
   union {
-    int port_id;                        // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
-    int response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
+    int port_id;              // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
+    int response_type;        // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
   };
-  size_t message_count;                 // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
-  int sub_device;                       // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
-  int cc;                          // The command class (CC) specifies the action of the message.
-  int pid;                        // The parameter ID (PID) identifies a specific type of parameter data.
-  size_t pdl;                           // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
-  bool checksum_is_valid;               // True if the RDM checksum is valid.
+  size_t message_count;       // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
+  int sub_device;             // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
+  int cc;                     // The command class (CC) specifies the action of the message.
+  int pid;                    // The parameter ID (PID) identifies a specific type of parameter data.
+  size_t pdl;                 // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
+  bool checksum_is_valid;     // True if the RDM checksum is valid.
 } rdm_event_t;
 
 /**

@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "dmx_types.h"
 #include "driver/gpio.h"
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
@@ -281,7 +282,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
         // If packet was RDM and non-broadcast expect a response
         if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND) {
-          const int64_t destination_uid = buf_to_uid(rdm->destination_uid);
+          const rdm_uid_t destination_uid = buf_to_uid(rdm->destination_uid);
           if (destination_uid != RDM_BROADCAST_UID) {
             turn_bus_around = true;
             driver->data.head = SIZE_MAX;  // Expecting a DMX break
@@ -964,7 +965,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   const bool received_packet = driver->received_packet;
   const bool sent_previous = driver->data.sent_previous;
   const int previous_type = driver->data.previous_type;
-  const int64_t previous_uid = driver->data.previous_uid;
+  const rdm_uid_t previous_uid = driver->data.previous_uid;
   const int64_t previous_ts = driver->data.previous_ts;
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1237,8 +1238,8 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   return result;
 }
 
-DMX_ISR_ATTR int64_t buf_to_uid(const void *buf) {
-  uint64_t val = 0;
+DMX_ISR_ATTR rdm_uid_t buf_to_uid(const void *buf) {
+  rdm_uid_t val = 0;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
   ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
@@ -1248,7 +1249,7 @@ DMX_ISR_ATTR int64_t buf_to_uid(const void *buf) {
   return val;
 }
 
-void *uid_to_buf(void *buf, int64_t uid) {
+void *uid_to_buf(void *buf, rdm_uid_t uid) {
   ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
   ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
   ((uint8_t *)buf)[2] = ((uint8_t *)&uid)[3];

@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include "dmx_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,13 +24,13 @@ extern "C" {
  * @brief UID which indicates an RDM packet is being broadcast. Responders shall
  * not respond to RDM broadcast messages.
  */
-static const int64_t RDM_BROADCAST_UID = 0xffffffffffff;
+static const rdm_uid_t RDM_BROADCAST_UID = 0xffffffffffff;
 
 /**
  * @brief The maximum RDM UID possible. Any UID above this value (except
  * RDM_BROADCAST_UID) is considered invalid.
  */
-static const int64_t RDM_MAX_UID = 0xfffffffffffe;
+static const rdm_uid_t RDM_MAX_UID = 0xfffffffffffe;
 
 /**
  * @brief The RDM command class (CC) type. The command class specifies the 

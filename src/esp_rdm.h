@@ -29,7 +29,7 @@ extern "C" {
  *
  * @return The UID of this device.
  */
-int64_t rdm_get_uid();
+rdm_uid_t rdm_get_uid();
 
 /**
  * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
@@ -37,7 +37,7 @@ int64_t rdm_get_uid();
  *
  * @param uid The custom value to which to set the device UID.
  */
-void rdm_set_uid(int64_t uid);
+void rdm_set_uid(rdm_uid_t uid);
 
 /**
  * @brief Helper function to parse RDM data into a user-friendly format.
@@ -54,25 +54,26 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event);
 size_t rdm_send_disc_response(dmx_port_t dmx_num);
 
 // TODO: docs
-size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, int64_t lower_bound,
-                                   int64_t upper_bound, int64_t *response_uid,
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_uid_t lower_bound,
+                                   rdm_uid_t upper_bound,
+                                   rdm_uid_t *response_uid,
                                    bool *response_is_valid);
 
 // TODO: docs
-size_t rdm_send_disc_mute(dmx_port_t dmx_num, int64_t uid, bool mute,
+size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
                           rdm_disc_mute_t *mute_params,
                           bool *response_is_valid);
 
 // TODO: docs
-size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, int64_t *uids);
+size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, rdm_uid_t *uids);
 
 // TODO: docs
-size_t rdm_get_device_info(dmx_port_t dmx_num, int64_t uid, uint16_t sub_device,
-                           rdm_device_info_t *device_info,
+size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
+                           uint16_t sub_device, rdm_device_info_t *device_info,
                            bool *response_is_valid);
 
 // TODO: get software version label
-size_t rdm_get_software_version_label(dmx_port_t dmx_num, int64_t uid,
+size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
                                       char software_label[32],
                                       bool *response_is_valid);
