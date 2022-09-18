@@ -18,12 +18,16 @@ extern "C" {
  */
 #define DMX_NUM_MAX SOC_UART_NUM
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+/**
+ * @brief The default interrupt flags for the DMX driver. Places the interrupts
+ * in IRAM.
+ */
+#define DMX_DEFAULT_INTR_FLAGS ESP_INTR_FLAG_IRAM
+#else
 /**
  * @brief The default interrupt flags for the DMX driver.
  */
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_DEFAULT_INTR_FLAGS ESP_INTR_FLAG_IRAM
-#else
 #define DMX_DEFAULT_INTR_FLAGS 0
 #endif
 
