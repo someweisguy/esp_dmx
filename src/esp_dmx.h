@@ -5,16 +5,16 @@
  * needed for installing the DMX driver and sending or receiving DMX data. It is
  * possible to implement RDM using the functions found in this header file
  * alone. However, RDM can be complex to users who aren't familiar with the
- * standard. Functions found in rdm_tools.h can be used to simplify basic RDM
+ * standard. Functions found in esp_rdm.h can be used to simplify basic RDM
  * tasks.
  */
 #pragma once
 
 #include "dmx_constants.h"
 #include "dmx_types.h"
+#include "esp_rdm.h"
 #include "freertos/FreeRTOS.h"
 #include "rdm_constants.h"
-#include "rdm_tools.h"
 
 #ifdef __cplusplus
 extern "C" {

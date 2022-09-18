@@ -9,10 +9,10 @@
 #include "endian.h"
 #include "esp_check.h"
 #include "esp_log.h"
+#include "esp_rdm.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
 #include "rdm_constants.h"
-#include "rdm_tools.h"
 #include "rdm_types.h"
 
 // Used for argument checking at the beginning of each function.
