@@ -127,12 +127,12 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num);
  * @param dmx_num The DMX port number.
  * @param[out] sniffer_data A pointer to a dmx_sniffer_data_t struct into which
  * to copy DMX sniffer data.
- * @param timeout The number of ticks to wait before this function times out.
+ * @param wait_ticks The number of ticks to wait before this function times out.
  * @return true if data was copied.
  * @return false if data was not copied.
  */
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
-                          TickType_t timeout);
+                          TickType_t wait_ticks);
 
 /**
  * @brief Sets the DMX baud rate. The baud rate will be clamped to DMX
@@ -280,9 +280,9 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 
 /**
  * @brief Receives a DMX packet from the DMX bus. This is a blocking function.
- * This function first blocks indefinitely until the DMX driver is idle and then
- * it blocks using a timeout until a packet is received. This function will
- * timeout early according to RDM specification if an RDM packet is expected.
+ * This function first blocks until the DMX driver is idle and then it blocks
+ * using a timeout until a packet is received. This function will timeout early
+ * according to RDM specification if an RDM packet is expected.
  *
  * @note This function uses FreeRTOS direct-to-task notifications to block and
  * unblock. Using task notifications on the same task that calls this function
@@ -291,10 +291,11 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
  * @param dmx_num The DMX port number.
  * @param[out] event An optional pointer to a dmx_event_t which contains
  * information about the received DMX packet.
- * @param timeout The number of ticks to wait before this function times out.
+ * @param wait_ticks The number of ticks to wait before this function times out.
  * @return The size of the received DMX packet or 0 if no packet was received.
  */
-size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout);
+size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+                   TickType_t wait_ticks);
 
 /**
  * @brief Sends a DMX packet on the DMX bus. This function blocks indefinitely
@@ -322,11 +323,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size);
  * can lead to undesired behavior and program instability.
  *
  * @param dmx_num The DMX port number.
- * @param timeout The number of ticks to wait before this function times out.
+ * @param wait_ticks The number of ticks to wait before this function times out.
  * @retval true if the DMX driver is done sending.
  * @retval false if the function timed out.
  */
-bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout);
+bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks);
 
 #ifdef __cplusplus
 }

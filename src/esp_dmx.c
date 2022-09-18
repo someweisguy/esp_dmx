@@ -648,7 +648,7 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
 }
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
-                          TickType_t timeout) {
+                          TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(sniffer_data, ESP_ERR_INVALID_ARG, "sniffer_data is null");
   DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
@@ -656,7 +656,7 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  return xQueueReceive(driver->sniffer.queue, sniffer_data, timeout);
+  return xQueueReceive(driver->sniffer.queue, sniffer_data, wait_ticks);
 }
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
@@ -913,7 +913,8 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   return value;
 }
 
-size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
+size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+                   TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -921,12 +922,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   // Block until the mutex can be taken
-  if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
+  TimeOut_t timeout;
+  vTaskSetTimeOutState(&timeout);
+  if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
+      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     return 0;
   }
 
   // Block until the driver is done sending
-  if (!dmx_wait_sent(dmx_num, portMAX_DELAY)) {
+  if (!dmx_wait_sent(dmx_num, wait_ticks) ||
+      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     return 0;
   }
 
@@ -960,29 +965,29 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
   // If a packet hasn't been received, the driver must wait
   if (!received_packet) {
     // Determine if a fail-quick timeout must be set
-    uint32_t timeout = 0;
+    uint32_t fail_quick = 0;
     if (sent_previous &&
         (previous_uid != RDM_BROADCAST_UID ||
          previous_type == RDM_CC_DISC_COMMAND) &&
         (previous_type == RDM_CC_GET_COMMAND ||
          previous_type == RDM_CC_SET_COMMAND ||
          previous_type == RDM_CC_DISC_COMMAND)) {
-      timeout = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT;
+      fail_quick = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT;
     }
 
     // Set the timeout alarm if the timeout hasn't elapsed yet
     taskENTER_CRITICAL(&context->spinlock);
     const int64_t elapsed = esp_timer_get_time() - previous_ts;
-    if (elapsed < timeout) {
+    if (elapsed < fail_quick) {
       timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
-      timer_set_alarm_value(driver->timer_group, driver->timer_num, timeout);
+      timer_set_alarm_value(driver->timer_group, driver->timer_num, fail_quick);
       timer_start(driver->timer_group, driver->timer_num);
       driver->timer_running = true;
     }
     taskEXIT_CRITICAL(&context->spinlock);
 
     // Fail immediately if the timeout has elapsed and a response was expected
-    if (timeout > 0 && elapsed >= timeout) {
+    if (fail_quick > 0 && elapsed >= fail_quick) {
       taskENTER_CRITICAL(&context->spinlock);
       driver->task_waiting = NULL;
       taskEXIT_CRITICAL(&context->spinlock);
@@ -998,7 +1003,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
     }
 
     // Wait for a task notification
-    if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, timeout)) {
+    if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, fail_quick)) {
       err = driver->data.err;
     } else {
       err = DMX_ERR_TIMEOUT;
@@ -1182,7 +1187,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   return size;
 }
 
-bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout) {
+bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -1190,13 +1195,16 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   // Block until the mutex can be taken
-  if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
+  TimeOut_t timeout;
+  vTaskSetTimeOutState(&timeout);
+  if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
+      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     return false;
   }
 
   // Determine if the task needs to block
   bool result = true;
-  if (timeout > 0) {
+  if (wait_ticks > 0) {
     bool task_waiting = false;
     taskENTER_CRITICAL(&context->spinlock);
     if (driver->is_sending) {
@@ -1207,7 +1215,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t timeout) {
 
     // Wait for a notification that the driver is done sending
     if (task_waiting) {
-      result = xTaskNotifyWait(0, ULONG_MAX, NULL, timeout);
+      result = xTaskNotifyWait(0, ULONG_MAX, NULL, wait_ticks);
       driver->task_waiting = NULL;
     }
   } else {
