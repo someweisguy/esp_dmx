@@ -278,6 +278,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
           const int64_t destination_uid = buf_to_uid(rdm->destination_uid);
           if (destination_uid != RDM_BROADCAST_UID) {
             turn_bus_around = true;
+            driver->data.head = SIZE_MAX;  // Expecting a DMX break
           }
         } else if (rdm->cc == RDM_CC_DISC_COMMAND) {
           // All discovery commands expect a response
@@ -466,7 +467,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
   driver->data.sent_previous = false;
   driver->data.previous_uid = 0;
   driver->data.previous_ts = 0;
-  driver->data.head = DMX_MAX_PACKET_SIZE;  // Don't read before a DMX break
+  driver->data.head = SIZE_MAX;  // Don't read before a DMX break
 
   // Initialize DMX transmit settings
   driver->break_len = RDM_BREAK_LEN_US;
@@ -1003,6 +1004,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event, TickType_t timeout) {
       err = DMX_ERR_TIMEOUT;
     }
     driver->task_waiting = NULL;
+  }
+
+  // Correctly report that no response was received when packet size is -1
+  if (packet_size == SIZE_MAX) {
+    packet_size = 0;
   }
 
   // Process DMX packet data
