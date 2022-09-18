@@ -26,6 +26,12 @@
     .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
   }
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 /**
  * @brief The context for the DMX driver. Contains a pointer to UART registers
  * as well as a spinlock for synchronizing access to resources and tracks if the
@@ -81,7 +87,7 @@ enum rdm_packet_timing {
   RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000
 };
 
-static void IRAM_ATTR dmx_uart_isr(void *arg) {
+static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
@@ -299,7 +305,7 @@ static void IRAM_ATTR dmx_uart_isr(void *arg) {
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
-static void IRAM_ATTR dmx_gpio_isr(void *arg) {
+static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
@@ -334,7 +340,7 @@ static void IRAM_ATTR dmx_gpio_isr(void *arg) {
   }
 }
 
-static bool IRAM_ATTR dmx_timer_isr(void *arg) {
+static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
   int task_awoken = false;
@@ -383,7 +389,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
 
-  // TODO: set intr_flags
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+  // Driver ISR is in IRAM so interrupt flags must include IRAM flag
+  if (!(intr_flags & ESP_INTR_FLAG_IRAM)) {
+    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
+    intr_flags |= ESP_INTR_FLAG_IRAM;
+  }
+#endif
 
   // TODO: implement busy-waiting
   if (!use_timer) {
@@ -475,12 +487,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
 
   // Initialize sniffer in the disabled state
   driver->sniffer.queue = NULL;
-
-  // Driver ISR is in IRAM so interrupt flags must include IRAM flag
-  if (!(intr_flags & ESP_INTR_FLAG_IRAM)) {
-    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
-    intr_flags |= ESP_INTR_FLAG_IRAM;
-  }
 
   // Install UART interrupt
   dmx_hal_disable_interrupt(&context->hal, DMX_ALL_INTR_MASK);
@@ -1231,7 +1237,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   return result;
 }
 
-IRAM_ATTR int64_t buf_to_uid(const void *buf) {
+DMX_ISR_ATTR int64_t buf_to_uid(const void *buf) {
   uint64_t val = 0;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];

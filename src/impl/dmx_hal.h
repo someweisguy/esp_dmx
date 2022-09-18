@@ -16,6 +16,12 @@
 
 #include "hal/uart_hal.h"
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -156,7 +162,7 @@ int dmx_hal_get_rts(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @return The interrupt status mask.
  */
-IRAM_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
+DMX_ISR_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
   return uart_ll_get_intsts_mask(hal->dev);
 }
 
@@ -166,7 +172,7 @@ IRAM_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is enabled.
  */
-IRAM_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
+DMX_ISR_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
   uart_ll_ena_intr_mask(hal->dev, mask);
 }
 
@@ -176,7 +182,7 @@ IRAM_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
  * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is disabled.
  */
-IRAM_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
+DMX_ISR_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
   uart_ll_disable_intr_mask(hal->dev, mask);
 }
 
@@ -186,7 +192,7 @@ IRAM_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
  * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is cleared.
  */
-IRAM_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
+DMX_ISR_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
   uart_ll_clr_intsts_mask(hal->dev, mask);
 }
 
@@ -196,7 +202,7 @@ IRAM_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
  * @param hal A pointer to a UART HAL context.
  * @return The number of bytes in the UART RX FIFO.
  */
-IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
+DMX_ISR_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
   return uart_ll_get_rxfifo_len(hal->dev);
 }
 
@@ -207,7 +213,7 @@ IRAM_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
  * @return The UART RX line level.
  */
 
-IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
+DMX_ISR_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   return hal->dev->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
@@ -234,8 +240,8 @@ IRAM_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * data.
  * @return The number of characters read.
  */
-IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
-                                   int *size) {
+DMX_ISR_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
+                                      int *size) {
   const size_t rxfifo_len = uart_ll_get_rxfifo_len(hal->dev);
   if (*size > rxfifo_len) {
     *size = rxfifo_len;
@@ -250,7 +256,7 @@ IRAM_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
  * @param set 1 to enable the UART RTS line (set low; read), 0 to disable the
  * UART RTS line (set high; write).
  */
-IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
+DMX_ISR_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
   uart_ll_set_rts_active_level(hal->dev, set);
 }
 
@@ -259,7 +265,7 @@ IRAM_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
  *
  * @param hal A pointer to a UART HAL context.
  */
-IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
+DMX_ISR_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
   uart_ll_rxfifo_rst(hal->dev);
 }
 
@@ -269,7 +275,7 @@ IRAM_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @return The length of the UART TX FIFO.
  */
-IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
+DMX_ISR_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
   return uart_ll_get_txfifo_len(hal->dev);
 }
 
@@ -280,8 +286,8 @@ IRAM_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
  * @param buf The source buffer from which to write.
  * @param size The number of bytes to write.
  */
-IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
-                                    size_t *size) {
+DMX_ISR_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
+                                       size_t *size) {
   const size_t txfifo_len = uart_ll_get_txfifo_len(hal->dev);
   if (*size > txfifo_len) {
     *size = txfifo_len;
@@ -294,7 +300,7 @@ IRAM_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
  *
  * @param hal A pointer to a UART HAL context.
  */
-IRAM_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
+DMX_ISR_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
   uart_ll_txfifo_rst(hal->dev);
 }
 

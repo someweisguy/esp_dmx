@@ -1,3 +1,16 @@
+menu "DMX Configuration"
+
+    config DMX_ISR_IN_IRAM
+        bool "Place DMX ISR functions in IRAM"
+        default n
+        help
+            The ISR of the DMX driver can be placed in IRAM so that it can work 
+            without the flash when an interrupt is triggered. If this option is
+            disabled, DMX interrupts may take extra time when accessing flash 
+            memory.
+    
+endmenu
+
 menu "RDM Configuration"
 
     config RDM_DEBUG_DEVICE_DISCOVERY
