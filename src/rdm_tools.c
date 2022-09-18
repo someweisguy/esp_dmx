@@ -20,27 +20,6 @@ static const char *TAG = "rdm";  // The log tagline for the file.
 
 static int64_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 
-IRAM_ATTR int64_t buf_to_uid(const void *buf) {
-  uint64_t val = 0;
-  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
-  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
-  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
-  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
-  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
-  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
-  return val;
-}
-
-void *uid_to_buf(void *buf, int64_t uid) {
-  ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
-  ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
-  ((uint8_t *)buf)[2] = ((uint8_t *)&uid)[3];
-  ((uint8_t *)buf)[3] = ((uint8_t *)&uid)[2];
-  ((uint8_t *)buf)[4] = ((uint8_t *)&uid)[1];
-  ((uint8_t *)buf)[5] = ((uint8_t *)&uid)[0];
-  return buf;
-}
-
 int64_t rdm_get_uid() {
   // Initialize the RDM UID
   if (rdm_uid == 0) {
