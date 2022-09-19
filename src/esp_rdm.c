@@ -582,7 +582,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
 
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
-                                      char software_label[32],
+                                      rdm_software_version_label_t *param,
                                       bool *response_is_valid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -643,13 +643,11 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       dmx_read(dmx_num, response, event.size);
       rdm = (rdm_data_t *)response;
 
-      ESP_LOG_BUFFER_HEX(TAG, response, event.size);
-
-      if (software_label != NULL) {
+      if (param != NULL) {
         if (event.rdm.pdl > 0) {
-          strncpy(software_label, (char *)&rdm->pd, 32);
+          strncpy(param->software_version_label, (char *)&rdm->pd, 32);
         } else {
-          software_label[0] = 0;
+          param->software_version_label[0] = 0;
         }
       }
 

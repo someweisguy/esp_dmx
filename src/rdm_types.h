@@ -41,6 +41,9 @@ typedef struct rdm_device_info {
   size_t sensor_count;
 } rdm_device_info_t;
 
+typedef struct rdm_software_version_label {
+  char software_version_label[32];
+} rdm_software_version_label_t;
 
 #ifdef __cplusplus
 }
