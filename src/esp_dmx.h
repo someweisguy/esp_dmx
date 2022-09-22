@@ -26,27 +26,29 @@ extern "C" {
  * timers or busy-waiting. The default configuration sets the DMX break to 176
  * microseconds and the DMX mark-after-break to 12 microseconds.
  *
- * @note If desired, the DMX driver will allocate a hardware timer for the DMX
+ * @note By default, the DMX driver will allocate a hardware timer for the DMX
  * driver to use. When using ESP-IDF v4.4 the DMX driver will allocate a
  * hardware timer group and timer relative to the DMX port number. The function
  * to determine which timer group and number to use is
  * timer_group == (dmx_num / 2) and timer_num == (dmx_num % 2). It is not
  * recommended to use the hardware timer that the DMX driver is using while the
  * DMX driver is installed.
+ * 
+ * @note Using a hardware timer can be disabled by setting the appropriate
+ * option in the Kconfig under "DMX Configuration." Hardware timers cannot be
+ * disabled when using Arduino.
  *
  * @note The DMX interrupt service routine is installed on the same CPU core
  * that this function is running on.
  *
  * @param dmx_num The DMX port number.
- * @param use_timer True to use timers with the DMX driver.
  * @param intr_flags The interrupt allocation flags to use.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there is an argument error.
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
-                             int intr_flags);
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags);
 
 /**
  * @brief Uninstalls the DMX driver.

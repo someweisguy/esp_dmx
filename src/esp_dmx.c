@@ -384,8 +384,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
-                             int intr_flags) {
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
@@ -397,12 +396,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
     intr_flags |= ESP_INTR_FLAG_IRAM;
   }
 #endif
-
-  // TODO: implement busy-waiting
-  if (!use_timer) {
-    ESP_LOGW(TAG, "Using busy-waits are not yet supported.");
-    use_timer = true;
-  }
 
   dmx_context_t *const context = &dmx_context[dmx_num];
   dmx_driver_t *driver;
@@ -456,13 +449,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
-  if (use_timer) {
-    driver->timer_group = dmx_num / 2;
-    driver->timer_num = dmx_num % 2;
-  } else {
-    driver->timer_group = -1;
-    driver->timer_num = -1;
-  }
+  // TODO: Allow busy-waiting instead of timers
+  driver->timer_group = dmx_num / 2;
+  driver->timer_num = dmx_num % 2;
   driver->task_waiting = NULL;
 
   // Initialize driver flags
@@ -498,19 +487,18 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, bool use_timer,
                  driver, &driver->uart_isr_handle);
 
   // Install hardware timer interrupt if specified by the user
-  if (use_timer) {
-    const timer_config_t timer_config = {
-        .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
-        .counter_dir = TIMER_COUNT_UP,
-        .counter_en = false,
-        .alarm_en = true,
-        .auto_reload = true,
-    };
-    timer_init(driver->timer_group, driver->timer_num, &timer_config);
-    timer_isr_callback_add(driver->timer_group, driver->timer_num,
-                           dmx_timer_isr, driver, intr_flags);
-    timer_enable_intr(driver->timer_group, driver->timer_num);
-  }
+  // TODO: Allow busy-waiting instead of hardware timers
+  const timer_config_t timer_config = {
+      .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
+      .counter_dir = TIMER_COUNT_UP,
+      .counter_en = false,
+      .alarm_en = true,
+      .auto_reload = true,
+  };
+  timer_init(driver->timer_group, driver->timer_num, &timer_config);
+  timer_isr_callback_add(driver->timer_group, driver->timer_num, dmx_timer_isr,
+                         driver, intr_flags);
+  timer_enable_intr(driver->timer_group, driver->timer_num);
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(&context->spinlock);
