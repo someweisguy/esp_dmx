@@ -61,6 +61,24 @@ typedef enum rdm_response_type {
 } rdm_response_type_t;
 
 /**
+ * @brief The NACK reason defines the reason that the responder is unable to
+ * comply with the request.
+ */
+typedef enum rdm_nr {
+  RDM_NR_UNKNOWN_PID = 0x0000,                // The responder cannot comply with the request because the message is not implemented in the responder.
+  RDM_NR_FORMAT_ERROR = 0x0001,               // The responder cannot interpret the request as the controller data was not formatted correctly.
+  RDM_NR_HARDWARE_FAULT = 0x0002,             // The responder cannot comply due to an internal hardware fault.
+  RDM_NR_PROXY_REJECT = 0x0003,               // Proxy is not the RDM line master and cannot comply with the message.
+  RDM_NR_WRITE_PROTECT = 0x0004,              // Set command normally allowed but being blocked currently.
+  RDM_NR_UNSUPPORTED_COMMAND_CLASS = 0x0005,  // Not valid for command class attempted. May be used where get allowed but set is not supported.
+  RDM_NR_DATA_OUT_OF_RANGE = 0x0006,          // Value for given parameter out of allowable range or not supported.
+  RDM_NR_BUFFER_FULL = 0x0007,                // Buffer or queue space currently has no free space to store data.
+  RDM_NR_PACKET_SIZE_UNSUPPORTED = 0x0008,    // Incoming message exceeds buffer capacity.
+  RDM_NR_SUB_DEVICE_OUT_OF_RANGE = 0x0009,    // Sub-device is out of range or unknown.
+  RDM_NR_PROXY_BUFFER_FULL = 0x000a           // The proxy buffer is full and cannot store any more queued message or status message responses.
+} rdm_nr_t;
+
+/**
  * @brief The parameter ID (PID) is a 16-bit number that identifies a specific 
  * type of parameter data. The PID may represent either a well known parameter 
  * such as those defined in the RDM standard document, or a 
