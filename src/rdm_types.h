@@ -13,10 +13,22 @@
 #include <stdint.h>
 
 #include "dmx_types.h"
+#include "freertos/FreeRTOS.h"
+#include "rdm_constants.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// TODO: docs
+typedef struct rdm_response {
+  int err;  // TODO: RDM_OK, RDM_CHECKSUM_IS_INVALID, RDM_INVALID_RESPONSE
+  rdm_response_type_t type;
+  union {
+    TickType_t timer;
+    rdm_nr_t nack_reason;
+  };
+} rdm_response_t;
 
 // TODO: docs
 typedef struct rdm_disc_mute {
