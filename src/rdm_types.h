@@ -23,8 +23,8 @@ extern "C" {
 // TODO: docs
 typedef struct rdm_response {
   rdm_err_t err;
-  rdm_response_type_t type;
   size_t size;
+  rdm_response_type_t type;
   union {
     TickType_t timer;
     rdm_nr_t nack_reason;
