@@ -322,7 +322,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
 }
 
 bool rdm_quick_find(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
-                    rdm_uid_t uid, const size_t size, rdm_uid_t *const uids,
+                    rdm_uid_t uid, rdm_uid_t *const uids, const size_t size,
                     size_t *const found) {
   rdm_response_t response;
   int attempts = 0;
@@ -348,7 +348,7 @@ bool rdm_quick_find(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
   } while (response.size == 0 && ++attempts < 3);
   if (response.size > 0 && !response.err) {
     // There is another single device in this branch
-    return rdm_quick_find(dmx_num, params, uid, size, uids, found);
+    return rdm_quick_find(dmx_num, params, uid, uids, size, found);
   } else if (response.size > 0 && response.err) {
     // There are more devices in this branch - branch further
     return true;
@@ -359,7 +359,7 @@ bool rdm_quick_find(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
 }
 
 void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
-                      const size_t size, rdm_uid_t *const uids,
+                      rdm_uid_t *const uids, const size_t size,
                       size_t *const found) {
   rdm_response_t response;
   rdm_uid_t uid;
@@ -405,7 +405,7 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
       if (!response.err) {
         rdm_disc_unique_branch_t new_params = *params;
         devices_remaining =
-            rdm_quick_find(dmx_num, &new_params, uid, size, uids, found);
+            rdm_quick_find(dmx_num, &new_params, uid, uids, size, found);
       }
 #endif
 
@@ -416,11 +416,11 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
         volatile const rdm_uid_t mid = (params->lower_bound + temp_upper) / 2;
 
         params->upper_bound = mid;
-        rdm_find_devices(dmx_num, params, size, uids, found);
+        rdm_find_devices(dmx_num, params, uids, size, found);
 
         params->lower_bound = mid + 1;
         params->upper_bound = temp_upper;
-        rdm_find_devices(dmx_num, params, size, uids, found);
+        rdm_find_devices(dmx_num, params, uids, size, found);
       }
     }
   }
@@ -446,7 +446,7 @@ static void rdm_dev_disc_task(void *args) {
     .upper_bound = RDM_MAX_UID,
     .lower_bound = 0
   };
-  rdm_find_devices(disc->dmx_num, &disc_params, disc->size, disc->uids,
+  rdm_find_devices(disc->dmx_num, &disc_params, disc->uids, disc->size,
                    disc->found);
   xSemaphoreGiveRecursive(driver->mux);
 
@@ -461,7 +461,7 @@ static void rdm_dev_disc_task(void *args) {
 }
 #endif
 
-size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, rdm_uid_t *uids) {
+size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
