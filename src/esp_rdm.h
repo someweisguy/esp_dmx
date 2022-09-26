@@ -40,6 +40,14 @@ rdm_uid_t rdm_get_uid();
 void rdm_set_uid(rdm_uid_t uid);
 
 /**
+ * @brief Returns true if RDM discovery responses are be muted on this device.
+ * 
+ * @return true if RDM discovery is muted.
+ * @return false if RDM discovery is not muted.
+ */
+bool rdm_is_muted();
+
+/**
  * @brief Helper function to parse RDM data into a user-friendly format.
  *
  * @param data A pointer to the RDM data buffer.

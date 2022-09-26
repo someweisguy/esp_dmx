@@ -20,6 +20,7 @@
 static const char *TAG = "rdm";  // The log tagline for the file.
 
 static rdm_uid_t rdm_uid = 0;  // The 48-bit unique ID of this device.
+static bool rdm_disc_is_muted = false;  // True if RDM discovery is muted.
 
 rdm_uid_t rdm_get_uid() {
   // Initialize the RDM UID
@@ -34,6 +35,8 @@ rdm_uid_t rdm_get_uid() {
 }
 
 void rdm_set_uid(rdm_uid_t uid) { rdm_uid = uid; }
+
+bool rdm_is_muted() { return rdm_disc_is_muted; }
 
 bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
   RDM_CHECK(data != NULL, false, "data is null");
