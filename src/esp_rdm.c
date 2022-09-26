@@ -104,17 +104,14 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
   return false;
 }
 
-size_t rdm_send_disc_response(dmx_port_t dmx_num) {
+size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // TODO: Return 0 if the driver is muted
 
   // Prepare and encode the response
   uint8_t response[24] = {RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
                           RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
                           RDM_PREAMBLE, RDM_DELIMITER};
-  const rdm_uid_t uid = rdm_get_uid();
   uint16_t checksum = 0;
   for (int i = 8, j = 5; i < 20; i += 2, --j) {
     response[i] = ((uint8_t *)&uid)[j] | 0xaa;

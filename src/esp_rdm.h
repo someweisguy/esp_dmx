@@ -51,7 +51,7 @@ void rdm_set_uid(rdm_uid_t uid);
 bool rdm_parse(void *data, size_t size, rdm_event_t *event);
 
 // TODO: docs
-size_t rdm_send_disc_response(dmx_port_t dmx_num);
+size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid);
 
 // TODO: docs
 
