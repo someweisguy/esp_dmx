@@ -77,15 +77,15 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size);
 
 
 // TODO: docs
-// size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
-//                            uint16_t sub_device, rdm_device_info_t *device_info,
-//                            bool *response_is_valid);
+size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
+                           uint16_t sub_device, rdm_response_t *response,
+                           rdm_device_info_t *device_info);
 
 // TODO: get software version label
-// size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
-//                                       uint16_t sub_device,
-//                                       rdm_software_version_label_t *param,
-//                                       bool *response_is_valid);
+size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
+                                      uint16_t sub_device,
+                                      rdm_response_t *response,
+                                      rdm_software_version_label_t *param);
 
 // TODO: get/set identify device
 
