@@ -487,7 +487,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size) {
       .size = size,
       .sem = xSemaphoreCreateBinaryStatic(&buffer)};
   const size_t stack_size = 5632;  // 22KB - use with caution!
-  char task_name[16] = "rdm_disc_?";
+  char task_name[] = "rdm_disc_?";
   task_name[9] = (char)(dmx_num + 48);
   xTaskCreate(&rdm_dev_disc_task, task_name, stack_size, &disc,
               priority, NULL);
