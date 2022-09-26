@@ -403,7 +403,7 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
       sdkconfig to enable or disable discovery debugging.
       */
       if (!response.err) {
-        rdm_disc_unique_branch_t new_params = *bounds;
+        rdm_disc_unique_branch_t new_params = *params;
         devices_remaining =
             rdm_quick_find(dmx_num, &new_params, uid, size, uids, found);
       }
