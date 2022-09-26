@@ -450,11 +450,6 @@ static void rdm_dev_disc_task(void *args) {
                    disc->found);
   xSemaphoreGiveRecursive(driver->mux);
 
-#ifdef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
-  const size_t hwm = uxTaskGetStackHighWaterMark(NULL);
-  ESP_LOGI(TAG, "Discovery task high water mark is %i words.", hwm);
-#endif
-
   // Signal task complete
   xSemaphoreGive(disc->sem);
   vTaskDelete(NULL);
@@ -489,9 +484,14 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size) {
   const size_t stack_size = 5632;  // 22KB - use with caution!
   char task_name[] = "rdm_disc_?";
   task_name[9] = (char)(dmx_num + 48);
+  TaskHandle_t task_handle;
   xTaskCreate(&rdm_dev_disc_task, task_name, stack_size, &disc,
-              priority, NULL);
+              priority, &task_handle);
   xSemaphoreTake(disc.sem, portMAX_DELAY);
+#ifdef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
+  const size_t hwm = uxTaskGetStackHighWaterMark(task_handle);
+  ESP_LOGD(TAG, "Discovery high water mark is %i words", hwm);
+#endif
   vSemaphoreDelete(disc.sem);
 #else
   /*
@@ -502,15 +502,13 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-
   rdm_send_disc_mute(dmx_num, RDM_BROADCAST_UID, false, NULL, NULL, NULL);
   rdm_find_devices(dmx_num, 0, RDM_MAX_UID, size, uids, &devices_found);
-
   xSemaphoreGiveRecursive(driver->mux);
 
 #ifdef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
   const size_t hwm = uxTaskGetStackHighWaterMark(NULL);
-  ESP_LOGI(TAG, "Discovery high water mark is %i words.", hwm);
+  ESP_LOGD(TAG, "Discovery high water mark is %i words", hwm);
 #endif
 
 #endif
