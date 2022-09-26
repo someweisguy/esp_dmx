@@ -54,29 +54,30 @@ bool rdm_parse(void *data, size_t size, rdm_event_t *event);
 size_t rdm_send_disc_response(dmx_port_t dmx_num);
 
 // TODO: docs
-size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_uid_t lower_bound,
-                                   rdm_uid_t upper_bound,
-                                   rdm_uid_t *response_uid,
-                                   bool *response_is_valid);
+
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
+                                   rdm_disc_unique_branch_t *params,
+                                   rdm_response_t *response, rdm_uid_t *uid);
 
 // TODO: docs
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
-                          rdm_disc_mute_t *mute_params,
-                          bool *response_is_valid);
+                          rdm_response_t *response,
+                          rdm_disc_mute_t *mute_params);
 
 // TODO: docs
 size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, rdm_uid_t *uids);
 
+
 // TODO: docs
-size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
-                           uint16_t sub_device, rdm_device_info_t *device_info,
-                           bool *response_is_valid);
+// size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
+//                            uint16_t sub_device, rdm_device_info_t *device_info,
+//                            bool *response_is_valid);
 
 // TODO: get software version label
-size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
-                                      uint16_t sub_device,
-                                      rdm_software_version_label_t *param,
-                                      bool *response_is_valid);
+// size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
+//                                       uint16_t sub_device,
+//                                       rdm_software_version_label_t *param,
+//                                       bool *response_is_valid);
 
 // TODO: get/set identify device
 

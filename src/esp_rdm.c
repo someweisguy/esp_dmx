@@ -132,10 +132,11 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num) {
   return dmx_send(dmx_num, 0);
 }
 
-size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_uid_t lower_bound,
-                                   rdm_uid_t upper_bound, rdm_uid_t *response_uid,
-                                   bool *response_is_valid) {
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
+                                   rdm_disc_unique_branch_t *params,
+                                   rdm_response_t *response, rdm_uid_t *uid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(params != NULL, 0, "params is null");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -160,8 +161,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_uid_t lower_bound,
   rdm->pdl = 12;
 
   // Prepare the RDM request parameters
-  uid_to_buf((void *)&rdm->pd, lower_bound);
-  uid_to_buf((void *)&rdm->pd + 6, upper_bound);
+  uid_to_buf((void *)&rdm->pd, params->lower_bound);
+  uid_to_buf((void *)&rdm->pd + 6, params->upper_bound);
 
   // Calculate the checksum
   uint16_t checksum = 0;
@@ -176,21 +177,32 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_uid_t lower_bound,
   dmx_send(dmx_num, 0);
 
   // Wait for a response
-  dmx_event_t event;
-  const size_t response_size = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(10));
-  if (response_size) {
-    if (response_is_valid != NULL) {
-      if (!event.err && event.is_rdm && event.rdm.checksum_is_valid &&
-          event.rdm.cc == RDM_CC_DISC_COMMAND_RESPONSE &&
-          event.rdm.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-        *response_is_valid = true;
+  dmx_event_t dmx_event;
+  size_t response_size = dmx_receive(dmx_num, &dmx_event, DMX_TIMEOUT_TICK);
+  if (response != NULL) {
+    response->size = response_size;
+  }
+  if (dmx_event.err && dmx_event.err != DMX_ERR_DATA_COLLISION) {
+    if (response != NULL) {
+      response->err = RDM_FAIL;
+    }
+  } else if (response_size) {
+    rdm_event_t rdm_event;
+    rdm_parse(driver->data.buffer, response_size, &rdm_event);
+    if (response != NULL) {
+      if (rdm_event.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
+          rdm_event.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
+        response->err = RDM_INVALID_RESPONSE;
+      } else if (!rdm_event.checksum_is_valid) {
+        response->err = RDM_INVALID_CHECKSUM;
       } else {
-        *response_is_valid = false;
+        response->err = RDM_OK;
+        response->type = RDM_RESPONSE_TYPE_ACK;
       }
     }
-    
-    if (response_uid != NULL) {
-      *response_uid = event.rdm.source_uid;
+
+    if (uid != NULL) {
+      *uid = rdm_event.source_uid;
     }
   }
   xSemaphoreGiveRecursive(driver->mux);
@@ -199,8 +211,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_uid_t lower_bound,
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
-                          rdm_disc_mute_t *mute_params,
-                          bool *response_is_valid) {
+                          rdm_response_t *response,
+                          rdm_disc_mute_t *mute_params) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -240,29 +252,39 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   dmx_send(dmx_num, 0);
 
   // Determine if a response is expected
-  dmx_event_t event;
   size_t response_size = 0;
   if (uid != RDM_BROADCAST_UID) {
-    response_size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
-    if (response_size) {
-      if (response_is_valid != NULL) {
-        if (!event.err && event.is_rdm && event.rdm.checksum_is_valid &&
-            event.rdm.cc == RDM_CC_DISC_COMMAND_RESPONSE &&
-            event.rdm.pid == request_pid && event.rdm.source_uid == uid &&
-            event.rdm.destination_uid == rdm_get_uid()) {
-          *response_is_valid = true;
+    dmx_event_t dmx_event;
+    response_size = dmx_receive(dmx_num, &dmx_event, DMX_TIMEOUT_TICK);
+    if (response != NULL) {
+      response->size = response_size;
+    }
+    if (dmx_event.err) {
+      if (response != NULL) {
+        response->err = RDM_FAIL;
+      }
+    } else if (response_size) {
+      rdm_event_t rdm_event;
+      rdm_parse(driver->data.buffer, response_size, &rdm_event);
+      if (response != NULL) {
+        if (rdm_event.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
+            rdm_event.pid != request_pid) {
+          response->err = RDM_INVALID_RESPONSE;
+        } else if (!rdm_event.checksum_is_valid) {
+          response->err = RDM_INVALID_CHECKSUM;
         } else {
-          *response_is_valid = false;
+          response->err = RDM_OK;
+          response->type = RDM_RESPONSE_TYPE_ACK;
         }
       }
 
       // Read the data into a buffer
       uint8_t response[RDM_BASE_PACKET_SIZE + 8];
-      dmx_read(dmx_num, response, event.size);
+      dmx_read(dmx_num, response, dmx_event.size);
       rdm = (rdm_data_t *)response;
 
       // Copy RDM packet parameters
-      if (mute_params != NULL && event.rdm.pdl >= 2) {
+      if (mute_params != NULL && rdm_event.pdl >= 2) {
         struct __attribute__((__packed__)) disc_mute_data_t {
           union {
             struct {
@@ -281,7 +303,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
         mute_params->boot_loader = p->boot_loader;
         mute_params->proxied_device = p->proxied_device;
 
-        if (event.rdm.pdl >= 8) {
+        if (rdm_event.pdl >= 8) {
           mute_params->binding_uid = buf_to_uid(p->binding_uid);
         } else {
           mute_params->binding_uid = 0;
@@ -289,6 +311,9 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       }
     }
   } else {
+    if (response != NULL) {
+      response->size = 0;
+    }
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
   xSemaphoreGiveRecursive(driver->mux);
@@ -296,24 +321,22 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   return response_size;
 }
 
-bool rdm_quick_find(dmx_port_t dmx_num, rdm_uid_t lower_bound,
-                    rdm_uid_t upper_bound, rdm_uid_t uid, const size_t size,
-                    rdm_uid_t *const uids, size_t *const found) {
-  bool response_is_valid;
-  size_t response;
+bool rdm_quick_find(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
+                    rdm_uid_t uid, const size_t size, rdm_uid_t *const uids,
+                    size_t *const found) {
+  rdm_response_t response;
   int attempts = 0;
 
   // Attempt to mute the device
-  rdm_disc_mute_t mute;
+  rdm_disc_mute_t mute_params;
   do {
-    response =
-        rdm_send_disc_mute(dmx_num, uid, true, &mute, &response_is_valid);
-  } while (!response && attempts++ < 3);
+    rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+  } while (response.size == 0 && attempts++ < 3);
 
   // Add the UID to the list
-  if (response && response_is_valid) {
+  if (response.size > 0) {
     if (*found < size && uids != NULL) {
-      uids[*found] = mute.binding_uid ? mute.binding_uid : uid;
+      uids[*found] = mute_params.binding_uid ? mute_params.binding_uid : uid;
     }
     ++(*found);
   }
@@ -321,14 +344,12 @@ bool rdm_quick_find(dmx_port_t dmx_num, rdm_uid_t lower_bound,
   // Check if there are more devices in this branch
   attempts = 0;
   do {
-    response = rdm_send_disc_unique_branch(dmx_num, lower_bound, upper_bound,
-                                           &uid, &response_is_valid);
-  } while (!response && attempts++ < 3);
-  if (response && response_is_valid) {
+    rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
+  } while (response.size == 0 && attempts++ < 3);
+  if (response.size > 0 && !response.err) {
     // There is another single device in this branch
-    return rdm_quick_find(dmx_num, lower_bound, upper_bound, uid, size, uids,
-                          found);
-  } else if (response && !response_is_valid) {
+    return rdm_quick_find(dmx_num, params, uid, size, uids, found);
+  } else if (response.size > 0 && response.err) {
     // There are more devices in this branch - branch further
     return true;
   } else {
@@ -337,43 +358,41 @@ bool rdm_quick_find(dmx_port_t dmx_num, rdm_uid_t lower_bound,
   }
 }
 
-void rdm_find_devices(dmx_port_t dmx_num, rdm_uid_t lower_bound,
-                      rdm_uid_t upper_bound, const size_t size,
-                      rdm_uid_t *const uids, size_t *const found) {
-  bool response_is_valid;
-  size_t response;
+void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *bounds,
+                      const size_t size, rdm_uid_t *const uids,
+                      size_t *const found) {
+  rdm_response_t response;
+  rdm_uid_t uid;
   int attempts = 0;
 
-  if (lower_bound == upper_bound) {
+  if (bounds->lower_bound == bounds->upper_bound) {
     // Can't branch further so attempt to mute the device
-    rdm_disc_mute_t mute;
+    uid = bounds->lower_bound;
+    
+    rdm_disc_mute_t mute_params;
     do {
-      response = rdm_send_disc_mute(dmx_num, lower_bound, true, &mute,
-                                    &response_is_valid);
-    } while (!response && attempts++ < 3);
+      rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+    } while (response.size == 0 && attempts++ < 3);
 
     // Attempt to fix possible error where responder is flipping its own UID
-    if (!(response && response_is_valid)) {
-      lower_bound = bswap64(lower_bound) >> 16;  // Flip UID
-      response = rdm_send_disc_mute(dmx_num, lower_bound, true, &mute,
-                                    &response_is_valid);
+    if (response.size == 0) {
+      uid = bswap64(uid) >> 16;  // Flip UID
+      rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
     }
 
     // Add the UID to the list
-    if (response && response_is_valid) {
+    if (response.size > 0 && !response.err) {
       if (*found < size && uids != NULL) {
-        uids[*found] = mute.binding_uid ? mute.binding_uid : lower_bound;
+        uids[*found] = mute_params.binding_uid ? mute_params.binding_uid : uid;
       }
       ++(*found);
     }
   } else {  // lower_bound != upper_bound
     // Search the current branch in the RDM address space
-    rdm_uid_t uid;
     do {
-      response = rdm_send_disc_unique_branch(dmx_num, lower_bound, upper_bound,
-                                             &uid, &response_is_valid);
-    } while (!response && attempts++ < 3);
-    if (response) {
+      rdm_send_disc_unique_branch(dmx_num, bounds, &response, &uid);
+    } while (response.size == 0 && attempts++ < 3);
+    if (response.size > 0 && !response.err) {
       bool devices_remaining = true;
 
 #ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
@@ -383,17 +402,25 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_uid_t lower_bound,
       be used as it can hide bugs in the discovery algorithm. Users can use the 
       sdkconfig to enable or disable discovery debugging.
       */
-      if (response_is_valid) {
-        devices_remaining = rdm_quick_find(dmx_num, lower_bound, upper_bound,
-                                           uid, size, uids, found);
+      if (!response.err) {
+        rdm_disc_unique_branch_t new_params = *bounds;
+        devices_remaining =
+            rdm_quick_find(dmx_num, &new_params, uid, size, uids, found);
       }
 #endif
 
       // Recursively search the next two RDM address spaces
       if (devices_remaining) {
-        const rdm_uid_t mid = (lower_bound + upper_bound) / 2;
-        rdm_find_devices(dmx_num, lower_bound, mid, size, uids, found);
-        rdm_find_devices(dmx_num, mid + 1, upper_bound, size, uids, found);
+        // The following variables MUST be declared volatile
+        volatile const rdm_uid_t temp_upper = bounds->upper_bound;
+        volatile const rdm_uid_t mid = (bounds->lower_bound + temp_upper) / 2;
+
+        bounds->upper_bound = mid;
+        rdm_find_devices(dmx_num, bounds, size, uids, found);
+
+        bounds->lower_bound = mid + 1;
+        bounds->upper_bound = temp_upper;
+        rdm_find_devices(dmx_num, bounds, size, uids, found);
       }
     }
   }
@@ -415,7 +442,11 @@ static void rdm_dev_disc_task(void *args) {
   // Mutex must be taken in the same task as the discovery
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
   rdm_send_disc_mute(disc->dmx_num, RDM_BROADCAST_UID, false, NULL, NULL);
-  rdm_find_devices(disc->dmx_num, 0, RDM_MAX_UID, disc->size, disc->uids,
+  rdm_disc_unique_branch_t disc_params = {
+    .upper_bound = RDM_MAX_UID,
+    .lower_bound = 0
+  };
+  rdm_find_devices(disc->dmx_num, &disc_params, disc->size, disc->uids,
                    disc->found);
   xSemaphoreGiveRecursive(driver->mux);
 
@@ -456,7 +487,8 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, rdm_uid_t *uids) {
       .size = size,
       .sem = xSemaphoreCreateBinaryStatic(&buffer)};
   const size_t stack_size = 5632;  // 22KB - use with caution!
-  xTaskCreate(&rdm_dev_disc_task, "RDM Device Discovery", stack_size, &disc,
+  // TODO: number the discovery by the DMX port number
+  xTaskCreate(&rdm_dev_disc_task, "RDM Discovery", stack_size, &disc,
               priority, NULL);
   xSemaphoreTake(disc.sem, portMAX_DELAY);
   vSemaphoreDelete(disc.sem);
@@ -485,6 +517,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, size_t size, rdm_uid_t *uids) {
   return devices_found;
 }
 
+/*
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            uint16_t sub_device, rdm_device_info_t *device_info,
                            bool *response_is_valid) {
@@ -579,7 +612,9 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
 
   return response_size;
 }
+*/
 
+/*
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
                                       rdm_software_version_label_t *param,
@@ -659,3 +694,4 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
 
   return response_size;
 }
+*/

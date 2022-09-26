@@ -22,13 +22,19 @@ extern "C" {
 
 // TODO: docs
 typedef struct rdm_response {
-  int err;  // TODO: RDM_OK, RDM_CHECKSUM_IS_INVALID, RDM_INVALID_RESPONSE
+  rdm_err_t err;
   rdm_response_type_t type;
+  size_t size;
   union {
     TickType_t timer;
     rdm_nr_t nack_reason;
   };
 } rdm_response_t;
+
+typedef struct rdm_disc_unique_branch {
+  rdm_uid_t upper_bound;
+  rdm_uid_t lower_bound;
+} rdm_disc_unique_branch_t;
 
 // TODO: docs
 typedef struct rdm_disc_mute {

@@ -1017,8 +1017,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     if (packet_size > 0) {
       bool is_rdm = false;
       if (!err) {
+        // Quickly check if the packet is an RDM packet
+        const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
         taskENTER_CRITICAL(&context->spinlock);
-        is_rdm = rdm_parse(driver->data.buffer, packet_size, &event->rdm);
+        if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
+          is_rdm = true;  // Discovery unique branch response
+        } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
+          is_rdm = true;  // Standard RDM packet
+        }
         taskEXIT_CRITICAL(&context->spinlock);
       }
       event->size = packet_size;
