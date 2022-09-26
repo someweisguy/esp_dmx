@@ -358,16 +358,16 @@ bool rdm_quick_find(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
   }
 }
 
-void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *bounds,
+void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
                       const size_t size, rdm_uid_t *const uids,
                       size_t *const found) {
   rdm_response_t response;
   rdm_uid_t uid;
   int attempts = 0;
 
-  if (bounds->lower_bound == bounds->upper_bound) {
+  if (params->lower_bound == params->upper_bound) {
     // Can't branch further so attempt to mute the device
-    uid = bounds->lower_bound;
+    uid = params->lower_bound;
     
     rdm_disc_mute_t mute_params;
     do {
@@ -390,7 +390,7 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *bounds,
   } else {  // lower_bound != upper_bound
     // Search the current branch in the RDM address space
     do {
-      rdm_send_disc_unique_branch(dmx_num, bounds, &response, &uid);
+      rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
     } while (response.size == 0 && ++attempts < 3);
     if (response.size > 0 && !response.err) {
       bool devices_remaining = true;
@@ -412,15 +412,15 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *bounds,
       // Recursively search the next two RDM address spaces
       if (devices_remaining) {
         // The following variables MUST be declared volatile
-        volatile const rdm_uid_t temp_upper = bounds->upper_bound;
-        volatile const rdm_uid_t mid = (bounds->lower_bound + temp_upper) / 2;
+        volatile const rdm_uid_t temp_upper = params->upper_bound;
+        volatile const rdm_uid_t mid = (params->lower_bound + temp_upper) / 2;
 
-        bounds->upper_bound = mid;
-        rdm_find_devices(dmx_num, bounds, size, uids, found);
+        params->upper_bound = mid;
+        rdm_find_devices(dmx_num, params, size, uids, found);
 
-        bounds->lower_bound = mid + 1;
-        bounds->upper_bound = temp_upper;
-        rdm_find_devices(dmx_num, bounds, size, uids, found);
+        params->lower_bound = mid + 1;
+        params->upper_bound = temp_upper;
+        rdm_find_devices(dmx_num, params, size, uids, found);
       }
     }
   }
