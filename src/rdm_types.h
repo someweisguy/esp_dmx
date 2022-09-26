@@ -31,6 +31,7 @@ typedef struct rdm_response {
   };
 } rdm_response_t;
 
+// TODO: docs
 typedef struct rdm_disc_unique_branch {
   rdm_uid_t upper_bound;
   rdm_uid_t lower_bound;
@@ -59,6 +60,7 @@ typedef struct rdm_device_info {
   size_t sensor_count;
 } rdm_device_info_t;
 
+// TODO: docs
 typedef struct rdm_software_version_label {
   char software_version_label[32];
 } rdm_software_version_label_t;
