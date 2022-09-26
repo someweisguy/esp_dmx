@@ -331,7 +331,7 @@ bool rdm_quick_find(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
   rdm_disc_mute_t mute_params;
   do {
     rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
-  } while (response.size == 0 && attempts++ < 3);
+  } while (response.size == 0 && ++attempts < 3);
 
   // Add the UID to the list
   if (response.size > 0) {
@@ -345,7 +345,7 @@ bool rdm_quick_find(dmx_port_t dmx_num, rdm_disc_unique_branch_t *params,
   attempts = 0;
   do {
     rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
-  } while (response.size == 0 && attempts++ < 3);
+  } while (response.size == 0 && ++attempts < 3);
   if (response.size > 0 && !response.err) {
     // There is another single device in this branch
     return rdm_quick_find(dmx_num, params, uid, size, uids, found);
@@ -372,7 +372,7 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *bounds,
     rdm_disc_mute_t mute_params;
     do {
       rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
-    } while (response.size == 0 && attempts++ < 3);
+    } while (response.size == 0 && ++attempts < 3);
 
     // Attempt to fix possible error where responder is flipping its own UID
     if (response.size == 0) {
@@ -391,7 +391,7 @@ void rdm_find_devices(dmx_port_t dmx_num, rdm_disc_unique_branch_t *bounds,
     // Search the current branch in the RDM address space
     do {
       rdm_send_disc_unique_branch(dmx_num, bounds, &response, &uid);
-    } while (response.size == 0 && attempts++ < 3);
+    } while (response.size == 0 && ++attempts < 3);
     if (response.size > 0 && !response.err) {
       bool devices_remaining = true;
 
