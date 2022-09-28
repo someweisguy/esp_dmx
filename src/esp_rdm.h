@@ -88,8 +88,15 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       rdm_software_version_label_t *param);
 
 // TODO: get/set identify device
+size_t rdm_send_identify_device(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
+                                uint16_t sub_device, rdm_response_t *response, 
+                                rdm_identify_device_t *params);
 
 // TODO: get/set dmx start address
+size_t rdm_send_dmx_start_address(dmx_port_t dmx_num, rdm_cc_t cc,
+                                  rdm_uid_t uid, uint16_t sub_device,
+                                  rdm_response_t *response,
+                                  rdm_dmx_start_address_t *params);
 
 // TODO: get supported parameters
 
