@@ -516,6 +516,79 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size) {
   return devices_found;
 }
 
+size_t rdm_discover_iter(dmx_port_t dmx_num, rdm_uid_t *uids, const size_t size) {
+  // TODO: args check
+
+  // Un-mute all devices
+  rdm_send_disc_mute(dmx_num, RDM_BROADCAST_UID, false, NULL, NULL);
+
+  // Initialize the stack with the initial branch instruction
+  size_t stack_size = 1;
+  rdm_disc_unique_branch_t stack[49];
+  stack[0].lower_bound = 0;
+  stack[0].upper_bound = RDM_MAX_UID;
+
+  size_t found = 0;
+  while (stack_size > 0) {
+    rdm_disc_unique_branch_t *params = &(stack[--stack_size]);
+    size_t attempts = 0;
+    rdm_response_t response;
+    rdm_uid_t uid;
+
+    if (params->lower_bound == params->upper_bound) {
+      // Can't branch further so attempt to mute the device
+      uid = params->lower_bound;
+      rdm_disc_mute_t mute_params;
+      do {
+        rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+      } while (response.size == 0 && ++attempts < 3);
+
+      // Attempt to fix possible error where responder is flipping its own UID
+      if (response.size == 0) {
+        uid = bswap64(uid) >> 16;  // Flip UID
+        rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+      }
+
+      // Add the UID to the list
+      if (response.size > 0 && !response.err) {
+        if (found < size && uids != NULL) {
+          uids[found] = mute_params.binding_uid ? mute_params.binding_uid : uid;
+        }
+        ++found;
+      }
+    } else {
+      // Search the current branch in the RDM address space
+      do {
+        rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
+      } while (response.size == 0 && ++attempts < 3);
+      if (response.size > 0) {
+        bool devices_remaining = true;
+
+        // TODO: implement quickfind
+
+        // Recursively search the next two RDM address spaces
+        if (devices_remaining) {
+          const rdm_uid_t lower_bound = params->lower_bound;
+          const rdm_uid_t mid = (lower_bound + params->upper_bound) / 2;
+
+          // Add the upper branch so that it gets handled second
+          stack[stack_size].lower_bound = mid + 1;
+          ++stack_size;
+
+          // Add the lower branch so it gets handled first
+          stack[stack_size].lower_bound = lower_bound;
+          stack[stack_size].upper_bound = mid;
+          ++stack_size;
+        }
+      }
+    }
+  }
+
+  const size_t hwm = uxTaskGetStackHighWaterMark(NULL);
+  ESP_LOGI(TAG, "Discovery high water mark is %i words", hwm);
+
+  return found;
+}
 
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            uint16_t sub_device, rdm_response_t *response,

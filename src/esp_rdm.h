@@ -75,6 +75,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
 // TODO: docs
 size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size);
 
+size_t rdm_discover_iter(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size);
 
 // TODO: docs
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
