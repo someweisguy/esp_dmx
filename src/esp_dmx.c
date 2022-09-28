@@ -67,9 +67,7 @@ enum dmx_interrupt_mask {
 
   DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,
   DMX_INTR_RX_DATA = UART_INTR_RXFIFO_FULL,
-  DMX_INTR_RX_CLASH = UART_INTR_RS485_CLASH,
-  DMX_INTR_RX_ALL = DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR |
-                    DMX_INTR_RX_CLASH,
+  DMX_INTR_RX_ALL = DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR,
 
   DMX_INTR_TX_DATA = UART_INTR_TXFIFO_EMPTY,
   DMX_INTR_TX_DONE = UART_INTR_TX_DONE,
@@ -232,19 +230,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         }
         taskEXIT_CRITICAL_ISR(&context->spinlock);
       }
-    }
-
-    else if (intr_flags & DMX_INTR_RX_CLASH) {
-      // Multiple devices sent data at once (typical of RDM discovery)
-      dmx_hal_rxfifo_rst(&context->hal);
-      dmx_hal_clear_interrupt(&context->hal, DMX_INTR_RX_CLASH);
-      driver->data.err = DMX_ERR_DATA_COLLISION;
-      taskENTER_CRITICAL_ISR(&context->spinlock);
-      if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, 0, eSetValueWithOverwrite,
-                           &task_awoken);
-      }
-      taskEXIT_CRITICAL_ISR(&context->spinlock);
     }
 
     // DMX Transmit #####################################################
