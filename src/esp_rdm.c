@@ -387,8 +387,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
         can use the sdkconfig to enable or disable discovery debugging.
         */
         if (!response.err) {
-          size_t quick_find_attempts = 0;
-          while (quick_find_attempts < 1) {
+          for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
             // Attempt to mute the device
             attempts = 0;
             rdm_disc_mute_t mute_params;
@@ -410,10 +409,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
             do {
               rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
             } while (response.size == 0 && ++attempts < 3);
-            if (response.size > 0 && !response.err) {
-              // There is another single device in this branch - try again
-              ++quick_find_attempts;
-            } else if (response.size > 0) {
+            if (response.size > 0 && response.err) {
               // There are more devices in this branch - branch further
               devices_remaining = true;
               break;
