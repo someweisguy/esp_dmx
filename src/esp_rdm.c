@@ -517,20 +517,29 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids, size_t size) {
 }
 
 size_t rdm_discover_iter(dmx_port_t dmx_num, rdm_uid_t *uids, const size_t size) {
-  // TODO: args check
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Un-mute all devices
   rdm_send_disc_mute(dmx_num, RDM_BROADCAST_UID, false, NULL, NULL);
 
   // Initialize the stack with the initial branch instruction
   size_t stack_size = 1;
-  rdm_disc_unique_branch_t stack[49];
+#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
+  rdm_disc_unique_branch_t *stack;
+  stack = malloc(sizeof(rdm_disc_unique_branch_t) * 49);
+#else
+  rdm_disc_unique_branch_t stack[49];  // 784B - use with caution!
+#endif
   stack[0].lower_bound = 0;
   stack[0].upper_bound = RDM_MAX_UID;
 
   size_t found = 0;
   while (stack_size > 0) {
-    rdm_disc_unique_branch_t *params = &(stack[--stack_size]);
+    rdm_disc_unique_branch_t *params = &stack[--stack_size];
     size_t attempts = 0;
     rdm_response_t response;
     rdm_uid_t uid;
@@ -564,7 +573,52 @@ size_t rdm_discover_iter(dmx_port_t dmx_num, rdm_uid_t *uids, const size_t size)
       if (response.size > 0) {
         bool devices_remaining = true;
 
-        // TODO: implement quickfind
+#ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
+        /*
+        This is the quick-find subroutine. Using quick-find can decrease the
+        time spent in discovery by orders of magnitude but can also mask bugs in
+        the discovery algorithm. When debugging, this code can be disabled by
+        the user using the sdkconfig.
+        */
+        if (!response.err) {
+          size_t quick_find_attempts = 0;
+          while (quick_find_attempts < 1) {
+            // Attempt to mute the device
+            attempts = 0;
+            rdm_disc_mute_t mute_params;
+            do {
+              rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+            } while (response.size == 0 && ++attempts < 3);
+
+            // Add the UID to the list
+            if (response.size > 0) {
+              if (found < size && uids != NULL) {
+                uids[found] =
+                    mute_params.binding_uid ? mute_params.binding_uid : uid;
+              }
+              ++found;
+            }
+
+            // Check if there are more devices in this branch
+            attempts = 0;
+            do {
+              rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
+            } while (response.size == 0 && ++attempts < 3);
+            if (response.size > 0 && !response.err) {
+              // There is another single device in this branch - try again
+              ++quick_find_attempts;
+            } else if (response.size > 0) {
+              // There are more devices in this branch - branch further
+              devices_remaining = true;
+              break;
+            } else {
+              // There are no more devices in this branch
+              devices_remaining = false;
+              break;
+            }
+          }
+        }
+#endif
 
         // Recursively search the next two RDM address spaces
         if (devices_remaining) {
@@ -584,8 +638,11 @@ size_t rdm_discover_iter(dmx_port_t dmx_num, rdm_uid_t *uids, const size_t size)
     }
   }
 
-  const size_t hwm = uxTaskGetStackHighWaterMark(NULL);
-  ESP_LOGI(TAG, "Discovery high water mark is %i words", hwm);
+  xSemaphoreGiveRecursive(driver->mux);
+
+#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
+  free(stack);
+#endif
 
   return found;
 }
