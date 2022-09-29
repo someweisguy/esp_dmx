@@ -126,10 +126,17 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid) {
   response[22] = checksum | 0xaa;
   response[23] = checksum | 0x55;
 
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+
   // Write and send the response
   dmx_wait_sent(dmx_num, portMAX_DELAY);
   dmx_write(dmx_num, response, sizeof(response));
-  return dmx_send(dmx_num, 0);
+  const size_t sent = dmx_send(dmx_num, 0);
+
+  xSemaphoreGiveRecursive(driver->mux);
+
+  return sent;
 }
 
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
@@ -139,9 +146,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   RDM_CHECK(params != NULL, 0, "params is null");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // Take mutex so driver values may be accessed
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Prepare the RDM request
@@ -207,11 +213,10 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   const uint16_t request_pid = mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE;
 
   // Take mutex so driver values may be accessed
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Prepare the RDM request
