@@ -22,7 +22,7 @@ extern "C" {
 
 // TODO: docs
 typedef struct rdm_response {
-  rdm_err_t err;
+  bool checksum_is_valid;
   size_t size;
   rdm_response_type_t type;
   union {
