@@ -32,14 +32,6 @@ static const rdm_uid_t RDM_BROADCAST_UID = 0xffffffffffff;
  */
 static const rdm_uid_t RDM_MAX_UID = 0xfffffffffffe;
 
-typedef enum rdm_err {
-  RDM_OK = 0,
-  RDM_INVALID_RESPONSE,
-  RDM_INVALID_CHECKSUM,
-
-  RDM_FAIL
-} rdm_err_t;
-
 /**
  * @brief The RDM command class (CC) type. The command class specifies the 
  * action of the message. Responders shall always generate a response to 
