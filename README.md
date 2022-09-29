@@ -324,25 +324,20 @@ dmx_event_t event;
 while (true) {
   if (dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK)) {
     switch (event.err) {
-      case DMX_OK:
+      case ESP_OK:
         printf("Received packet with start code: %02X and size: %i.\n",
           event.sc, event.size);
         // Data is OK. Now read the packet into the buffer.
         dmx_read(DMX_NUM_2, data, event.size);
         break;
 
-      case DMX_ERR_IMPROPER_SLOT:
+      case ESP_ERR_INVALID_RESPONSE:
         printf("Received malformed byte at slot %i.\n", event.size);
         // A slot in the packet is malformed. Data can be recovered up until 
         //  event.size
         break;
 
-      case DMX_ERR_DATA_COLLISION:
-        printf("A data collision was detected.\n");
-        // A data collision was detected. This typically happens using RDM.
-        break;
-
-      case DMX_ERR_DATA_OVERFLOW:
+      case ESP_FAIL:
         printf("Data could not be processed in time.\n");
         // The ESP32 UART overflowed. This could occur if the DMX ISR is being
         //  constantly preempted.
