@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "dmx_types.h"
+#include "esp_err.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
@@ -38,7 +39,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
     int64_t previous_ts;     // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     int sent_previous;       // Is true if this device sent the previous data packet.
 
-    dmx_err_t err;  // The error state of the received DMX data.
+    esp_err_t err;  // The error state of the received DMX data.
   } data;
 
   int is_in_break;      // True if the driver is sending or receiving a DMX break.

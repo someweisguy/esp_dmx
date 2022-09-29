@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "esp_err.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -31,16 +33,6 @@ typedef struct dmx_sniffer_data {
   uint32_t break_len;  // Length in microseconds of the last received DMX break.
   uint32_t mab_len;    // Length in microseconds of the last received DMX mark-after-break.
 } dmx_sniffer_data_t;
-
-/**
- * @brief DMX error codes. These values indicate problem in receiving DMX data 
- * or processing RDM packets.
- */
-typedef enum dmx_err {
-  DMX_OK = 0,                      // Indicates data was read successfully.
-  DMX_ERR_IMPROPERLY_FRAMED_SLOT,  // The receiver detected missing stop bits. If a missing stop bit is detected, the receiver shall discard the improperly framed slot data and all following slots in the packet.
-  DMX_ERR_HARDWARE_OVERFLOW,       // The ESP32 hardware overflowed, resulting in loss of data.
-} dmx_err_t;
 
 /**
  * @brief Provides a synopsis of the received RDM packet so that users may
@@ -67,7 +59,7 @@ typedef struct rdm_event {
  * quickly and easily process and respond to DMX data.
  */
 typedef struct dmx_event {
-  dmx_err_t err;    // Evaluates to true if an error occurred reading DMX data. Refer to dmx_err_t to evaluate the type of error.
+  esp_err_t err;    // Evaluates to true if an error occurred reading DMX data.
   uint8_t sc;       // Start code of the DMX packet.
   size_t size;      // The size of the received DMX packet in bytes.
   bool is_rdm;      // True if the received packet is RDM.

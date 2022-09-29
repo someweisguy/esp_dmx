@@ -109,9 +109,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         } else {
           dmx_hal_rxfifo_rst(&context->hal);
         }
-        driver->data.err = DMX_ERR_IMPROPERLY_FRAMED_SLOT;
+        driver->data.err = ESP_ERR_INVALID_RESPONSE;
       } else {
-        driver->data.err = DMX_ERR_HARDWARE_OVERFLOW;
+        driver->data.err = ESP_FAIL;
       }
       dmx_hal_rxfifo_rst(&context->hal);
       dmx_hal_clear_interrupt(&context->hal, DMX_INTR_RX_ERR);
@@ -221,7 +221,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         }
       }
       if (driver->received_packet) {
-        driver->data.err = DMX_OK;
+        driver->data.err = ESP_OK;
         driver->data.sent_previous = false;
         taskENTER_CRITICAL_ISR(&context->spinlock);
         if (driver->task_waiting) {
@@ -925,7 +925,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   taskEXIT_CRITICAL(&context->spinlock);
 
   // Receive the latest data packet or check if the driver must wait
-  dmx_err_t err = DMX_OK;
+  esp_err_t err = ESP_OK;
   uint32_t packet_size = 0;
   taskENTER_CRITICAL(&context->spinlock);
   if (!driver->received_packet) {
