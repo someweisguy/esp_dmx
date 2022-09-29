@@ -182,7 +182,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   if (response != NULL) {
     response->size = response_size;
   }
-  if (dmx_event.err && dmx_event.err != DMX_ERR_DATA_COLLISION) {
+  if (dmx_event.err) {
     if (response != NULL) {
       response->err = RDM_FAIL;
     }
@@ -387,7 +387,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
         should not be used as it can hide bugs in the discovery algorithm. Users
         can use the sdkconfig to enable or disable discovery debugging.
         */
-        if (!response.err) {
+        if (!response.err) { // TODO: if checksum is valid
           for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
             // Attempt to mute the device
             attempts = 0;
@@ -410,7 +410,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
             do {
               rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
             } while (response.size == 0 && ++attempts < 3);
-            if (response.size > 0 && response.err) {
+            if (response.size > 0 && response.err) {  // TODO: checksum failed
               // There are more devices in this branch - branch further
               devices_remaining = true;
               break;
