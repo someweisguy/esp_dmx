@@ -333,6 +333,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
   rdm_send_disc_mute(dmx_num, RDM_BROADCAST_UID, false, NULL, NULL);
 
   // Initialize the stack with the initial branch instruction
+  // The max depth of the binary tree is 49 nodes
   size_t stack_size = 1;
 #ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
   rdm_disc_unique_branch_t *stack;
