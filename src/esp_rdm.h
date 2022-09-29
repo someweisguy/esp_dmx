@@ -24,7 +24,8 @@ extern "C" {
  */
 #define UID2STR(uid) ((uint16_t)(uid >> 32)), ((uint32_t)(uid))
 
-typedef void (rdm_discovery_callback_t)(dmx_port_t, rdm_uid_t, size_t, void *);
+// TODO: docs
+typedef void (rdm_discovery_cb_t)(dmx_port_t, rdm_uid_t, size_t, void *);
 
 /**
  * @brief Returns the 48 bit unique ID of this device.
@@ -75,8 +76,8 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
                           rdm_disc_mute_t *mute_params);
 
 // TODO: docs
-size_t rdm_discover_with_callback(dmx_port_t dmx_num,
-                                  rdm_discovery_callback_t cb, void *context);
+size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
+                                  void *context);
 
 // TODO: docs
 size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
