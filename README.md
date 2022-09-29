@@ -313,12 +313,9 @@ Likewise, the function `dmx_receive()` behaves contextually when receiving DMX o
 
 On rare occasions, DMX packets can become corrupted. Errors are typically detected upon initially connecting to an active DMX bus but are resolved on receiving the next packet. Errors can be checked by reading the error code from the `dmx_event_t` structure. The error types are as follows:
 
-- `DMX_OK` indicates data was read successfully.
-- `DMX_ERR_IMPROPERLY_FRAMED_SLOT` occurs when the DMX driver detects missing stop bits. If a missing stop bit is detected the driver shall discard the improperly framed slot data and all following slots in the packet.
-- `DMX_ERR_DATA_COLLISION` occurs when a data collision is detected. This typically occurs during RDM discovery.
-- `DMX_ERR_HARDWARE_OVERFLOW` occurs when the ESP32 hardware overflows resulting in loss of data.
-
-In most errors the `dmx_event_t` size can be read to determine at which slot the error occurred.
+- `ESP_OK` indicates data was read successfully.
+- `ESP_ERR_INVALID_RESPONSE` occurs when the DMX driver detects missing stop bits. If a missing stop bit is detected the driver shall discard the improperly framed slot data and all following slots in the packet. When this error is reported the `dmx_event_t` size can be read to determine at which slot the error occurred.
+- `ESP_FAIL` occurs when the ESP32 hardware overflows resulting in loss of data.
 
 ```c
 uint8_t data[DMX_PACKET_SIZE];
