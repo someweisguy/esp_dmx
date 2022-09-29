@@ -39,7 +39,6 @@ typedef struct dmx_sniffer_data {
 typedef enum dmx_err {
   DMX_OK = 0,                      // Indicates data was read successfully.
   DMX_ERR_IMPROPERLY_FRAMED_SLOT,  // The receiver detected missing stop bits. If a missing stop bit is detected, the receiver shall discard the improperly framed slot data and all following slots in the packet.
-  DMX_ERR_TIMEOUT,                 // The DMX driver timed out waiting for data.
   DMX_ERR_HARDWARE_OVERFLOW,       // The ESP32 hardware overflowed, resulting in loss of data.
 } dmx_err_t;
 

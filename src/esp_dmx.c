@@ -972,12 +972,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       driver->task_waiting = NULL;
       taskEXIT_CRITICAL(&context->spinlock);
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-      if (event != NULL) {
-        event->err = DMX_ERR_TIMEOUT;
-        event->size = 0;
-        event->sc = -1;
-        event->is_rdm = false;
-      }
       xSemaphoreGiveRecursive(driver->mux);
       return 0;
     }
@@ -985,8 +979,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     // Wait for a task notification
     if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, fail_quick)) {
       err = driver->data.err;
-    } else {
-      err = DMX_ERR_TIMEOUT;
     }
     driver->task_waiting = NULL;
   }
