@@ -316,8 +316,8 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   return response_size;
 }
 
-size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
-                            const size_t size) {
+size_t rdm_discover_with_callback(dmx_port_t dmx_num,
+                                  rdm_discovery_callback_t cb, void *context) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -339,7 +339,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
   stack[0].lower_bound = 0;
   stack[0].upper_bound = RDM_MAX_UID;
 
-  size_t found = 0;
+  size_t num_found = 0;
   while (stack_size > 0) {
     rdm_disc_unique_branch_t *params = &stack[--stack_size];
     size_t attempts = 0;
@@ -362,10 +362,11 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
 
       // Add the UID to the list
       if (response.size > 0 && response.checksum_is_valid) {
-        if (found < size && uids != NULL) {
-          uids[found] = mute_params.binding_uid ? mute_params.binding_uid : uid;
+        if (mute_params.binding_uid) {
+          uid = mute_params.binding_uid;
         }
-        ++found;
+        cb(dmx_num, uid, num_found, context);
+        ++num_found;
       }
     } else {
       // Search the current branch in the RDM address space
@@ -393,11 +394,11 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
 
             // Add the UID to the list
             if (response.size > 0) {
-              if (found < size && uids != NULL) {
-                uids[found] =
-                    mute_params.binding_uid ? mute_params.binding_uid : uid;
+              if (mute_params.binding_uid) {
+                uid = mute_params.binding_uid;
               }
-              ++found;
+              cb(dmx_num, uid, num_found, context);
+              ++num_found;
             }
 
             // Check if there are more devices in this branch
@@ -441,6 +442,30 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
 #ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
   free(stack);
 #endif
+
+  return num_found;
+}
+
+struct rdm_disc_default_ctx {
+  size_t size;
+  rdm_uid_t *uids;
+};
+
+static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
+                        void *context) {
+  struct rdm_disc_default_ctx *c = (struct rdm_disc_default_ctx *)context;
+  if (num_found < c->size && c->uids != NULL) {
+    c->uids[num_found] = uid;
+  }
+}
+
+size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
+                            const size_t size) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  struct rdm_disc_default_ctx context = {.size = size, .uids = uids};
+  size_t found = rdm_discover_with_callback(dmx_num, &rdm_disc_cb, &context);
 
   return found;
 }
