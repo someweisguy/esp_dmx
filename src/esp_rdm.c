@@ -188,12 +188,21 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   if (response != NULL) {
     response->size = response_size;
   }
-  if (response_size) {
+  if (dmx_event.err) {
+    if (response != NULL) {
+      response->err = RDM_FAIL;
+    }
+  } else if (response_size) {
     rdm_event_t rdm_event;
     rdm_parse(driver->data.buffer, response_size, &rdm_event);
     if (response != NULL) {
-      if (rdm_event.checksum_is_valid) {
-        response->checksum_is_valid = true;
+      if (rdm_event.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
+          rdm_event.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
+        response->err = RDM_INVALID_RESPONSE;
+      } else if (!rdm_event.checksum_is_valid) {
+        response->err = RDM_INVALID_CHECKSUM;
+      } else {
+        response->err = RDM_OK;
         response->type = RDM_RESPONSE_TYPE_ACK;
       }
     }
@@ -255,12 +264,21 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
     if (response != NULL) {
       response->size = response_size;
     }
-    if (response_size) {
+    if (dmx_event.err) {
+      if (response != NULL) {
+        response->err = RDM_FAIL;
+      }
+    } else if (response_size) {
       rdm_event_t rdm_event;
       rdm_parse(driver->data.buffer, response_size, &rdm_event);
       if (response != NULL) {
-        if (rdm_event.checksum_is_valid) {
-          response->checksum_is_valid = true;
+        if (rdm_event.cc != RDM_CC_DISC_COMMAND_RESPONSE ||
+            rdm_event.pid != request_pid) {
+          response->err = RDM_INVALID_RESPONSE;
+        } else if (!rdm_event.checksum_is_valid) {
+          response->err = RDM_INVALID_CHECKSUM;
+        } else {
+          response->err = RDM_OK;
           response->type = RDM_RESPONSE_TYPE_ACK;
         }
       }
@@ -353,7 +371,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
       }
 
       // Add the UID to the list
-      if (response.size > 0 && response.checksum_is_valid) {
+      if (response.size > 0 && !response.err) {
         if (found < size && uids != NULL) {
           uids[found] = mute_params.binding_uid ? mute_params.binding_uid : uid;
         }
@@ -374,7 +392,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
         should not be used as it can hide bugs in the discovery algorithm. Users
         can use the sdkconfig to enable or disable discovery debugging.
         */
-        if (response.checksum_is_valid) {
+        if (!response.err) { // TODO: if checksum is valid
           for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
             // Attempt to mute the device
             attempts = 0;
@@ -397,7 +415,7 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
             do {
               rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
             } while (response.size == 0 && ++attempts < 3);
-            if (response.size > 0 && !response.checksum_is_valid) {
+            if (response.size > 0 && response.err) {  // TODO: checksum failed
               // There are more devices in this branch - branch further
               devices_remaining = true;
               break;
@@ -483,11 +501,22 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
     if (response != NULL) {
       response->size = response_size;
     }
-    if (response_size) {
+    if (dmx_event.err) {
+      if (response != NULL) {
+        response->err = RDM_FAIL;
+      }
+    } else if (response_size) {
       rdm_event_t rdm_event;
       rdm_parse(driver->data.buffer, response_size, &rdm_event);
       if (response != NULL) {
-        response->checksum_is_valid = rdm_event.checksum_is_valid;
+        if (rdm_event.cc != RDM_CC_GET_COMMAND_RESPONSE ||
+            rdm_event.pid != RDM_PID_DEVICE_INFO) {
+          response->err = RDM_INVALID_RESPONSE;
+        } else if (!rdm_event.checksum_is_valid) {
+          response->err = RDM_INVALID_CHECKSUM;
+        } else {
+          response->err = RDM_OK;
+        }
         response->type = rdm_event.response_type;
         // TODO: check for NACK
       }
@@ -581,11 +610,22 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
     if (response != NULL) {
       response->size = response_size;
     }
-    if (response_size) {
+    if (dmx_event.err) {
+      if (response != NULL) {
+        response->err = RDM_FAIL;
+      }
+    } else if (response_size) {
       rdm_event_t rdm_event;
       rdm_parse(driver->data.buffer, response_size, &rdm_event);
       if (response != NULL) {
-        response->checksum_is_valid = rdm_event.checksum_is_valid;
+        if (rdm_event.cc != RDM_CC_GET_COMMAND_RESPONSE ||
+            rdm_event.pid != RDM_PID_BOOT_SOFTWARE_VERSION_LABEL) {
+          response->err = RDM_INVALID_RESPONSE;
+        } else if (!rdm_event.checksum_is_valid) {
+          response->err = RDM_INVALID_CHECKSUM;
+        } else {
+          response->err = RDM_OK;
+        }
         response->type = rdm_event.response_type;
         // TODO: check for NACK
       }
