@@ -254,16 +254,21 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   // Determine if a response is expected
   size_t response_size = 0;
   if (uid != RDM_BROADCAST_UID) {
+    // Receive the response
     dmx_event_t dmx_event;
     response_size = dmx_receive(dmx_num, &dmx_event, DMX_TIMEOUT_TICK);
     if (response != NULL) {
       response->size = response_size;
     }
+
+    // Determine if checksum is valid
     if (dmx_event.err) {
+      // Report invalid checksum on DMX error
       if (response != NULL) {
         response->checksum_is_valid = false;
       }
     } else if (response_size) {
+      // Parse the RDM response
       rdm_event_t rdm_event;
       rdm_parse(driver->data.buffer, response_size, &rdm_event);
       if (response != NULL) {
