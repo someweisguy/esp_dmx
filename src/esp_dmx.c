@@ -13,7 +13,7 @@
 #include "esp_rdm.h"
 #include "impl/dmx_hal.h"
 #include "impl/driver.h"
-#include "impl/rdm_encode.h"
+#include "impl/rdm_encode_types.h"
 #include "rdm_constants.h"
 #include "rdm_types.h"
 

@@ -11,7 +11,8 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "impl/driver.h"
-#include "impl/rdm_encode.h"
+#include "impl/rdm_encode_types.h"
+#include "impl/rdm_encode_funcs.h"
 #include "rdm_constants.h"
 
 // Used for argument checking at the beginning of each function.
@@ -118,35 +119,143 @@ bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header) {
   return is_rdm;
 }
 
+size_t rdm_decode_params(const void *source, size_t size, void *params,
+                         size_t num_params, size_t message_num) {
+  RDM_CHECK(source != NULL, 0, "source is null");
+  RDM_CHECK(params != NULL, 0, "params is null");
+  RDM_CHECK(num_params == 0, 0, "num_params must be greater than 0");
+
+  size_t params_available = 0;
+  const rdm_data_t *data = source;
+
+  // Guard against null pointer errors
+  if (size < 26 || data->pdl == 0 || data->sc != RDM_SC ||
+      data->sub_sc != RDM_SUB_SC) {
+    return params_available;
+  }
+
+  // Search for the correct PID decoder list
+  const rdm_pid_t pid = bswap16(data->pid);
+  if (pid >= 0x0000 && pid < 0x0100) {
+    if (pid == RDM_PID_DISC_MUTE || pid == RDM_PID_DISC_UN_MUTE) {
+      params_available = rdm_decode_disc_mute(data, size, data->cc, params,
+                                              num_params, message_num);
+    } else if (pid == RDM_PID_SUPPORTED_PARAMETERS) {
+      // TODO
+    } else if (pid == RDM_PID_PARAMETER_DESCRIPTION) {
+      // TODO
+    } else if (pid == RDM_PID_DEVICE_INFO) {
+      // TODO
+    } else if (pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
+      // TODO
+    } else if (pid == RDM_PID_DMX_START_ADDRESS) {
+      // TODO
+    }
+  } else if (pid >= 0x1000 && pid < 0x1100) {
+    if (pid == RDM_PID_IDENTIFY_DEVICE) {
+      // TODO
+    }
+  }
+
+  return params_available;
+}
+
+size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
+                  const void *params, size_t num_params, size_t message_num) {
+  // TODO: arg check
+
+  // Guard against null pointer errors
+  if (size < 26) {
+    return 0;
+  }
+
+  size_t bytes_encoded = 0;
+  const rdm_cc_t cc = header->cc;
+  const rdm_pid_t pid = header->pid;
+
+  if (cc == RDM_CC_DISC_COMMAND_RESPONSE && pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+    // Encode DISC_UNIQUE_BRANCH response
+    bytes_encoded = rdm_encode_disc_unique_branch_response(destination, size,
+                                                           header->source_uid);
+  } else {
+    // Encode standard RDM message
+
+    // Encode most of the RDM message header
+    rdm_data_t *buf = destination;
+    buf->sc = RDM_SC;
+    buf->sub_sc = RDM_SUB_SC;
+    buf->message_len = 26;
+    uid_to_buf(buf->destination_uid, header->destination_uid);
+    uid_to_buf(buf->source_uid, header->source_uid);
+    buf->tn = header->tn;
+    buf->port_id = header->port_id;
+    buf->message_count = header->message_count;
+    buf->sub_device = bswap16(header->sub_device);
+    buf->cc = header->cc;
+    buf->pid = bswap16(header->pid);
+
+    // Encode PDL and Parameter Data
+    size_t pdl = 0;
+    if (pid >= 0x0000 && pid < 0x0100) {
+      if (pid == RDM_PID_DISC_MUTE || pid == RDM_PID_DISC_UN_MUTE) {
+        pdl = rdm_encode_disc_mute(buf, size, header->cc, params, num_params,
+                                   message_num);
+      } else if (pid == RDM_PID_SUPPORTED_PARAMETERS) {
+        // TODO
+      } else if (pid == RDM_PID_PARAMETER_DESCRIPTION) {
+        // TODO
+      } else if (pid == RDM_PID_DEVICE_INFO) {
+        // TODO
+      } else if (pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
+        // TODO
+      } else if (pid == RDM_PID_DMX_START_ADDRESS) {
+        // TODO
+      }
+    } else if (pid >= 0x1000 && pid < 0x1100) {
+      if (pid == RDM_PID_IDENTIFY_DEVICE) {
+        // TODO
+      }
+    }
+
+    // Update PDL and message length
+    buf->message_len += pdl;
+    buf->pdl = pdl;
+
+    // Calculate checksum
+    uint16_t checksum = 0;
+    for (int i = 0; i < buf->message_len; ++i) {
+      checksum += *(uint8_t *)(destination + i);
+    }
+    *(uint16_t *)(destination + buf->message_len) = bswap16(checksum);
+
+    bytes_encoded = buf->message_len + 2;
+  }
+
+  return bytes_encoded;
+}
+
 size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Prepare and encode the response
-  uint8_t response[24] = {RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
-                          RDM_PREAMBLE, RDM_PREAMBLE, RDM_PREAMBLE,
-                          RDM_PREAMBLE, RDM_DELIMITER};
-  uint16_t checksum = 0;
-  for (int i = 8, j = 5; i < 20; i += 2, --j) {
-    response[i] = ((uint8_t *)&uid)[j] | 0xaa;
-    response[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
-    checksum += ((uint8_t *)&uid)[j] + (0xaa + 0x55);
-  }
-  response[20] = (checksum >> 8) | 0xaa;
-  response[21] = (checksum >> 8) | 0x55;
-  response[22] = checksum | 0xaa;
-  response[23] = checksum | 0x55;
+  uint8_t data[24];
+  const rdm_header_t header = {
+    .cc = RDM_CC_DISC_COMMAND_RESPONSE,
+    .pid = RDM_PID_DISC_UNIQUE_BRANCH,
+    .source_uid = uid
+  };
+  const size_t written = rdm_encode(data, sizeof(data), &header, NULL, 0, 0);
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Write and send the response
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, response, sizeof(response));
+  dmx_write(dmx_num, data, written);
   const size_t sent = dmx_send(dmx_num, 0);
 
   xSemaphoreGiveRecursive(driver->mux);
-
   return sent;
 }
 
@@ -161,36 +270,23 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
-  // Prepare the RDM request
-  uint8_t request[RDM_BASE_PACKET_SIZE + 12];
-  rdm_data_t *rdm = (rdm_data_t *)request;
-  rdm->sc = RDM_SC;
-  rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_BASE_PACKET_SIZE + 12 - 2;
-  uid_to_buf(rdm->destination_uid, RDM_BROADCAST_UID);
-  uid_to_buf(rdm->source_uid, rdm_get_uid());
-  rdm->tn = driver->rdm_tn;
-  rdm->port_id = dmx_num + 1;
-  rdm->message_count = 0;
-  rdm->sub_device = bswap16(0);
-  rdm->cc = RDM_CC_DISC_COMMAND;
-  rdm->pid = bswap16(RDM_PID_DISC_UNIQUE_BRANCH);
-  rdm->pdl = 12;
+  // Prepare the RDM message
+  uint8_t data[RDM_BASE_PACKET_SIZE + 12];
+  const rdm_header_t header = {
+    .destination_uid = RDM_BROADCAST_UID,
+    .source_uid = rdm_get_uid(),
+    .tn = 0, // TODO: get up-to-date transaction number
+    .port_id = 0,
+    .message_count = 0,
+    .sub_device = 0,
+    .cc = RDM_CC_DISC_COMMAND, 
+    .pid = RDM_PID_DISC_UNIQUE_BRANCH, 
+  };
+  const size_t written = rdm_encode(data, sizeof(data), &header, params, 1, 0);
 
-  // Prepare the RDM request parameters
-  uid_to_buf((void *)&rdm->pd, params->lower_bound);
-  uid_to_buf((void *)&rdm->pd + 6, params->upper_bound);
-
-  // Calculate the checksum
-  uint16_t checksum = 0;
-  for (int i = 0; i < rdm->message_len; ++i) {
-    checksum += request[i];
-  }
-  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
-
-  // Send the RDM request
+  // Send the RDM message
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, sizeof(request));
+  dmx_write(dmx_num, data, written);
   dmx_send(dmx_num, 0);
 
   // Wait for a response

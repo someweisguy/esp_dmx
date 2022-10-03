@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "rdm_constants.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,6 +31,34 @@ typedef struct __attribute__((__packed__)) rdm_data {
   uint8_t pdl;                 // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
   void *pd;                    // The parameter data (PD) is of variable length. The content format is PID dependent.
 } rdm_data_t;
+
+// TODO: docs
+typedef struct __attribute__((__packed__)) rdm_disc_mute_data {
+  union {
+    struct {
+      uint8_t managed_proxy : 1;
+      uint8_t sub_device : 1;
+      uint8_t boot_loader : 1;
+      uint8_t proxied_device : 1;
+    };
+    uint16_t control_field;
+  };
+  uint8_t binding_uid[6];
+} rdm_disc_mute_data_t;
+
+// TODO: docs
+typedef struct __attribute__((__packed__)) rdm_device_info_data_t {
+  uint16_t rdm_version;
+  uint16_t model_id;
+  uint16_t product_category;
+  uint32_t software_version;
+  uint16_t footprint;
+  uint8_t current_personality;
+  uint8_t personality_count;
+  uint16_t start_address;
+  uint16_t sub_device_count;
+  uint8_t sensor_count;
+} rdm_device_info_data_t;
 
 #ifdef __cplusplus
 }
