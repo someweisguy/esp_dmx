@@ -38,7 +38,7 @@ void rdm_set_uid(rdm_uid_t uid) { rdm_uid = uid; }
 
 bool rdm_is_muted() { return rdm_disc_is_muted; }
 
-bool rdm_decode_header(const void *source, size_t size, rdm_event_t *header) {
+bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header) {
   RDM_CHECK(source != NULL, false, "source is null");
   RDM_CHECK(header != NULL, false, "header is null");
 
@@ -203,17 +203,17 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
       response->checksum_is_valid = false;
     }
   } else if (response_size) {
-    rdm_event_t rdm_event;
-    rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
+    rdm_header_t rdm_header;
+    rdm_decode_header(driver->data.buffer, response_size, &rdm_header);
     if (response != NULL) {
-      response->checksum_is_valid = rdm_event.checksum_is_valid;
-      if (rdm_event.checksum_is_valid) {
+      response->checksum_is_valid = rdm_header.checksum_is_valid;
+      if (rdm_header.checksum_is_valid) {
         response->type = RDM_RESPONSE_TYPE_ACK;
       }
     }
 
     if (uid != NULL) {
-      *uid = rdm_event.source_uid;
+      *uid = rdm_header.source_uid;
     }
   }
   xSemaphoreGiveRecursive(driver->mux);
@@ -279,11 +279,11 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       }
     } else if (response_size) {
       // Parse the RDM response
-      rdm_event_t rdm_event;
-      rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
+      rdm_header_t rdm_header;
+      rdm_decode_header(driver->data.buffer, response_size, &rdm_header);
       if (response != NULL) {
-        response->checksum_is_valid = rdm_event.checksum_is_valid;
-        if (rdm_event.checksum_is_valid) {
+        response->checksum_is_valid = rdm_header.checksum_is_valid;
+        if (rdm_header.checksum_is_valid) {
           response->type = RDM_RESPONSE_TYPE_ACK;
         }
       }
@@ -294,7 +294,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       rdm = (rdm_data_t *)response;
 
       // Copy RDM packet parameters
-      if (mute_params != NULL && rdm_event.pdl >= 2) {
+      if (mute_params != NULL && rdm_header.pdl >= 2) {
         struct __attribute__((__packed__)) disc_mute_data_t {
           union {
             struct {
@@ -313,7 +313,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
         mute_params->boot_loader = p->boot_loader;
         mute_params->proxied_device = p->proxied_device;
 
-        if (rdm_event.pdl >= 8) {
+        if (rdm_header.pdl >= 8) {
           mute_params->binding_uid = buf_to_uid(p->binding_uid);
         } else {
           mute_params->binding_uid = 0;
@@ -536,11 +536,11 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
         response->checksum_is_valid = false;
       }
     } else if (response_size) {
-      rdm_event_t rdm_event;
-      rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
+      rdm_header_t rdm_header;
+      rdm_decode_header(driver->data.buffer, response_size, &rdm_header);
       if (response != NULL) {
-        response->checksum_is_valid = rdm_event.checksum_is_valid;
-        response->type = rdm_event.response_type;
+        response->checksum_is_valid = rdm_header.checksum_is_valid;
+        response->type = rdm_header.response_type;
         // TODO: check for NACK
       }
 
@@ -549,7 +549,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
       dmx_read(dmx_num, response, response_size);
       rdm = (rdm_data_t *)response;
 
-      if (device_info != NULL && rdm_event.pdl >= 19) {
+      if (device_info != NULL && rdm_header.pdl >= 19) {
         struct __attribute__((__packed__)) dev_info_data_t {
           uint16_t rdm_version;
           uint16_t model_id;
@@ -638,11 +638,11 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
         response->checksum_is_valid = false;
       }
     } else if (response_size) {
-      rdm_event_t rdm_event;
-      rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
+      rdm_header_t rdm_header;
+      rdm_decode_header(driver->data.buffer, response_size, &rdm_header);
       if (response != NULL) {
-        response->checksum_is_valid = rdm_event.checksum_is_valid;
-        response->type = rdm_event.response_type;
+        response->checksum_is_valid = rdm_header.checksum_is_valid;
+        response->type = rdm_header.response_type;
         // TODO: check for NACK
       }
 
@@ -652,7 +652,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       rdm = (rdm_data_t *)response;
 
       if (param != NULL) {
-        if (rdm_event.pdl > 0) {
+        if (rdm_header.pdl > 0) {
           strncpy(param->software_version_label, (char *)&rdm->pd, 32);
         } else {
           param->software_version_label[0] = 0;

@@ -60,7 +60,7 @@ bool rdm_is_muted();
  * @return false if the data is not a valid RDM packet.
  */
 // TODO: docs
-bool rdm_decode_header(const void *source, size_t size, rdm_event_t *header);
+bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header);
 
 // TODO: docs
 size_t rdm_decode_params(const void *source, size_t pdl, void *params,
