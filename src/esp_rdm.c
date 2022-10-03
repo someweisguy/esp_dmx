@@ -38,73 +38,83 @@ void rdm_set_uid(rdm_uid_t uid) { rdm_uid = uid; }
 
 bool rdm_is_muted() { return rdm_disc_is_muted; }
 
-bool rdm_parse(void *data, size_t size, rdm_event_t *event) {
-  RDM_CHECK(data != NULL, false, "data is null");
-  RDM_CHECK(event != NULL, false, "event is null");
+bool rdm_decode_header(const void *source, size_t size, rdm_event_t *header) {
+  RDM_CHECK(source != NULL, false, "source is null");
+  RDM_CHECK(header != NULL, false, "header is null");
 
-  const rdm_data_t *const rdm = (rdm_data_t *)data;
+  bool is_rdm = false;
+  rdm_data_t *rdm = (rdm_data_t *)source;
 
   if ((rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) && size > 17) {
+    // Decode a DISC_UNIQUE_BRANCH response
+
     // Find the length of the discovery response preamble (0-7 bytes)
     int preamble_len = 0;
-    const uint8_t *response = data;
+    const uint8_t *data = source;
     for (; preamble_len < 7; ++preamble_len) {
-      if (response[preamble_len] == RDM_DELIMITER) {
+      if (data[preamble_len] == RDM_DELIMITER) {
         break;
       }
     }
-    if (response[preamble_len] != RDM_DELIMITER || size < preamble_len + 17) {
-      return false;  // Not a valid discovery response
+    if (data[preamble_len] != RDM_DELIMITER || size < preamble_len + 17) {
+      return is_rdm;  // Not a valid discovery response
     }
 
     // Decode the 6-byte UID and get the packet sum
     rdm_uid_t uid = 0;
     uint16_t sum = 0;
-    response = &((uint8_t *)data)[preamble_len + 1];
+    data = &((uint8_t *)source)[preamble_len + 1];
     for (int i = 5, j = 0; i >= 0; --i, j += 2) {
-      ((uint8_t *)&uid)[i] = response[j] & 0x55;
-      ((uint8_t *)&uid)[i] |= response[j + 1] & 0xaa;
+      ((uint8_t *)&uid)[i] = data[j] & 0x55;
+      ((uint8_t *)&uid)[i] |= data[j + 1] & 0xaa;
       sum += ((uint8_t *)&uid)[i] + 0xff;
     }
 
     // Decode the checksum received in the response
     uint16_t checksum;
     for (int i = 1, j = 12; i >= 0; --i, j += 2) {
-      ((uint8_t *)&checksum)[i] = response[j] & 0x55;
-      ((uint8_t *)&checksum)[i] |= response[j + 1] & 0xaa;
+      ((uint8_t *)&checksum)[i] = data[j] & 0x55;
+      ((uint8_t *)&checksum)[i] |= data[j + 1] & 0xaa;
     }
 
-    // Return DMX data to the caller
-    event->cc = RDM_CC_DISC_COMMAND_RESPONSE;
-    event->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-    event->source_uid = uid;
-    event->checksum_is_valid = (sum == checksum);
-    return (sum == checksum);
+    // Return RDM data to the caller
+    header->destination_uid = RDM_BROADCAST_UID;
+    header->source_uid = uid;
+    header->tn = 0;
+    header->response_type = RDM_RESPONSE_TYPE_ACK;
+    header->message_count = 0;
+    header->sub_device = 0;
+    header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
+    header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
+    header->pdl = 0;
+    header->checksum_is_valid = (sum == checksum);
+    is_rdm = true;
 
-  } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
-             size >= RDM_BASE_PACKET_SIZE) {
-    // Verify the packet checksum
+  } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC && size >= 26) {
+    // Decode a standard RDM message
+
+    // Calculate the checksum
     uint16_t sum = 0;
+    const uint16_t checksum = bswap16(*(uint16_t *)(source + rdm->message_len));
     for (int i = 0; i < rdm->message_len; ++i) {
-      sum += ((uint8_t *)data)[i];
+      sum += *(uint8_t *)(source + i);
     }
-    const uint16_t checksum = bswap16(*(uint16_t *)(data + rdm->message_len));
-    event->checksum_is_valid = (sum == checksum);
 
-    // Copy the packet data to the event if the checksum is valid
-    event->destination_uid = buf_to_uid(rdm->destination_uid);
-    event->source_uid = buf_to_uid(rdm->source_uid);
-    event->tn = rdm->tn;
-    event->port_id = rdm->port_id;  // Also copies response_type
-    event->message_count = rdm->message_count;
-    event->sub_device = bswap16(rdm->sub_device);
-    event->cc = rdm->cc;
-    event->pid = bswap16(rdm->pid);
-    event->pdl = rdm->pdl;
-    return (sum == checksum);
+    // Return RDM data to the caller
+    header->destination_uid = buf_to_uid(rdm->destination_uid);
+    header->source_uid = buf_to_uid(rdm->source_uid);
+    header->tn = rdm->tn;
+    header->response_type = rdm->response_type;
+    header->message_count = rdm->message_count;
+    header->sub_device = bswap16(rdm->sub_device);
+    header->cc = rdm->cc;
+    header->pid = bswap16(rdm->pid);
+    header->pdl = rdm->pdl;
+    header->checksum_is_valid = (sum == checksum);
+    is_rdm = true;
   }
 
-  return false;
+  return is_rdm;
 }
 
 size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid) {
@@ -194,7 +204,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
     }
   } else if (response_size) {
     rdm_event_t rdm_event;
-    rdm_parse(driver->data.buffer, response_size, &rdm_event);
+    rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
     if (response != NULL) {
       response->checksum_is_valid = rdm_event.checksum_is_valid;
       if (rdm_event.checksum_is_valid) {
@@ -270,7 +280,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
     } else if (response_size) {
       // Parse the RDM response
       rdm_event_t rdm_event;
-      rdm_parse(driver->data.buffer, response_size, &rdm_event);
+      rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
       if (response != NULL) {
         response->checksum_is_valid = rdm_event.checksum_is_valid;
         if (rdm_event.checksum_is_valid) {
@@ -527,7 +537,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
       }
     } else if (response_size) {
       rdm_event_t rdm_event;
-      rdm_parse(driver->data.buffer, response_size, &rdm_event);
+      rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
       if (response != NULL) {
         response->checksum_is_valid = rdm_event.checksum_is_valid;
         response->type = rdm_event.response_type;
@@ -629,7 +639,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       }
     } else if (response_size) {
       rdm_event_t rdm_event;
-      rdm_parse(driver->data.buffer, response_size, &rdm_event);
+      rdm_decode_header(driver->data.buffer, response_size, &rdm_event);
       if (response != NULL) {
         response->checksum_is_valid = rdm_event.checksum_is_valid;
         response->type = rdm_event.response_type;

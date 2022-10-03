@@ -59,7 +59,12 @@ bool rdm_is_muted();
  * @return true if the data is a valid RDM packet.
  * @return false if the data is not a valid RDM packet.
  */
-bool rdm_parse(void *data, size_t size, rdm_event_t *event);
+// TODO: docs
+bool rdm_decode_header(const void *source, size_t size, rdm_event_t *header);
+
+// TODO: docs
+size_t rdm_decode_params(const void *source, size_t pdl, void *params,
+                         size_t num_params, size_t message_num);
 
 // TODO: docs
 size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid);
