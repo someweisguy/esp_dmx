@@ -53,13 +53,12 @@ bool rdm_is_muted();
 /**
  * @brief Helper function to parse RDM data into a user-friendly format.
  *
- * @param data A pointer to the RDM data buffer.
+ * @param source A pointer to the RDM data buffer.
  * @param size The size of the RDM data buffer.
- * @param[out] event A structure containing information about the RDM packet.
+ * @param[out] header A structure containing information about the RDM packet.
  * @return true if the data is a valid RDM packet.
  * @return false if the data is not a valid RDM packet.
  */
-// TODO: docs, returns true if source buffer is a valid RDM packet
 bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header);
 
 // TODO: docs, returns number of params able to be decoded
