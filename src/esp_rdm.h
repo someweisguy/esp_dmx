@@ -63,7 +63,7 @@ bool rdm_is_muted();
 bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header);
 
 // TODO: docs, returns number of params able to be decoded
-size_t rdm_decode_params(const void *source, size_t pdl, void *params,
+size_t rdm_decode_params(const void *source, size_t size, void *params,
                          size_t num_params, size_t message_num);
 
 // TODO: docs, returns number of bytes written to destination
