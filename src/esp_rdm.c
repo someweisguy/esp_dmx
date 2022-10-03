@@ -275,8 +275,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   const rdm_header_t header = {
     .destination_uid = RDM_BROADCAST_UID,
     .source_uid = rdm_get_uid(),
-    .tn = 0, // TODO: get up-to-date transaction number
-    .port_id = 0,
+    .tn = 0,  // TODO: get up-to-date transaction number
+    .port_id = 0,  // TODO: use real port ID
     .message_count = 0,
     .sub_device = 0,
     .cc = RDM_CC_DISC_COMMAND, 
@@ -324,38 +324,29 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const uint16_t request_pid = mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE;
+  const rdm_pid_t pid = mute ? RDM_PID_DISC_MUTE : RDM_PID_DISC_UN_MUTE;
 
   // Take mutex so driver values may be accessed
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
-  // Prepare the RDM request
-  uint8_t request[RDM_BASE_PACKET_SIZE];
-  rdm_data_t *rdm = (rdm_data_t *)request;
-  rdm->sc = RDM_SC;
-  rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;  // exclude checksum
-  uid_to_buf(rdm->destination_uid, uid);
-  uid_to_buf(rdm->source_uid, rdm_get_uid());
-  rdm->tn = driver->rdm_tn;
-  rdm->port_id = dmx_num + 1;
-  rdm->message_count = 0;
-  rdm->sub_device = bswap16(0);
-  rdm->cc = RDM_CC_DISC_COMMAND;
-  rdm->pid = bswap16(request_pid);
-  rdm->pdl = 0;
-
-  // Calculate the checksum
-  uint16_t checksum = 0;
-  for (int i = 0; i < rdm->message_len; ++i) {
-    checksum += request[i];
-  }
-  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
+  // Prepare the RDM message
+  uint8_t data[RDM_BASE_PACKET_SIZE];
+  const rdm_header_t header = {
+    .destination_uid = uid,
+    .source_uid = rdm_get_uid(),
+    .tn = 0, // TODO: get up-to-date transaction number
+    .port_id = 0,  // TODO: use real port ID
+    .message_count = 0,
+    .sub_device = 0,
+    .cc = RDM_CC_DISC_COMMAND, 
+    .pid = pid, 
+  };
+  const size_t written = rdm_encode(data, sizeof(data), &header, NULL, 0, 0);
 
   // Send the RDM request
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, sizeof(request));
+  dmx_write(dmx_num, data, written);
   dmx_send(dmx_num, 0);
 
   // Determine if a response is expected
@@ -388,7 +379,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       // Read the data into a buffer
       uint8_t response[RDM_BASE_PACKET_SIZE + 8];
       dmx_read(dmx_num, response, response_size);
-      rdm = (rdm_data_t *)response;
+      rdm_data_t *rdm = (rdm_data_t *)response;
 
       // Copy RDM packet parameters
       if (mute_params != NULL && rdm_header.pdl >= 2) {
