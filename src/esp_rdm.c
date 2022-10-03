@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "impl/driver.h"
+#include "impl/rdm_encode.h"
 #include "rdm_constants.h"
 
 // Used for argument checking at the beginning of each function.
