@@ -231,11 +231,6 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
     bytes_encoded = buf->message_len + 2;
   }
 
-  for (int i = 0; i < bytes_encoded; ++i) {
-    printf("%02x ", ((uint8_t *)destination)[i]);
-  }
-  printf("\n");
-
   return bytes_encoded;
 }
 
