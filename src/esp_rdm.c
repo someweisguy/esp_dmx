@@ -198,7 +198,7 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
     data[22] = checksum | 0xaa;
     data[23] = checksum | 0x55;
 
-    bytes_encoded = 24;
+    bytes_encoded = preamble_len + 17;
   } else if (size >= RDM_BASE_PACKET_SIZE) {
     // Encode standard RDM message
 
