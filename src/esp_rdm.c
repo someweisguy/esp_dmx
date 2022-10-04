@@ -171,14 +171,15 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
   const rdm_pid_t pid = header->pid;
 
   if (cc == RDM_CC_DISC_COMMAND_RESPONSE && pid == RDM_PID_DISC_UNIQUE_BRANCH &&
-      size >= 24) {
+      size >= 17) {
     // Encode DISC_UNIQUE_BRANCH response
     
     uint8_t *data = destination;
     const rdm_uid_t uid = header->source_uid;
 
     // Encode the RDM preamble and delimiter
-    for (int i = 0; i < 7; ++i) {
+    const size_t preamble_len = size - 17 <= 7 ? size - 17 : 7;
+    for (int i = 0; i < preamble_len; ++i) {
       data[i] = RDM_PREAMBLE;
     }
     data[7] = RDM_DELIMITER;
