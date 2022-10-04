@@ -123,7 +123,7 @@ size_t rdm_decode_params(const void *source, size_t size, void *params,
                          size_t num_params, size_t message_num) {
   RDM_CHECK(source != NULL, 0, "source is null");
   RDM_CHECK(params != NULL, 0, "params is null");
-  RDM_CHECK(num_params == 0, 0, "num_params must be greater than 0");
+  RDM_CHECK(num_params > 0, 0, "num_params is 0");
 
   size_t params_available = 0;
   const rdm_data_t *data = source;
@@ -162,7 +162,9 @@ size_t rdm_decode_params(const void *source, size_t size, void *params,
 
 size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
                   const void *params, size_t num_params, size_t message_num) {
-  // TODO: arg check
+  RDM_CHECK(destination != NULL, 0, "destination is null");
+  RDM_CHECK(size > 0, 0, "size is 0");
+  RDM_CHECK(header != NULL, 0, "header is null");
 
   size_t bytes_encoded = 0;
   const rdm_cc_t cc = header->cc;
