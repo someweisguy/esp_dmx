@@ -184,7 +184,7 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
     rdm_data_t *buf = destination;
     buf->sc = RDM_SC;
     buf->sub_sc = RDM_SUB_SC;
-    buf->message_len = 26;
+    buf->message_len = RDM_BASE_PACKET_SIZE - 2;  // Exclude checksum
     uid_to_buf(buf->destination_uid, header->destination_uid);
     uid_to_buf(buf->source_uid, header->source_uid);
     buf->tn = header->tn;
@@ -231,6 +231,11 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
     bytes_encoded = buf->message_len + 2;
   }
 
+  for (int i = 0; i < bytes_encoded; ++i) {
+    printf("%02x ", ((uint8_t *)destination)[i]);
+  }
+  printf("\n");
+
   return bytes_encoded;
 }
 
@@ -276,7 +281,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
     .destination_uid = RDM_BROADCAST_UID,
     .source_uid = rdm_get_uid(),
     .tn = 0,  // TODO: get up-to-date transaction number
-    .port_id = 0,  // TODO: use real port ID
+    .port_id = dmx_num + 1,
     .message_count = 0,
     .sub_device = 0,
     .cc = RDM_CC_DISC_COMMAND, 
@@ -336,7 +341,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
     .destination_uid = uid,
     .source_uid = rdm_get_uid(),
     .tn = 0, // TODO: get up-to-date transaction number
-    .port_id = 0,  // TODO: use real port ID
+    .port_id = dmx_num + 1,
     .message_count = 0,
     .sub_device = 0,
     .cc = RDM_CC_DISC_COMMAND, 
