@@ -173,8 +173,31 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
   if (cc == RDM_CC_DISC_COMMAND_RESPONSE && pid == RDM_PID_DISC_UNIQUE_BRANCH &&
       size >= 24) {
     // Encode DISC_UNIQUE_BRANCH response
-    bytes_encoded = rdm_encode_disc_unique_branch_response(destination, size,
-                                                           header->source_uid);
+    
+    uint8_t *data = destination;
+    const rdm_uid_t uid = header->source_uid;
+
+    // Encode the RDM preamble and delimiter
+    for (int i = 0; i < 7; ++i) {
+      data[i] = RDM_PREAMBLE;
+    }
+    data[7] = RDM_DELIMITER;
+
+    // Encode the UID and calculate the checksum
+    uint16_t checksum = 0;
+    for (int i = 8, j = 5; i < 20; i += 2, --j) {
+      data[i] = ((uint8_t *)&uid)[j] | 0xaa;
+      data[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
+      checksum += ((uint8_t *)&uid)[j] + (0xaa + 0x55);
+    }
+
+    // Encode the checksum
+    data[20] = (checksum >> 8) | 0xaa;
+    data[21] = (checksum >> 8) | 0x55;
+    data[22] = checksum | 0xaa;
+    data[23] = checksum | 0x55;
+
+    bytes_encoded = 24;
   } else if (size >= RDM_BASE_PACKET_SIZE) {
     // Encode standard RDM message
 

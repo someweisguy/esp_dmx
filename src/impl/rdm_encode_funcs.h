@@ -11,33 +11,6 @@
 extern "C" {
 #endif
 
-size_t rdm_encode_disc_unique_branch_response(void *destination, size_t size,
-                                              rdm_uid_t uid) {
-  uint8_t *data = destination;
-  
-  // Encode the RDM preamble and delimiter
-  for (int i = 0; i < 7; ++i) {
-    data[i] = RDM_PREAMBLE;
-  }
-  data[7] = RDM_DELIMITER;
-  
-  // Encode the UID and calculate the checksum
-  uint16_t checksum = 0;
-  for (int i = 8, j = 5; i < 20; i += 2, --j) {
-    data[i] = ((uint8_t *)&uid)[j] | 0xaa;
-    data[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
-    checksum += ((uint8_t *)&uid)[j] + (0xaa + 0x55);
-  }
-
-  // Encode the checksum
-  data[20] = (checksum >> 8) | 0xaa;
-  data[21] = (checksum >> 8) | 0x55;
-  data[22] = checksum | 0xaa;
-  data[23] = checksum | 0x55;
-
-  return 24;
-}
-
 size_t rdm_encode_disc_mute(rdm_data_t *destination, size_t size, rdm_cc_t cc,
                             const void *params, size_t num_params,
                             size_t message_num) {
