@@ -32,6 +32,11 @@ typedef struct __attribute__((__packed__)) rdm_data {
   void *pd;                    // The parameter data (PD) is of variable length. The content format is PID dependent.
 } rdm_data_t;
 
+typedef struct __attribute__((__packed__)) rdm_disc_unique_branch_data {
+  uint8_t lower_bound[6];
+  uint8_t upper_bound[6];
+} rdm_disc_unique_branch_data_t;
+
 // TODO: docs
 typedef struct __attribute__((__packed__)) rdm_disc_mute_data {
   union {

@@ -11,6 +11,42 @@
 extern "C" {
 #endif
 
+size_t rdm_encode_disc_unique_branch(rdm_data_t *destination, size_t size, 
+                                     rdm_cc_t cc, const void *params) {
+  size_t bytes_encoded = 0;
+  rdm_disc_unique_branch_data_t *buf =
+      (rdm_disc_unique_branch_data_t *)destination->pd;
+  const rdm_disc_unique_branch_t *pd = params;
+  
+  // No parameters to encode on RDM_CC_DISC_COMMAND_RESPONSE
+
+  if (cc == RDM_CC_DISC_COMMAND) {
+    uid_to_buf(buf->lower_bound, pd->lower_bound);
+    uid_to_buf(buf->upper_bound, pd->upper_bound);
+    bytes_encoded = sizeof(*buf);
+  }
+
+  return bytes_encoded;
+}
+
+size_t rdm_decode_disc_unique_branch(const rdm_data_t *source, size_t size, 
+                                     rdm_cc_t cc, void *params) {
+  size_t params_available = 0;
+  const rdm_disc_unique_branch_data_t *buf =
+      (rdm_disc_unique_branch_data_t *)source->pd;
+  rdm_disc_unique_branch_t *pd = params;
+
+  // No parameters to encode on RDM_CC_DISC_COMMAND_RESPONSE
+
+  if (cc == RDM_CC_DISC_COMMAND) {
+    pd->lower_bound = buf_to_uid(buf->lower_bound);
+    pd->upper_bound = buf_to_uid(buf->upper_bound);
+    params_available = 1;
+  }
+
+  return params_available;
+}
+
 size_t rdm_encode_disc_mute(rdm_data_t *destination, size_t size, rdm_cc_t cc,
                             const void *params, size_t num_params,
                             size_t message_num) {
