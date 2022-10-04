@@ -164,20 +164,16 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
                   const void *params, size_t num_params, size_t message_num) {
   // TODO: arg check
 
-  // Guard against null pointer errors
-  if (size < 26) {
-    return 0;
-  }
-
   size_t bytes_encoded = 0;
   const rdm_cc_t cc = header->cc;
   const rdm_pid_t pid = header->pid;
 
-  if (cc == RDM_CC_DISC_COMMAND_RESPONSE && pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+  if (cc == RDM_CC_DISC_COMMAND_RESPONSE && pid == RDM_PID_DISC_UNIQUE_BRANCH &&
+      size >= 24) {
     // Encode DISC_UNIQUE_BRANCH response
     bytes_encoded = rdm_encode_disc_unique_branch_response(destination, size,
                                                            header->source_uid);
-  } else {
+  } else if (size >= RDM_BASE_PACKET_SIZE) {
     // Encode standard RDM message
 
     // Encode most of the RDM message header
