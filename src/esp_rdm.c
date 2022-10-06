@@ -138,8 +138,7 @@ size_t rdm_decode_params(const void *source, size_t size, void *params,
   const rdm_pid_t pid = bswap16(data->pid);
   if (pid >= 0x0000 && pid < 0x0100) {
     if (pid == RDM_PID_DISC_MUTE || pid == RDM_PID_DISC_UN_MUTE) {
-      params_available = rdm_decode_disc_mute(data, size, data->cc, params,
-                                              num_params, message_num);
+      params_available = rdm_decode_disc_mute(data, size, params);
     } else if (pid == RDM_PID_SUPPORTED_PARAMETERS) {
       // TODO
     } else if (pid == RDM_PID_PARAMETER_DESCRIPTION) {
@@ -220,8 +219,9 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
     size_t pdl = 0;
     if (pid >= 0x0000 && pid < 0x0100) {
       if (pid == RDM_PID_DISC_MUTE || pid == RDM_PID_DISC_UN_MUTE) {
-        pdl = rdm_encode_disc_mute(buf, size, header->cc, params, num_params,
-                                   message_num);
+        if (cc == RDM_CC_DISC_COMMAND || cc == RDM_CC_DISC_COMMAND_RESPONSE) {
+          pdl = rdm_encode_disc_mute(buf, size, params);
+        }
       } else if (pid == RDM_PID_SUPPORTED_PARAMETERS) {
         // TODO
       } else if (pid == RDM_PID_PARAMETER_DESCRIPTION) {
