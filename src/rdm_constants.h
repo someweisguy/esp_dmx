@@ -54,6 +54,8 @@ typedef enum rdm_command_class {
  * indicate the acknowledgement type of the response.
  */
 typedef enum rdm_response_type {
+  RDM_RESPONSE_TYPE_NONE = -1, // TODO: docs
+
   RDM_RESPONSE_TYPE_ACK = 0x00,          // Indicates that the responder has correctly received the controller message and is acting upon the message.
   RDM_RESPONSE_TYPE_ACK_TIMER = 0x01,    // Indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time.
   RDM_RESPONSE_TYPE_NACK_REASON = 0x02,  // Indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command.

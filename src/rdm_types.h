@@ -42,12 +42,12 @@ typedef struct rdm_header {
 
 // TODO: docs
 typedef struct rdm_response {
-  bool checksum_is_valid;
-  size_t size;
+  esp_err_t err;
   rdm_response_type_t type;
   union {
-    TickType_t timer;
+    unsigned int timer;  // TODO: use ticktype
     rdm_nr_t nack_reason;
+    size_t num_params;
   };
 } rdm_response_t;
 
