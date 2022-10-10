@@ -513,11 +513,10 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
   return num_params;
 }
 
-
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
                                       rdm_response_t *response,
-                                      char param[32]) {
+                                      char label[32]) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -537,11 +536,11 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       .cc = RDM_CC_GET_COMMAND,
       .pid = RDM_PID_SOFTWARE_VERSION_LABEL,
   };
-  const size_t written = rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE,
-                                    &header, NULL, 0, 0);
+  const size_t written =
+      rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE, &header, NULL, 0, 0);
   dmx_send(dmx_num, written);
 
-   // Initialize the response to the default values
+  // Initialize the response to the default values
   if (response != NULL) {
     response->err = ESP_OK;
     response->type = RDM_RESPONSE_TYPE_NONE;
@@ -551,7 +550,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
   // Wait for a response if necessary
   size_t num_params = 0;
   if (uid != RDM_BROADCAST_UID) {
-    // Wait for a response 
+    // Wait for a response
     dmx_event_t packet;
     const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
     if (packet.err) {
@@ -562,16 +561,15 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
         response->err = ESP_ERR_INVALID_RESPONSE;
       } else if (!header.checksum_is_valid) {
         response->err = ESP_ERR_INVALID_CRC;
-      } // TODO: more error checking
+      }  // TODO: more error checking
 
       // Read the data into a buffer
       response->type = header.response_type;
       if (response->type == RDM_RESPONSE_TYPE_ACK) {
-        num_params = rdm_decode_string((rdm_data_t *)driver->data.buffer,
-                                        read, param);
+        num_params =
+            rdm_decode_string((rdm_data_t *)driver->data.buffer, read, label);
         response->num_params = num_params;
       }
-
     }
   } else {
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
@@ -581,4 +579,3 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
 
   return num_params;
 }
-
