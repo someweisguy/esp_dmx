@@ -215,8 +215,10 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
       response->err = ESP_ERR_INVALID_CRC;
     } // TODO: more error checking?
 
-    // This is a special case in which no params are decoded
+    // This is a special case in which params are decoded from the header only
     *uid = header.source_uid;
+    response->num_params = 1;
+    num_params = 1;
   }
 
   xSemaphoreGiveRecursive(driver->mux);
