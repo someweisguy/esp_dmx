@@ -99,7 +99,9 @@ size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
     // Encode PDL and Parameter Data
     size_t pdl = 0;
     if (pid >= 0x0000 && pid < 0x0100) {
-      if (pid == RDM_PID_DISC_MUTE || pid == RDM_PID_DISC_UN_MUTE) {
+      if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+        pdl = rdm_encode_disc_unique_branch(buf, size, params);
+      } else if (pid == RDM_PID_DISC_MUTE || pid == RDM_PID_DISC_UN_MUTE) {
         if (cc == RDM_CC_DISC_COMMAND_RESPONSE) {
           pdl = rdm_encode_disc_mute(buf, size, params);
         }
@@ -247,9 +249,9 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
     .cc = RDM_CC_DISC_COMMAND, 
     .pid = pid, 
   };
-  const size_t bytes_encoded =
+  const size_t written =
       rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE, &header, NULL, 0, 0);
-  dmx_send(dmx_num, bytes_encoded);
+  dmx_send(dmx_num, written);
 
   // Initialize the response to the default values
   if (response != NULL) {
@@ -287,6 +289,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   } else {
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
+
   xSemaphoreGiveRecursive(driver->mux);
 
   return num_params;
