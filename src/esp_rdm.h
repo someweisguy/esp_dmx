@@ -76,7 +76,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            uint16_t sub_device, rdm_response_t *response,
                            rdm_device_info_t *device_info);
 
-// TODO: get software version label
+// TODO: docs
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
                                       rdm_response_t *response, char label[32]);
