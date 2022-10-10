@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "esp_dmx.h"
-#include "impl/rdm_encode_types.h"
+#include "private/rdm_encode_types.h"
 #include "rdm_constants.h"
 #include "rdm_types.h"
 

@@ -10,9 +10,9 @@
 #include "esp_dmx.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "impl/driver.h"
-#include "impl/rdm_encode_types.h"
-#include "impl/rdm_encode_funcs.h"
+#include "private/driver.h"
+#include "private/rdm_encode_types.h"
+#include "private/rdm_encode_funcs.h"
 #include "rdm_constants.h"
 
 // Used for argument checking at the beginning of each function.
