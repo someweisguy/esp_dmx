@@ -82,16 +82,25 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       rdm_response_t *response,
                                       char param[32]);
 
-// TODO: get/set identify device
-size_t rdm_send_identify_device(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
-                                uint16_t sub_device, rdm_response_t *response, 
-                                bool *param);
+// TODO: docs
+size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
+                               uint16_t sub_device, rdm_response_t *response,
+                               bool *identify_state);
 
-// TODO: get/set dmx start address
-size_t rdm_send_dmx_start_address(dmx_port_t dmx_num, rdm_cc_t cc,
-                                  rdm_uid_t uid, uint16_t sub_device,
-                                  rdm_response_t *response,
-                                  int *param);
+// TODO: docs
+size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
+                               uint16_t sub_device, rdm_response_t *response,
+                               const bool *identify_state);
+
+// TODO: docs
+size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
+                                 uint16_t sub_device, rdm_response_t *response,
+                                 int *start_address);
+
+// TODO: docs
+size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
+                                 uint16_t sub_device, rdm_response_t *response,
+                                 const int *start_address);
 
 // TODO: get supported parameters
 
