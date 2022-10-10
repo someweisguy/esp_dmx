@@ -80,19 +80,6 @@ typedef struct rdm_device_info {
   size_t sensor_count;
 } rdm_device_info_t;
 
-// TODO: docs
-typedef struct rdm_software_version_label {
-  char software_version_label[32];
-} rdm_software_version_label_t;
-
-typedef struct rdm_identify_device {
-  bool on;
-} rdm_identify_device_t;
-
-typedef struct rdm_dmx_start_address {
-  int address;
-} rdm_dmx_start_address_t;
-
 #ifdef __cplusplus
 }
 #endif

@@ -166,6 +166,25 @@ size_t rdm_decode_device_info(const rdm_data_t *source, size_t size,
   return 1;
 }
 
+size_t rdm_encode_string(rdm_data_t *destination, size_t size,
+                         const char string[32]) {
+  strncpy(destination->pd, string, 32);
+  return strnlen(string, 32);
+}
+
+size_t rdm_decode_string(const rdm_data_t *source, size_t size,
+                         char string[32]) {
+  const char *buf = source->pd;
+  size_t num_params = 0;
+
+  if (source->pdl > 0) {
+    strncpy(string, buf, 32);
+    num_params = 1;
+  }
+
+  return num_params;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -513,89 +513,72 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
   return num_params;
 }
 
-/*
+
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
                                       rdm_response_t *response,
-                                      rdm_software_version_label_t *param) {
+                                      char param[32]) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // Take mutex so driver values may be accessed
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-
-  // Prepare the RDM request
-  uint8_t request[RDM_BASE_PACKET_SIZE];
-  rdm_data_t *rdm = (rdm_data_t *)request;
-  rdm->sc = RDM_SC;
-  rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = RDM_BASE_PACKET_SIZE - 2;  // exclude checksum
-  uid_to_buf(rdm->destination_uid, uid);
-  uid_to_buf(rdm->source_uid, rdm_get_uid());
-  rdm->tn = driver->rdm_tn;
-  rdm->port_id = dmx_num + 1;
-  rdm->message_count = 0;
-  rdm->sub_device = bswap16(sub_device);
-  rdm->cc = RDM_CC_GET_COMMAND;
-  rdm->pid = bswap16(RDM_PID_BOOT_SOFTWARE_VERSION_LABEL);
-  rdm->pdl = 0;
-
-  // Calculate the checksum
-  uint16_t checksum = 0;
-  for (int i = 0; i < rdm->message_len; ++i) {
-    checksum += request[i];
-  }
-  *(uint16_t *)(&request[rdm->message_len]) = bswap16(checksum);
-
-  // Send the RDM request
   dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, request, sizeof(request));
-  dmx_send(dmx_num, 0);
 
-  size_t response_size = 0;
+  // Encode and send the RDM message
+  const rdm_header_t header = {
+      .destination_uid = uid,
+      .source_uid = rdm_get_uid(),
+      .tn = 0,  // TODO: get up-to-date transaction number
+      .port_id = dmx_num + 1,
+      .message_count = 0,
+      .sub_device = 0,
+      .cc = RDM_CC_GET_COMMAND,
+      .pid = RDM_PID_SOFTWARE_VERSION_LABEL,
+  };
+  const size_t written = rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE,
+                                    &header, NULL, 0, 0);
+  dmx_send(dmx_num, written);
+
+   // Initialize the response to the default values
+  if (response != NULL) {
+    response->err = ESP_OK;
+    response->type = RDM_RESPONSE_TYPE_NONE;
+    response->num_params = 0;
+  }
+
+  // Wait for a response if necessary
+  size_t num_params = 0;
   if (uid != RDM_BROADCAST_UID) {
-    dmx_event_t dmx_event;
-    response_size = dmx_receive(dmx_num, &dmx_event, DMX_TIMEOUT_TICK);
-    if (response != NULL) {
-      response->size = response_size;
-    }
-    if (dmx_event.err) {
-      if (response != NULL) {
-        response->checksum_is_valid = false;
-      }
-    } else if (response_size) {
-      rdm_header_t rdm_header;
-      rdm_decode_header(driver->data.buffer, response_size, &rdm_header);
-      if (response != NULL) {
-        response->checksum_is_valid = rdm_header.checksum_is_valid;
-        response->type = rdm_header.response_type;
-        // TODO: check for NACK
-      }
+    // Wait for a response 
+    dmx_event_t packet;
+    const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
+    if (packet.err) {
+      response->err = packet.err;
+    } else if (read) {
+      rdm_header_t header;
+      if (!rdm_decode_header(driver->data.buffer, read, &header)) {
+        response->err = ESP_ERR_INVALID_RESPONSE;
+      } else if (!header.checksum_is_valid) {
+        response->err = ESP_ERR_INVALID_CRC;
+      } // TODO: more error checking
 
       // Read the data into a buffer
-      uint8_t response[RDM_BASE_PACKET_SIZE + 32];
-      dmx_read(dmx_num, response, response_size);
-      rdm = (rdm_data_t *)response;
-
-      if (param != NULL) {
-        if (rdm_header.pdl > 0) {
-          strncpy(param->software_version_label, (char *)&rdm->pd, 32);
-        } else {
-          param->software_version_label[0] = 0;
-        }
+      response->type = header.response_type;
+      if (response->type == RDM_RESPONSE_TYPE_ACK) {
+        num_params = rdm_decode_string((rdm_data_t *)driver->data.buffer,
+                                        read, param);
+        response->num_params = num_params;
       }
 
     }
   } else {
-    if (response != NULL) {
-      response->size = 0;
-    }
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
+
   xSemaphoreGiveRecursive(driver->mux);
 
-  return response_size;
+  return num_params;
 }
-*/
+
