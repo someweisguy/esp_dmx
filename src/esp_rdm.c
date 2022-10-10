@@ -320,29 +320,29 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
   size_t num_found = 0;
   while (stack_size > 0) {
-    rdm_disc_unique_branch_t *params = &stack[--stack_size];
+    rdm_disc_unique_branch_t *branch = &stack[--stack_size];
     size_t attempts = 0;
     rdm_response_t response;
     rdm_uid_t uid;
 
-    if (params->lower_bound == params->upper_bound) {
+    if (branch->lower_bound == branch->upper_bound) {
       // Can't branch further so attempt to mute the device
-      uid = params->lower_bound;
-      rdm_disc_mute_t mute_params;
+      uid = branch->lower_bound;
+      rdm_disc_mute_t mute;
       do {
-        rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+        rdm_send_disc_mute(dmx_num, uid, true, &response, &mute);
       } while (response.num_params == 0 && ++attempts < 3);
 
       // Attempt to fix possible error where responder is flipping its own UID
       if (response.num_params == 0) {
         uid = bswap64(uid) >> 16;  // Flip UID
-        rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+        rdm_send_disc_mute(dmx_num, uid, true, &response, &mute);
       }
 
       // Add the UID to the list
       if (response.num_params > 0 && !response.err) {
-        if (mute_params.binding_uid) {
-          uid = mute_params.binding_uid;
+        if (mute.binding_uid) {
+          uid = mute.binding_uid;
         }
         cb(dmx_num, uid, num_found, context);
         ++num_found;
@@ -350,7 +350,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
     } else {
       // Search the current branch in the RDM address space
       do {
-        rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
+        rdm_send_disc_unique_branch(dmx_num, branch, &response, &uid);
       } while (response.num_params == 0 && ++attempts < 3);
       if (response.num_params > 0) {
         bool devices_remaining = true;
@@ -366,15 +366,15 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
           for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
             // Attempt to mute the device
             attempts = 0;
-            rdm_disc_mute_t mute_params;
+            rdm_disc_mute_t mute;
             do {
-              rdm_send_disc_mute(dmx_num, uid, true, &response, &mute_params);
+              rdm_send_disc_mute(dmx_num, uid, true, &response, &mute);
             } while (response.num_params == 0 && ++attempts < 3);
 
             // Add the UID to the list
             if (response.num_params > 0) {
-              if (mute_params.binding_uid) {
-                uid = mute_params.binding_uid;
+              if (mute.binding_uid) {
+                uid = mute.binding_uid;
               }
               cb(dmx_num, uid, num_found, context);
               ++num_found;
@@ -383,7 +383,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
             // Check if there are more devices in this branch
             attempts = 0;
             do {
-              rdm_send_disc_unique_branch(dmx_num, params, &response, &uid);
+              rdm_send_disc_unique_branch(dmx_num, branch, &response, &uid);
             } while (response.num_params == 0 && ++attempts < 3);
             if (response.num_params > 0 && response.err) {
               // There are more devices in this branch - branch further
@@ -400,8 +400,8 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
         // Recursively search the next two RDM address spaces
         if (devices_remaining) {
-          const rdm_uid_t lower_bound = params->lower_bound;
-          const rdm_uid_t mid = (lower_bound + params->upper_bound) / 2;
+          const rdm_uid_t lower_bound = branch->lower_bound;
+          const rdm_uid_t mid = (lower_bound + branch->upper_bound) / 2;
 
           // Add the upper branch so that it gets handled second
           stack[stack_size].lower_bound = mid + 1;
