@@ -81,22 +81,22 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
                                       rdm_response_t *response, char label[32]);
 
-// TODO: docs
+// TODO: implement, docs
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
                                uint16_t sub_device, rdm_response_t *response,
                                bool *identify_state);
 
-// TODO: docs
+// TODO: implement, docs
 size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
                                uint16_t sub_device, rdm_response_t *response,
                                const bool *identify_state);
 
-// TODO: docs
+// TODO: implement, docs
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
                                  uint16_t sub_device, rdm_response_t *response,
                                  int *start_address);
 
-// TODO: docs
+// TODO: implement, docs
 size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_cc_t cc, rdm_uid_t uid,
                                  uint16_t sub_device, rdm_response_t *response,
                                  const int *start_address);
