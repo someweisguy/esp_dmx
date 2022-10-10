@@ -45,7 +45,7 @@ typedef struct rdm_response {
   esp_err_t err;
   rdm_response_type_t type;
   union {
-    unsigned int timer;  // TODO: use ticktype
+    TickType_t timer;
     rdm_nr_t nack_reason;
     size_t num_params;
   };
