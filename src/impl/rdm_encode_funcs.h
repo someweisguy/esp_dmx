@@ -89,15 +89,17 @@ bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header) {
 
 size_t rdm_encode_disc_unique_branch(rdm_data_t *destination, size_t size,
                                      const rdm_disc_unique_branch_t *param) {
-  rdm_disc_unique_branch_data_t *buf = &destination->pd;
+  rdm_disc_unique_branch_data_t *buf =
+      (rdm_disc_unique_branch_data_t *)&destination->pd;
   uid_to_buf(buf->lower_bound, param->lower_bound);
   uid_to_buf(buf->upper_bound, param->upper_bound);
   return sizeof(*buf);
 }
 
-size_t rdm_decode_disc_unique_branch(const rdm_data_t *source, size_t size, 
+size_t rdm_decode_disc_unique_branch(const rdm_data_t *source, size_t size,
                                      rdm_disc_unique_branch_t *param) {
-  const rdm_disc_unique_branch_data_t *buf = &source->pd;
+  const rdm_disc_unique_branch_data_t *buf =
+      (const rdm_disc_unique_branch_data_t *)&source->pd;
   param->lower_bound = buf_to_uid(buf->lower_bound);
   param->upper_bound = buf_to_uid(buf->upper_bound);
   return 1;
@@ -105,7 +107,7 @@ size_t rdm_decode_disc_unique_branch(const rdm_data_t *source, size_t size,
 
 size_t rdm_encode_disc_mute(rdm_data_t *destination, size_t size,
                             const rdm_disc_mute_t *param) {
-  rdm_disc_mute_data_t *buf = &destination->pd;
+  rdm_disc_mute_data_t *buf = (rdm_disc_mute_data_t *)&destination->pd;
   buf->managed_proxy = param->managed_proxy;
   buf->sub_device = param->sub_device;
   buf->boot_loader = param->boot_loader;
@@ -121,7 +123,7 @@ size_t rdm_encode_disc_mute(rdm_data_t *destination, size_t size,
 
 size_t rdm_decode_disc_mute(const rdm_data_t *source, size_t size,
                             rdm_disc_mute_t *param) {
-  const rdm_disc_mute_data_t *buf = &source->pd;
+  const rdm_disc_mute_data_t *buf = (const rdm_disc_mute_data_t *)&source->pd;
   param->managed_proxy = buf->managed_proxy;
   param->sub_device = buf->sub_device;
   param->boot_loader = buf->boot_loader;
@@ -137,7 +139,7 @@ size_t rdm_decode_disc_mute(const rdm_data_t *source, size_t size,
 
 size_t rdm_encode_device_info(rdm_data_t *destination, size_t size,
                               const rdm_device_info_t *param) {
-  rdm_device_info_data_t *buf = &destination->pd;
+  rdm_device_info_data_t *buf = (rdm_device_info_data_t *)&destination->pd;
   buf->rdm_version = param->rdm_version;
   buf->model_id = param->model_id;
   buf->product_category = param->product_category;
@@ -151,9 +153,10 @@ size_t rdm_encode_device_info(rdm_data_t *destination, size_t size,
   return sizeof(rdm_device_info_data_t);
 }
 
-size_t rdm_decode_device_info(const rdm_data_t *source, size_t size, 
+size_t rdm_decode_device_info(const rdm_data_t *source, size_t size,
                               rdm_device_info_t *param) {
-  const rdm_device_info_data_t *buf = &source->pd;
+  const rdm_device_info_data_t *buf =
+      (const rdm_device_info_data_t *)&source->pd;
   param->rdm_version = buf->rdm_version;
   param->model_id = buf->model_id;
   param->product_category = buf->product_category;
@@ -168,13 +171,13 @@ size_t rdm_decode_device_info(const rdm_data_t *source, size_t size,
 
 size_t rdm_encode_string(rdm_data_t *destination, size_t size,
                          const char string[32]) {
-  strncpy(&destination->pd, string, 32);
+  strncpy((char *)&destination->pd, string, 32);
   return strnlen(string, 32);
 }
 
 size_t rdm_decode_string(const rdm_data_t *source, size_t size,
                          char string[32]) {
-  const char *buf = &source->pd;
+  const char *buf = (const char *)&source->pd;
   size_t num_params = 0;
 
   if (source->pdl > 0) {
