@@ -15,6 +15,7 @@
 #pragma once
 
 #include "hal/uart_hal.h"
+#include "driver/timer.h"
 
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 #define DMX_ISR_ATTR IRAM_ATTR
@@ -27,26 +28,63 @@ extern "C" {
 #endif
 
 /**
+ * @brief The context for the DMX driver. Contains a pointer to UART registers
+ * as well as a spinlock for synchronizing access to resources and tracks if the
+ * UART hardware has been enabled.
+ */
+typedef struct dmx_context {
+  spinlock_t spinlock;     // Synchronizes hardware and driver operations.
+  uart_dev_t *dev;
+  int hw_enabled;          // True if the UART hardware has been initialized.
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else
+  timer_group_t timer_group;
+  timer_idx_t timer_idx;
+#endif
+  int timer_running;
+} dmx_context_t;
+
+/**
  * @brief Initializes the UART for DMX.
  *
  * @param hal A pointer to a UART HAL context.
  */
-void dmx_hal_init(uart_hal_context_t *hal) {
-  uart_ll_set_sclk(hal->dev, UART_SCLK_APB);
-  uart_ll_set_baudrate(hal->dev, DMX_BAUD_RATE);
-  uart_ll_set_mode(hal->dev, UART_MODE_RS485_HALF_DUPLEX);
-  uart_ll_set_parity(hal->dev, UART_PARITY_DISABLE);
-  uart_ll_set_data_bit_num(hal->dev, UART_DATA_8_BITS);
-  uart_ll_set_stop_bits(hal->dev, UART_STOP_BITS_2);
-  uart_ll_tx_break(hal->dev, 0);
-  uart_ll_set_tx_idle_num(hal->dev, 0);
-  uart_ll_set_hw_flow_ctrl(hal->dev, UART_HW_FLOWCTRL_DISABLE, 100);
+void dmx_uart_init(dmx_port_t dmx_num, dmx_context_t *ctx) {
+  // Initialize the UART peripheral 
+  taskENTER_CRITICAL(&ctx->spinlock);
+  if (!ctx->hw_enabled) {
+    periph_module_enable(uart_periph_signal[dmx_num].module);
+    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+#if SOC_UART_REQUIRE_CORE_RESET
+      // ESP32-C3 workaround to prevent UART outputting garbage data.
+      uart_hal_set_reset_core(&context->hal, true);
+      periph_module_reset(uart_periph_signal[dmx_num].module);
+      uart_hal_set_reset_core(&context->hal), false);
+#else
+      periph_module_reset(uart_periph_signal[dmx_num].module);
+#endif
+    }
+    ctx->hw_enabled = true;
+  }
+  taskEXIT_CRITICAL(&ctx->spinlock);
+
+  // Configure the UART for DMX output
+  uart_ll_set_sclk(ctx->dev, UART_SCLK_APB);
+  uart_ll_set_baudrate(ctx->dev, DMX_BAUD_RATE);
+  uart_ll_set_mode(ctx->dev, UART_MODE_RS485_HALF_DUPLEX);
+  uart_ll_set_parity(ctx->dev, UART_PARITY_DISABLE);
+  uart_ll_set_data_bit_num(ctx->dev, UART_DATA_8_BITS);
+  uart_ll_set_stop_bits(ctx->dev, UART_STOP_BITS_2);
+  uart_ll_tx_break(ctx->dev, 0);
+  uart_ll_set_tx_idle_num(ctx->dev, 0);
+  uart_ll_set_hw_flow_ctrl(ctx->dev, UART_HW_FLOWCTRL_DISABLE, 0);
 
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
   // Fix inter-byte time on ESP32-C3. See below:
   // https://github.com/someweisguy/esp_dmx/issues/17#issuecomment-1133748359
-  hal->dev->rs485_conf.dl0_en = 0;
-  hal->dev->rs485_conf.dl1_en = 0;
+  ctx->dev->rs485_conf.dl0_en = 0;
+  ctx->dev->rs485_conf.dl1_en = 0;
 #endif
 }
 
@@ -56,10 +94,8 @@ void dmx_hal_init(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @return The baud rate of the UART hardware.
  */
-uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
-  uint32_t baud_rate;
-  uart_hal_get_baudrate(hal, &baud_rate);
-  return baud_rate;
+uint32_t dmx_uart_get_baud_rate(dmx_context_t *ctx) {
+  return uart_ll_get_baudrate(ctx->dev);
 }
 
 /**
@@ -68,8 +104,8 @@ uint32_t dmx_hal_get_baud_rate(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @param baud_rate The baud rate to use.
  */
-void dmx_hal_set_baud_rate(uart_hal_context_t *hal, uint32_t baud_rate) {
-  uart_hal_set_baudrate(hal, baud_rate);
+void dmx_uart_set_baud_rate(dmx_context_t *ctx, uint32_t baud_rate) {
+  uart_ll_set_baudrate(ctx->dev, baud_rate);
 }
 
 /**
@@ -79,8 +115,10 @@ void dmx_hal_set_baud_rate(uart_hal_context_t *hal, uint32_t baud_rate) {
  * @param hal A pointer to a UART HAL context.
  * @param threshold The RX timeout duration (unit: time of sending one byte).
  */
-void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, uint8_t threshold) {
-  uart_hal_set_rx_timeout(hal, threshold);
+// TODO: is this function used?
+void dmx_uart_set_rx_timeout(dmx_context_t *ctx, uint8_t threshold) {
+  const int word_len = 11;  // Number of bits in a DMX slot
+  uart_ll_set_rx_tout(ctx->dev, word_len * threshold);
 }
 
 /**
@@ -91,8 +129,8 @@ void dmx_hal_set_rx_timeout(uart_hal_context_t *hal, uint8_t threshold) {
  * @param threshold The number of bytes needed to trigger an RX FIFO full
  * interrupt.
  */
-void dmx_hal_set_rxfifo_full(uart_hal_context_t *hal, uint8_t threshold) {
-  uart_hal_set_rxfifo_full_thr(hal, threshold);
+void dmx_uart_set_rxfifo_full(dmx_context_t *ctx, uint8_t threshold) {
+  uart_ll_set_rxfifo_full_thr(ctx->dev, threshold);
 }
 
 /**
@@ -103,8 +141,8 @@ void dmx_hal_set_rxfifo_full(uart_hal_context_t *hal, uint8_t threshold) {
  * @param threshold The number of bytes remaining to trigger a TX FIFO empty
  * interrupt.
  */
-void dmx_hal_set_txfifo_empty(uart_hal_context_t *hal, uint8_t threshold) {
-  uart_hal_set_txfifo_empty_thr(hal, threshold);
+void dmx_uart_set_txfifo_empty(dmx_context_t *ctx, uint8_t threshold) {
+  uart_ll_set_txfifo_empty_thr(ctx->dev, threshold);
 }
 
 /**
@@ -113,19 +151,19 @@ void dmx_hal_set_txfifo_empty(uart_hal_context_t *hal, uint8_t threshold) {
  * @param hal A pointer to a UART HAL context.
  * @param invert_mask 1 to invert, 0 to un-invert.
  */
-void dmx_hal_invert_tx(uart_hal_context_t *hal, uint32_t invert) {
+void dmx_uart_invert_tx(dmx_context_t *ctx, uint32_t invert) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
-  hal->dev->conf0.txd_inv = invert ? 1 : 0;
+  ctx->dev->conf0.txd_inv = invert ? 1 : 0;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
 #error ESP32-C2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  hal->dev->conf0.txd_inv = invert ? 1 : 0;
+  ctx->dev->conf0.txd_inv = invert ? 1 : 0;
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
 #error ESP32-H2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-  hal->dev->conf0.txd_inv = invert ? 1 : 0;
+  ctx->dev->conf0.txd_inv = invert ? 1 : 0;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  hal->dev->uart_conf0_reg_t.txd_inv = invert ? 1 : 0;
+  ctx->dev->uart_conf0_reg_t.txd_inv = invert ? 1 : 0;
 #else
 #error Unknown target hardware.
 #endif
@@ -138,19 +176,19 @@ void dmx_hal_invert_tx(uart_hal_context_t *hal, uint32_t invert) {
  * @return 1 if the UART RTS line is enabled (set low; read), 0 if the UART RTS
  * line is disable (set high; write).
  */
-int dmx_hal_get_rts(uart_hal_context_t *hal) {
+int dmx_uart_get_rts(dmx_context_t *ctx) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
-  return hal->dev->conf0.sw_rts;
+  return ctx->dev->conf0.sw_rts;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
 #error ESP32-C2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  return hal->dev->conf0.sw_rts;
+  return ctx->dev->conf0.sw_rts;
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
 #error ESP32-H2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-  return hal->dev->conf0.sw_rts;
+  return ctx->dev->conf0.sw_rts;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  return hal->dev->uart_conf0_reg_t.sw_rts;
+  return ctx->dev->uart_conf0_reg_t.sw_rts;
 #else
 #error Unknown target hardware.
 #endif
@@ -162,8 +200,8 @@ int dmx_hal_get_rts(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @return The interrupt status mask.
  */
-DMX_ISR_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
-  return uart_ll_get_intsts_mask(hal->dev);
+DMX_ISR_ATTR int dmx_uart_get_interrupt_status(dmx_context_t *ctx) {
+  return uart_ll_get_intsts_mask(ctx->dev);
 }
 
 /**
@@ -172,8 +210,8 @@ DMX_ISR_ATTR int dmx_hal_get_interrupt_status(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is enabled.
  */
-DMX_ISR_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
-  uart_ll_ena_intr_mask(hal->dev, mask);
+DMX_ISR_ATTR void dmx_uart_enable_interrupt(dmx_context_t *ctx, int mask) {
+  uart_ll_ena_intr_mask(ctx->dev, mask);
 }
 
 /**
@@ -182,8 +220,8 @@ DMX_ISR_ATTR void dmx_hal_enable_interrupt(uart_hal_context_t *hal, int mask) {
  * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is disabled.
  */
-DMX_ISR_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
-  uart_ll_disable_intr_mask(hal->dev, mask);
+DMX_ISR_ATTR void dmx_uart_disable_interrupt(dmx_context_t *ctx, int mask) {
+  uart_ll_disable_intr_mask(ctx->dev, mask);
 }
 
 /**
@@ -192,8 +230,8 @@ DMX_ISR_ATTR void dmx_hal_disable_interrupt(uart_hal_context_t *hal, int mask) {
  * @param hal A pointer to a UART HAL context.
  * @param mask The UART mask that is cleared.
  */
-DMX_ISR_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
-  uart_ll_clr_intsts_mask(hal->dev, mask);
+DMX_ISR_ATTR void dmx_uart_clear_interrupt(dmx_context_t *ctx, int mask) {
+  uart_ll_clr_intsts_mask(ctx->dev, mask);
 }
 
 /**
@@ -202,8 +240,8 @@ DMX_ISR_ATTR void dmx_hal_clear_interrupt(uart_hal_context_t *hal, int mask) {
  * @param hal A pointer to a UART HAL context.
  * @return The number of bytes in the UART RX FIFO.
  */
-DMX_ISR_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
-  return uart_ll_get_rxfifo_len(hal->dev);
+DMX_ISR_ATTR uint32_t dmx_uart_get_rxfifo_len(dmx_context_t *ctx) {
+  return uart_ll_get_rxfifo_len(ctx->dev);
 }
 
 /**
@@ -213,19 +251,19 @@ DMX_ISR_ATTR uint32_t dmx_hal_get_rxfifo_len(uart_hal_context_t *hal) {
  * @return The UART RX line level.
  */
 
-DMX_ISR_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
+DMX_ISR_ATTR uint32_t dmx_uart_get_rx_level(dmx_context_t *ctx) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
-  return hal->dev->status.rxd;
+  return ctx->dev->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
 #error ESP32-C2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  return hal->dev->status.rxd;
+  return ctx->dev->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
 #error ESP32-H2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-  return hal->dev->status.rxd;
+  return ctx->dev->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  return hal->dev->uart_status_reg_t.rxd;
+  return ctx->dev->uart_status_reg_t.rxd;
 #else
 #error Unknown target hardware.
 #endif
@@ -240,13 +278,13 @@ DMX_ISR_ATTR uint32_t dmx_hal_get_rx_level(uart_hal_context_t *hal) {
  * data.
  * @return The number of characters read.
  */
-DMX_ISR_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
+DMX_ISR_ATTR void dmx_uart_read_rxfifo(dmx_context_t *ctx, uint8_t *buf,
                                       int *size) {
-  const size_t rxfifo_len = uart_ll_get_rxfifo_len(hal->dev);
+  const size_t rxfifo_len = uart_ll_get_rxfifo_len(ctx->dev);
   if (*size > rxfifo_len) {
     *size = rxfifo_len;
   }
-  uart_ll_read_rxfifo(hal->dev, buf, *size);
+  uart_ll_read_rxfifo(ctx->dev, buf, *size);
 }
 
 /**
@@ -256,8 +294,8 @@ DMX_ISR_ATTR void dmx_hal_read_rxfifo(uart_hal_context_t *hal, uint8_t *buf,
  * @param set 1 to enable the UART RTS line (set low; read), 0 to disable the
  * UART RTS line (set high; write).
  */
-DMX_ISR_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
-  uart_ll_set_rts_active_level(hal->dev, set);
+DMX_ISR_ATTR void dmx_uart_set_rts(dmx_context_t *ctx, int set) {
+  uart_ll_set_rts_active_level(ctx->dev, set);
 }
 
 /**
@@ -265,8 +303,8 @@ DMX_ISR_ATTR void dmx_hal_set_rts(uart_hal_context_t *hal, int set) {
  *
  * @param hal A pointer to a UART HAL context.
  */
-DMX_ISR_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
-  uart_ll_rxfifo_rst(hal->dev);
+DMX_ISR_ATTR void dmx_uart_rxfifo_rst(dmx_context_t *ctx) {
+  uart_ll_rxfifo_rst(ctx->dev);
 }
 
 /**
@@ -275,8 +313,8 @@ DMX_ISR_ATTR void dmx_hal_rxfifo_rst(uart_hal_context_t *hal) {
  * @param hal A pointer to a UART HAL context.
  * @return The length of the UART TX FIFO.
  */
-DMX_ISR_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
-  return uart_ll_get_txfifo_len(hal->dev);
+DMX_ISR_ATTR uint32_t dmx_uart_get_txfifo_len(dmx_context_t *ctx) {
+  return uart_ll_get_txfifo_len(ctx->dev);
 }
 
 /**
@@ -286,13 +324,13 @@ DMX_ISR_ATTR uint32_t dmx_hal_get_txfifo_len(uart_hal_context_t *hal) {
  * @param buf The source buffer from which to write.
  * @param size The number of bytes to write.
  */
-DMX_ISR_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
+DMX_ISR_ATTR void dmx_uart_write_txfifo(dmx_context_t *ctx, const void *buf,
                                        size_t *size) {
-  const size_t txfifo_len = uart_ll_get_txfifo_len(hal->dev);
+  const size_t txfifo_len = uart_ll_get_txfifo_len(ctx->dev);
   if (*size > txfifo_len) {
     *size = txfifo_len;
   }
-  uart_ll_write_txfifo(hal->dev, buf, *size);
+  uart_ll_write_txfifo(ctx->dev, buf, *size);
 }
 
 /**
@@ -300,8 +338,8 @@ DMX_ISR_ATTR void dmx_hal_write_txfifo(uart_hal_context_t *hal, const void *buf,
  *
  * @param hal A pointer to a UART HAL context.
  */
-DMX_ISR_ATTR void dmx_hal_txfifo_rst(uart_hal_context_t *hal) {
-  uart_ll_txfifo_rst(hal->dev);
+DMX_ISR_ATTR void dmx_uart_txfifo_rst(dmx_context_t *ctx) {
+  uart_ll_txfifo_rst(ctx->dev);
 }
 
 #ifdef __cplusplus

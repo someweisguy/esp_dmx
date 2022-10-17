@@ -22,10 +22,10 @@
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 // Initializes the DMX context.
-#define DMX_CONTEXT_INIT(uart_num)                                 \
-  {                                                                \
-    .hal.dev = UART_LL_GET_HW(uart_num),                           \
-    .spinlock = portMUX_INITIALIZER_UNLOCKED, .hw_enabled = false, \
+#define DMX_CONTEXT_INIT(uart_num)                                             \
+  {                                                                            \
+    .dev = UART_LL_GET_HW(uart_num), .spinlock = portMUX_INITIALIZER_UNLOCKED, \
+    .hw_enabled = false,                                                       \
   }
 
 #ifdef CONFIG_DMX_ISR_IN_IRAM
@@ -33,17 +33,6 @@
 #else
 #define DMX_ISR_ATTR
 #endif
-
-/**
- * @brief The context for the DMX driver. Contains a pointer to UART registers
- * as well as a spinlock for synchronizing access to resources and tracks if the
- * UART hardware has been enabled.
- */
-typedef struct dmx_context {
-  uart_hal_context_t hal;  // The UART context. Points to UART registers.
-  spinlock_t spinlock;     // Synchronizes hardware and driver operations.
-  int hw_enabled;          // True if the UART hardware has been initialized.
-} dmx_context_t;
 
 DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEXT_INIT(DMX_NUM_0),
@@ -95,7 +84,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   int task_awoken = false;
 
   while (true) {
-    const uint32_t intr_flags = dmx_hal_get_interrupt_status(&context->hal);
+    const uint32_t intr_flags = dmx_uart_get_interrupt_status(context);
     if (intr_flags == 0) break;
 
     // DMX Receive ####################################################
@@ -105,17 +94,17 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
         if (!driver->received_packet && read_len > 0) {
           uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-          dmx_hal_read_rxfifo(&context->hal, data_ptr, &read_len);
+          dmx_uart_read_rxfifo(context, data_ptr, &read_len);
           driver->data.head += read_len;
         } else {
-          dmx_hal_rxfifo_rst(&context->hal);
+          dmx_uart_rxfifo_rst(context);
         }
         driver->data.err = ESP_ERR_INVALID_RESPONSE;
       } else {
         driver->data.err = ESP_FAIL;
       }
-      dmx_hal_rxfifo_rst(&context->hal);
-      dmx_hal_clear_interrupt(&context->hal, DMX_INTR_RX_ERR);
+      dmx_uart_rxfifo_rst(context);
+      dmx_uart_clear_interrupt(context, DMX_INTR_RX_ERR);
 
       // Don't process errors if the DMX bus is inactive
       if (driver->received_packet) {
@@ -135,8 +124,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
       // Reset the FIFO and clear the interrupt
-      dmx_hal_rxfifo_rst(&context->hal);
-      dmx_hal_clear_interrupt(&context->hal, DMX_INTR_RX_BREAK);
+      dmx_uart_rxfifo_rst(context);
+      dmx_uart_clear_interrupt(context, DMX_INTR_RX_BREAK);
 
       // Stop the receive timeout if it is running
       if (driver->timer_running) {
@@ -161,12 +150,12 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
       if (!driver->received_packet && read_len > 0) {
         uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-        dmx_hal_read_rxfifo(&context->hal, data_ptr, &read_len);
+        dmx_uart_read_rxfifo(context, data_ptr, &read_len);
         driver->data.head += read_len;
       } else {
-        dmx_hal_rxfifo_rst(&context->hal);
+        dmx_uart_rxfifo_rst(context);
       }
-      dmx_hal_clear_interrupt(&context->hal, DMX_INTR_RX_DATA);
+      dmx_uart_clear_interrupt(context, DMX_INTR_RX_DATA);
 
       // Unset DMX break flag and record the timestamp of the last slot
       if (driver->is_in_break) {
@@ -238,20 +227,20 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Write data to the UART and clear the interrupt
       size_t write_size = driver->data.tx_size - driver->data.head;
       const uint8_t *src = &driver->data.buffer[driver->data.head];
-      dmx_hal_write_txfifo(&context->hal, src, &write_size);
+      dmx_uart_write_txfifo(context, src, &write_size);
       driver->data.head += write_size;
-      dmx_hal_clear_interrupt(&context->hal, DMX_INTR_TX_DATA);
+      dmx_uart_clear_interrupt(context, DMX_INTR_TX_DATA);
 
       // Allow FIFO to empty when done writing data
       if (driver->data.head == driver->data.tx_size) {
-        dmx_hal_disable_interrupt(&context->hal, DMX_INTR_TX_DATA);
+        dmx_uart_disable_interrupt(context, DMX_INTR_TX_DATA);
       }
     }
 
     else if (intr_flags & DMX_INTR_TX_DONE) {
       // Disable write interrupts and clear the interrupt
-      dmx_hal_disable_interrupt(&context->hal, DMX_INTR_TX_ALL);
-      dmx_hal_clear_interrupt(&context->hal, DMX_INTR_TX_DONE);
+      dmx_uart_disable_interrupt(context, DMX_INTR_TX_ALL);
+      dmx_uart_clear_interrupt(context, DMX_INTR_TX_DONE);
 
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(&context->spinlock);
@@ -281,10 +270,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         }
       }
       if (turn_bus_around) {
-        dmx_hal_rxfifo_rst(&context->hal);
-        dmx_hal_set_rts(&context->hal, 1);
-        dmx_hal_clear_interrupt(&context->hal, DMX_INTR_RX_ALL);
-        dmx_hal_enable_interrupt(&context->hal, DMX_INTR_RX_ALL);
+        dmx_uart_rxfifo_rst(context);
+        dmx_uart_set_rts(context, 1);
+        dmx_uart_clear_interrupt(context, DMX_INTR_RX_ALL);
+        dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
       }
     }
   }
@@ -298,7 +287,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  if (dmx_hal_get_rx_level(&context->hal)) {
+  if (dmx_uart_get_rx_level(context)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
@@ -341,7 +330,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
                        eSetValueWithOverwrite, &task_awoken);
   } else if (driver->is_in_break) {
     // End the DMX break
-    dmx_hal_invert_tx(&context->hal, 0);
+    dmx_uart_invert_tx(context, 0);
     driver->is_in_break = false;
 
     // Get the configured length of the DMX mark-after-break
@@ -355,14 +344,14 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
   } else {
     // Write data to the UART and pause the timer
     size_t write_size = driver->data.tx_size;
-    dmx_hal_write_txfifo(&context->hal, driver->data.buffer, &write_size);
+    dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
     driver->data.head += write_size;
     timer_group_set_counter_enable_in_isr(driver->timer_group,
                                           driver->timer_num, 0);
     driver->timer_running = false;
 
     // Enable DMX write interrupts
-    dmx_hal_enable_interrupt(&context->hal, DMX_INTR_TX_ALL);
+    dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
   }
 
   return task_awoken;
@@ -386,28 +375,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   dmx_context_t *const context = &dmx_context[dmx_num];
   dmx_driver_t *driver;
 
-  // Enable module and configure the UART hardware
-  taskENTER_CRITICAL(&context->spinlock);
-  if (!context->hw_enabled) {
-    periph_module_enable(uart_periph_signal[dmx_num].module);
-    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-#if SOC_UART_REQUIRE_CORE_RESET
-      // ESP32-C3 workaround to prevent UART outputting garbage data.
-      uart_hal_set_reset_core(&context->hal, true);
-      periph_module_reset(uart_periph_signal[dmx_num].module);
-      uart_hal_set_reset_core(&context->hal), false);
-#else
-      periph_module_reset(uart_periph_signal[dmx_num].module);
-#endif
-    }
-    context->hw_enabled = true;
-  }
-  taskEXIT_CRITICAL(&context->spinlock);
-  dmx_hal_init(&context->hal);
-
-  // Flush the hardware FIFOs
-  dmx_hal_rxfifo_rst(&context->hal);
-  dmx_hal_txfifo_rst(&context->hal);
+  // Initialize and flush the UART
+  dmx_uart_init(dmx_num, context);
+  dmx_uart_rxfifo_rst(context);
+  dmx_uart_txfifo_rst(context);
 
   // Allocate the DMX driver dynamically
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_32BIT);
@@ -465,10 +436,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->sniffer.queue = NULL;
 
   // Install UART interrupt
-  dmx_hal_disable_interrupt(&context->hal, DMX_ALL_INTR_MASK);
-  dmx_hal_clear_interrupt(&context->hal, DMX_ALL_INTR_MASK);
-  dmx_hal_set_txfifo_empty(&context->hal, DMX_UART_EMPTY_DEFAULT);
-  dmx_hal_set_rxfifo_full(&context->hal, DMX_UART_FULL_DEFAULT);
+  dmx_uart_disable_interrupt(context, DMX_ALL_INTR_MASK);
+  dmx_uart_clear_interrupt(context, DMX_ALL_INTR_MASK);
+  dmx_uart_set_txfifo_empty(context, DMX_UART_EMPTY_DEFAULT);
+  dmx_uart_set_rxfifo_full(context, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_flags, &dmx_uart_isr,
                  driver, &driver->uart_isr_handle);
 
@@ -488,8 +459,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(&context->spinlock);
-  dmx_hal_enable_interrupt(&context->hal, DMX_INTR_RX_ALL);
-  dmx_hal_set_rts(&context->hal, 1);
+  dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
+  dmx_uart_set_rts(context, 1);
   taskEXIT_CRITICAL(&context->spinlock);
 
   // Give the mutex and return
@@ -653,7 +624,7 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  dmx_hal_set_baud_rate(&context->hal, baud_rate);
+  dmx_uart_set_baud_rate(context, baud_rate);
   taskEXIT_CRITICAL(&context->spinlock);
 
   return baud_rate;
@@ -665,7 +636,7 @@ uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  const uint32_t baud_rate = dmx_hal_get_baud_rate(&context->hal);
+  const uint32_t baud_rate = dmx_uart_get_baud_rate(context);
   taskEXIT_CRITICAL(&context->spinlock);
 
   return baud_rate;
@@ -811,10 +782,10 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
-  } else if (dmx_hal_get_rts(&context->hal) == 1) {
+  } else if (dmx_uart_get_rts(context) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&context->hal, 0);
+    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(context, 0);
   }
   driver->data.tx_size = size;  // Update driver transmit size
   taskEXIT_CRITICAL(&context->spinlock);
@@ -848,10 +819,10 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
-  } else if (dmx_hal_get_rts(&context->hal) == 1) {
+  } else if (dmx_uart_get_rts(context) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&context->hal, 0);
+    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(context, 0);
   }
   driver->data.tx_size = offset + size;  // Update driver transmit size
   taskEXIT_CRITICAL(&context->spinlock);
@@ -876,10 +847,10 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
-  } else if (dmx_hal_get_rts(&context->hal) == 1) {
+  } else if (dmx_uart_get_rts(context) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&context->hal, 0);
+    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(context, 0);
   }
 
   // Ensure that the next packet to be sent includes this slot
@@ -918,10 +889,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Set the RTS pin to read from the DMX bus
   taskENTER_CRITICAL(&context->spinlock);
-  if (dmx_hal_get_rts(&context->hal) == 0) {
-    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_TX_ALL);
-    dmx_hal_set_rts(&context->hal, 1);
-    dmx_hal_enable_interrupt(&context->hal, DMX_INTR_RX_ALL);
+  if (dmx_uart_get_rts(context) == 0) {
+    dmx_uart_disable_interrupt(context, DMX_INTR_TX_ALL);
+    dmx_uart_set_rts(context, 1);
+    dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1093,9 +1064,9 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Turn the DMX bus around and get the send size
   taskENTER_CRITICAL(&context->spinlock);
-  if (dmx_hal_get_rts(&context->hal) == 1) {
-    dmx_hal_disable_interrupt(&context->hal, DMX_INTR_RX_ALL);
-    dmx_hal_set_rts(&context->hal, 0);
+  if (dmx_uart_get_rts(context) == 1) {
+    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(context, 0);
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1136,11 +1107,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->is_sending = true;
 
     size_t write_size = driver->data.tx_size;
-    dmx_hal_write_txfifo(&context->hal, driver->data.buffer, &write_size);
+    dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
     driver->data.head = write_size;
 
     // Enable DMX write interrupts
-    dmx_hal_enable_interrupt(&context->hal, DMX_INTR_TX_ALL);
+    dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
     taskEXIT_CRITICAL(&context->spinlock);
   } else {
     // Use the hardware timer to send a DMX break and mark-after-break
@@ -1155,7 +1126,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->is_sending = true;
     driver->is_in_break = true;
     driver->data.head = 0;
-    dmx_hal_invert_tx(&context->hal, 1);
+    dmx_uart_invert_tx(context, 1);
     timer_start(driver->timer_group, driver->timer_num);
     driver->timer_running = true;
     taskEXIT_CRITICAL(&context->spinlock);
