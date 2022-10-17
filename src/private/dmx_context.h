@@ -109,19 +109,6 @@ void dmx_uart_set_baud_rate(dmx_context_t *ctx, uint32_t baud_rate) {
 }
 
 /**
- * @brief Sets the duration for the UART RX inactivity timeout that triggers the
- * RX timeout interrupt.
- *
- * @param hal A pointer to a UART HAL context.
- * @param threshold The RX timeout duration (unit: time of sending one byte).
- */
-// TODO: is this function used?
-void dmx_uart_set_rx_timeout(dmx_context_t *ctx, uint8_t threshold) {
-  const int word_len = 11;  // Number of bits in a DMX slot
-  uart_ll_set_rx_tout(ctx->dev, word_len * threshold);
-}
-
-/**
  * @brief Sets the number of bytes that the UART must receive to trigger a RX
  * FIFO full interrupt.
  *
