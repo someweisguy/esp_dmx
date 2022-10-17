@@ -290,7 +290,7 @@ DMX_ISR_ATTR void dmx_uart_set_rts(dmx_context_t *ctx, int set) {
  *
  * @param hal A pointer to a UART HAL context.
  */
-DMX_ISR_ATTR void dmx_uart_rxfifo_rst(dmx_context_t *ctx) {
+DMX_ISR_ATTR void dmx_uart_rxfifo_reset(dmx_context_t *ctx) {
   uart_ll_rxfifo_rst(ctx->dev);
 }
 
@@ -325,7 +325,7 @@ DMX_ISR_ATTR void dmx_uart_write_txfifo(dmx_context_t *ctx, const void *buf,
  *
  * @param hal A pointer to a UART HAL context.
  */
-DMX_ISR_ATTR void dmx_uart_txfifo_rst(dmx_context_t *ctx) {
+DMX_ISR_ATTR void dmx_uart_txfifo_reset(dmx_context_t *ctx) {
   uart_ll_txfifo_rst(ctx->dev);
 }
 

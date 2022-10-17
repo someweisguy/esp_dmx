@@ -97,13 +97,13 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           dmx_uart_read_rxfifo(context, data_ptr, &read_len);
           driver->data.head += read_len;
         } else {
-          dmx_uart_rxfifo_rst(context);
+          dmx_uart_rxfifo_reset(context);
         }
         driver->data.err = ESP_ERR_INVALID_RESPONSE;
       } else {
         driver->data.err = ESP_FAIL;
       }
-      dmx_uart_rxfifo_rst(context);
+      dmx_uart_rxfifo_reset(context);
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_ERR);
 
       // Don't process errors if the DMX bus is inactive
@@ -124,7 +124,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
       // Reset the FIFO and clear the interrupt
-      dmx_uart_rxfifo_rst(context);
+      dmx_uart_rxfifo_reset(context);
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_BREAK);
 
       // Stop the receive timeout if it is running
@@ -153,7 +153,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         dmx_uart_read_rxfifo(context, data_ptr, &read_len);
         driver->data.head += read_len;
       } else {
-        dmx_uart_rxfifo_rst(context);
+        dmx_uart_rxfifo_reset(context);
       }
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_DATA);
 
@@ -270,7 +270,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         }
       }
       if (turn_bus_around) {
-        dmx_uart_rxfifo_rst(context);
+        dmx_uart_rxfifo_reset(context);
         dmx_uart_set_rts(context, 1);
         dmx_uart_clear_interrupt(context, DMX_INTR_RX_ALL);
         dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
@@ -377,8 +377,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize and flush the UART
   dmx_uart_init(dmx_num, context);
-  dmx_uart_rxfifo_rst(context);
-  dmx_uart_txfifo_rst(context);
+  dmx_uart_rxfifo_reset(context);
+  dmx_uart_txfifo_reset(context);
 
   // Allocate the DMX driver dynamically
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_32BIT);
