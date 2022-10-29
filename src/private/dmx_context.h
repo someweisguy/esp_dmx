@@ -349,6 +349,7 @@ void dmx_timer_init(dmx_port_t dmx_num, dmx_context_t *ctx) {
 #endif
 }
 
+// TODO: docs
 void dmx_timer_deinit(dmx_context_t *ctx) {
 #if ESP_IDF_MAJOR_VERSION >= 5
   // TODO
@@ -386,6 +387,7 @@ void dmx_timer_set_counter(dmx_context_t *ctx, uint64_t counter) {
 #endif
 }
 
+// TODO: docs, not ISR safe!
 void dmx_timer_start(dmx_context_t *ctx) {
 #if ESP_IDF_MAJOR_VERSION >= 5
   // TODO
@@ -394,6 +396,7 @@ void dmx_timer_start(dmx_context_t *ctx) {
 #endif 
 }
 
+// TODO: docs
 DMX_ISR_ATTR void dmx_timer_pause(dmx_context_t *ctx) {
 #if ESP_IDF_MAJOR_VERSION >= 5
   // TODO
