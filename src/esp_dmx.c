@@ -152,6 +152,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         dmx_uart_read_rxfifo(context, data_ptr, &read_len);
         driver->data.head += read_len;
       } else {
+        // Update data length so driver->data.rx_size can be updated
+        size_t data_len = dmx_uart_get_rxfifo_len(context);    
+        driver->data.head += data_len;
         dmx_uart_rxfifo_reset(context);
       }
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_DATA);
@@ -969,6 +972,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       event->is_rdm = false;
     }
   }
+
+  // Each function call must wait for new data
+  taskENTER_CRITICAL(&context->spinlock);
+  driver->received_packet = false;
+  taskEXIT_CRITICAL(&context->spinlock);
 
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
