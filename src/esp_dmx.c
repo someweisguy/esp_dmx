@@ -933,7 +933,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     }
 
     // Wait for a task notification
-    if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, fail_quick)) {
+    if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, wait_ticks)) {
       err = driver->data.err;
     }
     driver->task_waiting = NULL;
