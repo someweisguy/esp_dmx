@@ -129,8 +129,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Stop the receive timeout if it is running
       if (driver->timer_running) {
-        timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                              driver->timer_num, 0);
+        dmx_timer_pause(context);
         driver->timer_running = false;
       }
 
@@ -165,8 +164,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Stop the receive timeout if it is running
       if (driver->timer_running) {
-        timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                              driver->timer_num, 0);
+        dmx_timer_pause(context);
         driver->timer_running = false;
       }
 
@@ -317,14 +315,14 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 }
 
 static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
-  dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  dmx_context_t *const context = &dmx_context[driver->dmx_num];
+  const dmx_port_t dmx_num = *(dmx_port_t *)arg;
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_context_t *const context = &dmx_context[dmx_num];
   int task_awoken = false;
 
   if (!driver->is_sending && driver->task_waiting) {
     // Notify the task and pause the timer
-    timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                          driver->timer_num, 0);
+    dmx_timer_pause(context);
     driver->timer_running = false;
     xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                        eSetValueWithOverwrite, &task_awoken);
@@ -339,15 +337,13 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
     taskEXIT_CRITICAL_ISR(&context->spinlock);
 
     // Reset the alarm for the end of the DMX mark-after-break
-    timer_group_set_alarm_value_in_isr(driver->timer_group, driver->timer_num,
-                                       mab_len);
+    dmx_timer_set_alarm(context, mab_len);
   } else {
     // Write data to the UART and pause the timer
     size_t write_size = driver->data.tx_size;
     dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
     driver->data.head += write_size;
-    timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                          driver->timer_num, 0);
+    dmx_timer_pause(context);
     driver->timer_running = false;
 
     // Enable DMX write interrupts
@@ -406,9 +402,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize driver state
   driver->dmx_num = dmx_num;
-  // TODO: Allow busy-waiting instead of timers
-  driver->timer_group = dmx_num / 2;
-  driver->timer_num = dmx_num % 2;
   driver->task_waiting = NULL;
 
   // Initialize driver flags
@@ -443,19 +436,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_flags, &dmx_uart_isr,
                  driver, &driver->uart_isr_handle);
 
-  // Install hardware timer interrupt if specified by the user
   // TODO: Allow busy-waiting instead of hardware timers
-  const timer_config_t timer_config = {
-      .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
-      .counter_dir = TIMER_COUNT_UP,
-      .counter_en = false,
-      .alarm_en = true,
-      .auto_reload = true,
-  };
-  timer_init(driver->timer_group, driver->timer_num, &timer_config);
-  timer_isr_callback_add(driver->timer_group, driver->timer_num, dmx_timer_isr,
-                         driver, intr_flags);
-  timer_enable_intr(driver->timer_group, driver->timer_num);
+  // Initialize hardware timer
+  dmx_timer_init(dmx_num, context);
+  dmx_timer_add_callback(context, dmx_timer_isr, driver, intr_flags);
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(&context->spinlock);
@@ -499,15 +483,16 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-  if (driver->timer_group != -1) {
-    timer_deinit(driver->timer_group, driver->timer_num);
-  }
-
+  // TODO: check if using busy-waits
+  // TODO: unregister ISR callback
+  dmx_timer_deinit(context);
+  
   // Free driver
   heap_caps_free(driver);
   dmx_driver[dmx_num] = NULL;
 
   // Disable UART module
+  // TODO: make this a context function
   taskENTER_CRITICAL(&context->spinlock);
   if (context->hw_enabled) {
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
@@ -931,9 +916,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     taskENTER_CRITICAL(&context->spinlock);
     const int64_t elapsed = esp_timer_get_time() - previous_ts;
     if (elapsed < fail_quick) {
-      timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
-      timer_set_alarm_value(driver->timer_group, driver->timer_num, fail_quick);
-      timer_start(driver->timer_group, driver->timer_num);
+      dmx_timer_set_counter(context, elapsed);
+      dmx_timer_set_alarm(context, fail_quick);
+      dmx_timer_start(context);
       driver->timer_running = true;
     }
     taskEXIT_CRITICAL(&context->spinlock);
@@ -1039,10 +1024,10 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   elapsed = esp_timer_get_time() - driver->data.previous_ts;
   if (elapsed < timeout) {
-    timer_set_counter_value(driver->timer_group, driver->timer_num, elapsed);
-    timer_set_alarm_value(driver->timer_group, driver->timer_num, timeout);
+    dmx_timer_set_counter(context, elapsed);
+    dmx_timer_set_alarm(context, timeout);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
-    timer_start(driver->timer_group, driver->timer_num);
+    dmx_timer_start(context);
     driver->timer_running = true;
   }
   taskEXIT_CRITICAL(&context->spinlock);
@@ -1051,7 +1036,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
-      timer_pause(driver->timer_group, driver->timer_num);
+      dmx_timer_pause(context);
       driver->timer_running = false;
       xTaskNotifyStateClear(driver->task_waiting);
     }
@@ -1118,8 +1103,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     taskENTER_CRITICAL(&context->spinlock);
     const uint32_t break_len = driver->break_len;
     taskEXIT_CRITICAL(&context->spinlock);
-    timer_set_counter_value(driver->timer_group, driver->timer_num, 0);
-    timer_set_alarm_value(driver->timer_group, driver->timer_num, break_len);
+    dmx_timer_set_counter(context, 0);
+    dmx_timer_set_alarm(context, break_len);
 
     // Send the packet by starting the DMX break
     taskENTER_CRITICAL(&context->spinlock);
@@ -1127,7 +1112,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->is_in_break = true;
     driver->data.head = 0;
     dmx_uart_invert_tx(context, 1);
-    timer_start(driver->timer_group, driver->timer_num);
+    dmx_timer_start(context);
     driver->timer_running = true;
     taskEXIT_CRITICAL(&context->spinlock);
   }

@@ -329,6 +329,79 @@ DMX_ISR_ATTR void dmx_uart_txfifo_reset(dmx_context_t *ctx) {
   uart_ll_txfifo_rst(ctx->dev);
 }
 
+// TODO: docs
+void dmx_timer_init(dmx_port_t dmx_num, dmx_context_t *ctx) {
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else
+  ctx->timer_group = dmx_num / 2;
+  ctx->timer_idx = dmx_num % 2;
+
+  const timer_config_t timer_config = {
+      .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
+      .counter_dir = TIMER_COUNT_UP,
+      .counter_en = false,
+      .alarm_en = true,
+      .auto_reload = true,
+  };
+  timer_init(ctx->timer_group, ctx->timer_idx, &timer_config);
+  timer_enable_intr(ctx->timer_group, ctx->timer_idx);
+#endif
+}
+
+void dmx_timer_deinit(dmx_context_t *ctx) {
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else
+  timer_deinit(ctx->timer_group, ctx->timer_idx);
+#endif
+}
+
+// TODO: docs
+void dmx_timer_add_callback(dmx_context_t *ctx, timer_isr_t isr, void *args,
+                            int intr_flags) {
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else
+  timer_isr_callback_add(ctx->timer_group, ctx->timer_idx, isr, args,
+                         intr_flags);
+#endif
+}
+
+// TODO: docs
+DMX_ISR_ATTR void dmx_timer_set_alarm(dmx_context_t *ctx, uint64_t alarm) {
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else
+  timer_group_set_alarm_value_in_isr(ctx->timer_group, ctx->timer_idx, alarm);
+#endif
+}
+
+// TODO: docs, not ISR safe!
+void dmx_timer_set_counter(dmx_context_t *ctx, uint64_t counter) {
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else 
+  timer_set_counter_value(ctx->timer_group, ctx->timer_idx, counter);
+#endif
+}
+
+void dmx_timer_start(dmx_context_t *ctx) {
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else 
+  timer_start(ctx->timer_group, ctx->timer_idx);
+#endif 
+}
+
+DMX_ISR_ATTR void dmx_timer_pause(dmx_context_t *ctx) {
+#if ESP_IDF_MAJOR_VERSION >= 5
+  // TODO
+#else
+  timer_group_set_counter_enable_in_isr(ctx->timer_group, ctx->timer_idx, 0);
+#endif 
+}
+
 #ifdef __cplusplus
 }
 #endif

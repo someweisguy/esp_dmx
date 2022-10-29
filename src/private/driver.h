@@ -20,8 +20,6 @@ extern "C" {
  */
 typedef __attribute__((aligned(4))) struct dmx_driver {
   dmx_port_t dmx_num;  // The driver's DMX port number.
-  int timer_group;     // The timer group being used fro the DMX reset sequence. Can be set to -1 to use busy-waits instead of a hardware timer.
-  int timer_num;       // The timer number being used for the DMX reset sequence.
 
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
