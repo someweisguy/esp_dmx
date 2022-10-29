@@ -43,7 +43,6 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
   int is_in_break;      // True if the driver is sending or receiving a DMX break.
   int received_packet;  // True if the driver is receiving data.
   int is_sending;       // True if the driver is sending data.
-  int timer_running;    // True if the hardware timer is running.
 
   uint32_t rdm_tn;   // RDM Transaction number. Increments with every RDM packet sent.
   int rdm_is_muted;  // True if RDM discovery is muted.

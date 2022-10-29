@@ -128,9 +128,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_BREAK);
 
       // Stop the receive timeout if it is running
-      if (driver->timer_running) {
+      if (context->timer_running) {
         dmx_timer_pause(context);
-        driver->timer_running = false;
+        context->timer_running = false;
       }
 
       // Update packet size guess if driver hasn't received a packet yet
@@ -163,9 +163,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       driver->data.previous_ts = now;
 
       // Stop the receive timeout if it is running
-      if (driver->timer_running) {
+      if (context->timer_running) {
         dmx_timer_pause(context);
-        driver->timer_running = false;
+        context->timer_running = false;
       }
 
       // Don't process data if the driver is done receiving
@@ -323,7 +323,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
   if (!driver->is_sending && driver->task_waiting) {
     // Notify the task and pause the timer
     dmx_timer_pause(context);
-    driver->timer_running = false;
+    context->timer_running = false;
     xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                        eSetValueWithOverwrite, &task_awoken);
   } else if (driver->is_in_break) {
@@ -344,7 +344,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
     dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
     driver->data.head += write_size;
     dmx_timer_pause(context);
-    driver->timer_running = false;
+    context->timer_running = false;
 
     // Enable DMX write interrupts
     dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
@@ -408,7 +408,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->is_in_break = false;
   driver->received_packet = false;
   driver->is_sending = false;
-  driver->timer_running = false;
   driver->rdm_is_muted = false;
   driver->rdm_tn = 0;
 
@@ -919,7 +918,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       dmx_timer_set_counter(context, elapsed);
       dmx_timer_set_alarm(context, fail_quick);
       dmx_timer_start(context);
-      driver->timer_running = true;
+      context->timer_running = true;
     }
     taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1028,7 +1027,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     dmx_timer_set_alarm(context, timeout);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
     dmx_timer_start(context);
-    driver->timer_running = true;
+    context->timer_running = true;
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1037,7 +1036,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
       dmx_timer_pause(context);
-      driver->timer_running = false;
+      context->timer_running = false;
       xTaskNotifyStateClear(driver->task_waiting);
     }
     driver->task_waiting = NULL;
@@ -1113,7 +1112,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->data.head = 0;
     dmx_uart_invert_tx(context, 1);
     dmx_timer_start(context);
-    driver->timer_running = true;
+    context->timer_running = true;
     taskEXIT_CRITICAL(&context->spinlock);
   }
 
