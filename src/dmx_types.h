@@ -40,7 +40,7 @@ typedef struct dmx_sniffer_data {
  */
 typedef struct dmx_event {
   esp_err_t err;    // Evaluates to true if an error occurred reading DMX data.
-  uint8_t sc;       // Start code of the DMX packet.
+  int sc;           // Start code of the DMX packet.
   size_t size;      // The size of the received DMX packet in bytes.
   bool is_rdm;      // True if the received packet is RDM.
 } dmx_event_t;
