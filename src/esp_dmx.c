@@ -89,7 +89,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ERR) {
-      if (!driver->received_packet) {
+      if (!driver->packet_is_finished) {
         // Read data from the FIFO into the driver buffer if possible
         if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
           // Data can be read into driver buffer
@@ -110,7 +110,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         // Set driver flags
         driver->is_in_break = false;
         driver->data.previous_ts = now;
-        driver->received_packet = true;
+        driver->packet_is_finished = true;
         driver->data.err = intr_flags & DMX_INTR_RX_FRAMING_ERR
                                ? ESP_ERR_INVALID_RESPONSE
                                : ESP_FAIL;
@@ -140,19 +140,19 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Update packet size guess if driver hasn't received a packet yet
-      if (!driver->received_packet) {
+      if (!driver->packet_is_finished) {
         driver->data.rx_size = driver->data.head;
       }
 
       // Set driver flags and reset data head
-      driver->received_packet = false;
+      driver->packet_is_finished = false;
       driver->is_in_break = true;
       driver->data.head = 0;
     }
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
       
-      if (driver->received_packet) {
+      if (driver->packet_is_finished) {
 
       }
 
@@ -184,7 +184,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       driver->data.previous_ts = now;
 
       // Don't process data if the driver is done receiving
-      if (driver->received_packet) {
+      if (driver->packet_is_finished) {
         continue;
       }
 
@@ -196,7 +196,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           if (driver->data.head >= rdm->message_len + 2) {
             driver->data.previous_type = rdm->cc;
             driver->data.previous_uid = buf_to_uid(rdm->destination_uid);
-            driver->received_packet = true;
+            driver->packet_is_finished = true;
           }
         }
       } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
@@ -212,17 +212,17 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           // Discovery response packets are 17 bytes long after the preamble
           if (driver->data.head >= preamble_len + 17) {
             driver->data.previous_type = RDM_CC_DISC_COMMAND_RESPONSE;
-            driver->received_packet = true;
+            driver->packet_is_finished = true;
           }
         }
       } else {
         // A DMX packet size should be equal to the expected packet size
         if (driver->data.head >= driver->data.rx_size) {
           driver->data.previous_type = RDM_CC_NON_RDM_PACKET;
-          driver->received_packet = true;
+          driver->packet_is_finished = true;
         }
       }
-      if (driver->received_packet) {
+      if (driver->packet_is_finished) {
         driver->data.err = ESP_OK;
         driver->data.sent_previous = false;
         taskENTER_CRITICAL_ISR(&context->spinlock);
@@ -276,7 +276,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
         } else if (rdm->cc == RDM_CC_DISC_COMMAND) {
           // All discovery commands expect a response
-          driver->received_packet = false;
+          driver->packet_is_finished = false;
           driver->data.head = 0;  // Response doesn't have a DMX break
           turn_bus_around = true;
         }
@@ -420,7 +420,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize driver flags
   driver->is_in_break = false;
-  driver->received_packet = false;
+  driver->packet_is_finished = false;
   driver->is_sending = false;
   driver->rdm_is_muted = false;
   driver->rdm_tn = 0;
@@ -899,14 +899,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   esp_err_t err = ESP_OK;
   uint32_t packet_size = 0;
   taskENTER_CRITICAL(&context->spinlock);
-  if (!driver->received_packet) {
+  if (!driver->packet_is_finished) {
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   } else {
     // A packet has already been received
     packet_size = driver->data.head;
     err = driver->data.err;
   }
-  const bool received_packet = driver->received_packet;
+  const bool packet_is_finished = driver->packet_is_finished;
   const bool sent_previous = driver->data.sent_previous;
   const int previous_type = driver->data.previous_type;
   const rdm_uid_t previous_uid = driver->data.previous_uid;
@@ -914,7 +914,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   taskEXIT_CRITICAL(&context->spinlock);
 
   // If a packet hasn't been received, the driver must wait
-  if (!received_packet) {
+  if (!packet_is_finished) {
     // Determine if a fail-quick timeout must be set
     uint32_t fail_quick = 0;
     if (sent_previous &&
@@ -987,7 +987,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 
   // Each function call must wait for new data
   taskENTER_CRITICAL(&context->spinlock);
-  driver->received_packet = false;
+  driver->packet_is_finished = false;
   taskEXIT_CRITICAL(&context->spinlock);
 
   // Give the mutex back and return

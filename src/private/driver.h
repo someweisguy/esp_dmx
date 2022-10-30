@@ -41,7 +41,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
   } data;
 
   int is_in_break;      // True if the driver is sending or receiving a DMX break.
-  int received_packet;  // True if the driver is receiving data.
+  int packet_is_finished;  // True if the driver is receiving data.
   int is_sending;       // True if the driver is sending data.
 
   uint32_t rdm_tn;   // RDM Transaction number. Increments with every RDM packet sent.
