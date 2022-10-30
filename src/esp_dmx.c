@@ -272,7 +272,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           const rdm_uid_t destination_uid = buf_to_uid(rdm->destination_uid);
           if (destination_uid != RDM_BROADCAST_UID) {
             turn_bus_around = true;
-            driver->data.head = SIZE_MAX;  // Expecting a DMX break
+            driver->data.head = -1;  // Expecting a DMX break
           }
         } else if (rdm->cc == RDM_CC_DISC_COMMAND) {
           // All discovery commands expect a response
