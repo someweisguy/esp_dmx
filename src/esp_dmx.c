@@ -89,37 +89,43 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ERR) {
-      // Read from the FIFO on a framing error then clear the FIFO and interrupt
-      if (intr_flags & DMX_INTR_RX_FRAMING_ERR) {
-        int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-        if (!driver->received_packet && read_len > 0) {
+      if (!driver->received_packet) {
+        // Read data from the FIFO into the driver buffer if possible
+        if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
+          // Data can be read into driver buffer
+          int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
           uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
           dmx_uart_read_rxfifo(context, data_ptr, &read_len);
           driver->data.head += read_len;
         } else {
+          // Data cannot be read into driver buffer
+          if (driver->data.head > 0) {
+            // Only increment head if data has already been read into the buffer
+            driver->data.head += dmx_uart_get_rxfifo_len(context);
+          }
           dmx_uart_rxfifo_reset(context);
         }
-        driver->data.err = ESP_ERR_INVALID_RESPONSE;
+
+        taskENTER_CRITICAL_ISR(&context->spinlock);
+        // Set driver flags
+        driver->is_in_break = false;
+        driver->data.previous_ts = now;
+        driver->received_packet = true;
+        driver->data.err = intr_flags & DMX_INTR_RX_FRAMING_ERR
+                               ? ESP_ERR_INVALID_RESPONSE
+                               : ESP_FAIL;
+
+        // Notify the task if there is one waiting
+        if (driver->task_waiting) {
+          xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
+                             eSetValueWithOverwrite, &task_awoken);
+        }
+        taskEXIT_CRITICAL_ISR(&context->spinlock);
       } else {
-        driver->data.err = ESP_FAIL;
+        // Packet has already been received - don't process errors
+        dmx_uart_rxfifo_reset(context);
       }
-      dmx_uart_rxfifo_reset(context);
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_ERR);
-
-      // Don't process errors if the DMX bus is inactive
-      if (driver->received_packet) {
-        continue;
-      }
-
-      // Unset DMX break and receiving flags and notify task
-      driver->is_in_break = false;
-      driver->received_packet = true;
-      taskENTER_CRITICAL_ISR(&context->spinlock);
-      if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
-                           eSetValueWithOverwrite, &task_awoken);
-      }
-      taskEXIT_CRITICAL_ISR(&context->spinlock);
     }
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
@@ -145,31 +151,37 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     }
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
-      // Read from the FIFO if ready and clear the interrupt
-      int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-      if (!driver->received_packet && read_len > 0) {
+      
+      if (driver->received_packet) {
+
+      }
+
+      // Read data from the FIFO into the driver buffer if possible
+      if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
+        // Data can be read into driver buffer
+        int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
         uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
         dmx_uart_read_rxfifo(context, data_ptr, &read_len);
         driver->data.head += read_len;
       } else {
-        // Update data length so driver->data.rx_size can be updated
-        size_t data_len = dmx_uart_get_rxfifo_len(context);    
-        driver->data.head += data_len;
+        // Data cannot be read into driver buffer
+        if (driver->data.head > 0) {
+          // Only increment head if data has already been read into the buffer
+          driver->data.head += dmx_uart_get_rxfifo_len(context);
+        }
         dmx_uart_rxfifo_reset(context);
       }
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_DATA);
-
-      // Unset DMX break flag and record the timestamp of the last slot
-      if (driver->is_in_break) {
-        driver->is_in_break = false;
-      }
-      driver->data.previous_ts = now;
 
       // Stop the receive timeout if it is running
       if (context->timer_running) {
         dmx_timer_pause(context);
         context->timer_running = false;
       }
+
+      // Set driver flags
+      driver->is_in_break = false;
+      driver->data.previous_ts = now;
 
       // Don't process data if the driver is done receiving
       if (driver->received_packet) {
@@ -181,7 +193,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
         if (driver->data.head >= RDM_BASE_PACKET_SIZE) {
           // An RDM packet's length should match the message length slot value
-          const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
           if (driver->data.head >= rdm->message_len + 2) {
             driver->data.previous_type = rdm->cc;
             driver->data.previous_uid = buf_to_uid(rdm->destination_uid);
@@ -421,7 +432,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->data.sent_previous = false;
   driver->data.previous_uid = 0;
   driver->data.previous_ts = 0;
-  driver->data.head = SIZE_MAX;  // Don't read before a DMX break
+  driver->data.head = -1;  // Wait for DMX break before reading data
 
   // Initialize DMX transmit settings
   driver->break_len = RDM_BREAK_LEN_US;
@@ -880,6 +891,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     dmx_uart_disable_interrupt(context, DMX_INTR_TX_ALL);
     dmx_uart_set_rts(context, 1);
     dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
+    driver->data.head = -1;  // Wait for DMX break before reading data
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -943,7 +955,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   }
 
   // Correctly report that no response was received when packet size is -1
-  if (packet_size == SIZE_MAX) {
+  if (packet_size == -1) {
     packet_size = 0;
   }
 
