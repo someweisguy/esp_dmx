@@ -27,7 +27,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
   struct dmx_data {
-    size_t head;      // The index of the current slot being either transmitted or received.
+    int head;         // The index of the current slot being either transmitted or received.
     uint8_t *buffer;  // The buffer that stores the DMX packet.
     size_t tx_size;   // The size of the outgoing data packet.
     size_t rx_size;   // The expected size of the incoming data packet.
