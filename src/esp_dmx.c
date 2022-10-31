@@ -109,7 +109,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         taskENTER_CRITICAL_ISR(&context->spinlock);
         // Set driver flags
         driver->is_in_break = false;
-        driver->data.previous_ts = now;
+        driver->data.timestamp = now;
+        driver->is_expecting_response = false;
         driver->packet_is_finished = true;
         driver->data.err = intr_flags & DMX_INTR_RX_FRAMING_ERR
                                ? ESP_ERR_INVALID_RESPONSE
@@ -144,8 +145,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       taskENTER_CRITICAL_ISR(&context->spinlock);
       // Set driver flags
-      driver->packet_is_finished = false;
       driver->is_in_break = true;
+      driver->is_expecting_response = false;
+      driver->packet_is_finished = false;
       driver->data.head = 0;  // Driver buffer is ready for data
       taskEXIT_CRITICAL_ISR(&context->spinlock);
     }
@@ -174,7 +176,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Set driver flags
       taskENTER_CRITICAL_ISR(&context->spinlock);
       driver->is_in_break = false;
-      driver->data.previous_ts = now;
+      driver->data.timestamp = now;
       taskEXIT_CRITICAL_ISR(&context->spinlock);
 
       // Determine if a complete packet has been received
@@ -186,8 +188,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           if (driver->data.head >= RDM_BASE_PACKET_SIZE &&
               driver->data.head >= rdm->message_len + 2) {
             taskENTER_CRITICAL_ISR(&context->spinlock);
-            driver->data.previous_type = rdm->cc;
-            driver->data.previous_uid = buf_to_uid(rdm->destination_uid);
+            driver->data.last_cc = rdm->cc;
+            driver->data.last_uid = buf_to_uid(rdm->destination_uid);
             taskEXIT_CRITICAL_ISR(&context->spinlock);
             packet_is_complete = true;
           }
@@ -205,8 +207,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             if (driver->data.head >= preamble_len + 17) {
               // DISC_UNIQUE_BRANCH responses should be 17 bytes after preamble
               taskENTER_CRITICAL_ISR(&context->spinlock);
-              driver->data.previous_type = RDM_CC_DISC_COMMAND_RESPONSE;
-              driver->data.previous_uid = -1;  // Source UID is encoded
+              driver->data.last_cc = RDM_CC_DISC_COMMAND_RESPONSE;
+              driver->data.last_uid = -1;  // Source UID is encoded
               taskEXIT_CRITICAL_ISR(&context->spinlock);
               packet_is_complete = true;
             }
@@ -215,8 +217,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           // The packet is a DMX packet
           if (driver->data.head >= driver->data.rx_size) {
             taskENTER_CRITICAL_ISR(&context->spinlock);
-            driver->data.previous_type = RDM_CC_NON_RDM_PACKET;
-            driver->data.previous_uid = -1;  // No UID received
+            driver->data.last_cc = RDM_CC_NON_RDM_PACKET;
+            driver->data.last_uid = -1;  // No UID received
             taskEXIT_CRITICAL_ISR(&context->spinlock);
             packet_is_complete = true;
           }
@@ -227,8 +229,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (packet_is_complete) {
         taskENTER_CRITICAL_ISR(&context->spinlock);
         driver->data.err = ESP_OK;
+        driver->is_expecting_response = false;
         driver->packet_is_finished = true;
-        driver->data.sent_previous = false;
+        driver->sent_last_packet = false;
         if (driver->task_waiting) {
           xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                              eSetValueWithOverwrite, &task_awoken);
@@ -260,7 +263,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(&context->spinlock);
       driver->is_sending = false;
-      driver->data.previous_ts = now;
+      driver->data.timestamp = now;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, 0, eNoAction, &task_awoken);
       }
@@ -290,6 +293,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         dmx_uart_clear_interrupt(context, DMX_INTR_RX_ALL);
         dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
       }
+      driver->is_expecting_response = turn_bus_around;
     }
   }
 
@@ -423,18 +427,19 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   // Initialize driver flags
   driver->is_in_break = false;
   driver->packet_is_finished = false;
+  driver->sent_last_packet = false;
   driver->is_sending = false;
   driver->rdm_is_muted = false;
   driver->rdm_tn = 0;
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->data.previous_type = RDM_CC_NON_RDM_PACKET;
+  driver->data.last_cc = RDM_CC_NON_RDM_PACKET;
   driver->data.rx_size = DMX_MAX_PACKET_SIZE;
-  driver->data.sent_previous = false;
-  driver->data.previous_uid = 0;
-  driver->data.previous_ts = 0;
+  driver->data.last_uid = 0;
+  driver->data.timestamp = 0;
   driver->data.head = -1;  // Wait for DMX break before reading data
+  driver->is_expecting_response = false;
 
   // Initialize DMX transmit settings
   driver->break_len = RDM_BREAK_LEN_US;
@@ -778,7 +783,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
 
   taskENTER_CRITICAL(&context->spinlock);
   if (driver->is_sending &&
-      driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
+      driver->data.last_cc != RDM_CC_NON_RDM_PACKET) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
@@ -815,7 +820,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   taskENTER_CRITICAL(&context->spinlock);
   if (driver->is_sending &&
-      driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
+      driver->data.last_cc != RDM_CC_NON_RDM_PACKET) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
@@ -843,7 +848,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
 
   taskENTER_CRITICAL(&context->spinlock);
   if (driver->is_sending &&
-      driver->data.previous_type != RDM_CC_NON_RDM_PACKET) {
+      driver->data.last_cc != RDM_CC_NON_RDM_PACKET) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
@@ -892,8 +897,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (dmx_uart_get_rts(context) == 0) {
     dmx_uart_disable_interrupt(context, DMX_INTR_TX_ALL);
     dmx_uart_set_rts(context, 1);
-    dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
     driver->data.head = -1;  // Wait for DMX break before reading data
+    dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -901,63 +906,55 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   esp_err_t err = ESP_OK;
   uint32_t packet_size = 0;
   taskENTER_CRITICAL(&context->spinlock);
-  if (!driver->packet_is_finished) {
+  const bool packet_is_complete = driver->packet_is_finished;
+  if (!packet_is_complete) {
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   } else {
     // A packet has already been received
     packet_size = driver->data.head;
     err = driver->data.err;
+    if (packet_size == -1) {
+      packet_size = 0;
+    }
   }
-  const bool packet_is_finished = driver->packet_is_finished;
-  const bool sent_previous = driver->data.sent_previous;
-  const int previous_type = driver->data.previous_type;
-  const rdm_uid_t previous_uid = driver->data.previous_uid;
-  const int64_t previous_ts = driver->data.previous_ts;
   taskEXIT_CRITICAL(&context->spinlock);
 
   // If a packet hasn't been received, the driver must wait
-  if (!packet_is_finished) {
-    // Determine if a fail-quick timeout must be set
-    uint32_t fail_quick = 0;
-    if (sent_previous &&
-        (previous_uid != RDM_BROADCAST_UID ||
-         previous_type == RDM_CC_DISC_COMMAND) &&
-        (previous_type == RDM_CC_GET_COMMAND ||
-         previous_type == RDM_CC_SET_COMMAND ||
-         previous_type == RDM_CC_DISC_COMMAND)) {
-      fail_quick = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT;
-    }
-
-    // Set the timeout alarm if the timeout hasn't elapsed yet
+  if (!packet_is_complete) {
+    // Get additional driver flags
     taskENTER_CRITICAL(&context->spinlock);
-    const int64_t elapsed = esp_timer_get_time() - previous_ts;
-    if (elapsed < fail_quick) {
-      dmx_timer_set_counter(context, elapsed);
-      dmx_timer_set_alarm(context, fail_quick);
-      dmx_timer_start(context);
-    }
+    const bool driver_sent_last_packet = driver->sent_last_packet;
+    const bool driver_is_expecting_response = driver->is_expecting_response;
     taskEXIT_CRITICAL(&context->spinlock);
 
-    // Fail immediately if the timeout has elapsed and a response was expected
-    if (fail_quick > 0 && elapsed >= fail_quick) {
+    if (driver_sent_last_packet && driver_is_expecting_response) {
+      // An RDM response is expected in <10ms so a hardware timer may be needed
       taskENTER_CRITICAL(&context->spinlock);
-      driver->task_waiting = NULL;
+      const int64_t elapsed = esp_timer_get_time() - driver->data.timestamp;
+      if (elapsed < RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
+        dmx_timer_set_counter(context, elapsed);
+        dmx_timer_set_alarm(context, RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
+        dmx_timer_start(context);
+      }
       taskEXIT_CRITICAL(&context->spinlock);
-      xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-      xSemaphoreGiveRecursive(driver->mux);
-      return 0;
+
+      // Check if the response has already timed out
+      if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
+        driver->task_waiting = NULL;
+        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle()); // TODO: needed?
+        xSemaphoreGiveRecursive(driver->mux);
+        return packet_size;
+      }
     }
 
     // Wait for a task notification
     if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, wait_ticks)) {
       err = driver->data.err;
+      if (packet_size == -1) {
+        packet_size = 0;
+      }
     }
     driver->task_waiting = NULL;
-  }
-
-  // Correctly report that no response was received when packet size is -1
-  if (packet_size == -1) {
-    packet_size = 0;
   }
 
   // Process DMX packet data
@@ -969,11 +966,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
         // Quickly check if the packet is an RDM packet
         const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
         taskENTER_CRITICAL(&context->spinlock);
-        if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
-          is_rdm = true;  // Discovery unique branch response
-        } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-          is_rdm = true;  // Standard RDM packet
-        }
+        is_rdm = (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) ||
+                 rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;
         taskEXIT_CRITICAL(&context->spinlock);
       }
       event->size = packet_size;
@@ -1021,7 +1015,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
       (rdm->cc == RDM_CC_DISC_COMMAND_RESPONSE ||
        rdm->cc == RDM_CC_GET_COMMAND_RESPONSE ||
        rdm->cc == RDM_CC_SET_COMMAND_RESPONSE)) {
-    elapsed = esp_timer_get_time() - driver->data.previous_ts;
+    elapsed = esp_timer_get_time() - driver->data.timestamp;
   }
   taskEXIT_CRITICAL(&context->spinlock);
   if (elapsed >= RDM_RESPONDER_RESPONSE_LOST_TIMEOUT) {
@@ -1031,10 +1025,10 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Determine if an alarm needs to be set to wait until driver is ready
   uint32_t timeout = 0;
   taskENTER_CRITICAL(&context->spinlock);
-  if (driver->data.sent_previous) {
-    if (driver->data.previous_type == RDM_CC_DISC_COMMAND) {
+  if (driver->sent_last_packet) {
+    if (driver->data.last_cc == RDM_CC_DISC_COMMAND) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
-    } else if (driver->data.previous_uid != RDM_BROADCAST_UID) {
+    } else if (driver->data.last_uid != RDM_BROADCAST_UID) {
       timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
     } else {
       timeout = RDM_BROADCAST_PACKET_SPACING;
@@ -1042,7 +1036,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   } else {
     timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
   }
-  elapsed = esp_timer_get_time() - driver->data.previous_ts;
+  elapsed = esp_timer_get_time() - driver->data.timestamp;
   if (elapsed < timeout) {
     dmx_timer_set_counter(context, elapsed);
     dmx_timer_set_alarm(context, timeout);
@@ -1091,20 +1085,20 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   const uint8_t sc = driver->data.buffer[0];  // DMX start code.
   if (sc == RDM_SC && driver->data.buffer[1] == RDM_SUB_SC) {
     const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
-    driver->data.previous_type = rdm->cc;
-    driver->data.previous_uid = buf_to_uid(rdm->destination_uid);
+    driver->data.last_cc = rdm->cc;
+    driver->data.last_uid = buf_to_uid(rdm->destination_uid);
     ++driver->rdm_tn;
   } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
-    driver->data.previous_type = RDM_CC_DISC_COMMAND_RESPONSE;
-    driver->data.previous_uid = RDM_BROADCAST_UID;
+    driver->data.last_cc = RDM_CC_DISC_COMMAND_RESPONSE;
+    driver->data.last_uid = RDM_BROADCAST_UID;
   } else {
-    driver->data.previous_type = RDM_CC_NON_RDM_PACKET;
-    driver->data.previous_uid = 0;
+    driver->data.last_cc = RDM_CC_NON_RDM_PACKET;
+    driver->data.last_uid = 0;
   }
-  driver->data.sent_previous = true;
+  driver->sent_last_packet = true;
 
   // Determine if a DMX break is required and send the packet
-  if (driver->data.previous_type == RDM_CC_DISC_COMMAND_RESPONSE) {
+  if (driver->data.last_cc == RDM_CC_DISC_COMMAND_RESPONSE) {
     // RDM discovery responses do not send a DMX break - write immediately
     taskENTER_CRITICAL(&context->spinlock);
     driver->is_sending = true;

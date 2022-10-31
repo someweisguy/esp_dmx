@@ -32,10 +32,9 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
     size_t tx_size;   // The size of the outgoing data packet.
     size_t rx_size;   // The expected size of the incoming data packet.
  
-    int previous_type;       // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
-    rdm_uid_t previous_uid;  // The destination UID of the previous packet. Is 0 if the previous packet was not RDM.
-    int64_t previous_ts;     // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
-    int sent_previous;       // Is true if this device sent the previous data packet.
+    rdm_cc_t last_cc;       // The type of the previous data packet. If the previous packet was an RDM packet, this is equal to its command class.
+    rdm_uid_t last_uid;  // The destination UID of the previous packet. Is 0 if the previous packet was not RDM.
+    int64_t timestamp;     // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
     esp_err_t err;  // The error state of the received DMX data.
   } data;
@@ -43,6 +42,8 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
   int is_in_break;      // True if the driver is sending or receiving a DMX break.
   int packet_is_finished;  // True if the driver is receiving data.
   int is_sending;       // True if the driver is sending data.
+  int is_expecting_response;
+  int sent_last_packet;       // Is true if this device sent the previous data packet.
 
   uint32_t rdm_tn;   // RDM Transaction number. Increments with every RDM packet sent.
   int rdm_is_muted;  // True if RDM discovery is muted.
