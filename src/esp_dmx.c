@@ -172,52 +172,63 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_timer_pause(context);
 
       // Set driver flags
+      taskENTER_CRITICAL_ISR(&context->spinlock);
       driver->is_in_break = false;
       driver->data.previous_ts = now;
+      taskEXIT_CRITICAL_ISR(&context->spinlock);
 
-      // Don't process data if the driver is done receiving
-      if (driver->packet_is_finished) {
-        continue;
-      }
-
-      // Determine if a full packet has been received and notify the task
-      const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-      if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-        if (driver->data.head >= RDM_BASE_PACKET_SIZE) {
-          // An RDM packet's length should match the message length slot value
-          if (driver->data.head >= rdm->message_len + 2) {
+      // Determine if a complete packet has been received
+      bool packet_is_complete = false;
+      if (!driver->packet_is_finished) {
+        const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
+        if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
+          // The packet is a standard RDM packet
+          if (driver->data.head >= RDM_BASE_PACKET_SIZE &&
+              driver->data.head >= rdm->message_len + 2) {
+            taskENTER_CRITICAL_ISR(&context->spinlock);
             driver->data.previous_type = rdm->cc;
             driver->data.previous_uid = buf_to_uid(rdm->destination_uid);
-            driver->packet_is_finished = true;
+            taskEXIT_CRITICAL_ISR(&context->spinlock);
+            packet_is_complete = true;
           }
-        }
-      } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
-        // An RDM discovery response packet is at least 17 bytes long
-        if (driver->data.head >= 17) {
-          // Find the length of the discovery response preamble (0-7 bytes)
-          size_t preamble_len = 0;
-          for (; preamble_len < 7; ++preamble_len) {
-            if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
-              break;
+        } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
+          // The packet is a DISC_UNIQUE_BRANCH response
+          if (driver->data.head >= 17) {
+            // Find the length of the preamble (0 to 7 bytes)
+            size_t preamble_len = 0;
+            for (; preamble_len < 7; ++preamble_len) {
+              if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
+                break;
+              }
+            }
+
+            if (driver->data.head >= preamble_len + 17) {
+              // DISC_UNIQUE_BRANCH responses should be 17 bytes after preamble
+              taskENTER_CRITICAL_ISR(&context->spinlock);
+              driver->data.previous_type = RDM_CC_DISC_COMMAND_RESPONSE;
+              driver->data.previous_uid = -1;  // Source UID is encoded
+              taskEXIT_CRITICAL_ISR(&context->spinlock);
+              packet_is_complete = true;
             }
           }
-          // Discovery response packets are 17 bytes long after the preamble
-          if (driver->data.head >= preamble_len + 17) {
-            driver->data.previous_type = RDM_CC_DISC_COMMAND_RESPONSE;
-            driver->packet_is_finished = true;
+        } else {
+          // The packet is a DMX packet
+          if (driver->data.head >= driver->data.rx_size) {
+            taskENTER_CRITICAL_ISR(&context->spinlock);
+            driver->data.previous_type = RDM_CC_NON_RDM_PACKET;
+            driver->data.previous_uid = -1;  // No UID received
+            taskEXIT_CRITICAL_ISR(&context->spinlock);
+            packet_is_complete = true;
           }
         }
-      } else {
-        // A DMX packet size should be equal to the expected packet size
-        if (driver->data.head >= driver->data.rx_size) {
-          driver->data.previous_type = RDM_CC_NON_RDM_PACKET;
-          driver->packet_is_finished = true;
-        }
       }
-      if (driver->packet_is_finished) {
-        driver->data.err = ESP_OK;
-        driver->data.sent_previous = false;
+
+      // Notify tasks that the packet is complete
+      if (packet_is_complete) {
         taskENTER_CRITICAL_ISR(&context->spinlock);
+        driver->data.err = ESP_OK;
+        driver->packet_is_finished = true;
+        driver->data.sent_previous = false;
         if (driver->task_waiting) {
           xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                              eSetValueWithOverwrite, &task_awoken);
