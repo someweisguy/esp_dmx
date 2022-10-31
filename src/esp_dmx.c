@@ -139,23 +139,21 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         context->timer_running = false;
       }
 
-      // Update packet size guess if driver hasn't received a packet yet
       if (!driver->packet_is_finished) {
+        // When a DMX break is received before the driver thinks a packet is
+        // finished, the data.rx_size must be updated.
         driver->data.rx_size = driver->data.head;
       }
-
-      // Set driver flags and reset data head
+      
+      taskENTER_CRITICAL_ISR(&context->spinlock);
+      // Set driver flags
       driver->packet_is_finished = false;
       driver->is_in_break = true;
-      driver->data.head = 0;
+      driver->data.head = 0;  // Driver buffer is ready for data
+      taskEXIT_CRITICAL_ISR(&context->spinlock);
     }
 
     else if (intr_flags & DMX_INTR_RX_DATA) {
-      
-      if (driver->packet_is_finished) {
-
-      }
-
       // Read data from the FIFO into the driver buffer if possible
       if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
         // Data can be read into driver buffer
