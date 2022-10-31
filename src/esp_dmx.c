@@ -961,7 +961,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
     driver->task_waiting = NULL;
   }
 
-  // Process DMX packet data
+  // Report packet data in the DMX event
   if (event != NULL) {
     event->err = err;
     event->size = packet_size;
@@ -1080,13 +1080,12 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
 
   // Record the outgoing packet type
-  const uint8_t sc = driver->data.buffer[0];  // DMX start code.
-  if (sc == RDM_SC && driver->data.buffer[1] == RDM_SUB_SC) {
-    const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
+  const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
+  if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
     driver->data.last_cc = rdm->cc;
     driver->data.last_uid = buf_to_uid(rdm->destination_uid);
     ++driver->rdm_tn;
-  } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
+  } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
     driver->data.last_cc = RDM_CC_DISC_COMMAND_RESPONSE;
     driver->data.last_uid = RDM_BROADCAST_UID;
   } else {
