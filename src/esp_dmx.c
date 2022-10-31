@@ -1080,7 +1080,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
 
   // Record the outgoing packet type
-  const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
   if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
     driver->data.last_cc = rdm->cc;
     driver->data.last_uid = buf_to_uid(rdm->destination_uid);
