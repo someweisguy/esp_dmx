@@ -40,7 +40,8 @@ typedef __attribute__((aligned(4))) struct dmx_driver {
   } data;
 
   int is_in_break;      // True if the driver is sending or receiving a DMX break.
-  int packet_is_finished;  // True if the driver is receiving data.
+  int received_a_packet;  // True if the driver is receiving data.
+  int packet_was_handled;
   int is_sending;       // True if the driver is sending data.
   int is_expecting_response;
   int sent_last_packet;       // Is true if this device sent the previous data packet.
