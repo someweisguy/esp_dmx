@@ -389,20 +389,28 @@ void dmx_timer_set_counter(dmx_context_t *ctx, uint64_t counter) {
 
 // TODO: docs, not ISR safe!
 void dmx_timer_start(dmx_context_t *ctx) {
+  if (ctx->timer_running) {
+    return;
+  }
 #if ESP_IDF_MAJOR_VERSION >= 5
   // TODO
 #else 
   timer_start(ctx->timer_group, ctx->timer_idx);
-#endif 
+#endif
+  ctx->timer_running = true;
 }
 
 // TODO: docs
 DMX_ISR_ATTR void dmx_timer_pause(dmx_context_t *ctx) {
+  if (!ctx->timer_running) {
+    return;
+  }
 #if ESP_IDF_MAJOR_VERSION >= 5
   // TODO
 #else
   timer_group_set_counter_enable_in_isr(ctx->timer_group, ctx->timer_idx, 0);
-#endif 
+#endif
+  ctx->timer_running = false;
 }
 
 #ifdef __cplusplus
