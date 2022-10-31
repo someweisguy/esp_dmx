@@ -960,6 +960,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   // Process DMX packet data
   if (event != NULL) {
     event->err = err;
+    event->size = packet_size;
     if (packet_size > 0) {
       bool is_rdm = false;
       if (!err) {
@@ -970,11 +971,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
                  rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;
         taskEXIT_CRITICAL(&context->spinlock);
       }
-      event->size = packet_size;
       event->sc = driver->data.buffer[0];
       event->is_rdm = is_rdm;
     } else {
-      event->size = 0;
       event->sc = -1;
       event->is_rdm = false;
     }
