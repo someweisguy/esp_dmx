@@ -1021,6 +1021,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   taskEXIT_CRITICAL(&context->spinlock);
   if (elapsed >= RDM_RESPONDER_RESPONSE_LOST_TIMEOUT) {
+    xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
 
