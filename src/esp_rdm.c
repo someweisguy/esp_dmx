@@ -29,7 +29,7 @@ rdm_uid_t rdm_get_uid() {
   if (rdm_uid == 0) {
     uint8_t mac[8];
     esp_efuse_mac_get_default(mac);
-    rdm_uid = (rdm_uid_t)RDM_DEFAULT_MANUFACTURER_ID << 32;
+    rdm_uid = (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
     rdm_uid |= bswap32(*(uint32_t *)(mac + 2));
   }
 
@@ -86,7 +86,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
 
   // Prepare the RDM message
   const rdm_header_t header = {
-    .destination_uid = RDM_BROADCAST_UID,
+    .destination_uid = RDM_BROADCAST_ALL_UID,
     .source_uid = rdm_get_uid(),
     .tn = 0,  // TODO: get up-to-date transaction number
     .port_id = dmx_num + 1,
@@ -163,7 +163,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
 
   // Determine if a response is expected
   size_t num_params = 0;
-  if (uid != RDM_BROADCAST_UID) {
+  if (!RDM_UID_IS_BROADCAST(uid)) {
     // Receive the response
     dmx_event_t packet;
     const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
@@ -205,7 +205,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Un-mute all devices
-  rdm_send_disc_mute(dmx_num, RDM_BROADCAST_UID, false, NULL, NULL);
+  rdm_send_disc_mute(dmx_num, RDM_BROADCAST_ALL_UID, false, NULL, NULL);
 
   // Initialize the stack with the initial branch instruction
   // The max depth of the binary tree is 49 nodes
@@ -385,7 +385,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
 
   // Wait for a response if necessary
   size_t num_params = 0;
-  if (uid != RDM_BROADCAST_UID) {
+  if (!RDM_UID_IS_BROADCAST(uid)) {
     // Wait for a response 
     dmx_event_t packet;
     const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
@@ -453,7 +453,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
 
   // Wait for a response if necessary
   size_t num_params = 0;
-  if (uid != RDM_BROADCAST_UID) {
+  if (!RDM_UID_IS_BROADCAST(uid)) {
     // Wait for a response
     dmx_event_t packet;
     const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);

@@ -275,7 +275,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
         const rdm_uid_t destination_uid = buf_to_uid(rdm->destination_uid);
-        if (destination_uid == RDM_BROADCAST_UID &&
+        if (RDM_UID_IS_BROADCAST(destination_uid) &&
             rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
           expecting_response = true;
           driver->data.head = 0;  // Response doesn't have a DMX break
@@ -1028,7 +1028,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (driver->sent_last_packet) {
     if (driver->data.last_pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
-    } else if (driver->data.last_uid != RDM_BROADCAST_UID) {
+    } else if (!RDM_UID_IS_BROADCAST(driver->data.last_uid)) {
       timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
     } else {
       timeout = RDM_BROADCAST_PACKET_SPACING;
@@ -1088,7 +1088,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     ++driver->rdm_tn;
   } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
     driver->data.last_pid = -1;  // No PID is sent
-    driver->data.last_uid = RDM_BROADCAST_UID;
+    driver->data.last_uid = RDM_BROADCAST_ALL_UID;
   } else {
     driver->data.last_pid = 0;
     driver->data.last_uid = 0;

@@ -18,17 +18,33 @@ extern "C" {
  * long as it is used responsibly) or may choose to register their own 
  * manufacturer ID.
  */
-#define RDM_DEFAULT_MANUFACTURER_ID (0x05e0)
+#define RDM_DEFAULT_MAN_ID (0x05e0)
 
 /**
- * @brief UID which indicates an RDM packet is being broadcast. Responders shall
- * not respond to RDM broadcast messages.
+ * @brief This macro creates a broadcast UID for a specific manufacturer. This
+ * can be used to send commands to all devices made by one manufacturer. For
+ * example, commands sent to RDM_MANUFACTURER_BROADCAST_UID(0x05e0) will be
+ * processed by devices that use the default manufacturer ID of this library.
  */
-static const rdm_uid_t RDM_BROADCAST_UID = 0xffffffffffff;
+#define RDM_BROADCAST_MAN_UID(man_id) \
+  ((((rdm_uid_t)man_id & 0xffff) << 32) | (rdm_uid_t)0xffffffff)
+
+/**
+ * @brief Returns true if a UID is a broadcast UID.
+ */
+#define RDM_UID_IS_BROADCAST(uid) \
+  (((rdm_uid_t)uid & (rdm_uid_t)0xffffffff) == (rdm_uid_t)0xffffffff)
+
+/**
+ * @brief UID which indicates an RDM packet is being broadcast to all devices
+ * regardless of manufacturer. Responders shall not respond to RDM broadcast
+ * messages.
+ */
+static const rdm_uid_t RDM_BROADCAST_ALL_UID = RDM_BROADCAST_MAN_UID(0xffff);
 
 /**
  * @brief The maximum RDM UID possible. Any UID above this value (except
- * RDM_BROADCAST_UID) is considered invalid.
+ * RDM_BROADCAST_ALL_UID) is considered invalid.
  */
 static const rdm_uid_t RDM_MAX_UID = 0xfffffffffffe;
 

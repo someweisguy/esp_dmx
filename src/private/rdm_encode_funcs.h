@@ -48,7 +48,7 @@ bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header) {
     }
 
     // Return RDM data to the caller
-    header->destination_uid = RDM_BROADCAST_UID;
+    header->destination_uid = RDM_BROADCAST_ALL_UID;
     header->source_uid = uid;
     header->tn = 0;
     header->response_type = RDM_RESPONSE_TYPE_ACK;
