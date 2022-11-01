@@ -1005,7 +1005,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Block until the driver is done sending
   if (!dmx_wait_sent(dmx_num, portMAX_DELAY)) {
-    // FIXME: give mux
+    xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
 
