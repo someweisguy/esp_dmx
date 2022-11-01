@@ -190,7 +190,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               driver->data.head >= rdm->message_len + 2) {
             taskENTER_CRITICAL_ISR(&context->spinlock);
             driver->data.last_cc = rdm->cc;
-            driver->data.last_uid = buf_to_uid(rdm->destination_uid);
+            driver->data.last_uid = buf_to_uid(rdm->source_uid);
             taskEXIT_CRITICAL_ISR(&context->spinlock);
             packet_is_complete = true;
           }
@@ -209,7 +209,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               // DISC_UNIQUE_BRANCH responses should be 17 bytes after preamble
               taskENTER_CRITICAL_ISR(&context->spinlock);
               driver->data.last_cc = RDM_CC_DISC_COMMAND_RESPONSE;
-              driver->data.last_uid = -1;  // Source UID is encoded
+              driver->data.last_uid = 0;  // Source UID is encoded
               taskEXIT_CRITICAL_ISR(&context->spinlock);
               packet_is_complete = true;
             }
@@ -219,7 +219,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           if (driver->data.head >= driver->data.rx_size) {
             taskENTER_CRITICAL_ISR(&context->spinlock);
             driver->data.last_cc = RDM_CC_NON_RDM_PACKET;
-            driver->data.last_uid = -1;  // No UID received
+            driver->data.last_uid = 0;  // No UID received
             taskEXIT_CRITICAL_ISR(&context->spinlock);
             packet_is_complete = true;
           }
@@ -271,30 +271,32 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskEXIT_CRITICAL_ISR(&context->spinlock);
 
       // Turn DMX bus around quickly if expecting an RDM response
-      bool turn_bus_around = false;
+      bool expecting_response = false;
       const rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
       if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-        // If packet was RDM and non-broadcast expect a response
-        if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND) {
-          const rdm_uid_t destination_uid = buf_to_uid(rdm->destination_uid);
-          if (destination_uid != RDM_BROADCAST_UID) {
-            turn_bus_around = true;
-            driver->data.head = -1;  // Expecting a DMX break
-          }
-        } else if (rdm->cc == RDM_CC_DISC_COMMAND) {
-          // All discovery commands expect a response
-          driver->received_a_packet = false;
+        const rdm_uid_t destination_uid = buf_to_uid(rdm->destination_uid);
+        if (destination_uid == RDM_BROADCAST_UID &&
+            rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
+          expecting_response = true;
           driver->data.head = 0;  // Response doesn't have a DMX break
-          turn_bus_around = true;
+        } else if (rdm->cc == RDM_CC_DISC_COMMAND ||
+                   rdm->cc == RDM_CC_GET_COMMAND ||
+                   rdm->cc == RDM_CC_SET_COMMAND) {
+          expecting_response = true;
+          driver->data.head = -1;  // Expecting a DMX break
         }
       }
-      if (turn_bus_around) {
+      taskENTER_CRITICAL_ISR(&context->spinlock);
+      if (expecting_response) {
+        driver->received_a_packet = false;
+        driver->packet_was_handled = false;
         dmx_uart_rxfifo_reset(context);
         dmx_uart_set_rts(context, 1);
         dmx_uart_clear_interrupt(context, DMX_INTR_RX_ALL);
         dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
       }
-      driver->is_expecting_response = turn_bus_around;
+      driver->is_expecting_response = expecting_response;
+      taskEXIT_CRITICAL_ISR(&context->spinlock);
     }
   }
 
@@ -891,6 +893,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   // Block until the driver is done sending
   if (!dmx_wait_sent(dmx_num, wait_ticks) ||
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
+    xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
 
@@ -1002,6 +1005,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Block until the driver is done sending
   if (!dmx_wait_sent(dmx_num, portMAX_DELAY)) {
+    // FIXME: give mux
     return 0;
   }
 
@@ -1024,7 +1028,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   uint32_t timeout = 0;
   taskENTER_CRITICAL(&context->spinlock);
   if (driver->sent_last_packet) {
-    if (driver->data.last_cc == RDM_CC_DISC_COMMAND) {
+    if (driver->data.last_cc == RDM_CC_DISC_COMMAND) {  // FIXME: is this correct?
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
     } else if (driver->data.last_uid != RDM_BROADCAST_UID) {
       timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
