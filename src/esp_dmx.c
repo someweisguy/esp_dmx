@@ -17,8 +17,6 @@
 #include "rdm_constants.h"
 #include "rdm_types.h"
 
-#include "driver/gpio.h" // FIXME
-
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 #define DMX_ISR_ATTR IRAM_ATTR
 #else
@@ -88,7 +86,6 @@ enum __rdm_packet_type {
 };
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
-  gpio_set_level(15, 1);
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
@@ -319,7 +316,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     }
   }
 
-  gpio_set_level(15, 0);
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
@@ -359,7 +355,6 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 }
 
 static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
-  gpio_set_level(14, 1);
   const dmx_port_t dmx_num = *(dmx_port_t *)arg;
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const context = &dmx_context[dmx_num];
@@ -401,7 +396,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
     // Notify the task
     xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
                        eSetValueWithOverwrite, &task_awoken);
-    
+
     // Pause the receive timer alarm
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
@@ -412,7 +407,6 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
 #endif
   }
 
-  gpio_set_level(14, 0);
   return task_awoken;
 }
 
@@ -568,7 +562,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 #else
   timer_deinit(context->timer_group, context->timer_idx);
 #endif
-  
+
   // Free driver
   heap_caps_free(driver);
   dmx_driver[dmx_num] = NULL;
@@ -1013,7 +1007,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       // Check if the response has already timed out
       if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
         driver->task_waiting = NULL;
-        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle()); // TODO: needed?
+        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());  // TODO: needed?
         xSemaphoreGiveRecursive(driver->mux);
         return packet_size;
       }
