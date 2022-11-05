@@ -17,6 +17,8 @@
 #include "rdm_constants.h"
 #include "rdm_types.h"
 
+#include "driver/gpio.h" // FIXME
+
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 #define DMX_ISR_ATTR IRAM_ATTR
 #else
@@ -86,6 +88,7 @@ enum __rdm_packet_type {
 };
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
+  gpio_set_level(15, 1);
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
@@ -142,8 +145,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_rxfifo_reset(context);
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_BREAK);
 
-      // Stop the receive timeout if it is running
-      dmx_timer_pause(context);
+      // Pause the receive timer alarm
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+      // TODO
+#else
+      timer_group_set_counter_enable_in_isr(context->timer_group,
+                                            context->timer_idx, 0);
+#endif
 
       if (!driver->received_a_packet) {
         // When a DMX break is received before the driver thinks a packet is
@@ -178,8 +187,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
       dmx_uart_clear_interrupt(context, DMX_INTR_RX_DATA);
 
-      // Stop the receive timeout if it is running
-      dmx_timer_pause(context);
+      // Pause the receive timer alarm
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+      // TODO
+#else
+      timer_group_set_counter_enable_in_isr(context->timer_group,
+                                            context->timer_idx, 0);
+#endif
 
       // Set driver flags
       taskENTER_CRITICAL_ISR(&context->spinlock);
@@ -304,6 +319,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     }
   }
 
+  gpio_set_level(15, 0);
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
@@ -343,40 +359,60 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 }
 
 static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
+  gpio_set_level(14, 1);
   const dmx_port_t dmx_num = *(dmx_port_t *)arg;
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const context = &dmx_context[dmx_num];
   int task_awoken = false;
 
-  if (!driver->is_sending && driver->task_waiting) {
-    // Notify the task and pause the timer
-    dmx_timer_pause(context);
-    context->timer_running = false;
-    xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
-                       eSetValueWithOverwrite, &task_awoken);
-  } else if (driver->is_in_break) {
+  if (driver->is_sending && driver->is_in_break) {
     // End the DMX break
     dmx_uart_invert_tx(context, 0);
     driver->is_in_break = false;
 
-    // Get the configured length of the DMX mark-after-break
-    taskENTER_CRITICAL_ISR(&context->spinlock);
-    const uint32_t mab_len = driver->mab_len;
-    taskEXIT_CRITICAL_ISR(&context->spinlock);
-
     // Reset the alarm for the end of the DMX mark-after-break
-    dmx_timer_set_alarm(context, mab_len);
-  } else {
-    // Write data to the UART and pause the timer
+    taskENTER_CRITICAL_ISR(&context->spinlock);
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+    // TODO
+#else
+    timer_group_set_alarm_value_in_isr(context->timer_group, context->timer_idx,
+                                       driver->mab_len);
+#endif
+    taskEXIT_CRITICAL_ISR(&context->spinlock);
+  } else if (driver->is_sending) {
+    // Write data to the UART
     size_t write_size = driver->data.tx_size;
     dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
     driver->data.head += write_size;
-    dmx_timer_pause(context);
+
+    // Pause MAB timer alarm
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+    // TODO
+#else
+    timer_group_set_counter_enable_in_isr(context->timer_group,
+                                          context->timer_idx, 0);
+#endif
 
     // Enable DMX write interrupts
     dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
+  } else if (driver->task_waiting) {
+    // Notify the task
+    xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
+                       eSetValueWithOverwrite, &task_awoken);
+    
+    // Pause the receive timer alarm
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+    // TODO
+#else
+    timer_group_set_counter_enable_in_isr(context->timer_group,
+                                          context->timer_idx, 0);
+#endif
   }
 
+  gpio_set_level(14, 0);
   return task_awoken;
 }
 
@@ -464,8 +500,23 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // TODO: Allow busy-waiting instead of hardware timers
   // Initialize hardware timer
-  dmx_timer_init(dmx_num, context);
-  dmx_timer_add_callback(context, dmx_timer_isr, driver, intr_flags);
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+  // TODO
+#else
+  context->timer_group = dmx_num / 2;
+  context->timer_idx = dmx_num % 2;
+  const timer_config_t timer_config = {
+      .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
+      .counter_dir = TIMER_COUNT_UP,
+      .counter_en = false,
+      .alarm_en = true,
+      .auto_reload = true,
+  };
+  timer_init(context->timer_group, context->timer_idx, &timer_config);
+  timer_isr_callback_add(context->timer_group, context->timer_idx,
+                         dmx_timer_isr, driver, intr_flags);
+#endif
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(&context->spinlock);
@@ -511,7 +562,12 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // Free hardware timer ISR
   // TODO: check if using busy-waits
   // TODO: unregister ISR callback
-  dmx_timer_deinit(context);
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+  // TODO
+#else
+  timer_deinit(context->timer_group, context->timer_idx);
+#endif
   
   // Free driver
   heap_caps_free(driver);
@@ -940,9 +996,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       taskENTER_CRITICAL(&context->spinlock);
       const int64_t elapsed = esp_timer_get_time() - driver->data.timestamp;
       if (elapsed < RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
-        dmx_timer_set_counter(context, elapsed);
-        dmx_timer_set_alarm(context, RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
-        dmx_timer_start(context);
+        // Start a timer alarm that triggers when the RDM timeout occurs
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+        // TODO
+#else
+        timer_set_counter_value(context->timer_group, context->timer_idx,
+                                elapsed);
+        timer_set_alarm_value(context->timer_group, context->timer_idx,
+                              RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
+        timer_start(context->timer_group, context->timer_idx);
+#endif
       }
       taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1042,10 +1106,15 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   elapsed = esp_timer_get_time() - driver->data.timestamp;
   if (elapsed < timeout) {
-    dmx_timer_set_counter(context, elapsed);
-    dmx_timer_set_alarm(context, timeout);
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+    // TODO
+#else
+    timer_set_counter_value(context->timer_group, context->timer_idx, elapsed);
+    timer_set_alarm_value(context->timer_group, context->timer_idx, timeout);
+    timer_start(context->timer_group, context->timer_idx);
+#endif
     driver->task_waiting = xTaskGetCurrentTaskHandle();
-    dmx_timer_start(context);
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1053,7 +1122,12 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
-      dmx_timer_pause(context);
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+      // TODO
+#else
+      timer_pause(context->timer_group, context->timer_idx);
+#endif
       xTaskNotifyStateClear(driver->task_waiting);
     }
     driver->task_waiting = NULL;
@@ -1119,20 +1193,21 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
     taskEXIT_CRITICAL(&context->spinlock);
   } else {
-    // Use the hardware timer to send a DMX break and mark-after-break
-    taskENTER_CRITICAL(&context->spinlock);
-    const uint32_t break_len = driver->break_len;
-    taskEXIT_CRITICAL(&context->spinlock);
-    dmx_timer_set_counter(context, 0);
-    dmx_timer_set_alarm(context, break_len);
-
     // Send the packet by starting the DMX break
     taskENTER_CRITICAL(&context->spinlock);
-    driver->is_sending = true;
-    driver->is_in_break = true;
     driver->data.head = 0;
+    driver->is_in_break = true;
+    driver->is_sending = true;
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+    // TODO
+#else
+    timer_set_counter_value(context->timer_group, context->timer_idx, 0);
+    timer_set_alarm_value(context->timer_group, context->timer_idx,
+                          driver->break_len);
+    timer_start(context->timer_group, context->timer_idx);
+#endif
     dmx_uart_invert_tx(context, 1);
-    dmx_timer_start(context);
     taskEXIT_CRITICAL(&context->spinlock);
   }
 
