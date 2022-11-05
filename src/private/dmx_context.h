@@ -138,7 +138,7 @@ void dmx_uart_set_txfifo_empty(dmx_context_t *ctx, uint8_t threshold) {
  * @param hal A pointer to a UART HAL context.
  * @param invert_mask 1 to invert, 0 to un-invert.
  */
-void dmx_uart_invert_tx(dmx_context_t *ctx, uint32_t invert) {
+DMX_ISR_ATTR void dmx_uart_invert_tx(dmx_context_t *ctx, uint32_t invert) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
   ctx->dev->conf0.txd_inv = invert ? 1 : 0;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
