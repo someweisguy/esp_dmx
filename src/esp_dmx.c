@@ -17,6 +17,12 @@
 #include "rdm_constants.h"
 #include "rdm_types.h"
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 // Used for argument checking at the beginning of each function.
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
@@ -28,12 +34,6 @@
     .hw_enabled = false,                                                       \
   }
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
 DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
     DMX_CONTEXT_INIT(DMX_NUM_0),
     DMX_CONTEXT_INIT(DMX_NUM_1),
@@ -44,12 +44,12 @@ DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
 
 DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
 
-enum dmx_default_interrupt_values {
+enum __dmx_default_interrupt_values {
   DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
   DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
 };
 
-enum dmx_interrupt_mask {
+enum __dmx_interrupt_mask {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
   DMX_INTR_RX_FRAMING_ERR = UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR |
                             UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR,
@@ -66,7 +66,7 @@ enum dmx_interrupt_mask {
   DMX_ALL_INTR_MASK = -1
 };
 
-enum rdm_packet_timing {
+enum __rdm_packet_timing {
   RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,
   RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,
   RDM_BROADCAST_PACKET_SPACING = 176,
@@ -74,6 +74,15 @@ enum rdm_packet_timing {
 
   RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT = 2800,
   RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000
+};
+
+enum __rdm_packet_type {
+  RDM_PACKET_TYPE_NON_RDM,
+  RDM_PACKET_TYPE_DISCOVERY,
+  RDM_PACKET_TYPE_DISCOVERY_RESPONSE,
+  RDM_PACKET_TYPE_REQUEST,
+  RDM_PACKET_TYPE_RESPONSE,
+  RDM_PACKET_TYPE_BROADCAST
 };
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
@@ -1077,7 +1086,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
 
   // Record the outgoing packet type
-  enum rdm_type_t packet_type = RDM_PACKET_TYPE_NON_RDM;
+  int packet_type = RDM_PACKET_TYPE_NON_RDM;
   if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
     if (rdm->cc == RDM_CC_DISC_COMMAND &&
         rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {

@@ -13,15 +13,6 @@
 extern "C" {
 #endif
 
-enum rdm_type_t {
-  RDM_PACKET_TYPE_NON_RDM,
-  RDM_PACKET_TYPE_DISCOVERY,
-  RDM_PACKET_TYPE_DISCOVERY_RESPONSE,
-  RDM_PACKET_TYPE_REQUEST,
-  RDM_PACKET_TYPE_RESPONSE,
-  RDM_PACKET_TYPE_BROADCAST
-};
-
 /**
  * @brief The DMX driver object used to handle reading and writing DMX data on 
  * the UART port. It storese all the information needed to run and analyze DMX
