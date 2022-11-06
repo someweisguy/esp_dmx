@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "endian.h"
 #include "esp_dmx.h"
 #include "private/rdm_encode_types.h"
 #include "rdm_constants.h"
@@ -20,7 +21,7 @@ bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header) {
 
     // Find the length of the discovery response preamble (0-7 bytes)
     int preamble_len = 0;
-    const uint8_t *data = source;
+    const uint8_t *data = (uint8_t *)source;
     for (; preamble_len < 7; ++preamble_len) {
       if (data[preamble_len] == RDM_DELIMITER) {
         break;
@@ -171,7 +172,7 @@ size_t rdm_decode_device_info(const rdm_data_t *source, size_t size,
 
 size_t rdm_encode_string(rdm_data_t *destination, size_t size,
                          const char string[32]) {
-  strncpy((char *)&destination->pd, string, 32);
+  strncpy((char *)&destination->pd, string, size);
   return strnlen(string, 32);
 }
 
