@@ -360,38 +360,36 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
   dmx_context_t *const context = &dmx_context[dmx_num];
   int task_awoken = false;
 
-  if (driver->is_sending && driver->is_in_break) {
-    // End the DMX break
-    dmx_uart_invert_tx(context, 0);
-    driver->is_in_break = false;
+  if (driver->is_sending) {
+    if (driver->is_in_break) {
+      dmx_uart_invert_tx(context, 0);
+      driver->is_in_break = false;
 
-    // Reset the alarm for the end of the DMX mark-after-break
-    taskENTER_CRITICAL_ISR(&context->spinlock);
+      // Reset the alarm for the end of the DMX mark-after-break
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
-    // TODO
+      // TODO
 #else
-    timer_group_set_alarm_value_in_isr(context->timer_group, context->timer_idx,
-                                       driver->mab_len);
+      timer_group_set_alarm_value_in_isr(context->timer_group,
+                                         context->timer_idx, driver->mab_len);
 #endif
-    taskEXIT_CRITICAL_ISR(&context->spinlock);
-  } else if (driver->is_sending) {
-    // Write data to the UART
-    size_t write_size = driver->data.tx_size;
-    dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
-    driver->data.head += write_size;
+    } else {
+      // Write data to the UART
+      size_t write_size = driver->data.tx_size;
+      dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
+      driver->data.head += write_size;
 
-    // Pause MAB timer alarm
+      // Pause MAB timer alarm
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
-    // TODO
+      // TODO
 #else
-    timer_group_set_counter_enable_in_isr(context->timer_group,
-                                          context->timer_idx, 0);
+      timer_group_set_counter_enable_in_isr(context->timer_group,
+                                            context->timer_idx, 0);
 #endif
-
-    // Enable DMX write interrupts
-    dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
+      // Enable DMX write interrupts
+      dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
+    }
   } else if (driver->task_waiting) {
     // Notify the task
     xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
