@@ -1199,6 +1199,15 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
                           driver->break_len);
     timer_start(context->timer_group, context->timer_idx);
 #endif
+    
+    // Burn some CPU cycles for proper DMX break timing
+    // This is needed due to the latency between calling the dmx_timer_isr() and
+    // the call to dmx_uart_invert_tx() causing a few microsecond difference in
+    // the desired DMX break length and the actual break length. 
+    for (volatile int i = 0; i < 22; ++i) {
+      __asm__ __volatile__("nop");
+    }
+
     dmx_uart_invert_tx(context, 1);
     taskEXIT_CRITICAL(&context->spinlock);
   }
