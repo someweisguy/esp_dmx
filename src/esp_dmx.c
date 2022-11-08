@@ -121,8 +121,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         driver->data.timestamp = now;
         driver->received_a_packet = true;
         driver->data.err = intr_flags & DMX_INTR_RX_FRAMING_ERR
-                               ? ESP_ERR_INVALID_RESPONSE
-                               : ESP_FAIL;
+                               ? ESP_FAIL
+                               : ESP_ERR_NOT_FINISHED;
 
         // Notify the task if there is one waiting
         if (driver->task_waiting) {
