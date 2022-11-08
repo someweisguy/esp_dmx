@@ -27,7 +27,7 @@ typedef unsigned int dmx_port_t;
 /**
  * @brief RDM unique ID type.
  */
-typedef int64_t rdm_uid_t;
+typedef uint64_t rdm_uid_t;
 
 typedef struct dmx_sniffer_data_t {
   uint32_t break_len;  // Length in microseconds of the last received DMX break.
