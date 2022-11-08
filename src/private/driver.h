@@ -26,7 +26,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
-  struct dmx_data {
+  struct dmx_data_t {
     int head;         // The index of the current slot being either transmitted or received.
     uint8_t *buffer;  // The buffer that stores the DMX packet.
     size_t tx_size;   // The size of the outgoing data packet.
@@ -44,13 +44,16 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   int packet_was_handled;  // True if the latest packet has been handled by a call to dmx_receive()
   int is_sending;          // True if the driver is sending data.
 
-  uint32_t rdm_tn;   // RDM Transaction number. Increments with every RDM packet sent.
-  int rdm_is_muted;  // True if RDM discovery is muted.
-
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
-  struct dmx_sniffer {
+  struct rdm_info_t {
+    rdm_uid_t uid;
+    uint32_t tn;
+    int discovery_is_muted;
+  } rdm;
+
+  struct dmx_sniffer_t {
     QueueHandle_t queue;       // The queue handle used to receive sniffer data.
     dmx_sniffer_data_t data;   // The data received by the DMX sniffer.
 

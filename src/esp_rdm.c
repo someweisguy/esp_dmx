@@ -21,22 +21,47 @@
 
 static const char *TAG = "rdm";  // The log tagline for the file.
 
-static rdm_uid_t rdm_uid = 0;  // The 48-bit unique ID of this device.
 static bool rdm_disc_is_muted = false;  // True if RDM discovery is muted.
 
-rdm_uid_t rdm_get_uid() {
-  // Initialize the RDM UID
-  if (rdm_uid == 0) {
-    uint8_t mac[8];
-    esp_efuse_mac_get_default(mac);
-    rdm_uid = (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
-    rdm_uid |= bswap32(*(uint32_t *)(mac + 2));
+rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // TODO: spinlock
+  
+  // Initialize the RDM UID 
+  if (driver->rdm.uid == 0) {
+    struct __attribute__((__packed__)) {
+      uint16_t manufacturer;
+      uint64_t device;
+    } mac;
+    esp_efuse_mac_get_default((void *)&mac);
+    driver->rdm.uid = (bswap32(mac.device) + dmx_num) & 0xffffffff;
+    driver->rdm.uid |= (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
   }
 
-  return rdm_uid;
+  // TODO: spinlock
+
+  return driver->rdm.uid;
 }
 
-void rdm_set_uid(rdm_uid_t uid) { rdm_uid = uid; }
+void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) { 
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  
+  // Check that UID is valid
+  if (uid > RDM_MAX_UID) {
+    ESP_LOGE(TAG, "uid error");
+    return;
+  }
+  
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  // TODO: spinlock
+  driver->rdm.uid = uid;  
+  // TODO: spinlock
+}
 
 bool rdm_is_muted() { return rdm_disc_is_muted; }
 
@@ -74,7 +99,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   size_t written = rdm_encode_uids(&rdm->pd, (rdm_uid_t *)params, 2);
   rdm_header_t header = {
     .destination_uid = RDM_BROADCAST_ALL_UID,
-    .source_uid = rdm_get_uid(),
+    .source_uid = rdm_get_uid(dmx_num),
     .tn = 0,  // TODO: get up-to-date transaction number
     .port_id = dmx_num + 1,
     .message_count = 0,
@@ -131,7 +156,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   rdm_header_t header = {
     .destination_uid = uid,
-    .source_uid = rdm_get_uid(),
+    .source_uid = rdm_get_uid(dmx_num),
     .tn = 0, // TODO: get up-to-date transaction number
     .port_id = dmx_num + 1,
     .message_count = 0,
@@ -364,7 +389,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   // No parameter data to send
   rdm_header_t header = {.destination_uid = uid,
-                         .source_uid = rdm_get_uid(),
+                         .source_uid = rdm_get_uid(dmx_num),
                          .tn = 0,  // TODO: get up-to-date TN
                          .port_id = dmx_num + 1,
                          .message_count = 0,
@@ -388,7 +413,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
       response->err = ESP_ERR_INVALID_RESPONSE;
     } else if (!header.checksum_is_valid) {
       response->err = ESP_ERR_INVALID_CRC;
-    } else if (header.destination_uid != rdm_get_uid()) {
+    } else if (header.destination_uid != rdm_get_uid(dmx_num)) {
       response->err = ESP_ERR_INVALID_ARG;
     } else {
       response->err = ESP_OK;
@@ -436,7 +461,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
   // Encode and send the RDM message
   const rdm_header_t header = {
       .destination_uid = uid,
-      .source_uid = rdm_get_uid(),
+      .source_uid = rdm_get_uid(dmx_num),
       .tn = 0,  // TODO: get up-to-date transaction number
       .port_id = dmx_num + 1,
       .message_count = 0,

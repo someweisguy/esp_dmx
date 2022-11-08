@@ -32,7 +32,7 @@ typedef void (rdm_discovery_cb_t)(dmx_port_t, rdm_uid_t, size_t, void *);
  *
  * @return The UID of this device.
  */
-rdm_uid_t rdm_get_uid();
+rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
 
 /**
  * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
@@ -40,7 +40,7 @@ rdm_uid_t rdm_get_uid();
  *
  * @param uid The custom value to which to set the device UID.
  */
-void rdm_set_uid(rdm_uid_t uid);
+void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
 
 /**
  * @brief Returns true if RDM discovery responses are be muted on this device.

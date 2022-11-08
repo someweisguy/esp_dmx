@@ -464,8 +464,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->received_a_packet = false;
   driver->packet_was_handled = false;
   driver->is_sending = false;
-  driver->rdm_is_muted = false;
-  driver->rdm_tn = 0;
+
+  driver->rdm.uid = 0;
+  driver->rdm.discovery_is_muted = false;
+  driver->rdm.tn = 0;
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
