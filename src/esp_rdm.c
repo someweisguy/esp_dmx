@@ -186,21 +186,25 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  // Allocate the instruction stack. The max binary tree depth is 49
+#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
+  rdm_disc_unique_branch_t *stack;
+  stack = malloc(sizeof(rdm_disc_unique_branch_t) * 49);
+  if (stack == NULL) {
+    ESP_LOGE(TAG, "Discovery malloc error");
+    return 0;
+  }
+#else
+  rdm_disc_unique_branch_t stack[49];  // 784B - use with caution!
+#endif
+
   dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Un-mute all devices
   rdm_send_disc_mute(dmx_num, RDM_BROADCAST_ALL_UID, false, NULL, NULL);
-
   // Initialize the stack with the initial branch instruction
-  // The max depth of the binary tree is 49 nodes
   size_t stack_size = 1;
-#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
-  rdm_disc_unique_branch_t *stack;
-  stack = malloc(sizeof(rdm_disc_unique_branch_t) * 49);
-#else
-  rdm_disc_unique_branch_t stack[49];  // 784B - use with caution!
-#endif
   stack[0].lower_bound = 0;
   stack[0].upper_bound = RDM_MAX_UID;
 
