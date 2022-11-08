@@ -411,14 +411,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   }
 #endif
 
-  uart_dev_t *const restrict uart = UART_LL_GET_HW(dmx_num);
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *driver;
-
-  // Initialize and flush the UART
-  dmx_uart_init(dmx_num, spinlock);
-  dmx_uart_rxfifo_reset(uart);
-  dmx_uart_txfifo_reset(uart);
+  dmx_driver_t *restrict driver;
 
   // Allocate the DMX driver dynamically
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_32BIT);
@@ -427,7 +421,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
     return ESP_ERR_NO_MEM;
   }
   dmx_driver[dmx_num] = driver;
-  driver->dev = uart;
 
   // Buffer must be allocated in unaligned memory
   driver->data.buffer = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
@@ -448,6 +441,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   // Initialize driver state
   driver->dmx_num = dmx_num;
   driver->task_waiting = NULL;
+  driver->dev = UART_LL_GET_HW(dmx_num);
 
   // Initialize driver flags
   driver->is_in_break = false;
@@ -473,6 +467,27 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize sniffer in the disabled state
   driver->sniffer.queue = NULL;
+
+  // Initialize the UART peripheral
+  uart_dev_t *const restrict uart = driver->dev;
+  taskENTER_CRITICAL(spinlock);
+  periph_module_enable(uart_periph_signal[dmx_num].module);
+  if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+#if SOC_UART_REQUIRE_CORE_RESET
+    // ESP32-C3 workaround to prevent UART outputting garbage data.
+    uart_ll_set_reset_core(uart, true);
+    periph_module_reset(uart_periph_signal[dmx_num].module);
+    uart_ll_set_reset_core(uart, false);
+#else
+    periph_module_reset(uart_periph_signal[dmx_num].module);
+#endif
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  // Initialize and flush the UART
+  dmx_uart_init(uart);
+  dmx_uart_rxfifo_reset(uart);
+  dmx_uart_txfifo_reset(uart);
 
   // Install UART interrupt
   dmx_uart_disable_interrupt(uart, DMX_ALL_INTR_MASK);
