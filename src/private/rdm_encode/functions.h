@@ -4,7 +4,7 @@
 
 #include "endian.h"
 #include "esp_dmx.h"
-#include "private/rdm_encode_types.h"
+#include "private/rdm_encode/types.h"
 #include "rdm_constants.h"
 #include "rdm_types.h"
 
@@ -129,7 +129,7 @@ size_t rdm_encode_uids(void *data, const rdm_uid_t *uids, size_t size) {
 size_t rdm_decode_uids(const void *data, rdm_uid_t *const uids, size_t size) {
   size_t num_params = 0;
   for (int i = 0; num_params < size; ++num_params, i += 6) {
-     uids[num_params] = buf_to_uid(data + i);
+    uids[num_params] = buf_to_uid(data + i);
   }
   return num_params;
 }
@@ -189,10 +189,6 @@ size_t rdm_decode_8bit(const void *data, uint32_t *params, size_t size) {
   }
   return num_params;
 }
-
-// TODO: encode parameters
-
-// TODO: decode parameters
 
 size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
   rdm_device_info_data_t *const ptr = data;
