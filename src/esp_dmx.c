@@ -30,7 +30,7 @@
 // Initializes the DMX context.
 #define DMX_CONTEXT_INIT(uart_num)                                             \
   {                                                                            \
-    .dev = UART_LL_GET_HW(uart_num), .spinlock = portMUX_INITIALIZER_UNLOCKED, \
+    .spinlock = portMUX_INITIALIZER_UNLOCKED, \
   }
 
 DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
@@ -86,13 +86,14 @@ enum rdm_packet_type_t {
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
-  dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  dmx_driver_t *const driver = arg;
+  uart_dev_t *const restrict uart = driver->dev;
   dmx_context_t *const context = &dmx_context[driver->dmx_num];
 
   int task_awoken = false;
 
   while (true) {
-    const uint32_t intr_flags = dmx_uart_get_interrupt_status(context);
+    const uint32_t intr_flags = dmx_uart_get_interrupt_status(uart);
     if (intr_flags == 0) break;
 
     // DMX Receive ####################################################
@@ -103,15 +104,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           // Data can be read into driver buffer
           int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
           uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-          dmx_uart_read_rxfifo(context, data_ptr, &read_len);
+          dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
           driver->data.head += read_len;
         } else {
           // Data cannot be read into driver buffer
           if (driver->data.head > 0) {
             // Only increment head if data has already been read into the buffer
-            driver->data.head += dmx_uart_get_rxfifo_len(context);
+            driver->data.head += dmx_uart_get_rxfifo_len(uart);
           }
-          dmx_uart_rxfifo_reset(context);
+          dmx_uart_rxfifo_reset(uart);
         }
 
         taskENTER_CRITICAL_ISR(&context->spinlock);
@@ -131,23 +132,23 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         taskEXIT_CRITICAL_ISR(&context->spinlock);
       } else {
         // Packet has already been received - don't process errors
-        dmx_uart_rxfifo_reset(context);
+        dmx_uart_rxfifo_reset(uart);
       }
-      dmx_uart_clear_interrupt(context, DMX_INTR_RX_ERR);
+      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ERR);
     }
 
     else if (intr_flags & DMX_INTR_RX_BREAK) {
       // Reset the FIFO and clear the interrupt
-      dmx_uart_rxfifo_reset(context);
-      dmx_uart_clear_interrupt(context, DMX_INTR_RX_BREAK);
+      dmx_uart_rxfifo_reset(uart);
+      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_BREAK);
 
       // Pause the receive timer alarm
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
-      timer_group_set_counter_enable_in_isr(context->timer_group,
-                                            context->timer_idx, 0);
+      timer_group_set_counter_enable_in_isr(driver->timer_group,
+                                            driver->timer_idx, 0);
 #endif
 
       if (!driver->received_a_packet) {
@@ -171,25 +172,25 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         // Data can be read into driver buffer
         int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
         uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-        dmx_uart_read_rxfifo(context, data_ptr, &read_len);
+        dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
         driver->data.head += read_len;
       } else {
         // Data cannot be read into driver buffer
         if (driver->data.head > 0) {
           // Only increment head if data has already been read into the buffer
-          driver->data.head += dmx_uart_get_rxfifo_len(context);
+          driver->data.head += dmx_uart_get_rxfifo_len(uart);
         }
-        dmx_uart_rxfifo_reset(context);
+        dmx_uart_rxfifo_reset(uart);
       }
-      dmx_uart_clear_interrupt(context, DMX_INTR_RX_DATA);
+      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_DATA);
 
       // Pause the receive timer alarm
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
-      timer_group_set_counter_enable_in_isr(context->timer_group,
-                                            context->timer_idx, 0);
+      timer_group_set_counter_enable_in_isr(driver->timer_group,
+                                            driver->timer_idx, 0);
 #endif
 
       // Set driver flags
@@ -269,20 +270,20 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Write data to the UART and clear the interrupt
       size_t write_size = driver->data.tx_size - driver->data.head;
       const uint8_t *src = &driver->data.buffer[driver->data.head];
-      dmx_uart_write_txfifo(context, src, &write_size);
+      dmx_uart_write_txfifo(uart, src, &write_size);
       driver->data.head += write_size;
-      dmx_uart_clear_interrupt(context, DMX_INTR_TX_DATA);
+      dmx_uart_clear_interrupt(uart, DMX_INTR_TX_DATA);
 
       // Allow FIFO to empty when done writing data
       if (driver->data.head == driver->data.tx_size) {
-        dmx_uart_disable_interrupt(context, DMX_INTR_TX_DATA);
+        dmx_uart_disable_interrupt(uart, DMX_INTR_TX_DATA);
       }
     }
 
     else if (intr_flags & DMX_INTR_TX_DONE) {
       // Disable write interrupts and clear the interrupt
-      dmx_uart_disable_interrupt(context, DMX_INTR_TX_ALL);
-      dmx_uart_clear_interrupt(context, DMX_INTR_TX_DONE);
+      dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
+      dmx_uart_clear_interrupt(uart, DMX_INTR_TX_DONE);
 
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(&context->spinlock);
@@ -306,10 +307,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (expecting_response) {
         driver->received_a_packet = false;
         driver->packet_was_handled = false;
-        dmx_uart_rxfifo_reset(context);
-        dmx_uart_set_rts(context, 1);
-        dmx_uart_clear_interrupt(context, DMX_INTR_RX_ALL);
-        dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
+        dmx_uart_rxfifo_reset(uart);
+        dmx_uart_set_rts(uart, 1);
+        dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
+        dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
       }
       taskEXIT_CRITICAL_ISR(&context->spinlock);
     }
@@ -321,10 +322,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  dmx_context_t *const context = &dmx_context[driver->dmx_num];
   int task_awoken = false;
 
-  if (dmx_uart_get_rx_level(context)) {
+  if (dmx_uart_get_rx_level(driver->dev)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
@@ -354,14 +354,12 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 }
 
 static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
-  const dmx_port_t dmx_num = *(dmx_port_t *)arg;
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_context_t *const context = &dmx_context[dmx_num];
+  dmx_driver_t *const driver = (dmx_driver_t *)arg;
   int task_awoken = false;
 
   if (driver->is_sending) {
     if (driver->is_in_break) {
-      dmx_uart_invert_tx(context, 0);
+      dmx_uart_invert_tx(driver->dev, 0);
       driver->is_in_break = false;
 
       // Reset the alarm for the end of the DMX mark-after-break
@@ -369,13 +367,13 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
-      timer_group_set_alarm_value_in_isr(context->timer_group,
-                                         context->timer_idx, driver->mab_len);
+      timer_group_set_alarm_value_in_isr(driver->timer_group, driver->timer_idx,
+                                         driver->mab_len);
 #endif
     } else {
       // Write data to the UART
       size_t write_size = driver->data.tx_size;
-      dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
+      dmx_uart_write_txfifo(driver->dev, driver->data.buffer, &write_size);
       driver->data.head += write_size;
 
       // Pause MAB timer alarm
@@ -383,11 +381,11 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
-      timer_group_set_counter_enable_in_isr(context->timer_group,
-                                            context->timer_idx, 0);
+      timer_group_set_counter_enable_in_isr(driver->timer_group,
+                                            driver->timer_idx, 0);
 #endif
       // Enable DMX write interrupts
-      dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
+      dmx_uart_enable_interrupt(driver->dev, DMX_INTR_TX_ALL);
     }
   } else if (driver->task_waiting) {
     // Notify the task
@@ -399,8 +397,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
 #error ESP-IDF v5 not supported yet!
     // TODO
 #else
-    timer_group_set_counter_enable_in_isr(context->timer_group,
-                                          context->timer_idx, 0);
+    timer_group_set_counter_enable_in_isr(driver->timer_group,
+                                          driver->timer_idx, 0);
 #endif
   }
 
@@ -423,12 +421,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 #endif
 
   dmx_context_t *const context = &dmx_context[dmx_num];
+  uart_dev_t *const restrict uart = UART_LL_GET_HW(dmx_num);
   dmx_driver_t *driver;
 
   // Initialize and flush the UART
   dmx_uart_init(dmx_num, context);
-  dmx_uart_rxfifo_reset(context);
-  dmx_uart_txfifo_reset(context);
+  dmx_uart_rxfifo_reset(uart);
+  dmx_uart_txfifo_reset(uart);
 
   // Allocate the DMX driver dynamically
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_32BIT);
@@ -437,6 +436,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
     return ESP_ERR_NO_MEM;
   }
   dmx_driver[dmx_num] = driver;
+  driver->dev = uart;
 
   // Buffer must be allocated in unaligned memory
   driver->data.buffer = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
@@ -484,10 +484,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->sniffer.queue = NULL;
 
   // Install UART interrupt
-  dmx_uart_disable_interrupt(context, DMX_ALL_INTR_MASK);
-  dmx_uart_clear_interrupt(context, DMX_ALL_INTR_MASK);
-  dmx_uart_set_txfifo_empty(context, DMX_UART_EMPTY_DEFAULT);
-  dmx_uart_set_rxfifo_full(context, DMX_UART_FULL_DEFAULT);
+  dmx_uart_disable_interrupt(uart, DMX_ALL_INTR_MASK);
+  dmx_uart_clear_interrupt(uart, DMX_ALL_INTR_MASK);
+  dmx_uart_set_txfifo_empty(uart, DMX_UART_EMPTY_DEFAULT);
+  dmx_uart_set_rxfifo_full(uart, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_flags, &dmx_uart_isr,
                  driver, &driver->uart_isr_handle);
 
@@ -497,8 +497,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 #error ESP-IDF v5 not supported yet!
   // TODO
 #else
-  context->timer_group = dmx_num / 2;
-  context->timer_idx = dmx_num % 2;
+  driver->timer_group = dmx_num / 2;
+  driver->timer_idx = dmx_num % 2;
   const timer_config_t timer_config = {
       .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
       .counter_dir = TIMER_COUNT_UP,
@@ -506,15 +506,15 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
       .alarm_en = true,
       .auto_reload = true,
   };
-  timer_init(context->timer_group, context->timer_idx, &timer_config);
-  timer_isr_callback_add(context->timer_group, context->timer_idx,
+  timer_init(driver->timer_group, driver->timer_idx, &timer_config);
+  timer_isr_callback_add(driver->timer_group, driver->timer_idx,
                          dmx_timer_isr, driver, intr_flags);
 #endif
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(&context->spinlock);
-  dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
-  dmx_uart_set_rts(context, 1);
+  dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
+  dmx_uart_set_rts(uart, 1);
   taskEXIT_CRITICAL(&context->spinlock);
 
   // Give the mutex and return
@@ -559,7 +559,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 #error ESP-IDF v5 not supported yet!
   // TODO
 #else
-  timer_deinit(context->timer_group, context->timer_idx);
+  timer_deinit(driver->timer_group, driver->timer_idx);
 #endif
 
   // Free driver
@@ -681,7 +681,7 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  dmx_uart_set_baud_rate(context, baud_rate);
+  dmx_uart_set_baud_rate(dmx_driver[dmx_num]->dev, baud_rate);
   taskEXIT_CRITICAL(&context->spinlock);
 
   return baud_rate;
@@ -693,7 +693,7 @@ uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
   dmx_context_t *const context = &dmx_context[dmx_num];
 
   taskENTER_CRITICAL(&context->spinlock);
-  const uint32_t baud_rate = dmx_uart_get_baud_rate(context);
+  const uint32_t baud_rate = dmx_uart_get_baud_rate(dmx_driver[dmx_num]->dev);
   taskEXIT_CRITICAL(&context->spinlock);
 
   return baud_rate;
@@ -832,16 +832,17 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const context = &dmx_context[dmx_num];
+  uart_dev_t *const restrict uart = driver->dev;
 
   taskENTER_CRITICAL(&context->spinlock);
   if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
-  } else if (dmx_uart_get_rts(context) == 1) {
+  } else if (dmx_uart_get_rts(uart) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
-    dmx_uart_set_rts(context, 0);
+    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(uart, 0);
   }
   driver->data.tx_size = size;  // Update driver transmit size
   taskEXIT_CRITICAL(&context->spinlock);
@@ -868,16 +869,17 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const context = &dmx_context[dmx_num];
+  uart_dev_t *const restrict uart = driver->dev;
 
   taskENTER_CRITICAL(&context->spinlock);
   if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
-  } else if (dmx_uart_get_rts(context) == 1) {
+  } else if (dmx_uart_get_rts(uart) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
-    dmx_uart_set_rts(context, 0);
+    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(uart, 0);
   }
   driver->data.tx_size = offset + size;  // Update driver transmit size
   taskEXIT_CRITICAL(&context->spinlock);
@@ -895,16 +897,17 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_context_t *const context = &dmx_context[dmx_num];
+  uart_dev_t *const restrict uart = driver->dev;
 
   taskENTER_CRITICAL(&context->spinlock);
   if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(&context->spinlock);
     return 0;
-  } else if (dmx_uart_get_rts(context) == 1) {
+  } else if (dmx_uart_get_rts(uart) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
-    dmx_uart_set_rts(context, 0);
+    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(uart, 0);
   }
 
   // Ensure that the next packet to be sent includes this slot
@@ -955,12 +958,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   }
 
   // Set the RTS pin to read from the DMX bus
+  uart_dev_t *const restrict uart = driver->dev;
   taskENTER_CRITICAL(&context->spinlock);
-  if (dmx_uart_get_rts(context) == 0) {
-    dmx_uart_disable_interrupt(context, DMX_INTR_TX_ALL);
-    dmx_uart_set_rts(context, 1);
+  if (dmx_uart_get_rts(uart) == 0) {
+    dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
+    dmx_uart_set_rts(uart, 1);
+    dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
     driver->data.head = -1;  // Wait for DMX break before reading data
-    dmx_uart_enable_interrupt(context, DMX_INTR_RX_ALL);
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1003,11 +1007,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 #error ESP-IDF v5 not supported yet!
         // TODO
 #else
-        timer_set_counter_value(context->timer_group, context->timer_idx,
+        timer_set_counter_value(driver->timer_group, driver->timer_idx,
                                 elapsed);
-        timer_set_alarm_value(context->timer_group, context->timer_idx,
+        timer_set_alarm_value(driver->timer_group, driver->timer_idx,
                               RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
-        timer_start(context->timer_group, context->timer_idx);
+        timer_start(driver->timer_group, driver->timer_idx);
 #endif
       }
       taskEXIT_CRITICAL(&context->spinlock);
@@ -1118,9 +1122,9 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 #error ESP-IDF v5 not supported yet!
     // TODO
 #else
-    timer_set_counter_value(context->timer_group, context->timer_idx, elapsed);
-    timer_set_alarm_value(context->timer_group, context->timer_idx, timeout);
-    timer_start(context->timer_group, context->timer_idx);
+    timer_set_counter_value(driver->timer_group, driver->timer_idx, elapsed);
+    timer_set_alarm_value(driver->timer_group, driver->timer_idx, timeout);
+    timer_start(driver->timer_group, driver->timer_idx);
 #endif
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
@@ -1134,7 +1138,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
-      timer_pause(context->timer_group, context->timer_idx);
+      timer_pause(driver->timer_group, driver->timer_idx);
 #endif
       xTaskNotifyStateClear(driver->task_waiting);
     }
@@ -1146,10 +1150,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
 
   // Turn the DMX bus around and get the send size
+  uart_dev_t *const restrict uart = driver->dev;
   taskENTER_CRITICAL(&context->spinlock);
-  if (dmx_uart_get_rts(context) == 1) {
-    dmx_uart_disable_interrupt(context, DMX_INTR_RX_ALL);
-    dmx_uart_set_rts(context, 0);
+  if (dmx_uart_get_rts(uart) == 1) {
+    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
+    dmx_uart_set_rts(uart, 0);
   }
   taskEXIT_CRITICAL(&context->spinlock);
 
@@ -1194,11 +1199,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->is_sending = true;
 
     size_t write_size = driver->data.tx_size;
-    dmx_uart_write_txfifo(context, driver->data.buffer, &write_size);
+    dmx_uart_write_txfifo(uart, driver->data.buffer, &write_size);
     driver->data.head = write_size;
 
     // Enable DMX write interrupts
-    dmx_uart_enable_interrupt(context, DMX_INTR_TX_ALL);
+    dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
     taskEXIT_CRITICAL(&context->spinlock);
   } else {
     // Send the packet by starting the DMX break
@@ -1210,10 +1215,10 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 #error ESP-IDF v5 not supported yet!
     // TODO
 #else
-    timer_set_counter_value(context->timer_group, context->timer_idx, 0);
-    timer_set_alarm_value(context->timer_group, context->timer_idx,
+    timer_set_counter_value(driver->timer_group, driver->timer_idx, 0);
+    timer_set_alarm_value(driver->timer_group, driver->timer_idx,
                           driver->break_len);
-    timer_start(context->timer_group, context->timer_idx);
+    timer_start(driver->timer_group, driver->timer_idx);
 #endif
     
     // Burn some CPU cycles for proper DMX break timing
@@ -1224,7 +1229,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
       __asm__ __volatile__("nop");
     }
 
-    dmx_uart_invert_tx(context, 1);
+    dmx_uart_invert_tx(uart, 1);
     taskEXIT_CRITICAL(&context->spinlock);
   }
 

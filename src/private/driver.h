@@ -3,11 +3,13 @@
 #include <stdint.h>
 
 #include "dmx_types.h"
+#include "driver/timer.h"
 #include "esp_err.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include "hal/uart_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,7 +23,15 @@ extern "C" {
 typedef __attribute__((aligned(4))) struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
+  uart_dev_t *restrict dev;
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+  // TODO
+#else
+  timer_group_t timer_group;
+  timer_idx_t timer_idx;
+#endif
 
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
