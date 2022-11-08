@@ -28,22 +28,13 @@ extern "C" {
 #endif
 
 /**
- * @brief The context for the DMX driver. Contains a pointer to UART registers
- * as well as a spinlock for synchronizing access to resources and tracks if the
- * UART hardware has been enabled.
- */
-typedef struct dmx_context_t {
-  spinlock_t spinlock;  // Synchronizes hardware and driver operations.
-} dmx_context_t;
-
-/**
  * @brief Initializes the UART for DMX.
  *
  * @param hal A pointer to a UART HAL context.
  */
-void dmx_uart_init(dmx_port_t dmx_num, dmx_context_t *ctx) {  // FIXME: remove ctx
+void dmx_uart_init(dmx_port_t dmx_num, spinlock_t *spinlock) {  // FIXME: remove ctx
   // Initialize the UART peripheral
-  taskENTER_CRITICAL(&ctx->spinlock);
+  taskENTER_CRITICAL(spinlock);
   periph_module_enable(uart_periph_signal[dmx_num].module);
   if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
 #if SOC_UART_REQUIRE_CORE_RESET
@@ -55,7 +46,7 @@ void dmx_uart_init(dmx_port_t dmx_num, dmx_context_t *ctx) {  // FIXME: remove c
     periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
   }
-  taskEXIT_CRITICAL(&ctx->spinlock);
+  taskEXIT_CRITICAL(spinlock);
 
   uart_dev_t *const restrict uart = UART_LL_GET_HW(dmx_num);
 
