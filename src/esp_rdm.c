@@ -29,8 +29,8 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // TODO: spinlock
-  
+  // TODO: enter spinlock
+
   // Initialize the RDM UID 
   if (driver->rdm.uid == 0) {
     struct __attribute__((__packed__)) {
@@ -41,10 +41,11 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
     driver->rdm.uid = (bswap32(mac.device) + dmx_num) & 0xffffffff;
     driver->rdm.uid |= (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
   }
+  rdm_uid_t uid = driver->rdm.uid;
 
-  // TODO: spinlock
+  // TODO: exit spinlock
 
-  return driver->rdm.uid;
+  return uid;
 }
 
 void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) { 
@@ -58,9 +59,10 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   }
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  // TODO: spinlock
+  
+  // TODO: enter spinlock
   driver->rdm.uid = uid;  
-  // TODO: spinlock
+  // TODO: exit spinlock
 }
 
 bool rdm_is_muted() { return rdm_disc_is_muted; }
