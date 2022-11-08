@@ -29,7 +29,8 @@ typedef struct __attribute__((__packed__)) rdm_data {
   uint8_t cc;                  // The command class (CC) specifies the action of the message. 
   uint16_t pid;                // The parameter ID (PID) identifies a specific type of parameter data.
   uint8_t pdl;                 // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
-  void *pd;                    // The parameter data (PD) is of variable length. The content format is PID dependent.
+  struct {
+  } pd;                        // The parameter data (PD) is of variable length. The content format is PID dependent.
 } rdm_data_t;
 
 typedef struct __attribute__((__packed__)) rdm_disc_unique_branch_data {

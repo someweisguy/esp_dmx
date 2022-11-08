@@ -53,8 +53,8 @@ typedef struct rdm_response {
 
 // TODO: docs
 typedef struct rdm_disc_unique_branch {
-  rdm_uid_t upper_bound;
   rdm_uid_t lower_bound;
+  rdm_uid_t upper_bound;
 } rdm_disc_unique_branch_t;
 
 // TODO: docs

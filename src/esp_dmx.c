@@ -1262,7 +1262,8 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
 }
 
 DMX_ISR_ATTR rdm_uid_t buf_to_uid(const void *buf) {
-  rdm_uid_t val = 0;
+  rdm_uid_t val;
+  *(uint16_t *)(&val + 6) = 0;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
   ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];

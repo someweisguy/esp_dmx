@@ -44,25 +44,17 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // Prepare and encode the response
-  uint8_t data[24];
-  const rdm_header_t header = {
-    .cc = RDM_CC_DISC_COMMAND_RESPONSE,
-    .pid = RDM_PID_DISC_UNIQUE_BRANCH,
-    .source_uid = uid
-  };
-  const size_t written = rdm_encode(data, sizeof(data), &header, NULL, 0, 0);
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Write and send the response
-  dmx_wait_sent(dmx_num, portMAX_DELAY);
-  dmx_write(dmx_num, data, written);
-  const size_t sent = dmx_send(dmx_num, 0);
+  size_t written = rdm_encode_disc_response(driver->data.buffer, 24, uid);
+  dmx_send(dmx_num, written);
 
   xSemaphoreGiveRecursive(driver->mux);
-  return sent;
+  return written;
 }
 
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
@@ -77,15 +69,10 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
-  // Initialize the response to the default values
-  if (response != NULL) {
-    response->err = ESP_OK;
-    response->type = RDM_RESPONSE_TYPE_NONE;
-    response->num_params = 0;
-  }
-
   // Prepare the RDM message
-  const rdm_header_t header = {
+  rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
+  size_t written = rdm_encode_uids(&rdm->pd, (rdm_uid_t *)params, 2);
+  rdm_header_t header = {
     .destination_uid = RDM_BROADCAST_ALL_UID,
     .source_uid = rdm_get_uid(),
     .tn = 0,  // TODO: get up-to-date transaction number
@@ -94,10 +81,17 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
     .sub_device = 0,
     .cc = RDM_CC_DISC_COMMAND, 
     .pid = RDM_PID_DISC_UNIQUE_BRANCH, 
+    .pdl = written,
   };
-  const size_t written = rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE,
-                                    &header, params, 1, 0);
+  written += rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
+
+  // Initialize the response to the default values
+  if (response != NULL) {
+    response->err = ESP_OK;
+    response->type = RDM_RESPONSE_TYPE_NONE;
+    response->num_params = 0;
+  }
 
   // Wait for a response
   size_t num_params = 0;
@@ -107,21 +101,15 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
     response->err = packet.err;
   } else if (read) {
     // Check the packet for errors
-    rdm_header_t header;
-    if (!rdm_decode_header(driver->data.buffer, read, &header)) {
+    if (!rdm_decode_disc_response(driver->data.buffer, uid)) {
       response->err = ESP_ERR_INVALID_RESPONSE;
-    } else if (!header.checksum_is_valid) {
-      response->err = ESP_ERR_INVALID_CRC;
-    } // TODO: more error checking?
+    }
 
-    // This is a special case in which params are decoded from the header only
-    *uid = header.source_uid;
-    response->num_params = 1;
     num_params = 1;
+    response->num_params = num_params;
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-
   return num_params;
 }
 
@@ -140,7 +128,8 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Write and send the RDM message
-  const rdm_header_t header = {
+  rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
+  rdm_header_t header = {
     .destination_uid = uid,
     .source_uid = rdm_get_uid(),
     .tn = 0, // TODO: get up-to-date transaction number
@@ -148,10 +137,10 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
     .message_count = 0,
     .sub_device = 0,
     .cc = RDM_CC_DISC_COMMAND, 
-    .pid = pid, 
+    .pid = pid,
+    .pdl = 0 
   };
-  const size_t written =
-      rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE, &header, NULL, 0, 0);
+  size_t written = rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
 
   // Initialize the response to the default values
@@ -171,8 +160,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       response->err = packet.err;
     } else if (read) {
       // Check the packet for errors
-      rdm_header_t header;
-      if (!rdm_decode_header(driver->data.buffer, read, &header)) {
+      if (!rdm_decode_header(driver->data.buffer, &header)) {
         response->err = ESP_ERR_INVALID_RESPONSE;
       } else if (!header.checksum_is_valid) {
         response->err = ESP_ERR_INVALID_CRC;
@@ -181,18 +169,15 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       
       // Decode the response
       if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-        num_params = rdm_decode_disc_mute((rdm_data_t *)driver->data.buffer,
-                                          read, params);
+        num_params = rdm_decode_mute(&rdm->pd, params, header.pdl);
         response->num_params = num_params;
-      }
-      
+      }     
     }
   } else {
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-
   return num_params;
 }
 
@@ -201,7 +186,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Un-mute all devices
@@ -259,9 +244,9 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 #ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
         /*
         Stop the RDM controller from branching all the way down to the
-        individual address if it is not necessary. When debugging, this function
-        should not be used as it can hide bugs in the discovery algorithm. Users
-        can use the sdkconfig to enable or disable discovery debugging.
+        individual address if it is not necessary. When debugging, this code
+        should not be called as it can hide bugs in the discovery algorithm. 
+        Users can use the sdkconfig to enable or disable discovery debugging.
         */
         if (!response.err) {
           for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
@@ -350,6 +335,19 @@ size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
   return found;
 }
 
+size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
+                                    uint16_t sub_device,
+                                    rdm_response_t *response, rdm_pid_t *pids,
+                                    size_t size) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  // TODO: more arg checks
+
+
+
+  return 0;
+}
+
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            uint16_t sub_device, rdm_response_t *response,
                            rdm_device_info_t *device_info) {
@@ -372,8 +370,9 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
       .cc = RDM_CC_DISC_COMMAND,
       .pid = RDM_PID_DEVICE_INFO,
   };
-  const size_t written = rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE,
-                                    &header, NULL, 0, 0);
+  size_t written = 0;
+  // const size_t written = rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE,
+                                    // &header, NULL, 0, 0);
   dmx_send(dmx_num, written);
 
   // Initialize the response to the default values
@@ -393,7 +392,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
       response->err = packet.err;
     } else if (read) {
       rdm_header_t header;
-      if (!rdm_decode_header(driver->data.buffer, read, &header)) {
+      if (!rdm_decode_header(driver->data.buffer, &header)) {
         response->err = ESP_ERR_INVALID_RESPONSE;
       } else if (!header.checksum_is_valid) {
         response->err = ESP_ERR_INVALID_CRC;
@@ -403,7 +402,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
       response->type = header.response_type;
       if (response->type == RDM_RESPONSE_TYPE_ACK) {
         num_params = rdm_decode_device_info((rdm_data_t *)driver->data.buffer,
-                                            read, device_info);
+                                            device_info);
         response->num_params = num_params;
       }
 
@@ -419,8 +418,8 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
 
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       uint16_t sub_device,
-                                      rdm_response_t *response,
-                                      char label[32]) {
+                                      rdm_response_t *response, char *label,
+                                      size_t size) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -440,8 +439,8 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       .cc = RDM_CC_GET_COMMAND,
       .pid = RDM_PID_SOFTWARE_VERSION_LABEL,
   };
-  const size_t written =
-      rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE, &header, NULL, 0, 0);
+  const size_t written =0;
+      // rdm_encode(driver->data.buffer, DMX_MAX_PACKET_SIZE, &header, NULL, 0, 0);
   dmx_send(dmx_num, written);
 
   // Initialize the response to the default values
@@ -461,7 +460,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       response->err = packet.err;
     } else if (read) {
       rdm_header_t header;
-      if (!rdm_decode_header(driver->data.buffer, read, &header)) {
+      if (!rdm_decode_header(driver->data.buffer, &header)) {
         response->err = ESP_ERR_INVALID_RESPONSE;
       } else if (!header.checksum_is_valid) {
         response->err = ESP_ERR_INVALID_CRC;
@@ -470,8 +469,8 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       // Read the data into a buffer
       response->type = header.response_type;
       if (response->type == RDM_RESPONSE_TYPE_ACK) {
-        num_params =
-            rdm_decode_string((rdm_data_t *)driver->data.buffer, read, label);
+        num_params = 0; // FIXME
+            // rdm_decode_string((rdm_data_t *)driver->data.buffer, read, label);
         response->num_params = num_params;
       }
     }
@@ -482,4 +481,37 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
   xSemaphoreGiveRecursive(driver->mux);
 
   return num_params;
+}
+
+size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
+                               uint16_t sub_device, rdm_response_t *response,
+                               bool *identify_state) {
+  
+  // TODO
+  return 0;
+}
+
+// TODO: implement, docs
+size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
+                               uint16_t sub_device, rdm_response_t *response,
+                               const bool identify_state) {
+  
+  // TODO
+  return 0;
+}
+
+// TODO: implement, docs
+size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
+                                 uint16_t sub_device, rdm_response_t *response,
+                                 int *start_address) {
+  // TODO
+  return 0;
+}
+
+// TODO: implement, docs
+size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
+                                 uint16_t sub_device, rdm_response_t *response,
+                                 const int start_address) {
+  // TODO
+  return 0;
 }

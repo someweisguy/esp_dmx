@@ -12,278 +12,216 @@
 extern "C" {
 #endif
 
-bool rdm_decode_header(const void *source, size_t size, rdm_header_t *header) {
-  bool is_rdm = false;
-  rdm_data_t *rdm = (rdm_data_t *)source;
+// TODO: encode disc_unique_branch response
+size_t rdm_encode_disc_response(uint8_t *data, size_t size,
+                                const rdm_uid_t uid) {
+  // Encode the RDM preamble and delimiter
+  const size_t preamble_len = size - 17 <= 7 ? size - 17 : 7;
+  for (int i = 0; i < preamble_len; ++i) {
+    data[i] = RDM_PREAMBLE;
+  }
+  data[7] = RDM_DELIMITER;
 
-  if ((rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) && size > 17) {
-    // Decode a DISC_UNIQUE_BRANCH response
-
-    // Find the length of the discovery response preamble (0-7 bytes)
-    int preamble_len = 0;
-    const uint8_t *data = (uint8_t *)source;
-    for (; preamble_len < 7; ++preamble_len) {
-      if (data[preamble_len] == RDM_DELIMITER) {
-        break;
-      }
-    }
-    if (data[preamble_len] != RDM_DELIMITER || size < preamble_len + 17) {
-      return is_rdm;  // Not a valid discovery response
-    }
-
-    // Decode the 6-byte UID and get the packet sum
-    rdm_uid_t uid = 0;
-    uint16_t sum = 0;
-    data = &((uint8_t *)source)[preamble_len + 1];
-    for (int i = 5, j = 0; i >= 0; --i, j += 2) {
-      ((uint8_t *)&uid)[i] = data[j] & 0x55;
-      ((uint8_t *)&uid)[i] |= data[j + 1] & 0xaa;
-      sum += ((uint8_t *)&uid)[i] + 0xff;
-    }
-
-    // Decode the checksum received in the response
-    uint16_t checksum;
-    for (int i = 1, j = 12; i >= 0; --i, j += 2) {
-      ((uint8_t *)&checksum)[i] = data[j] & 0x55;
-      ((uint8_t *)&checksum)[i] |= data[j + 1] & 0xaa;
-    }
-
-    // Return RDM data to the caller
-    header->destination_uid = RDM_BROADCAST_ALL_UID;
-    header->source_uid = uid;
-    header->tn = 0;
-    header->response_type = RDM_RESPONSE_TYPE_ACK;
-    header->message_count = 0;
-    header->sub_device = 0;
-    header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
-    header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-    header->pdl = 0;
-    header->checksum_is_valid = (sum == checksum);
-    is_rdm = true;
-
-  } else if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC && size >= 26) {
-    // Decode a standard RDM message
-
-    // Calculate the checksum
-    uint16_t sum = 0;
-    const uint16_t checksum = bswap16(*(uint16_t *)(source + rdm->message_len));
-    for (int i = 0; i < rdm->message_len; ++i) {
-      sum += *(uint8_t *)(source + i);
-    }
-
-    // Return RDM data to the caller
-    header->destination_uid = buf_to_uid(rdm->destination_uid);
-    header->source_uid = buf_to_uid(rdm->source_uid);
-    header->tn = rdm->tn;
-    header->response_type = rdm->response_type;
-    header->message_count = rdm->message_count;
-    header->sub_device = bswap16(rdm->sub_device);
-    header->cc = rdm->cc;
-    header->pid = bswap16(rdm->pid);
-    header->pdl = rdm->pdl;
-    header->checksum_is_valid = (sum == checksum);
-    is_rdm = (size >= rdm->message_len + 2);  // Include checksum
+  // Encode the UID and calculate the checksum
+  uint16_t checksum = 0;
+  for (int i = 8, j = 5; i < 20; i += 2, --j) {
+    data[i] = ((uint8_t *)&uid)[j] | 0xaa;
+    data[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
+    checksum += ((uint8_t *)&uid)[j] + (0xaa + 0x55);
   }
 
-  return is_rdm;
+  // Encode the checksum
+  data[20] = (checksum >> 8) | 0xaa;
+  data[21] = (checksum >> 8) | 0x55;
+  data[22] = checksum | 0xaa;
+  data[23] = checksum | 0x55;
+
+  return preamble_len + 17;
 }
 
-size_t rdm_encode_disc_unique_branch(rdm_data_t *destination, size_t size,
-                                     const rdm_disc_unique_branch_t *param) {
-  rdm_disc_unique_branch_data_t *buf =
-      (rdm_disc_unique_branch_data_t *)&destination->pd;
-  uid_to_buf(buf->lower_bound, param->lower_bound);
-  uid_to_buf(buf->upper_bound, param->upper_bound);
-  return sizeof(*buf);
-}
-
-size_t rdm_decode_disc_unique_branch(const rdm_data_t *source, size_t size,
-                                     rdm_disc_unique_branch_t *param) {
-  const rdm_disc_unique_branch_data_t *buf =
-      (const rdm_disc_unique_branch_data_t *)&source->pd;
-  param->lower_bound = buf_to_uid(buf->lower_bound);
-  param->upper_bound = buf_to_uid(buf->upper_bound);
-  return 1;
-}
-
-size_t rdm_encode_disc_mute(rdm_data_t *destination, size_t size,
-                            const rdm_disc_mute_t *param) {
-  rdm_disc_mute_data_t *buf = (rdm_disc_mute_data_t *)&destination->pd;
-  buf->managed_proxy = param->managed_proxy;
-  buf->sub_device = param->sub_device;
-  buf->boot_loader = param->boot_loader;
-  buf->proxied_device = param->proxied_device;
-  size_t bytes_encoded = sizeof(buf->control_field);
-  if (param->binding_uid != 0) {
-    // Binding UID is an optional parameter
-    uid_to_buf(buf->binding_uid, param->binding_uid);
-    bytes_encoded += sizeof(buf->binding_uid);
+bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid) {
+  // Find the length of the discovery response preamble (0-7 bytes)
+  int preamble_len = 0;
+  for (; preamble_len < 7; ++preamble_len) {
+    if (data[preamble_len] == RDM_DELIMITER) {
+      break;
+    }
   }
-  return bytes_encoded;
-}
-
-size_t rdm_decode_disc_mute(const rdm_data_t *source, size_t size,
-                            rdm_disc_mute_t *param) {
-  const rdm_disc_mute_data_t *buf = (const rdm_disc_mute_data_t *)&source->pd;
-  param->managed_proxy = buf->managed_proxy;
-  param->sub_device = buf->sub_device;
-  param->boot_loader = buf->boot_loader;
-  param->proxied_device = buf->proxied_device;
-  if (source->pdl >= 8) {
-    // Binding UID is an optional parameter
-    param->binding_uid = buf_to_uid(buf->binding_uid);
-  } else {
-    param->binding_uid = 0;
+  if (data[preamble_len] != RDM_DELIMITER) {
+    return false;  // Not a valid discovery response
   }
-  return 1;
+
+  // Decode the 6-byte UID and get the packet sum
+  uint16_t sum = 0;
+  data = &((uint8_t *)data)[preamble_len + 1];
+  for (int i = 5, j = 0; i >= 0; --i, j += 2) {
+    ((uint8_t *)uid)[i] = data[j] & 0x55;
+    ((uint8_t *)uid)[i] |= data[j + 1] & 0xaa;
+    sum += ((uint8_t *)uid)[i] + 0xff;
+  }
+
+  // Decode the checksum received in the response
+  uint16_t checksum;
+  for (int i = 1, j = 12; i >= 0; --i, j += 2) {
+    ((uint8_t *)&checksum)[i] = data[j] & 0x55;
+    ((uint8_t *)&checksum)[i] |= data[j + 1] & 0xaa;
+  }
+
+  return (sum == checksum);
 }
 
-size_t rdm_encode_device_info(rdm_data_t *destination, size_t size,
-                              const rdm_device_info_t *param) {
-  rdm_device_info_data_t *buf = (rdm_device_info_data_t *)&destination->pd;
-  buf->rdm_version = param->rdm_version;
-  buf->model_id = param->model_id;
-  buf->product_category = param->product_category;
-  buf->software_version = param->software_version;
-  buf->footprint = param->footprint;
-  buf->current_personality = param->current_personality;
-  buf->personality_count = param->personality_count;
-  buf->start_address = param->start_address;
-  buf->sub_device_count = param->sub_device_count;
-  buf->sensor_count = param->sensor_count;
-  return sizeof(rdm_device_info_data_t);
+size_t rdm_encode_header(void *data, const rdm_header_t *header) {
+  rdm_data_t *const rdm = data;
+  rdm->sc = RDM_SC;
+  rdm->sub_sc = RDM_SUB_SC;
+  rdm->message_len = header->pdl + RDM_BASE_PACKET_SIZE - 2;
+  uid_to_buf(rdm->destination_uid, header->destination_uid);
+  uid_to_buf(rdm->source_uid, header->source_uid);
+  rdm->tn = header->tn;
+  rdm->port_id = header->port_id;
+  rdm->message_count = header->message_count;
+  rdm->sub_device = bswap16(header->sub_device);
+  rdm->cc = header->cc;
+  rdm->pid = bswap16(header->pid);
+  rdm->pdl = header->pdl;
+
+  // Calculate checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < rdm->message_len; ++i) {
+    checksum += ((uint8_t *)data)[i];
+  }
+  *(uint16_t *)(data + rdm->message_len) = bswap16(checksum);
+
+  return RDM_BASE_PACKET_SIZE;
 }
 
-size_t rdm_decode_device_info(const rdm_data_t *source, size_t size,
-                              rdm_device_info_t *param) {
-  const rdm_device_info_data_t *buf =
-      (const rdm_device_info_data_t *)&source->pd;
-  param->rdm_version = buf->rdm_version;
-  param->model_id = buf->model_id;
-  param->product_category = buf->product_category;
-  param->software_version = buf->software_version;
-  param->footprint = buf->footprint;
-  param->current_personality = buf->current_personality;
-  param->start_address = buf->start_address;
-  param->sub_device_count = buf->sub_device_count;
-  param->sensor_count = buf->sensor_count;
-  return 1;
+bool rdm_decode_header(const void *data, rdm_header_t *header) {
+  const rdm_data_t *const rdm = data;
+  header->destination_uid = buf_to_uid(rdm->destination_uid);
+  header->source_uid = buf_to_uid(rdm->source_uid);
+  header->tn = rdm->tn;
+  header->port_id = rdm->port_id;
+  header->message_count = rdm->message_count;
+  header->sub_device = bswap16(rdm->sub_device);
+  header->cc = rdm->cc;
+  header->pid = bswap16(rdm->pid);
+  header->pdl = rdm->pdl;
+
+  // Calculate checksum
+  uint16_t sum = 0;
+  const uint16_t checksum = bswap16(*(uint16_t *)(data + rdm->message_len));
+  for (int i = 0; i < rdm->message_len; ++i) {
+    sum += *(uint8_t *)(data + i);
+  }
+  header->checksum_is_valid = (sum == checksum);
+
+  return (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC);
 }
 
-size_t rdm_encode_string(rdm_data_t *destination, size_t size,
-                         const char string[32]) {
-  strncpy((char *)&destination->pd, string, size);
-  return strnlen(string, 32);
+size_t rdm_encode_uids(void *data, const rdm_uid_t *uids, size_t size) {
+  size_t pdl = 0;
+  for (int i = 0; i < size; ++i, pdl += 6) {
+    uid_to_buf(data + pdl, uids[i]);
+  }
+  return pdl;
 }
 
-size_t rdm_decode_string(const rdm_data_t *source, size_t size,
-                         char string[32]) {
-  const char *buf = (const char *)&source->pd;
+size_t rdm_decode_uids(const void *data, rdm_uid_t *const uids, size_t size) {
   size_t num_params = 0;
-
-  if (source->pdl > 0) {
-    strncpy(string, buf, 32);
-    num_params = 1;
+  for (int i = 0; num_params < size; ++num_params, i += 6) {
+     uids[num_params] = buf_to_uid(data + i);
   }
-
   return num_params;
 }
 
-size_t rdm_encode(void *destination, size_t size, const rdm_header_t *header,
-                  const void *params, size_t num_params, size_t message_num) {
-  size_t bytes_encoded = 0;
-  const rdm_cc_t cc = header->cc;
-  const rdm_pid_t pid = header->pid;
-
-  if (cc == RDM_CC_DISC_COMMAND_RESPONSE && pid == RDM_PID_DISC_UNIQUE_BRANCH &&
-      size >= 17) {
-    // Encode DISC_UNIQUE_BRANCH response
-    
-    uint8_t *data = destination;
-    const rdm_uid_t uid = header->source_uid;
-
-    // Encode the RDM preamble and delimiter
-    const size_t preamble_len = size - 17 <= 7 ? size - 17 : 7;
-    for (int i = 0; i < preamble_len; ++i) {
-      data[i] = RDM_PREAMBLE;
-    }
-    data[7] = RDM_DELIMITER;
-
-    // Encode the UID and calculate the checksum
-    uint16_t checksum = 0;
-    for (int i = 8, j = 5; i < 20; i += 2, --j) {
-      data[i] = ((uint8_t *)&uid)[j] | 0xaa;
-      data[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
-      checksum += ((uint8_t *)&uid)[j] + (0xaa + 0x55);
-    }
-
-    // Encode the checksum
-    data[20] = (checksum >> 8) | 0xaa;
-    data[21] = (checksum >> 8) | 0x55;
-    data[22] = checksum | 0xaa;
-    data[23] = checksum | 0x55;
-
-    bytes_encoded = preamble_len + 17;
-  } else if (size >= RDM_BASE_PACKET_SIZE) {
-    // Encode standard RDM message
-
-    // Encode most of the RDM message header
-    rdm_data_t *buf = destination;
-    buf->sc = RDM_SC;
-    buf->sub_sc = RDM_SUB_SC;
-    buf->message_len = RDM_BASE_PACKET_SIZE - 2;  // Exclude checksum
-    uid_to_buf(buf->destination_uid, header->destination_uid);
-    uid_to_buf(buf->source_uid, header->source_uid);
-    buf->tn = header->tn;
-    buf->port_id = header->port_id;
-    buf->message_count = header->message_count;
-    buf->sub_device = bswap16(header->sub_device);
-    buf->cc = header->cc;
-    buf->pid = bswap16(header->pid);
-
-    // Encode PDL and Parameter Data
-    size_t pdl = 0;
-    if (pid >= 0x0000 && pid < 0x0100) {
-      if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-        pdl = rdm_encode_disc_unique_branch(buf, size, params);
-      } else if (pid == RDM_PID_DISC_MUTE || pid == RDM_PID_DISC_UN_MUTE) {
-        if (cc == RDM_CC_DISC_COMMAND_RESPONSE) {
-          pdl = rdm_encode_disc_mute(buf, size, params);
-        }
-      } else if (pid == RDM_PID_SUPPORTED_PARAMETERS) {
-        // TODO
-      } else if (pid == RDM_PID_PARAMETER_DESCRIPTION) {
-        // TODO
-      } else if (pid == RDM_PID_DEVICE_INFO) {
-        if (cc == RDM_CC_GET_COMMAND_RESPONSE) {
-          pdl = rdm_encode_device_info(buf, size, params);
-        }
-      } else if (pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
-        // TODO
-      } else if (pid == RDM_PID_DMX_START_ADDRESS) {
-        // TODO
-      }
-    } else if (pid >= 0x1000 && pid < 0x1100) {
-      if (pid == RDM_PID_IDENTIFY_DEVICE) {
-        // TODO
-      }
-    }
-
-    // Update PDL and message length
-    buf->message_len += pdl;
-    buf->pdl = pdl;
-
-    // Calculate checksum
-    uint16_t checksum = 0;
-    for (int i = 0; i < buf->message_len; ++i) {
-      checksum += *(uint8_t *)(destination + i);
-    }
-    *(uint16_t *)(destination + buf->message_len) = bswap16(checksum);
-
-    bytes_encoded = buf->message_len + 2;
+size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
+  size_t pdl = 2;
+  rdm_disc_mute_data_t *const ptr = data;
+  ptr->managed_proxy = param->managed_proxy;
+  ptr->sub_device = param->sub_device;
+  ptr->boot_loader = param->boot_loader;
+  ptr->proxied_device = param->proxied_device;
+  if (param->binding_uid) {
+    uid_to_buf(ptr->binding_uid, param->binding_uid);
+    pdl += 6;
   }
+  return pdl;
+}
 
-  return bytes_encoded;
+size_t rdm_decode_mute(const void *data, rdm_disc_mute_t *param, size_t pdl) {
+  const rdm_disc_mute_data_t *const ptr = data;
+  param->managed_proxy = ptr->managed_proxy;
+  param->sub_device = ptr->sub_device;
+  param->boot_loader = ptr->boot_loader;
+  param->proxied_device = ptr->proxied_device;
+  param->binding_uid = pdl > 2 ? buf_to_uid(ptr->binding_uid) : 0;
+  return 1;
+}
+
+size_t rdm_encode_16bit(void *data, const uint32_t *params, size_t size) {
+  size_t pdl = 0;
+  for (int i = 0; i < size; ++i, pdl += 2) {
+    *(uint16_t *)(data + pdl) = bswap16((uint16_t)params[i]);
+  }
+  return pdl;
+}
+
+size_t rdm_decode_16bit(const void *data, uint32_t *params, size_t size) {
+  size_t num_params = 0;
+  for (; num_params < size; ++num_params) {
+    params[num_params] = bswap16(((uint16_t *)data)[num_params]);
+  }
+  return num_params;
+}
+
+size_t rdm_encode_8bit(void *data, const uint32_t *params, size_t size) {
+  size_t pdl = 0;
+  for (int i = 0; i < size; ++i, pdl += 1) {
+    *(uint8_t *)(data + pdl) = (uint8_t)params[i];
+  }
+  return pdl;
+}
+
+size_t rdm_decode_8bit(const void *data, uint32_t *params, size_t size) {
+  size_t num_params = 0;
+  for (; num_params < size; ++num_params) {
+    params[num_params] = ((uint8_t *)data)[num_params];
+  }
+  return num_params;
+}
+
+// TODO: encode parameters
+
+// TODO: decode parameters
+
+size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
+  rdm_device_info_data_t *const ptr = data;
+  ptr->rdm_version = bswap16(param->rdm_version);
+  ptr->model_id = bswap16(param->model_id);
+  ptr->product_category = bswap16(param->product_category);
+  ptr->software_version = bswap32(param->software_version);
+  ptr->footprint = bswap16(param->footprint);
+  ptr->current_personality = param->current_personality;
+  ptr->personality_count = param->personality_count;
+  ptr->start_address = bswap16(param->start_address);
+  ptr->sub_device_count = bswap16(param->sub_device_count);
+  ptr->sensor_count = param->sensor_count;
+  return sizeof(rdm_device_info_data_t);
+}
+
+size_t rdm_decode_device_info(const void *data, rdm_device_info_t *param) {
+  const rdm_device_info_data_t *ptr = data;
+  param->rdm_version = bswap16(ptr->rdm_version);
+  param->model_id = bswap16(ptr->model_id);
+  param->product_category = bswap16(ptr->product_category);
+  param->software_version = bswap32(ptr->software_version);
+  param->footprint = bswap16(ptr->footprint);
+  param->current_personality = ptr->current_personality;
+  param->personality_count = ptr->personality_count;
+  param->start_address = bswap16(ptr->start_address);
+  param->sub_device_count = bswap16(ptr->sub_device_count);
+  param->sensor_count = ptr->sensor_count;
+  return 1;
 }
 
 #ifdef __cplusplus
