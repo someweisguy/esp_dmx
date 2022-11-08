@@ -513,8 +513,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
       .auto_reload = true,
   };
   timer_init(driver->timer_group, driver->timer_idx, &timer_config);
-  timer_isr_callback_add(driver->timer_group, driver->timer_idx,
-                         dmx_timer_isr, driver, intr_flags);
+  timer_isr_callback_add(driver->timer_group, driver->timer_idx, dmx_timer_isr,
+                         driver, intr_flags);
 #endif
 
   // Enable UART read interrupt and set RTS low
