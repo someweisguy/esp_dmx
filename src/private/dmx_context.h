@@ -102,19 +102,19 @@ void dmx_uart_set_txfifo_empty(uart_dev_t *uart, uint8_t threshold) {
  * @param hal A pointer to a UART HAL context.
  * @param invert_mask 1 to invert, 0 to un-invert.
  */
-DMX_ISR_ATTR void dmx_uart_invert_tx(uart_dev_t *uart, uint32_t invert) {
+DMX_ISR_ATTR void dmx_uart_invert_tx(uart_dev_t *const restrict uart, uint32_t invert) {
 #if defined(CONFIG_IDF_TARGET_ESP32)
-  uart->conf0.txd_inv = invert ? 1 : 0;
+  uart->conf0.txd_inv = invert;
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
 #error ESP32-C2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-  uart->conf0.txd_inv = invert ? 1 : 0;
+  uart->conf0.txd_inv = invert;
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
 #error ESP32-H2 is not yet supported.
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-  uart->conf0.txd_inv = invert ? 1 : 0;
+  uart->conf0.txd_inv = invert;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  uart->uart_conf0_reg_t.txd_inv = invert ? 1 : 0;
+  uart->uart_conf0_reg_t.txd_inv = invert;
 #else
 #error Unknown target hardware.
 #endif

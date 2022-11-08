@@ -37,10 +37,10 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
   struct dmx_data_t {
-    int head;         // The index of the current slot being either transmitted or received.
-    uint8_t *buffer;  // The buffer that stores the DMX packet.
-    size_t tx_size;   // The size of the outgoing data packet.
-    size_t rx_size;   // The expected size of the incoming data packet.
+    int head;                  // The index of the current slot being either transmitted or received.
+    uint8_t *restrict buffer;  // The buffer that stores the DMX packet.
+    size_t tx_size;            // The size of the outgoing data packet.
+    size_t rx_size;            // The expected size of the incoming data packet.
 
     int sent_last;      // True if the last packet was sent from this driver.
     int type;           // The type of the packet received.
@@ -74,7 +74,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   } sniffer;
 } dmx_driver_t;
 
-extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
+extern dmx_driver_t *restrict dmx_driver[DMX_NUM_MAX];
 
 #ifdef __cplusplus
 }

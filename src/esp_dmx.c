@@ -27,7 +27,7 @@
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
-DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
+DRAM_ATTR dmx_driver_t *restrict dmx_driver[DMX_NUM_MAX] = {0};
 static DRAM_ATTR spinlock_t dmx_spinlock[DMX_NUM_MAX] = {
     portMUX_INITIALIZER_UNLOCKED, portMUX_INITIALIZER_UNLOCKED,
 #if DMX_NUM_MAX > 2
@@ -345,7 +345,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 }
 
 static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
-  dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  dmx_driver_t *const restrict driver = (dmx_driver_t *)arg;
   int task_awoken = false;
 
   if (driver->is_sending) {
@@ -1220,14 +1220,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
                           driver->break_len);
     timer_start(driver->timer_group, driver->timer_idx);
 #endif
-    
-    // Burn some CPU cycles for proper DMX break timing
-    // This is needed due to the latency between calling the dmx_timer_isr() and
-    // the call to dmx_uart_invert_tx() causing a few microsecond difference in
-    // the desired DMX break length and the actual break length. 
-    for (volatile int i = 0; i < 22; ++i) {
-      __asm__ __volatile__("nop");
-    }
 
     dmx_uart_invert_tx(uart, 1);
     taskEXIT_CRITICAL(spinlock);
