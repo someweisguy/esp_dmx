@@ -12,6 +12,7 @@ extern "C" {
  * @brief A struct which can be used to help process raw RDM packets instead of
  * reading slots by index alone. RDM sends data in most-significant byte first,
  * so endianness must be swapped when using values larger than 8 bits.
+ * // TODO: remove typedef?
  */
 typedef struct __attribute__((__packed__)) rdm_data {
   uint8_t sc;                  // This field shall contain the defined RDM start code. Controllers and responders shall always send RDM_SC in this slot.
@@ -34,7 +35,7 @@ typedef struct __attribute__((__packed__)) rdm_data {
 } rdm_data_t;
 
 // TODO: docs
-typedef struct __attribute__((__packed__)) rdm_disc_mute_data {
+struct __attribute__((__packed__)) rdm_disc_mute_data_t {
   union {
     struct {
       uint8_t managed_proxy : 1;
@@ -45,10 +46,10 @@ typedef struct __attribute__((__packed__)) rdm_disc_mute_data {
     uint16_t control_field;
   };
   uint8_t binding_uid[6];
-} rdm_disc_mute_data_t;
+};
 
 // TODO: docs
-typedef struct __attribute__((__packed__)) rdm_device_info_data_t {
+struct __attribute__((__packed__)) rdm_device_info_data_t {
   uint8_t major_rdm_version;
   uint8_t minor_rdm_version;
   uint16_t model_id;
@@ -61,7 +62,7 @@ typedef struct __attribute__((__packed__)) rdm_device_info_data_t {
   uint16_t start_address;
   uint16_t sub_device_count;
   uint8_t sensor_count;
-} rdm_device_info_data_t;
+};
 
 #ifdef __cplusplus
 }

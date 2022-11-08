@@ -136,7 +136,7 @@ size_t rdm_decode_uids(const void *data, rdm_uid_t *const uids, size_t size) {
 
 size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
   size_t pdl = 2;
-  rdm_disc_mute_data_t *const ptr = data;
+  struct rdm_disc_mute_data_t *const ptr = data;
   ptr->managed_proxy = param->managed_proxy;
   ptr->sub_device = param->sub_device;
   ptr->boot_loader = param->boot_loader;
@@ -149,7 +149,7 @@ size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
 }
 
 size_t rdm_decode_mute(const void *data, rdm_disc_mute_t *param, size_t pdl) {
-  const rdm_disc_mute_data_t *const ptr = data;
+  const struct rdm_disc_mute_data_t *const ptr = data;
   param->managed_proxy = ptr->managed_proxy;
   param->sub_device = ptr->sub_device;
   param->boot_loader = ptr->boot_loader;
@@ -191,7 +191,7 @@ size_t rdm_decode_8bit(const void *data, uint32_t *params, size_t size) {
 }
 
 size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
-  rdm_device_info_data_t *const ptr = data;
+  struct rdm_device_info_data_t *const ptr = data;
   ptr->major_rdm_version = param->major_rdm_version;
   ptr->minor_rdm_version = param->minor_rdm_version;
   ptr->model_id = bswap16(param->model_id);
@@ -204,11 +204,11 @@ size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
   ptr->start_address = bswap16(param->start_address);
   ptr->sub_device_count = bswap16(param->sub_device_count);
   ptr->sensor_count = param->sensor_count;
-  return sizeof(rdm_device_info_data_t);
+  return sizeof(struct rdm_device_info_data_t);
 }
 
 size_t rdm_decode_device_info(const void *data, rdm_device_info_t *param) {
-  const rdm_device_info_data_t *ptr = data;
+  const struct rdm_device_info_data_t *ptr = data;
   param->major_rdm_version = ptr->major_rdm_version;
   param->minor_rdm_version = ptr->minor_rdm_version;
   param->model_id = bswap16(ptr->model_id);
