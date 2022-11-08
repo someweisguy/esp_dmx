@@ -23,7 +23,7 @@ extern "C" {
 typedef __attribute__((aligned(4))) struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
-  uart_dev_t *restrict dev;
+  uart_dev_t *restrict uart;
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!

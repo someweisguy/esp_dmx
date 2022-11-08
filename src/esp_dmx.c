@@ -80,7 +80,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = arg;
   spinlock_t *const restrict spinlock = &dmx_spinlock[driver->dmx_num];
-  uart_dev_t *const restrict uart = driver->dev;
+  uart_dev_t *const restrict uart = driver->uart;
   int task_awoken = false;
 
   while (true) {
@@ -315,7 +315,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   int task_awoken = false;
 
-  if (dmx_uart_get_rx_level(driver->dev)) {
+  if (dmx_uart_get_rx_level(driver->uart)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
@@ -350,7 +350,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
 
   if (driver->is_sending) {
     if (driver->is_in_break) {
-      dmx_uart_invert_tx(driver->dev, 0);
+      dmx_uart_invert_tx(driver->uart, 0);
       driver->is_in_break = false;
 
       // Reset the alarm for the end of the DMX mark-after-break
@@ -364,7 +364,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
     } else {
       // Write data to the UART
       size_t write_size = driver->data.tx_size;
-      dmx_uart_write_txfifo(driver->dev, driver->data.buffer, &write_size);
+      dmx_uart_write_txfifo(driver->uart, driver->data.buffer, &write_size);
       driver->data.head += write_size;
 
       // Pause MAB timer alarm
@@ -376,7 +376,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
                                             driver->timer_idx, 0);
 #endif
       // Enable DMX write interrupts
-      dmx_uart_enable_interrupt(driver->dev, DMX_INTR_TX_ALL);
+      dmx_uart_enable_interrupt(driver->uart, DMX_INTR_TX_ALL);
     }
   } else if (driver->task_waiting) {
     // Notify the task
@@ -441,7 +441,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   // Initialize driver state
   driver->dmx_num = dmx_num;
   driver->task_waiting = NULL;
-  driver->dev = UART_LL_GET_HW(dmx_num);
+  driver->uart = UART_LL_GET_HW(dmx_num);
 
   // Initialize driver flags
   driver->is_in_break = false;
@@ -469,7 +469,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->sniffer.queue = NULL;
 
   // Initialize the UART peripheral
-  uart_dev_t *const restrict uart = driver->dev;
+  uart_dev_t *const restrict uart = driver->uart;
   taskENTER_CRITICAL(spinlock);
   periph_module_enable(uart_periph_signal[dmx_num].module);
   if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
@@ -686,7 +686,7 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   taskENTER_CRITICAL(spinlock);
-  dmx_uart_set_baud_rate(dmx_driver[dmx_num]->dev, baud_rate);
+  dmx_uart_set_baud_rate(dmx_driver[dmx_num]->uart, baud_rate);
   taskEXIT_CRITICAL(spinlock);
 
   return baud_rate;
@@ -697,7 +697,7 @@ uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   taskENTER_CRITICAL(spinlock);
-  const uint32_t baud_rate = dmx_uart_get_baud_rate(dmx_driver[dmx_num]->dev);
+  const uint32_t baud_rate = dmx_uart_get_baud_rate(dmx_driver[dmx_num]->uart);
   taskEXIT_CRITICAL(spinlock);
 
   return baud_rate;
@@ -832,7 +832,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  uart_dev_t *const restrict uart = driver->dev;
+  uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
   if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
@@ -869,7 +869,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  uart_dev_t *const restrict uart = driver->dev;
+  uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
   if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
@@ -897,7 +897,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  uart_dev_t *const restrict uart = driver->dev;
+  uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
   if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
@@ -958,7 +958,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   }
 
   // Set the RTS pin to read from the DMX bus
-  uart_dev_t *const restrict uart = driver->dev;
+  uart_dev_t *const restrict uart = driver->uart;
   taskENTER_CRITICAL(spinlock);
   if (dmx_uart_get_rts(uart) == 0) {
     dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
@@ -1150,7 +1150,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
 
   // Turn the DMX bus around and get the send size
-  uart_dev_t *const restrict uart = driver->dev;
+  uart_dev_t *const restrict uart = driver->uart;
   taskENTER_CRITICAL(spinlock);
   if (dmx_uart_get_rts(uart) == 1) {
     dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
