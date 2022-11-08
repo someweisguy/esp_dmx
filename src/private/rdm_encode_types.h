@@ -54,10 +54,12 @@ typedef struct __attribute__((__packed__)) rdm_disc_mute_data {
 
 // TODO: docs
 typedef struct __attribute__((__packed__)) rdm_device_info_data_t {
-  uint16_t rdm_version;
+  uint8_t major_rdm_version;
+  uint8_t minor_rdm_version;
   uint16_t model_id;
-  uint16_t product_category;
-  uint32_t software_version;
+  uint8_t coarse_product_category;
+  uint8_t fine_product_category;
+  uint32_t software_version_id;
   uint16_t footprint;
   uint8_t current_personality;
   uint8_t personality_count;

@@ -196,10 +196,12 @@ size_t rdm_decode_8bit(const void *data, uint32_t *params, size_t size) {
 
 size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
   rdm_device_info_data_t *const ptr = data;
-  ptr->rdm_version = bswap16(param->rdm_version);
+  ptr->major_rdm_version = param->major_rdm_version;
+  ptr->minor_rdm_version = param->minor_rdm_version;
   ptr->model_id = bswap16(param->model_id);
-  ptr->product_category = bswap16(param->product_category);
-  ptr->software_version = bswap32(param->software_version);
+  ptr->coarse_product_category = param->coarse_product_category;
+  ptr->fine_product_category = param->fine_product_category;
+  ptr->software_version_id = bswap32(param->software_version_id);
   ptr->footprint = bswap16(param->footprint);
   ptr->current_personality = param->current_personality;
   ptr->personality_count = param->personality_count;
@@ -211,10 +213,12 @@ size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
 
 size_t rdm_decode_device_info(const void *data, rdm_device_info_t *param) {
   const rdm_device_info_data_t *ptr = data;
-  param->rdm_version = bswap16(ptr->rdm_version);
+  param->major_rdm_version = ptr->major_rdm_version;
+  param->minor_rdm_version = ptr->minor_rdm_version;
   param->model_id = bswap16(ptr->model_id);
-  param->product_category = bswap16(ptr->product_category);
-  param->software_version = bswap32(ptr->software_version);
+  param->coarse_product_category = ptr->coarse_product_category;
+  param->fine_product_category = ptr->fine_product_category;
+  param->software_version_id = bswap32(ptr->software_version_id);
   param->footprint = bswap16(ptr->footprint);
   param->current_personality = ptr->current_personality;
   param->personality_count = ptr->personality_count;

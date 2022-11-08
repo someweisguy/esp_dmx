@@ -68,10 +68,12 @@ typedef struct rdm_disc_mute {
 
 // TODO: docs
 typedef struct rdm_device_info {
-  int rdm_version;
+  uint32_t major_rdm_version;
+  uint32_t minor_rdm_version;
   int model_id;
-  int product_category;
-  uint32_t software_version;
+  int coarse_product_category;
+  int fine_product_category;
+  uint32_t software_version_id;
   size_t footprint;
   size_t current_personality;
   size_t personality_count;
