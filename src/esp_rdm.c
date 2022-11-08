@@ -49,17 +49,12 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
 }
 
 void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) { 
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
-  // Check that UID is valid
-  if (uid > RDM_MAX_UID) {
-    ESP_LOGE(TAG, "uid error");
-    return;
-  }
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
+  RDM_CHECK(uid <= RDM_MAX_UID, , "uid error");
   
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  
+
   // TODO: enter spinlock
   driver->rdm.uid = uid;  
   // TODO: exit spinlock
