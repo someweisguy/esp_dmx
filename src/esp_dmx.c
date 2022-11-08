@@ -31,7 +31,6 @@
 #define DMX_CONTEXT_INIT(uart_num)                                             \
   {                                                                            \
     .dev = UART_LL_GET_HW(uart_num), .spinlock = portMUX_INITIALIZER_UNLOCKED, \
-    .hw_enabled = false,                                                       \
   }
 
 DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
@@ -570,11 +569,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // Disable UART module
   // TODO: make this a context function
   taskENTER_CRITICAL(&context->spinlock);
-  if (context->hw_enabled) {
-    if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-      periph_module_disable(uart_periph_signal[dmx_num].module);
-    }
-    context->hw_enabled = false;
+  if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+    periph_module_disable(uart_periph_signal[dmx_num].module);
   }
   taskEXIT_CRITICAL(&context->spinlock);
 

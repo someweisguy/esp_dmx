@@ -35,7 +35,6 @@ extern "C" {
 typedef struct dmx_context_t {
   spinlock_t spinlock;     // Synchronizes hardware and driver operations.
   uart_dev_t *dev;
-  int hw_enabled;          // True if the UART hardware has been initialized.
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
   // TODO
@@ -53,7 +52,6 @@ typedef struct dmx_context_t {
 void dmx_uart_init(dmx_port_t dmx_num, dmx_context_t *ctx) {
   // Initialize the UART peripheral 
   taskENTER_CRITICAL(&ctx->spinlock);
-  if (!ctx->hw_enabled) {
     periph_module_enable(uart_periph_signal[dmx_num].module);
     if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
 #if SOC_UART_REQUIRE_CORE_RESET
@@ -64,8 +62,6 @@ void dmx_uart_init(dmx_port_t dmx_num, dmx_context_t *ctx) {
 #else
       periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
-    }
-    ctx->hw_enabled = true;
   }
   taskEXIT_CRITICAL(&ctx->spinlock);
 
