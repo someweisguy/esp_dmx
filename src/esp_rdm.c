@@ -394,13 +394,27 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
       response->err = ESP_OK;
     }
 
-    // TODO: handle different ACK types
-    if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-      num_params = rdm_decode_device_info(&rdm->pd, param);
-    }
-
+    // Handle the parameter data
     response->type = header.response_type;
-    response->num_params = num_params;
+    if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+      // Decode the parameter data
+      num_params = rdm_decode_device_info(&rdm->pd, param);
+      response->num_params = num_params;
+    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+      // Get the estimated response time and convert it to FreeRTOS ticks
+      uint32_t estimated_response_time;
+      rdm_decode_16bit(&rdm->pd, &estimated_response_time, 1);
+      response->timer = pdMS_TO_TICKS(estimated_response_time * 10);
+    } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+      // Report the NACK reason
+      rdm_decode_16bit(&rdm->pd, &response->nack_reason, 1);
+    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+      // This code should never run
+      response->err = ESP_ERR_INVALID_RESPONSE;
+    } else {
+      // An unknown response type was received
+      response->err = ESP_ERR_INVALID_RESPONSE;
+    }
   }
 
   xSemaphoreGiveRecursive(driver->mux);
