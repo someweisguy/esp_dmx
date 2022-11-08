@@ -934,6 +934,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   vTaskSetTimeOutState(&timeout);
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
+    if (event != NULL) {
+      event->err == ESP_ERR_TIMEOUT;
+      event->sc = -1;
+      event->size = 0;
+      event->is_rdm = false;
+    }
     return 0;
   }
 
@@ -941,6 +947,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (!dmx_wait_sent(dmx_num, wait_ticks) ||
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     xSemaphoreGiveRecursive(driver->mux);
+    if (event != NULL) {
+      event->err == ESP_ERR_TIMEOUT;
+      event->sc = -1;
+      event->size = 0;
+      event->is_rdm = false;
+    }
     return 0;
   }
 
@@ -1007,6 +1019,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
         driver->task_waiting = NULL;
         xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());  // TODO: needed?
         xSemaphoreGiveRecursive(driver->mux);
+        if (event != NULL) {
+          event->err == ESP_ERR_TIMEOUT;
+          event->sc = -1;
+          event->size = 0;
+          event->is_rdm = false;
+        }
         return packet_size;
       }
     }
