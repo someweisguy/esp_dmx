@@ -935,7 +935,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     if (event != NULL) {
-      event->err == ESP_ERR_TIMEOUT;
+      event->err = ESP_ERR_TIMEOUT;
       event->sc = -1;
       event->size = 0;
       event->is_rdm = false;
@@ -948,7 +948,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     xSemaphoreGiveRecursive(driver->mux);
     if (event != NULL) {
-      event->err == ESP_ERR_TIMEOUT;
+      event->err = ESP_ERR_TIMEOUT;
       event->sc = -1;
       event->size = 0;
       event->is_rdm = false;
@@ -1020,7 +1020,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
         xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());  // TODO: needed?
         xSemaphoreGiveRecursive(driver->mux);
         if (event != NULL) {
-          event->err == ESP_ERR_TIMEOUT;
+          event->err = ESP_ERR_TIMEOUT;
           event->sc = -1;
           event->size = 0;
           event->is_rdm = false;
