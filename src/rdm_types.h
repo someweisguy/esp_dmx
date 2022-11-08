@@ -24,7 +24,7 @@ extern "C" {
  * @brief Provides a synopsis of the received RDM packet so that users may
  * quickly and easily process and respond to RDM data.
  */
-typedef struct rdm_header {
+typedef struct rdm_header_t {
   rdm_uid_t destination_uid;  // The UID of the target device(s).
   rdm_uid_t source_uid;       // The UID of the device originating this packet.
   size_t tn;                  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
@@ -41,7 +41,7 @@ typedef struct rdm_header {
 } rdm_header_t;
 
 // TODO: docs
-typedef struct rdm_response {
+typedef struct rdm_response_t {
   esp_err_t err;
   rdm_response_type_t type;
   union {
@@ -52,13 +52,13 @@ typedef struct rdm_response {
 } rdm_response_t;
 
 // TODO: docs
-typedef struct rdm_disc_unique_branch {
+typedef struct rdm_disc_unique_branch_t {
   rdm_uid_t lower_bound;
   rdm_uid_t upper_bound;
 } rdm_disc_unique_branch_t;
 
 // TODO: docs
-typedef struct rdm_disc_mute {
+typedef struct rdm_disc_mute_t {
   bool managed_proxy;
   bool sub_device;
   bool boot_loader;
@@ -67,7 +67,7 @@ typedef struct rdm_disc_mute {
 } rdm_disc_mute_t;
 
 // TODO: docs
-typedef struct rdm_device_info {
+typedef struct rdm_device_info_t {
   uint32_t major_rdm_version;
   uint32_t minor_rdm_version;
   int model_id;

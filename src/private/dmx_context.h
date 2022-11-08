@@ -32,7 +32,7 @@ extern "C" {
  * as well as a spinlock for synchronizing access to resources and tracks if the
  * UART hardware has been enabled.
  */
-typedef struct dmx_context {
+typedef struct dmx_context_t {
   spinlock_t spinlock;     // Synchronizes hardware and driver operations.
   uart_dev_t *dev;
   int hw_enabled;          // True if the UART hardware has been initialized.

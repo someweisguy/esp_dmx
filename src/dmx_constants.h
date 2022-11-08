@@ -39,7 +39,7 @@ extern "C" {
 /**
  * @brief DMX port number constants.
  */
-enum dmx_num {
+enum dmx_num_t {
   DMX_NUM_0,  // DMX port 0.
   DMX_NUM_1,  // DMX port 1.
 #if SOC_UART_NUM > 2
@@ -47,7 +47,7 @@ enum dmx_num {
 #endif
 };
 
-enum dmx_pin {
+enum dmx_pin_t {
   /**
    * @brief Constant for dmx_set_pin(). Indicates the pin should not be changed.
    */
@@ -61,7 +61,7 @@ enum dmx_pin {
  * specification, but it is possible for other values to be used that also fall
  * within DMX specification.
  */
-enum dmx_parameter {
+enum dmx_parameter_t {
   DMX_PACKET_SIZE = 513,      // The typical packet size of DMX.
   DMX_MAX_PACKET_SIZE = 513,  // The maximum packet size of DMX.
 
@@ -95,7 +95,7 @@ enum dmx_parameter {
  * specification. This enum also includes RDM specific codes than can be used in
  * place of a start code or are use similarly to DMX start codes.
  */
-enum dmx_start_code {
+enum dmx_start_code_t {
   /**
    * @brief DMX default NULL start code. A NULL start code identifies subsequent
    * data slots as a block of untyped sequential 8-bit information. Packets

@@ -44,12 +44,12 @@ DRAM_ATTR dmx_context_t dmx_context[DMX_NUM_MAX] = {
 
 DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
 
-enum __dmx_default_interrupt_values {
+enum dmx_default_interrupt_values_t {
   DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
   DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
 };
 
-enum __dmx_interrupt_mask {
+enum dmx_interrupt_mask_t {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
   DMX_INTR_RX_FRAMING_ERR = UART_INTR_PARITY_ERR | UART_INTR_RS485_PARITY_ERR |
                             UART_INTR_FRAM_ERR | UART_INTR_RS485_FRM_ERR,
@@ -66,7 +66,7 @@ enum __dmx_interrupt_mask {
   DMX_ALL_INTR_MASK = -1
 };
 
-enum __rdm_packet_timing {
+enum rdm_packet_timing_t {
   RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,
   RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,
   RDM_BROADCAST_PACKET_SPACING = 176,
@@ -76,7 +76,7 @@ enum __rdm_packet_timing {
   RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000
 };
 
-enum __rdm_packet_type {
+enum rdm_packet_type_t {
   RDM_PACKET_TYPE_NON_RDM,
   RDM_PACKET_TYPE_DISCOVERY,
   RDM_PACKET_TYPE_DISCOVERY_RESPONSE,

@@ -55,7 +55,7 @@ static const rdm_uid_t RDM_MAX_UID = 0xfffffffffffe;
  * message is a broadcast address. Responders shall not respond to commands sent 
  * using broadcast addressing, in order to prevent collisions.
  */
-typedef enum rdm_command_class {
+typedef enum rdm_cc_t {
   RDM_CC_NON_RDM_PACKET = 0x00,         // The packet is a non-RDM packet.
   RDM_CC_DISC_COMMAND = 0x10,           // The packet is an RDM discovery command.
   RDM_CC_DISC_COMMAND_RESPONSE = 0x11,  // The packet is a response to an RDM discovery command.
@@ -69,7 +69,7 @@ typedef enum rdm_command_class {
  * @brief The response type field is used in messages from Responders to 
  * indicate the acknowledgement type of the response.
  */
-typedef enum rdm_response_type {
+typedef enum rdm_response_type_t {
   RDM_RESPONSE_TYPE_NONE = -1, // TODO: docs
 
   RDM_RESPONSE_TYPE_ACK = 0x00,          // Indicates that the responder has correctly received the controller message and is acting upon the message.
@@ -82,7 +82,7 @@ typedef enum rdm_response_type {
  * @brief The NACK reason defines the reason that the responder is unable to
  * comply with the request.
  */
-typedef enum rdm_nr {
+typedef enum rdm_nr_t {
   RDM_NR_UNKNOWN_PID = 0x0000,                // The responder cannot comply with the request because the message is not implemented in the responder.
   RDM_NR_FORMAT_ERROR = 0x0001,               // The responder cannot interpret the request as the controller data was not formatted correctly.
   RDM_NR_HARDWARE_FAULT = 0x0002,             // The responder cannot comply due to an internal hardware fault.
@@ -104,7 +104,7 @@ typedef enum rdm_nr {
  * manufacturer for third-party support or proprietary for the manufacturer's 
  * own use.
  */
-typedef enum rdm_pid {
+typedef enum rdm_pid_t {
   // Category: Network Management
   RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,  // TODO: required
   RDM_PID_DISC_MUTE = 0x0002,  // TODO: required

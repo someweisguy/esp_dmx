@@ -18,7 +18,7 @@ extern "C" {
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.
  */
-typedef __attribute__((aligned(4))) struct dmx_driver {
+typedef __attribute__((aligned(4))) struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.

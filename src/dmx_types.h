@@ -29,7 +29,7 @@ typedef unsigned int dmx_port_t;
  */
 typedef int64_t rdm_uid_t;
 
-typedef struct dmx_sniffer_data {
+typedef struct dmx_sniffer_data_t {
   uint32_t break_len;  // Length in microseconds of the last received DMX break.
   uint32_t mab_len;    // Length in microseconds of the last received DMX mark-after-break.
 } dmx_sniffer_data_t;
@@ -38,7 +38,7 @@ typedef struct dmx_sniffer_data {
  * @brief Provides a synopsis of the received DMX packet so that users may 
  * quickly and easily process and respond to DMX data.
  */
-typedef struct dmx_event {
+typedef struct dmx_event_t {
   esp_err_t err;    // Evaluates to true if an error occurred reading DMX data.
   int sc;           // Start code of the DMX packet.
   size_t size;      // The size of the received DMX packet in bytes.

@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-// TODO: encode disc_unique_branch response
-size_t rdm_encode_disc_response(uint8_t *data, size_t size,
+// TODO: docs
+size_t rdm_encode_disc_response(uint8_t *data, const size_t size,
                                 const rdm_uid_t uid) {
   // Encode the RDM preamble and delimiter
   const size_t preamble_len = size - 17 <= 7 ? size - 17 : 7;

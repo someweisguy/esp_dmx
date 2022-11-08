@@ -14,7 +14,7 @@ extern "C" {
  * so endianness must be swapped when using values larger than 8 bits.
  * // TODO: remove typedef?
  */
-typedef struct __attribute__((__packed__)) rdm_data {
+typedef struct __attribute__((__packed__)) rdm_data_t {
   uint8_t sc;                  // This field shall contain the defined RDM start code. Controllers and responders shall always send RDM_SC in this slot.
   uint8_t sub_sc;              // This field shall contain the sub-start code within RDM that defines this packet structure. Unless specified in future version, the sub-start code shall be equal to RDM_SUB_SC.
   uint8_t message_len;         // The message length value is defined as the number of slots int he RDM packet including the start code and excluding the checksum.
