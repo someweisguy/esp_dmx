@@ -21,8 +21,6 @@
 
 static const char *TAG = "rdm";  // The log tagline for the file.
 
-static bool rdm_disc_is_muted = false;  // True if RDM discovery is muted.
-
 rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -60,7 +58,10 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   // TODO: exit spinlock
 }
 
-bool rdm_is_muted() { return rdm_disc_is_muted; }
+bool rdm_is_muted() { 
+  // FIXME
+  return false;
+}
 
 size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
