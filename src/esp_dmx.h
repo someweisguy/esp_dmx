@@ -331,33 +331,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size);
  */
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks);
 
-/**
- * @brief Helper function that takes an RDM UID from a most-significant-byte
- * first buffer and copies it to least-significant-byte first endianness, which
- * is what ESP32 uses.
- *
- * @note This function is designed to be the quickest way to swap endianness of
- * a 48-bit number on the Xtensa compiler which is important because it will be
- * used in an interrupt handler. It must be inlined in order to prevent cache
- * misses in IRAM interrupts.
- *
- * @param buf A pointer to an RDM buffer.
- * @return The properly formatted RDM UID.
- */
-rdm_uid_t buf_to_uid(const void *buf);
-
-/**
- * @brief Helper function that converts an RDM UID stored as a 64-bit integer
- * and copies it into a 48-bit buffer. It also converts endianness to compensate
- * for the fact that the ESP32 stores values in least-significant-byte first
- * endianness and RDM requires most-significant-byte first.
- *
- * @param buf A pointer to the destination buffer.
- * @param uid The 64-bit representation of the UID.
- * @return void* A pointer to the destination buffer.
- */
-void *uid_to_buf(void *buf, rdm_uid_t uid);
-
 #ifdef __cplusplus
 }
 #endif

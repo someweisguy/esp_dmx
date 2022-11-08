@@ -1273,25 +1273,3 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   xSemaphoreGiveRecursive(driver->mux);
   return result;
 }
-
-DMX_ISR_ATTR rdm_uid_t buf_to_uid(const void *buf) {
-  rdm_uid_t val;
-  *(uint16_t *)(&val + 6) = 0;
-  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
-  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
-  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
-  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
-  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
-  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
-  return val;
-}
-
-void *uid_to_buf(void *buf, rdm_uid_t uid) {
-  ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
-  ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
-  ((uint8_t *)buf)[2] = ((uint8_t *)&uid)[3];
-  ((uint8_t *)buf)[3] = ((uint8_t *)&uid)[2];
-  ((uint8_t *)buf)[4] = ((uint8_t *)&uid)[1];
-  ((uint8_t *)buf)[5] = ((uint8_t *)&uid)[0];
-  return buf;
-}
