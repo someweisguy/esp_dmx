@@ -32,24 +32,7 @@ extern "C" {
  *
  * @param hal A pointer to a UART HAL context.
  */
-void dmx_uart_init(dmx_port_t dmx_num, spinlock_t *spinlock) {  // FIXME: remove ctx
-  // Initialize the UART peripheral
-  taskENTER_CRITICAL(spinlock);
-  periph_module_enable(uart_periph_signal[dmx_num].module);
-  if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-#if SOC_UART_REQUIRE_CORE_RESET
-    // ESP32-C3 workaround to prevent UART outputting garbage data.
-    uart_ll_set_reset_core(uart, true);
-    periph_module_reset(uart_periph_signal[dmx_num].module);
-    uart_ll_set_reset_core(uart, false);
-#else
-    periph_module_reset(uart_periph_signal[dmx_num].module);
-#endif
-  }
-  taskEXIT_CRITICAL(spinlock);
-
-  uart_dev_t *const restrict uart = UART_LL_GET_HW(dmx_num);
-
+void dmx_uart_init(uart_dev_t *uart) {
   // Configure the UART for DMX output
   uart_ll_set_sclk(uart, UART_SCLK_APB);
   uart_ll_set_baudrate(uart, DMX_BAUD_RATE);
