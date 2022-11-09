@@ -571,7 +571,9 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
     response->type = header.response_type;
     if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
       // Decode the parameter data
-      num_params = rdm_decode_8bit(&rdm->pd, identify_state, 1);
+      uint32_t param;
+      num_params = rdm_decode_8bit(&rdm->pd, &param, 1);
+      *identify_state = param;
       response->num_params = num_params;
     } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
       // Get the estimated response time and convert it to FreeRTOS ticks
