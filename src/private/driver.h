@@ -76,6 +76,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
 } dmx_driver_t;
 
 extern dmx_driver_t *restrict dmx_driver[DMX_NUM_MAX];
+extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 #ifdef __cplusplus
 }
