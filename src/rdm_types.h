@@ -40,14 +40,16 @@ typedef struct rdm_header_t {
   bool checksum_is_valid;     // True if the RDM checksum is valid.
 } rdm_header_t;
 
-// TODO: docs
+/**
+ * @brief Provides information about RDM responses.
+ */
 typedef struct rdm_response_t {
-  esp_err_t err;
-  rdm_response_type_t type;
+  esp_err_t err;             // Evaluates to true if an error occurred reading DMX data.
+  rdm_response_type_t type;  // The type of the RDM response received.
   union {
-    TickType_t timer;
-    rdm_nr_t nack_reason;
-    size_t num_params;
+    TickType_t timer;        // The amount of time in FreeRTOS ticks until the responder device will be ready to respond to the request. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.
+    rdm_nr_t nack_reason;    // The reason that the request was unable to be fulfilled. This field should be read when the response type received is RDM_RESPONSE_TYPE_NACK_REASON.
+    size_t num_params;       // The number of parameters received. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK or RDM_RESPONSE_TYPE_ACK_OVERFLOW.
   };
 } rdm_response_t;
 
