@@ -96,7 +96,7 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
  * @return true if RDM discovery is muted.
  * @return false if RDM discovery is not muted.
  */
-bool rdm_is_muted();
+bool rdm_is_muted(dmx_port_t dmx_num);
 
 // TODO: docs
 size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,

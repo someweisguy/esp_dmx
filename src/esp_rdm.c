@@ -58,9 +58,19 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   taskEXIT_CRITICAL(spinlock);
 }
 
-bool rdm_is_muted() { 
-  // FIXME
-  return false;
+bool rdm_is_muted(dmx_port_t dmx_num) { 
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
+  
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  bool is_muted;
+  taskENTER_CRITICAL(spinlock);
+  is_muted = driver->rdm.discovery_is_muted;
+  taskEXIT_CRITICAL(spinlock);
+
+  return is_muted;
 }
 
 size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
