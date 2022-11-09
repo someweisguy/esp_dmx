@@ -14,6 +14,7 @@
  */
 #pragma once
 
+#include "dmx_constants.h"
 #include "driver.h"
 #include "hal/uart_hal.h"
 

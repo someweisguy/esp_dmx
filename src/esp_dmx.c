@@ -11,7 +11,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_rdm.h"
-#include "private/dmx_context.h"
+#include "private/dmx_hal.h"
 #include "private/driver.h"
 #include "private/rdm_encode/types.h"
 #include "rdm_constants.h"
