@@ -53,8 +53,8 @@ size_t rdm_encode_disc_response(uint8_t *data, size_t preamble_len,
  *
  * @param[in] data The buffer in which the data to decode is stored.
  * @param[out] uid The decoded UID in the response.
- * @return true if the data was a valid response.
- * @return false if the data was invalid.
+ * @return true if the data checksum was a valid.
+ * @return false if the data checksum was invalid.
  */
 bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid) {
   // Find the length of the discovery response preamble (0-7 bytes)
