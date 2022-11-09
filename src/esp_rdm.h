@@ -26,7 +26,7 @@ extern "C" {
 
 /**
  * @brief // TODO
- * 
+ * // FIXME: add discovery mute parameters as argument
  */
 typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
                                  size_t device_index, void *context);

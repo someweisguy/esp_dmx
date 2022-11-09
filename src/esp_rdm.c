@@ -271,7 +271,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
       // Add the UID to the list
       if (response.num_params > 0 && !response.err) {
-        if (mute.binding_uid) {
+        if (mute.binding_uid) {  // FIXME: don't convert uid to binding uid
           uid = mute.binding_uid;
         }
         cb(dmx_num, uid, num_found, context);
