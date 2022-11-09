@@ -592,9 +592,6 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
 
   xSemaphoreGiveRecursive(driver->mux);
   return num_params;
-  
-  // TODO
-  return 0;
 }
 
 // TODO: implement, docs
