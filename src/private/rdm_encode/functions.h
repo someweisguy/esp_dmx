@@ -13,10 +13,12 @@ extern "C" {
 #endif
 
 // TODO: docs
-size_t rdm_encode_disc_response(uint8_t *data, const size_t size,
+size_t rdm_encode_disc_response(uint8_t *data, size_t preamble_len,
                                 const rdm_uid_t uid) {
   // Encode the RDM preamble and delimiter
-  const size_t preamble_len = size - 17 <= 7 ? size - 17 : 7;
+  if (preamble_len > 7) {
+    preamble_len = 7;  // Max preamble_len is 7
+  }
   for (int i = 0; i < preamble_len; ++i) {
     data[i] = RDM_PREAMBLE;
   }
