@@ -2,17 +2,15 @@
 
 #include <stdint.h>
 
-#include "rdm_constants.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief A struct which can be used to help process raw RDM packets instead of
- * reading slots by index alone. RDM sends data in most-significant byte first,
- * so endianness must be swapped when using values larger than 8 bits.
- * // TODO: remove typedef?
+ * @brief A packed struct which can be used to help process raw RDM packets
+ * instead of reading slots by index alone. RDM sends data in most-significant
+ * byte first, so endianness must be swapped when using values larger than 8
+ * bits.
  */
 typedef struct __attribute__((__packed__)) rdm_data_t {
   uint8_t sc;                  // This field shall contain the defined RDM start code. Controllers and responders shall always send RDM_SC in this slot.
@@ -34,7 +32,11 @@ typedef struct __attribute__((__packed__)) rdm_data_t {
   } pd;                        // The parameter data (PD) is of variable length. The content format is PID dependent.
 } rdm_data_t;
 
-// TODO: docs
+/**
+ * @brief A packed struct which can be used to help process RDM discovery mute
+ * parameters. RDM sends data in most-significant byte first, so endianness must
+ * be swapped when using values larger than 8 bits.
+ */
 struct __attribute__((__packed__)) rdm_disc_mute_data_t {
   union {
     struct {
@@ -48,7 +50,11 @@ struct __attribute__((__packed__)) rdm_disc_mute_data_t {
   uint8_t binding_uid[6];
 };
 
-// TODO: docs
+/**
+ * @brief A packed struct which can be used to help process RDM device info
+ * parameters. RDM sends data in most-significant byte first, so endianness must
+ * be swapped when using values larger than 8 bits.
+ */
 struct __attribute__((__packed__)) rdm_device_info_data_t {
   uint8_t major_rdm_version;
   uint8_t minor_rdm_version;
