@@ -53,35 +53,46 @@ typedef struct rdm_response_t {
   };
 } rdm_response_t;
 
-// TODO: docs
+/**
+ * @brief Parameters for use in RDM discovery requests. Discovery requests are
+ * broadcast messages with a lower bound and upper bound. If a responding
+ * device's UID falls within the lower bound and upper bound, it will respond to
+ * the discovery request.
+ */
 typedef struct rdm_disc_unique_branch_t {
-  rdm_uid_t lower_bound;
-  rdm_uid_t upper_bound;
+  rdm_uid_t lower_bound;  // The lower bound of the RDM discovery request.
+  rdm_uid_t upper_bound;  // The upper bound of the RDM discovery request.
 } rdm_disc_unique_branch_t;
 
-// TODO: docs
+/**
+ * @brief Parameters for use with RDM discovery mute and un-mute requests. When
+ * a responder device is successfully muted or un-muted, it responds with these
+ * parameters.
+ */
 typedef struct rdm_disc_mute_t {
-  bool managed_proxy;
-  bool sub_device;
-  bool boot_loader;
-  bool proxied_device;
-  rdm_uid_t binding_uid;
+  bool managed_proxy;     // The manged proxy flag shall be set to 1 when the responder is a proxy device.
+  bool sub_device;        // The sub-device flag shall be set to 1 when the responder supports sub-devices.
+  bool boot_loader;       // The boot-loader flag shall only be set to 1 when the device is incapable of normal operation until receiving a firmware upload.
+  bool proxied_device;    // The proxied device flag shall only be set to 1 when a proxy is responding to discovery on behalf of another device. This flag indicates that the response has come from a proxy rather than the actual device.
+  rdm_uid_t binding_uid;  // The binding UID field shall only be included when the responding device contains multiple responder ports. If the device does contain multiple ports then the binding UID field shall contain the UID for the primary port on the device. If the device does not contain multiple responder ports, this field is set to 0.
 } rdm_disc_mute_t;
 
-// TODO: docs
+/**
+ * @brief Parameter for use with RDM device info requests.
+ */
 typedef struct rdm_device_info_t {
-  uint32_t major_rdm_version;
-  uint32_t minor_rdm_version;
-  int model_id;
-  int coarse_product_category;
-  int fine_product_category;
-  uint32_t software_version_id;
-  size_t footprint;
-  size_t current_personality;
-  size_t personality_count;
-  size_t start_address;
-  size_t sub_device_count;
-  size_t sensor_count;
+  uint32_t major_rdm_version;    // This field contains the major version number of the published RDM standard supported by the device.
+  uint32_t minor_rdm_version;    // This field contains the minor version number of the published RDM standard supported by the device.
+  int model_id;                  // This field identifies the device model ID of the root device or sub-device. The manufacturer shall not use the same ID to represent more than one unique model type.
+  int coarse_product_category;   // Devices shall report a product category based on the product's primary function.
+  int fine_product_category;     // Devices shall report a product category based on the product's primary function. The fine product category is optional.
+  uint32_t software_version_id;  // This field indicates the software version ID for the device. The software version ID is a 32-bit value determined by the manufacturer.
+  size_t footprint;              // This field species the DMX footprint - the number of consecutive DMX slots required.
+  size_t current_personality;    // The current selected DMX personality of the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
+  size_t personality_count;      // The number of personalities supported by the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
+  int start_address;             // The DMX start address of the device. If the device or sub-device that the request is directed to has a DMX footprint of 0, then this field shall be set to -1.
+  size_t sub_device_count;       // This parameter is used to retrieve the number of sub-devices respresented by the root device. The response for this field shall always be the same regardless of whether this message is directed to the root device or a sub-device.
+  size_t sensor_count;           // This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
 } rdm_device_info_t;
 
 #ifdef __cplusplus
