@@ -573,7 +573,6 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   dmx_driver[dmx_num] = NULL;
 
   // Disable UART module
-  // TODO: make this a context function
   taskENTER_CRITICAL(spinlock);
   if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
     periph_module_disable(uart_periph_signal[dmx_num].module);
