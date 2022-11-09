@@ -76,7 +76,8 @@ FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
 /**
  * @brief Returns the 48 bit unique ID of this device.
  *
- * @return The UID of this device.
+ * @param dmx_num The DMX port number.
+ * @return The UID of the DMX port.
  */
 rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
 
@@ -84,6 +85,7 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
  * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
  * the UID to its default value.
  *
+ * @param dmx_num The DMX port number.
  * @param uid The custom value to which to set the device UID.
  */
 void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
