@@ -121,13 +121,6 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   written += rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
 
-  // Initialize the response to the default values
-  if (response != NULL) {
-    response->err = ESP_OK;
-    response->type = RDM_RESPONSE_TYPE_NONE;
-    response->num_params = 0;
-  }
-
   // Wait for a response
   size_t num_params = 0;
   dmx_event_t packet;
@@ -137,10 +130,19 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   } else if (read) {
     // Check the packet for errors
     if (!rdm_decode_disc_response(driver->data.buffer, uid)) {
-      response->err = ESP_ERR_INVALID_RESPONSE;
+      if (response != NULL) {
+        response->err = ESP_ERR_INVALID_CRC;
+        response->type = RDM_RESPONSE_TYPE_NONE;
+      }
+    } else {
+      num_params = 1;
+      if (response != NULL) {
+        response->err = ESP_OK;
+        response->type = RDM_RESPONSE_TYPE_ACK;
+      }
     }
-
-    num_params = 1;
+  }
+  if (response != NULL) {
     response->num_params = num_params;
   }
 
