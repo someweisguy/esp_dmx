@@ -99,7 +99,8 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
 bool rdm_is_muted();
 
 // TODO: docs
-size_t rdm_send_disc_response(dmx_port_t dmx_num, rdm_uid_t uid);
+size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
+                              rdm_uid_t uid);
 
 // TODO: docs
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
