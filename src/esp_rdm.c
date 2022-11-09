@@ -198,6 +198,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
     } else if (read) {
       // Check the packet for errors
       if (!rdm_decode_header(driver->data.buffer, &header)) {
+        // FIXME: null check (and for rest of functions)
         response->err = ESP_ERR_INVALID_RESPONSE;
       } else if (!header.checksum_is_valid) {
         response->err = ESP_ERR_INVALID_CRC;
