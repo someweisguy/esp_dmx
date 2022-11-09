@@ -33,7 +33,7 @@ extern "C" {
  * timer_group == (dmx_num / 2) and timer_num == (dmx_num % 2). It is not
  * recommended to use the hardware timer that the DMX driver is using while the
  * DMX driver is installed.
- * 
+ *
  * @note Using a hardware timer can be disabled by setting the appropriate
  * option in the Kconfig under "DMX Configuration." Hardware timers cannot be
  * disabled when using Arduino.
@@ -56,6 +56,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags);
  * @param dmx_num The DMX port number
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there is an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver not installed.
  */
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
 
