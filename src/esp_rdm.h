@@ -24,8 +24,12 @@ extern "C" {
  */
 #define UID2STR(uid) ((uint16_t)(uid >> 32)), ((uint32_t)(uid))
 
-// TODO: docs
-typedef void (rdm_discovery_cb_t)(dmx_port_t, rdm_uid_t, size_t, void *);
+/**
+ * @brief // TODO
+ * 
+ */
+typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
+                                 size_t device_index, void *context);
 
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
@@ -86,31 +90,57 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
  * the UID to its default value.
  *
  * @param dmx_num The DMX port number.
- * @param uid The custom value to which to set the device UID.
+ * @param uid The custom value to which to set the device UID. Must be less than
+ * or equal to RDM_MAX_UID.
  */
 void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
 
 /**
  * @brief Returns true if RDM discovery responses are be muted on this device.
- * 
+ *
+ * @param dmx_num The DMX port number.
  * @return true if RDM discovery is muted.
  * @return false if RDM discovery is not muted.
  */
 bool rdm_is_muted(dmx_port_t dmx_num);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM discovery response on the desired DMX port.
+ *
+ * @param dmx_num The DMX port number.
+ * @param preamble_len The length of the packet preamble (max: 7).
+ * @param uid The UID to encode into the packet.
+ * @return The number of bytes sent.
+ */
 size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
                               rdm_uid_t uid);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM discovery request and reads the response, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] params A pointer to the discovery UID bounds to send.
+ * @param[out] response // TODO
+ * @param[out] uid The decoded UID of the response, if any. If no response, the
+ * UID is set to 0.
+ * @return 1 if a response is received.
+ */
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                    rdm_disc_unique_branch_t *params,
                                    rdm_response_t *response, rdm_uid_t *uid);
 
-// TODO: docs
+/**
+ * @brief Sends a RDM discovery mute request and reads the response, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to send the request.
+ * @param mute True to send a mute request, false to send an un-mute request.
+ * @param[out] response // TODO
+ * @param[out] params A pointer to the discovery mute params to receive.
+ * @return 1 if a response is received.
+ */
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
-                          rdm_response_t *response,
-                          rdm_disc_mute_t *mute_params);
+                          rdm_response_t *response, rdm_disc_mute_t *params);
 
 // TODO: docs
 size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
@@ -120,7 +150,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
                             const size_t size);
 
-// TODO: implement, docs
+// TODO: docs
 size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
                                     uint16_t sub_device,
                                     rdm_response_t *response, rdm_pid_t *pids,
@@ -137,22 +167,22 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       rdm_response_t *response, char *label,
                                       size_t size);
 
-// TODO: implement, docs
+// TODO: docs
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                uint16_t sub_device, rdm_response_t *response,
                                bool *identify_state);
 
-// TODO: implement, docs
+// TODO: docs
 size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                uint16_t sub_device, rdm_response_t *response,
                                const bool identify_state);
 
-// TODO: implement, docs
+// TODO: docs
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  uint16_t sub_device, rdm_response_t *response,
                                  int *start_address);
 
-// TODO: implement, docs
+// TODO: docs
 size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  uint16_t sub_device, rdm_response_t *response,
                                  const int start_address);
