@@ -96,8 +96,9 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                    rdm_disc_unique_branch_t *params,
                                    rdm_response_t *response, rdm_uid_t *uid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(params != NULL, 0, "params is null");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  RDM_CHECK(params != NULL, 0, "params is null");
+  RDM_CHECK(uid != NULL, 0, "uid is null");
 
   // Take mutex so driver values may be accessed
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -130,6 +131,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   } else if (read) {
     // Check the packet for errors
     if (!rdm_decode_disc_response(driver->data.buffer, uid)) {
+      *uid = 0;
       if (response != NULL) {
         response->err = ESP_ERR_INVALID_CRC;
         response->type = RDM_RESPONSE_TYPE_NONE;
