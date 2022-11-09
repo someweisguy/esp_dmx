@@ -25,11 +25,11 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // TODO: enter spinlock
-
   // Initialize the RDM UID 
+  taskENTER_CRITICAL(spinlock);
   if (driver->rdm.uid == 0) {
     struct __attribute__((__packed__)) {
       uint16_t manufacturer;
@@ -40,8 +40,7 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
     driver->rdm.uid |= (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
   }
   rdm_uid_t uid = driver->rdm.uid;
-
-  // TODO: exit spinlock
+  taskEXIT_CRITICAL(spinlock);
 
   return uid;
 }
@@ -51,11 +50,12 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   RDM_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
   RDM_CHECK(uid <= RDM_MAX_UID, , "uid error");
   
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // TODO: enter spinlock
+  taskENTER_CRITICAL(spinlock);
   driver->rdm.uid = uid;  
-  // TODO: exit spinlock
+  taskEXIT_CRITICAL(spinlock);
 }
 
 bool rdm_is_muted() { 
