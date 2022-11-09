@@ -23,15 +23,15 @@ extern "C" {
 typedef __attribute__((aligned(4))) struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
-  uart_dev_t *restrict uart;
+  uart_dev_t *restrict uart;      // A pointer to the UART port.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
   // TODO
 #else
-  timer_group_t timer_group;
-  timer_idx_t timer_idx;
+  timer_group_t timer_group;  // The timer group to use for DMX functions.
+  timer_idx_t timer_idx;      // The timer index to use for DMX functions.
 #endif
 
   uint32_t break_len;  // Length in microseconds of the transmitted break.
@@ -59,9 +59,9 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
   struct rdm_info_t {
-    rdm_uid_t uid;
-    uint32_t tn;
-    int discovery_is_muted;
+    rdm_uid_t uid;           // The assigned RDM UID of this port.
+    uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
+    int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
   } rdm;
 
   struct dmx_sniffer_t {
