@@ -37,7 +37,7 @@ typedef struct __attribute__((__packed__)) rdm_data_t {
  * parameters. RDM sends data in most-significant byte first, so endianness must
  * be swapped when using values larger than 8 bits.
  */
-struct __attribute__((__packed__)) rdm_disc_mute_data_t {
+typedef struct __attribute__((__packed__)) rdm_disc_mute_data_t {
   union {
     struct {
       uint8_t managed_proxy : 1;
@@ -48,14 +48,14 @@ struct __attribute__((__packed__)) rdm_disc_mute_data_t {
     uint16_t control_field;
   };
   uint8_t binding_uid[6];
-};
+} rdm_disc_mute_data_t;
 
 /**
  * @brief A packed struct which can be used to help process RDM device info
  * parameters. RDM sends data in most-significant byte first, so endianness must
  * be swapped when using values larger than 8 bits.
  */
-struct __attribute__((__packed__)) rdm_device_info_data_t {
+typedef struct __attribute__((__packed__)) rdm_device_info_data_t {
   uint8_t major_rdm_version;
   uint8_t minor_rdm_version;
   uint16_t model_id;
@@ -68,7 +68,7 @@ struct __attribute__((__packed__)) rdm_device_info_data_t {
   uint16_t start_address;
   uint16_t sub_device_count;
   uint8_t sensor_count;
-};
+} rdm_device_info_data_t;
 
 #ifdef __cplusplus
 }
