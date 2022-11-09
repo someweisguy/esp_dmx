@@ -496,7 +496,8 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
     response->type = header.response_type;
     if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
       // Decode the parameter data
-      strncpy(param, &rdm->pd, header.pdl);
+      size = size > header.pdl ? header.pdl : size;
+      strncpy(param, (void *)&rdm->pd, size);
       num_params = header.pdl;
       response->num_params = header.pdl;
     } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
