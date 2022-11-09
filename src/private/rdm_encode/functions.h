@@ -307,7 +307,8 @@ size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
   ptr->footprint = bswap16(param->footprint);
   ptr->current_personality = param->current_personality;
   ptr->personality_count = param->personality_count;
-  ptr->start_address = bswap16(param->start_address);
+  ptr->start_address =
+      param->start_address != -1 ? bswap16(param->start_address) : 0xffff;
   ptr->sub_device_count = bswap16(param->sub_device_count);
   ptr->sensor_count = param->sensor_count;
   return sizeof(struct rdm_device_info_data_t);
@@ -331,7 +332,8 @@ size_t rdm_decode_device_info(const void *data, rdm_device_info_t *param) {
   param->footprint = bswap16(ptr->footprint);
   param->current_personality = ptr->current_personality;
   param->personality_count = ptr->personality_count;
-  param->start_address = bswap16(ptr->start_address);
+  param->start_address =
+      ptr->start_address != 0xffff ? bswap16(ptr->start_address) : -1;
   param->sub_device_count = bswap16(ptr->sub_device_count);
   param->sensor_count = ptr->sensor_count;
   return 1;
