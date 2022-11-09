@@ -120,7 +120,8 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
  *
  * @param dmx_num The DMX port number.
  * @param[in] params A pointer to the discovery UID bounds to send.
- * @param[out] response // TODO
+ * @param[out] response A pointer to into which to store RDM response
+ * information.
  * @param[out] uid The decoded UID of the response, if any. If no response, the
  * UID is set to 0.
  * @return 1 if a response is received.
@@ -135,7 +136,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
  * @param dmx_num The DMX port number.
  * @param uid The UID to which to send the request.
  * @param mute True to send a mute request, false to send an un-mute request.
- * @param[out] response // TODO
+ * @param[out] response A pointer to into which to store RDM response
+ * information.
  * @param[out] params A pointer to the discovery mute params to receive.
  * @return 1 if a response is received.
  */
