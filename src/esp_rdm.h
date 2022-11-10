@@ -150,8 +150,8 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
                                   void *context);
 
 // TODO: docs
-size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
-                            const size_t size);
+size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
+                                   const size_t size);
 
 // TODO: docs
 size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,

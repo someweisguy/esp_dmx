@@ -363,8 +363,8 @@ static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
   }
 }
 
-size_t rdm_discover_devices(dmx_port_t dmx_num, rdm_uid_t *uids,
-                            const size_t size) {
+size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
+                                   const size_t size) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
