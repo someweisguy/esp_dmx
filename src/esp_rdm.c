@@ -123,12 +123,12 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   dmx_send(dmx_num, written);
 
   // Wait for a response
-  size_t num_params = 0;
-  dmx_event_t packet;
-  const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
-  if (packet.err) {
+  size_t ret = 0;
+  dmx_event_t event;
+  const size_t read = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+  if (event.err) {
     if (response != NULL) {
-      response->err = packet.err;
+      response->err = event.err;
       response->type = RDM_RESPONSE_TYPE_NONE;
     }
   } else if (read) {
@@ -140,7 +140,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
         response->type = RDM_RESPONSE_TYPE_NONE;
       }
     } else {
-      num_params = 1;
+      ret = 1;
       if (response != NULL) {
         response->err = ESP_OK;
         response->type = RDM_RESPONSE_TYPE_ACK;
@@ -148,11 +148,11 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
     }
   }
   if (response != NULL) {
-    response->num_params = num_params;
+    response->num_params = ret;
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-  return num_params;
+  return ret;
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
@@ -433,7 +433,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
   dmx_send(dmx_num, written);
 
   // Receive and decode the RDM response
-  uint32_t ret = 0;
+  uint32_t num_params = 0;
   dmx_event_t event;
   const size_t read = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(20));
   if (!read) {
@@ -456,16 +456,18 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
     }
 
     // Handle the parameter data
+    uint32_t response_val;
     if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
       // Decode the parameter data
-      ret = rdm_decode_device_info(&rdm->pd, param);
+      response_val = rdm_decode_device_info(&rdm->pd, param);
+      num_params = response_val;
     } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
       // Get the estimated response time and convert it to FreeRTOS ticks
-      rdm_decode_16bit(&rdm->pd, &ret, 1);
-      ret = pdMS_TO_TICKS(ret * 10);
+      rdm_decode_16bit(&rdm->pd, &response_val, 1);
+      response_val = pdMS_TO_TICKS(response_val * 10);
     } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
       // Report the NACK reason
-      rdm_decode_16bit(&rdm->pd, &ret, 1);
+      rdm_decode_16bit(&rdm->pd, &response_val, 1);
     } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
       // This code should never run
       err = ESP_ERR_INVALID_RESPONSE;
@@ -478,12 +480,12 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
     if (response != NULL) {
       response->err = err;
       response->type = header.response_type;
-      response->num_params = ret;
+      response->num_params = response_val;
     }
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-  return ret;
+  return num_params;
 }
 
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
