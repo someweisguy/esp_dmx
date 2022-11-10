@@ -123,36 +123,39 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   dmx_send(dmx_num, written);
 
   // Wait for a response
-  size_t ret = 0;
+  size_t num_params = 0;
   dmx_event_t event;
   const size_t read = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
-  if (event.err) {
+  if (!read) {
     if (response != NULL) {
       response->err = event.err;
       response->type = RDM_RESPONSE_TYPE_NONE;
+      response->num_params = 0;
     }
-  } else if (read) {
+  } else {
     // Check the packet for errors
+    esp_err_t err;
+    rdm_response_type_t response_type;
     if (!rdm_decode_disc_response(driver->data.buffer, uid)) {
+      err = ESP_ERR_INVALID_CRC;
+      response_type = RDM_RESPONSE_TYPE_NONE;
       *uid = 0;
-      if (response != NULL) {
-        response->err = ESP_ERR_INVALID_CRC;
-        response->type = RDM_RESPONSE_TYPE_NONE;
-      }
     } else {
-      ret = 1;
-      if (response != NULL) {
-        response->err = ESP_OK;
-        response->type = RDM_RESPONSE_TYPE_ACK;
-      }
+      err = ESP_OK;
+      response_type = RDM_RESPONSE_TYPE_ACK;
+      num_params = 1;
     }
-  }
-  if (response != NULL) {
-    response->num_params = ret;
+
+    // Report response back to user
+    if (response != NULL) {
+      response->err = err; 
+      response->type = response_type;
+      response->num_params = num_params;
+    }
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-  return ret;
+  return num_params;
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
