@@ -549,6 +549,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
       // Decode the parameter data
       size = size > header.pdl ? header.pdl : size;
       strncpy(param, (void *)&rdm->pd, size);
+      param[size] = '\0'; // Null terminate string
       response_val = header.pdl;
       num_params = size;
     } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
