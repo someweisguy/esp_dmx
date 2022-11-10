@@ -29,7 +29,8 @@ extern "C" {
  * // FIXME: add discovery mute parameters as argument
  */
 typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
-                                 size_t device_index, void *context);
+                                 size_t device_index,
+                                 rdm_disc_mute_t *mute_params, void *context);
 
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte

@@ -243,6 +243,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
   // Un-mute all devices
   rdm_send_disc_mute(dmx_num, RDM_BROADCAST_ALL_UID, false, NULL, NULL);
+
   // Initialize the stack with the initial branch instruction
   size_t stack_size = 1;
   stack[0].lower_bound = 0;
@@ -269,12 +270,9 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
         rdm_send_disc_mute(dmx_num, uid, true, &response, &mute);
       }
 
-      // Add the UID to the list
+      // Call the callback function and report a device has been found
       if (response.num_params > 0 && !response.err) {
-        if (mute.binding_uid) {  // FIXME: don't convert uid to binding uid
-          uid = mute.binding_uid;
-        }
-        cb(dmx_num, uid, num_found, context);
+        cb(dmx_num, uid, num_found, &mute, context);
         ++num_found;
       }
     } else {
@@ -301,12 +299,9 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
               rdm_send_disc_mute(dmx_num, uid, true, &response, &mute);
             } while (response.num_params == 0 && ++attempts < 3);
 
-            // Add the UID to the list
+            // Call the callback function and report a device has been found
             if (response.num_params > 0) {
-              if (mute.binding_uid) {
-                uid = mute.binding_uid;
-              }
-              cb(dmx_num, uid, num_found, context);
+              cb(dmx_num, uid, num_found, &mute, context);
               ++num_found;
             }
 
@@ -361,7 +356,7 @@ struct rdm_disc_default_ctx {
 };
 
 static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
-                        void *context) {
+                        rdm_disc_mute_t *mute, void *context) {
   struct rdm_disc_default_ctx *c = (struct rdm_disc_default_ctx *)context;
   if (num_found < c->size && c->uids != NULL) {
     c->uids[num_found] = uid;
