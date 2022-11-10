@@ -420,6 +420,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Encode and send the initial RDM request
+  const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   // No parameter data to send
   rdm_header_t header = {.destination_uid = uid,
@@ -429,7 +430,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                          .message_count = 0,
                          .sub_device = sub_device,
                          .cc = RDM_CC_GET_COMMAND,
-                         .pid = RDM_PID_DEVICE_INFO,
+                         .pid = pid,
                          .pdl = 0};
   size_t written = rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
@@ -459,22 +460,27 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
 
     // Handle the parameter data
     uint32_t response_val;
-    if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-      // Decode the parameter data
-      response_val = rdm_decode_device_info(&rdm->pd, param);
-      num_params = response_val;
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-      // Get the estimated response time and convert it to FreeRTOS ticks
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-      response_val = pdMS_TO_TICKS(response_val * 10);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-      // Report the NACK reason
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-      // This code should never run
-      err = ESP_ERR_INVALID_RESPONSE;
+    if (header.cc == RDM_CC_GET_COMMAND_RESPONSE && header.pid == pid) {
+      if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+        // Decode the parameter data
+        num_params = rdm_decode_device_info(&rdm->pd, param);
+        response_val = num_params;
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+        // Get the estimated response time and convert it to FreeRTOS ticks
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        response_val = pdMS_TO_TICKS(response_val * 10);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+        // Report the NACK reason
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+        // This code should never run
+        err = ESP_ERR_INVALID_RESPONSE;
+      } else {
+        // An unknown response type was received
+        err = ESP_ERR_INVALID_RESPONSE;
+      }
     } else {
-      // An unknown response type was received
+      // Received data is not for this request
       err = ESP_ERR_INVALID_RESPONSE;
     }
 
@@ -506,6 +512,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Encode and send the initial RDM request
+  const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   // No parameter data to send
   rdm_header_t header = {.destination_uid = uid,
@@ -515,7 +522,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                          .message_count = 0,
                          .sub_device = sub_device,
                          .cc = RDM_CC_GET_COMMAND,
-                         .pid = RDM_PID_SOFTWARE_VERSION_LABEL,
+                         .pid = pid,
                          .pdl = 0};
   size_t written = rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
@@ -545,25 +552,29 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
 
     // Handle the parameter data
     uint32_t response_val;
-    if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-      // Decode the parameter data
-      size = size > header.pdl ? header.pdl : size;
-      strncpy(param, (void *)&rdm->pd, size);
-      param[size] = '\0'; // Null terminate string
-      response_val = header.pdl;
-      num_params = size;
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-      // Get the estimated response time and convert it to FreeRTOS ticks
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-      response_val = pdMS_TO_TICKS(response_val * 10);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-      // Report the NACK reason
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-      // This code should never run
-      err = ESP_ERR_INVALID_RESPONSE;
+    if (header.cc == RDM_CC_GET_COMMAND_RESPONSE && header.pid == pid) {
+      if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+        // Decode the parameter data
+        size = size > header.pdl ? header.pdl : size;
+        strncpy(param, (void *)&rdm->pd, size);
+        param[size] = '\0';  // Null terminate string
+        response_val = header.pdl;
+        num_params = size;
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+        // Get the estimated response time and convert it to FreeRTOS ticks
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        response_val = pdMS_TO_TICKS(response_val * 10);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+        // Report the NACK reason
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+        // This code should never run
+        err = ESP_ERR_INVALID_RESPONSE;
+      } else {
+        // An unknown response type was received
+        err = ESP_ERR_INVALID_RESPONSE;
+      }
     } else {
-      // An unknown response type was received
       err = ESP_ERR_INVALID_RESPONSE;
     }
 
@@ -593,6 +604,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Encode and send the initial RDM request
+  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   // No parameter data to send
   rdm_header_t header = {.destination_uid = uid,
@@ -602,7 +614,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                          .message_count = 0,
                          .sub_device = sub_device,
                          .cc = RDM_CC_GET_COMMAND,
-                         .pid = RDM_PID_IDENTIFY_DEVICE,
+                         .pid = pid,
                          .pdl = 0};
   size_t written = rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
@@ -620,7 +632,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
   } else  {
     // Parse the response to ensure it is valid
     esp_err_t err;
-    if (!rdm_decode_header(driver->data.buffer, &header)) {
+    if (!rdm_decode_header(rdm, &header)) {
       err = ESP_ERR_INVALID_RESPONSE;
     } else if (!header.checksum_is_valid) {
       err = ESP_ERR_INVALID_CRC;
@@ -632,22 +644,26 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
 
     // Handle the parameter data
     uint32_t response_val;
-    if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-      // Decode the parameter data
-      response_val = rdm_decode_8bit(&rdm->pd, (uint32_t *)identify_state, 1);
-      num_params = response_val;
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-      // Get the estimated response time and convert it to FreeRTOS ticks
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-      response_val = pdMS_TO_TICKS(response_val * 10);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-      // Report the NACK reason
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-      // This code should never run
-      err = ESP_ERR_INVALID_RESPONSE;
+    if (header.cc == RDM_CC_GET_COMMAND_RESPONSE && header.pid == pid) {
+      if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+        // Decode the parameter data
+        num_params = rdm_decode_8bit(&rdm->pd, (uint32_t *)identify_state, 1);
+        response_val = num_params;
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+        // Get the estimated response time and convert it to FreeRTOS ticks
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        response_val = pdMS_TO_TICKS(response_val * 10);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+        // Report the NACK reason
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+        // This code should never run
+        err = ESP_ERR_INVALID_RESPONSE;
+      } else {
+        // An unknown response type was received
+        err = ESP_ERR_INVALID_RESPONSE;
+      }
     } else {
-      // An unknown response type was received
       err = ESP_ERR_INVALID_RESPONSE;
     }
 
@@ -676,6 +692,7 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Encode and send the initial RDM request
+  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   size_t written = rdm_encode_8bit(&rdm->pd, (uint32_t *)&identify_state, 1);
   rdm_header_t header = {.destination_uid = uid,
@@ -685,7 +702,7 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                          .message_count = 0,
                          .sub_device = sub_device,
                          .cc = RDM_CC_SET_COMMAND,
-                         .pid = RDM_PID_IDENTIFY_DEVICE,
+                         .pid = pid,
                          .pdl = written};
   written += rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
@@ -716,22 +733,26 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
 
       // Handle the parameter data
       uint32_t response_val;
-      if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-        // Decode the parameter data
-        // No params to decode
-        response_val = 0;
-      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-        // Get the estimated response time and convert it to FreeRTOS ticks
-        rdm_decode_16bit(&rdm->pd, &response_val, 1);
-        response_val = pdMS_TO_TICKS(response_val * 10);
-      } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-        // Report the NACK reason
-        rdm_decode_16bit(&rdm->pd, &response_val, 1);
-      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-        // This code should never run
-        err = ESP_ERR_INVALID_RESPONSE;
+      if (header.cc == RDM_CC_SET_COMMAND_RESPONSE && header.pid == pid) {
+        if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+          // Decode the parameter data
+          // No params to decode
+          response_val = 0;
+        } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+          // Get the estimated response time and convert it to FreeRTOS ticks
+          rdm_decode_16bit(&rdm->pd, &response_val, 1);
+          response_val = pdMS_TO_TICKS(response_val * 10);
+        } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+          // Report the NACK reason
+          rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+          // This code should never run
+          err = ESP_ERR_INVALID_RESPONSE;
+        } else {
+          // An unknown response type was received
+          err = ESP_ERR_INVALID_RESPONSE;
+        }
       } else {
-        // An unknown response type was received
         err = ESP_ERR_INVALID_RESPONSE;
       }
 
@@ -769,6 +790,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Encode and send the initial RDM request
+  const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   // No parameter data to send
   rdm_header_t header = {.destination_uid = uid,
@@ -778,7 +800,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                          .message_count = 0,
                          .sub_device = sub_device,
                          .cc = RDM_CC_GET_COMMAND,
-                         .pid = RDM_PID_DMX_START_ADDRESS,
+                         .pid = pid,
                          .pdl = 0};
   size_t written = rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
@@ -793,10 +815,10 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
       response->type = RDM_RESPONSE_TYPE_NONE;
       response->num_params = 0;
     }
-  } else  {
+  } else {
     // Parse the response to ensure it is valid
     esp_err_t err;
-    if (!rdm_decode_header(driver->data.buffer, &header)) {
+    if (!rdm_decode_header(rdm, &header)) {
       err = ESP_ERR_INVALID_RESPONSE;
     } else if (!header.checksum_is_valid) {
       err = ESP_ERR_INVALID_CRC;
@@ -808,22 +830,26 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
 
     // Handle the parameter data
     uint32_t response_val;
-    if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-      // Decode the parameter data     
-      response_val = rdm_decode_16bit(&rdm->pd, (uint32_t *)&start_address, 1);
-      response->num_params = num_params;
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-      // Get the estimated response time and convert it to FreeRTOS ticks
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-      response_val = pdMS_TO_TICKS(response_val * 10);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-      // Report the NACK reason
-      rdm_decode_16bit(&rdm->pd, &response_val, 1);
-    } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-      // This code should never run
-      err = ESP_ERR_INVALID_RESPONSE;
+    if (header.cc == RDM_CC_GET_COMMAND_RESPONSE && header.pid == pid) {
+      if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+        // Decode the parameter data
+        num_params = rdm_decode_16bit(&rdm->pd, (uint32_t *)&start_address, 1);
+        response_val = num_params;
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+        // Get the estimated response time and convert it to FreeRTOS ticks
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        response_val = pdMS_TO_TICKS(response_val * 10);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+        // Report the NACK reason
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+        // This code should never run
+        err = ESP_ERR_INVALID_RESPONSE;
+      } else {
+        // An unknown response type was received
+        err = ESP_ERR_INVALID_RESPONSE;
+      }
     } else {
-      // An unknown response type was received
       err = ESP_ERR_INVALID_RESPONSE;
     }
 
@@ -851,6 +877,7 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Encode and send the initial RDM request
+  const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   size_t written = rdm_encode_16bit(&rdm->pd, (uint32_t *)&start_address, 1);
   rdm_header_t header = {.destination_uid = uid,
@@ -860,7 +887,7 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                          .message_count = 0,
                          .sub_device = sub_device,
                          .cc = RDM_CC_SET_COMMAND,
-                         .pid = RDM_PID_DMX_START_ADDRESS,
+                         .pid = pid,
                          .pdl = written};
   written += rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
@@ -891,22 +918,26 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
 
       // Handle the parameter data
       uint32_t response_val;
-      if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-        // Decode the parameter data
-        // No params to decode
-        response_val = 0;
-      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-        // Get the estimated response time and convert it to FreeRTOS ticks
-        rdm_decode_16bit(&rdm->pd, &response_val, 1);
-        response_val = pdMS_TO_TICKS(response_val * 10);
-      } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-        // Report the NACK reason
-        rdm_decode_16bit(&rdm->pd, &response_val, 1);
-      } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-        // This code should never run
-        err = ESP_ERR_INVALID_RESPONSE;
+      if (header.cc == RDM_CC_SET_COMMAND_RESPONSE && header.pid == pid) {
+        if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+          // Decode the parameter data
+          // No params to decode
+          response_val = 0;
+        } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+          // Get the estimated response time and convert it to FreeRTOS ticks
+          rdm_decode_16bit(&rdm->pd, &response_val, 1);
+          response_val = pdMS_TO_TICKS(response_val * 10);
+        } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+          // Report the NACK reason
+          rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+          // This code should never run
+          err = ESP_ERR_INVALID_RESPONSE;
+        } else {
+          // An unknown response type was received
+          err = ESP_ERR_INVALID_RESPONSE;
+        }
       } else {
-        // An unknown response type was received
         err = ESP_ERR_INVALID_RESPONSE;
       }
 
