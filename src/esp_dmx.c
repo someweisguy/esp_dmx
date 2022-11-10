@@ -558,12 +558,11 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-  // TODO: check if using busy-waits
-  // TODO: unregister ISR callback
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
   // TODO
 #else
+  timer_isr_callback_remove(driver->timer_group, driver->timer_idx);
   timer_deinit(driver->timer_group, driver->timer_idx);
 #endif
 
