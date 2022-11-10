@@ -10,9 +10,8 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "private/driver.h"
-#include "private/rdm_encode/types.h"
 #include "private/rdm_encode/functions.h"
-
+#include "private/rdm_encode/types.h"
 
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
@@ -27,7 +26,7 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Initialize the RDM UID 
+  // Initialize the RDM UID
   taskENTER_CRITICAL(spinlock);
   if (driver->rdm.uid == 0) {
     struct __attribute__((__packed__)) {
@@ -44,23 +43,23 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
   return uid;
 }
 
-void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) { 
+void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
   RDM_CHECK(uid <= RDM_MAX_UID, , "uid error");
-  
+
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   taskENTER_CRITICAL(spinlock);
-  driver->rdm.uid = uid;  
+  driver->rdm.uid = uid;
   taskEXIT_CRITICAL(spinlock);
 }
 
-bool rdm_is_muted(dmx_port_t dmx_num) { 
+bool rdm_is_muted(dmx_port_t dmx_num) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  
+
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -108,15 +107,15 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
   size_t written = rdm_encode_uids(&rdm->pd, (rdm_uid_t *)params, 2);
   rdm_header_t header = {
-    .destination_uid = RDM_BROADCAST_ALL_UID,
-    .source_uid = rdm_get_uid(dmx_num),
-    .tn = 0,  // TODO: get up-to-date transaction number
-    .port_id = dmx_num + 1,
-    .message_count = 0,
-    .sub_device = 0,
-    .cc = RDM_CC_DISC_COMMAND, 
-    .pid = RDM_PID_DISC_UNIQUE_BRANCH, 
-    .pdl = written,
+      .destination_uid = RDM_BROADCAST_ALL_UID,
+      .source_uid = rdm_get_uid(dmx_num),
+      .tn = 0,  // TODO: get up-to-date transaction number
+      .port_id = dmx_num + 1,
+      .message_count = 0,
+      .sub_device = 0,
+      .cc = RDM_CC_DISC_COMMAND,
+      .pid = RDM_PID_DISC_UNIQUE_BRANCH,
+      .pdl = written,
   };
   written += rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
@@ -147,7 +146,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
 
     // Report response back to user
     if (response != NULL) {
-      response->err = err; 
+      response->err = err;
       response->type = response_type;
       response->num_params = num_params;
     }
@@ -158,8 +157,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
-                          rdm_response_t *response,
-                          rdm_disc_mute_t *params) {
+                          rdm_response_t *response, rdm_disc_mute_t *params) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -173,17 +171,15 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
 
   // Write and send the RDM message
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-  rdm_header_t header = {
-    .destination_uid = uid,
-    .source_uid = rdm_get_uid(dmx_num),
-    .tn = 0, // TODO: get up-to-date transaction number
-    .port_id = dmx_num + 1,
-    .message_count = 0,
-    .sub_device = 0,
-    .cc = RDM_CC_DISC_COMMAND, 
-    .pid = pid,
-    .pdl = 0 
-  };
+  rdm_header_t header = {.destination_uid = uid,
+                         .source_uid = rdm_get_uid(dmx_num),
+                         .tn = 0,  // TODO: get up-to-date transaction number
+                         .port_id = dmx_num + 1,
+                         .message_count = 0,
+                         .sub_device = 0,
+                         .cc = RDM_CC_DISC_COMMAND,
+                         .pid = pid,
+                         .pdl = 0};
   size_t written = rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
 
@@ -212,7 +208,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
         err = ESP_OK;
       }
       // TODO: error checking of packet -- check pid, cc
-      
+
       // Decode the response
       if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
         if (params != NULL) {
@@ -223,7 +219,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
         // Discovery commands do not accept any other response type
         err = ESP_ERR_INVALID_RESPONSE;
       }
-      
+
       // Report response back to user
       if (response != NULL) {
         response->err = err;
@@ -310,7 +306,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
         /*
         Stop the RDM controller from branching all the way down to the
         individual address if it is not necessary. When debugging, this code
-        should not be called as it can hide bugs in the discovery algorithm. 
+        should not be called as it can hide bugs in the discovery algorithm.
         Users can use the sdkconfig to enable or disable discovery debugging.
         */
         if (!response.err) {
@@ -628,7 +624,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
       response->type = RDM_RESPONSE_TYPE_NONE;
       response->num_params = 0;
     }
-  } else  {
+  } else {
     // Parse the response to ensure it is valid
     esp_err_t err;
     if (!rdm_decode_header(rdm, &header)) {

@@ -16,7 +16,6 @@
 extern "C" {
 #endif
 
-
 /**
  * @brief RDM unique ID type.
  */
@@ -25,8 +24,8 @@ typedef uint64_t rdm_uid_t;
 /**
  * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
  * with this software. Any device that uses this ID is associated with this
- * library. Users of this library are welcome to use this manufacturer ID (as 
- * long as it is used responsibly) or may choose to register their own 
+ * library. Users of this library are welcome to use this manufacturer ID (as
+ * long as it is used responsibly) or may choose to register their own
  * manufacturer ID.
  */
 #define RDM_DEFAULT_MAN_ID (0x05e0)
@@ -60,10 +59,10 @@ static const rdm_uid_t RDM_BROADCAST_ALL_UID = RDM_BROADCAST_MAN_UID(0xffff);
 static const rdm_uid_t RDM_MAX_UID = 0xfffffffffffe;
 
 /**
- * @brief The RDM command class (CC) type. The command class specifies the 
- * action of the message. Responders shall always generate a response to 
+ * @brief The RDM command class (CC) type. The command class specifies the
+ * action of the message. Responders shall always generate a response to
  * GET_COMMAND and SET_COMMAND messages except when the destination UID of the
- * message is a broadcast address. Responders shall not respond to commands sent 
+ * message is a broadcast address. Responders shall not respond to commands sent
  * using broadcast addressing, in order to prevent collisions.
  */
 typedef enum rdm_cc_t {
@@ -77,7 +76,7 @@ typedef enum rdm_cc_t {
 } rdm_cc_t;
 
 /**
- * @brief The response type field is used in messages from Responders to 
+ * @brief The response type field is used in messages from Responders to
  * indicate the acknowledgement type of the response.
  */
 typedef enum rdm_response_type_t {
@@ -108,11 +107,11 @@ typedef enum rdm_nr_t {
 } rdm_nr_t;
 
 /**
- * @brief The parameter ID (PID) is a 16-bit number that identifies a specific 
- * type of parameter data. The PID may represent either a well known parameter 
- * such as those defined in the RDM standard document, or a 
- * manufacturer-specific parameter whose details are either published by the 
- * manufacturer for third-party support or proprietary for the manufacturer's 
+ * @brief The parameter ID (PID) is a 16-bit number that identifies a specific
+ * type of parameter data. The PID may represent either a well known parameter
+ * such as those defined in the RDM standard document, or a
+ * manufacturer-specific parameter whose details are either published by the
+ * manufacturer for third-party support or proprietary for the manufacturer's
  * own use.
  */
 typedef enum rdm_pid_t {

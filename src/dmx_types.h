@@ -6,8 +6,8 @@
  */
 #pragma once
 
-#include "freertos/FreeRTOS.h"
 #include "esp_intr_alloc.h"
+#include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,8 +61,8 @@ enum dmx_pin_t {
 
 /**
  * @brief DMX parameter constants. These constants are simplified significantly
- * to ensure ease of use for the end user. When used with this library, these 
- * constants will ensure that library settings are always within DMX 
+ * to ensure ease of use for the end user. When used with this library, these
+ * constants will ensure that library settings are always within DMX
  * specification, but it is possible for other values to be used that also fall
  * within DMX specification.
  */
@@ -291,7 +291,7 @@ typedef struct dmx_sniffer_data_t {
 } dmx_sniffer_data_t;
 
 /**
- * @brief Provides a synopsis of the received DMX packet so that users may 
+ * @brief Provides a synopsis of the received DMX packet so that users may
  * quickly and easily process and respond to DMX data.
  */
 typedef struct dmx_event_t {

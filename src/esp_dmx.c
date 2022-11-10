@@ -27,10 +27,10 @@
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 DRAM_ATTR dmx_driver_t *restrict dmx_driver[DMX_NUM_MAX] = {0};
-DRAM_ATTR spinlock_t dmx_spinlock[DMX_NUM_MAX] = {
-    portMUX_INITIALIZER_UNLOCKED, portMUX_INITIALIZER_UNLOCKED,
+DRAM_ATTR spinlock_t dmx_spinlock[DMX_NUM_MAX] = {portMUX_INITIALIZER_UNLOCKED,
+                                                  portMUX_INITIALIZER_UNLOCKED,
 #if DMX_NUM_MAX > 2
-    portMUX_INITIALIZER_UNLOCKED
+                                                  portMUX_INITIALIZER_UNLOCKED
 #endif
 };
 
