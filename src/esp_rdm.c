@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "dmx_constants.h"
 #include "dmx_types.h"
 #include "endian.h"
 #include "esp_check.h"
@@ -13,7 +12,7 @@
 #include "private/driver.h"
 #include "private/rdm_encode/types.h"
 #include "private/rdm_encode/functions.h"
-#include "rdm_constants.h"
+
 
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \

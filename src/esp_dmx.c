@@ -14,7 +14,6 @@
 #include "private/dmx_hal.h"
 #include "private/driver.h"
 #include "private/rdm_encode/types.h"
-#include "rdm_constants.h"
 #include "rdm_types.h"
 
 #ifdef CONFIG_DMX_ISR_IN_IRAM

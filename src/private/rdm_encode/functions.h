@@ -5,7 +5,6 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "private/rdm_encode/types.h"
-#include "rdm_constants.h"
 #include "rdm_types.h"
 
 #ifdef __cplusplus

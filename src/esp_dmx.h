@@ -10,11 +10,9 @@
  */
 #pragma once
 
-#include "dmx_constants.h"
 #include "dmx_types.h"
 #include "esp_rdm.h"
 #include "freertos/FreeRTOS.h"
-#include "rdm_constants.h"
 
 #ifdef __cplusplus
 extern "C" {
