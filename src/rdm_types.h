@@ -21,6 +21,8 @@ extern "C" {
  */
 typedef uint64_t rdm_uid_t;
 
+typedef uint32_t rdm_sub_device_t;
+
 /**
  * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
  * with this software. Any device that uses this ID is associated with this
@@ -57,6 +59,17 @@ static const rdm_uid_t RDM_BROADCAST_ALL_UID = RDM_BROADCAST_MAN_UID(0xffff);
  * RDM_BROADCAST_ALL_UID) is considered invalid.
  */
 static const rdm_uid_t RDM_MAX_UID = 0xfffffffffffe;
+
+/**
+ * @brief Sub-device which respresents the root of a RDM device.
+ */
+static const rdm_sub_device_t RDM_ROOT_DEVICE = 0;
+
+/**
+ * @brief The RDM sub-device number which can be used to address all sub-devices
+ * of an RDM device in a request.
+ */
+static const rdm_sub_device_t RDM_ALL_SUB_DEVICES = 0xffff;
 
 /**
  * @brief The RDM command class (CC) type. The command class specifies the

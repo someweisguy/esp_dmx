@@ -155,39 +155,42 @@ size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
 
 // TODO: docs
 size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
-                                    uint16_t sub_device,
+                                    rdm_sub_device_t sub_device,
                                     rdm_response_t *response, rdm_pid_t *pids,
                                     size_t size);
 
 // TODO: docs
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
-                           uint16_t sub_device, rdm_response_t *response,
+                           rdm_sub_device_t sub_device,
+                           rdm_response_t *response,
                            rdm_device_info_t *device_info);
 
 // TODO: docs
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
-                                      uint16_t sub_device,
+                                      rdm_sub_device_t sub_device,
                                       rdm_response_t *response, char *label,
                                       size_t size);
 
 // TODO: docs
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
-                               uint16_t sub_device, rdm_response_t *response,
-                               bool *identify_state);
+                               rdm_sub_device_t sub_device,
+                               rdm_response_t *response, bool *identify_state);
 
 // TODO: docs
 size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
-                               uint16_t sub_device, rdm_response_t *response,
+                               rdm_sub_device_t sub_device,
+                               rdm_response_t *response,
                                const bool identify_state);
 
 // TODO: docs
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
-                                 uint16_t sub_device, rdm_response_t *response,
-                                 int *start_address);
+                                 rdm_sub_device_t sub_device,
+                                 rdm_response_t *response, int *start_address);
 
 // TODO: docs
 size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
-                                 uint16_t sub_device, rdm_response_t *response,
+                                 rdm_sub_device_t sub_device,
+                                 rdm_response_t *response,
                                  const int start_address);
 
 #ifdef __cplusplus
