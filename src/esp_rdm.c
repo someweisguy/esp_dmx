@@ -662,12 +662,12 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
   return num_params;
 }
 
+// FIXME: make sub_device type
 size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                uint16_t sub_device, rdm_response_t *response,
                                const bool identify_state) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  // TODO: more arg checks
 
   // Take mutex so driver values may be accessed
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -694,47 +694,59 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
   if (!RDM_UID_IS_BROADCAST(uid)) {
     dmx_event_t event;
     const size_t read = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(20));
-    if (event.err) {
-      response->err = event.err;
-      response->num_params = 0;
-    } else if (read) {
+    if (!read) {
+      if (response != NULL) {
+        response->err = event.err;
+        response->type = RDM_RESPONSE_TYPE_NONE;
+        response->num_params = 0;
+      }
+    } else {
       // Parse the response to ensure it is valid
+      esp_err_t err;
       if (!rdm_decode_header(driver->data.buffer, &header)) {
-        response->err = ESP_ERR_INVALID_RESPONSE;
+        err = ESP_ERR_INVALID_RESPONSE;
       } else if (!header.checksum_is_valid) {
-        response->err = ESP_ERR_INVALID_CRC;
+        err = ESP_ERR_INVALID_CRC;
       } else if (header.destination_uid != rdm_get_uid(dmx_num)) {
-        response->err = ESP_ERR_INVALID_ARG;
+        err = ESP_ERR_INVALID_ARG;
       } else {
-        response->err = ESP_OK;
+        err = ESP_OK;
       }
 
       // Handle the parameter data
-      response->type = header.response_type;
+      uint32_t response_val;
       if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
         // Decode the parameter data
         // No params to decode
-        response->num_params = num_params;
+        response_val = 0;
       } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
         // Get the estimated response time and convert it to FreeRTOS ticks
-        uint32_t estimated_response_time;
-        rdm_decode_16bit(&rdm->pd, &estimated_response_time, 1);
-        response->timer = pdMS_TO_TICKS(estimated_response_time * 10);
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        response_val = pdMS_TO_TICKS(response_val * 10);
       } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
         // Report the NACK reason
-        rdm_decode_16bit(&rdm->pd, &response->nack_reason, 1);
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
       } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
         // This code should never run
-        response->err = ESP_ERR_INVALID_RESPONSE;
+        err = ESP_ERR_INVALID_RESPONSE;
       } else {
         // An unknown response type was received
-        response->err = ESP_ERR_INVALID_RESPONSE;
+        err = ESP_ERR_INVALID_RESPONSE;
+      }
+
+      // Report response back to user
+      if (response != NULL) {
+        response->err = err;
+        response->type = header.response_type;
+        response->num_params = response_val;
       }
     }
   } else {
-    response->err = ESP_OK;
-    response->type = RDM_RESPONSE_TYPE_NONE;
-    response->num_params = 0;
+    if (response != NULL) {
+      response->err = ESP_OK;
+      response->type = RDM_RESPONSE_TYPE_NONE;
+      response->num_params = 0;
+    }
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(20));
   }
 
@@ -742,7 +754,6 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
   return num_params;
 }
 
-// TODO: implement, docs
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  uint16_t sub_device, rdm_response_t *response,
                                  int *start_address) {
@@ -827,13 +838,11 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
   return num_params;
 }
 
-// TODO: implement, docs
 size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  uint16_t sub_device, rdm_response_t *response,
                                  const int start_address) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  // TODO: more arg checks
 
   // Take mutex so driver values may be accessed
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -860,47 +869,59 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
   if (!RDM_UID_IS_BROADCAST(uid)) {
     dmx_event_t event;
     const size_t read = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(20));
-    if (event.err) {
-      response->err = event.err;
-      response->num_params = 0;
-    } else if (read) {
+    if (!read) {
+      if (response != NULL) {
+        response->err = event.err;
+        response->type = RDM_RESPONSE_TYPE_NONE;
+        response->num_params = 0;
+      }
+    } else {
       // Parse the response to ensure it is valid
+      esp_err_t err;
       if (!rdm_decode_header(driver->data.buffer, &header)) {
-        response->err = ESP_ERR_INVALID_RESPONSE;
+        err = ESP_ERR_INVALID_RESPONSE;
       } else if (!header.checksum_is_valid) {
-        response->err = ESP_ERR_INVALID_CRC;
+        err = ESP_ERR_INVALID_CRC;
       } else if (header.destination_uid != rdm_get_uid(dmx_num)) {
-        response->err = ESP_ERR_INVALID_ARG;
+        err = ESP_ERR_INVALID_ARG;
       } else {
-        response->err = ESP_OK;
+        err = ESP_OK;
       }
 
       // Handle the parameter data
-      response->type = header.response_type;
+      uint32_t response_val;
       if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
         // Decode the parameter data
         // No params to decode
-        response->num_params = num_params;
+        response_val = 0;
       } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
         // Get the estimated response time and convert it to FreeRTOS ticks
-        uint32_t estimated_response_time;
-        rdm_decode_16bit(&rdm->pd, &estimated_response_time, 1);
-        response->timer = pdMS_TO_TICKS(estimated_response_time * 10);
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
+        response_val = pdMS_TO_TICKS(response_val * 10);
       } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
         // Report the NACK reason
-        rdm_decode_16bit(&rdm->pd, &response->nack_reason, 1);
+        rdm_decode_16bit(&rdm->pd, &response_val, 1);
       } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
         // This code should never run
-        response->err = ESP_ERR_INVALID_RESPONSE;
+        err = ESP_ERR_INVALID_RESPONSE;
       } else {
         // An unknown response type was received
-        response->err = ESP_ERR_INVALID_RESPONSE;
+        err = ESP_ERR_INVALID_RESPONSE;
+      }
+
+      // Report response back to user
+      if (response != NULL) {
+        response->err = err;
+        response->type = header.response_type;
+        response->num_params = response_val;
       }
     }
   } else {
-    response->err = ESP_OK;
-    response->type = RDM_RESPONSE_TYPE_NONE;
-    response->num_params = 0;
+    if (response != NULL) {
+      response->err = ESP_OK;
+      response->type = RDM_RESPONSE_TYPE_NONE;
+      response->num_params = 0;
+    }
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(20));
   }
 
