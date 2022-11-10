@@ -127,7 +127,10 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   dmx_event_t packet;
   const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
   if (packet.err) {
-    response->err = packet.err;
+    if (response != NULL) {
+      response->err = packet.err;
+      response->type = RDM_RESPONSE_TYPE_NONE;
+    }
   } else if (read) {
     // Check the packet for errors
     if (!rdm_decode_disc_response(driver->data.buffer, uid)) {
