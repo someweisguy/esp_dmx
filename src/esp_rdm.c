@@ -194,28 +194,25 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   size_t num_params = 0;
   if (!RDM_UID_IS_BROADCAST(uid)) {
     // Receive the response
-    dmx_event_t packet;
-    const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
-    if (packet.err) {
-      response->err = packet.err;
-      response->type = RDM_RESPONSE_TYPE_NONE;
-      response->num_params = 0;
-    } else if (read) {
-      // Check the packet for errors
-      if (!rdm_decode_header(driver->data.buffer, &header)) {
-        if (response != NULL) {
-          response->err = ESP_ERR_INVALID_RESPONSE;
-        }
-      } else if (!header.checksum_is_valid) {
-        if (response != NULL) {
-          response->err = ESP_ERR_INVALID_CRC;
-        }
-      } else {
-        if (response != NULL) {
-          response->err = ESP_OK;
-        }
+    dmx_event_t event;
+    const size_t read = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+    if (!read) {
+      if (response != NULL) {
+        response->err = event.err;
+        response->type = RDM_RESPONSE_TYPE_NONE;
+        response->num_params = 0;
       }
-      // TODO: error checking of packet -- check pid, cc, and ACK?
+    } else {
+      // Check the packet for errors
+      esp_err_t err;
+      if (!rdm_decode_header(driver->data.buffer, &header)) {
+        err = ESP_ERR_INVALID_RESPONSE;
+      } else if (!header.checksum_is_valid) {
+        err = ESP_ERR_INVALID_CRC;
+      } else {
+        err = ESP_OK;
+      }
+      // TODO: error checking of packet -- check pid, cc
       
       // Decode the response
       if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
@@ -223,13 +220,15 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
           rdm_decode_mute(&rdm->pd, params, header.pdl);
         }
         num_params = 1;
-        response->num_params = num_params;
       } else {
-        if (response != NULL) {
-          response->err = ESP_ERR_INVALID_RESPONSE;
-        }
+        // Discovery commands do not accept any other response type
+        err = ESP_ERR_INVALID_RESPONSE;
       }
+      
+      // Report response back to user
       if (response != NULL) {
+        response->err = err;
+        response->type = header.response_type;
         response->num_params = num_params;
       }
     }
