@@ -1016,7 +1016,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       // Check if the response has already timed out
       if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
         driver->task_waiting = NULL;
-        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());  // TODO: needed?
+        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
         xSemaphoreGiveRecursive(driver->mux);
         if (event != NULL) {
           event->err = ESP_ERR_TIMEOUT;
