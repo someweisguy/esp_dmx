@@ -211,7 +211,11 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       
       // Decode the response
       if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
-        num_params = rdm_decode_mute(&rdm->pd, params, header.pdl);
+        if (params != NULL) {
+          num_params = rdm_decode_mute(&rdm->pd, params, header.pdl);
+        } else {
+          num_params = 1;
+        }
         response->num_params = num_params;
       } else {
         if (response != NULL) {
