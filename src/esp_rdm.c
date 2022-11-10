@@ -182,13 +182,6 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   size_t written = rdm_encode_header(rdm, &header);
   dmx_send(dmx_num, written);
 
-  // Initialize the response to the default values
-  if (response != NULL) {
-    response->err = ESP_OK;
-    response->type = RDM_RESPONSE_TYPE_NONE;
-    response->num_params = 0;
-  }
-
   // Determine if a response is expected
   size_t num_params = 0;
   if (!RDM_UID_IS_BROADCAST(uid)) {
@@ -197,13 +190,22 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
     const size_t read = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
     if (packet.err) {
       response->err = packet.err;
+      response->type = RDM_RESPONSE_TYPE_NONE;
+      response->num_params = 0;
     } else if (read) {
       // Check the packet for errors
       if (!rdm_decode_header(driver->data.buffer, &header)) {
-        // FIXME: null check (and for rest of functions)
-        response->err = ESP_ERR_INVALID_RESPONSE;
+        if (response != NULL) {
+          response->err = ESP_ERR_INVALID_RESPONSE;
+        }
       } else if (!header.checksum_is_valid) {
-        response->err = ESP_ERR_INVALID_CRC;
+        if (response != NULL) {
+          response->err = ESP_ERR_INVALID_CRC;
+        }
+      } else {
+        if (response != NULL) {
+          response->err = ESP_OK;
+        }
       }
       // TODO: error checking of packet -- check pid, cc, and ACK?
       
@@ -211,9 +213,21 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
       if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
         num_params = rdm_decode_mute(&rdm->pd, params, header.pdl);
         response->num_params = num_params;
-      }     
+      } else {
+        if (response != NULL) {
+          response->err = ESP_ERR_INVALID_RESPONSE;
+        }
+      }
+      if (response != NULL) {
+        response->num_params = num_params;
+      }
     }
   } else {
+    if (response != NULL) {
+      response->err = ESP_OK;
+      response->type = RDM_RESPONSE_TYPE_NONE;
+      response->num_params = 0;
+    }
     dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30));
   }
 
