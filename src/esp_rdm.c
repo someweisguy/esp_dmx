@@ -452,7 +452,7 @@ static size_t rdm_send_generic_request(
       if (header.cc == cc + 1 && header.pid == pid) {
         if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
           // Decode the parameter data
-          if (decode && decode_params && num_decode_params) {
+          if (decode) {
             // Return the number of params available when response is received
             return_val =
                 decode(&rdm->pd, decode_params, num_decode_params, header.pdl);
