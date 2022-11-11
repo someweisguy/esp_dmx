@@ -7,6 +7,10 @@
 #include "private/rdm_encode/types.h"
 #include "rdm_types.h"
 
+#define RDM_PACKET_MAX_PARAMS(type) (255 / sizeof(type))
+
+#define RDM_PDL_MAX_PARAMS(pdl, type) (pdl / sizeof(type))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -235,12 +239,20 @@ size_t rdm_decode_mute(const void *data, rdm_disc_mute_t *param, size_t size,
  * @return The number of bytes encoded.
  */
 size_t rdm_encode_16bit(void *pd, const void *data, size_t size) {
-  uint16_t *const restrict ptr = pd;
-  const uint32_t *const restrict params = data;
-  for (int i = 0; i < size; ++i) {
-    ptr[i] = bswap16(params[i]);
+  if (size > RDM_PACKET_MAX_PARAMS(uint16_t)) {
+    // Don't encode more data than can fit in a single packet
+    size = RDM_PACKET_MAX_PARAMS(uint16_t);
   }
-  return size * sizeof(uint16_t);
+  size_t pdl = 0;
+  if (data != NULL) {
+    uint16_t *const restrict ptr = pd;
+    const uint32_t *const restrict params = data;
+    for (int i = 0; i < size; ++i) {
+      ptr[i] = bswap16(params[i]);
+    }
+    pdl = size * sizeof(uint16_t);
+  }
+  return pdl;
 }
 
 /**
@@ -250,13 +262,19 @@ size_t rdm_encode_16bit(void *pd, const void *data, size_t size) {
  * @param[out] data A pointer to an array in which to store the decoded data.
  * @param size The size of the array to store decoded data.
  * @param pdl The length of the parameter data.
- * @return The number of of values decoded.
+ * @return The number of of values available to decode.
  */
 size_t rdm_decode_16bit(const void *pd, void *data, size_t size, size_t pdl) {
-  const uint16_t *const restrict ptr = pd;
-  uint32_t *restrict params = data;
-  for (int i = 0; i < size; ++i) {
-    params[i] = bswap16(ptr[i]);
+  if (size > RDM_PDL_MAX_PARAMS(pdl, uint16_t)) {
+    // Don't decode more data than can fit in a single packet
+    size = RDM_PDL_MAX_PARAMS(pdl, uint16_t);
+  }
+  if (data != NULL) {
+    const uint16_t *const restrict ptr = pd;
+    uint32_t *restrict params = data;
+    for (int i = 0; i < size; ++i) {
+      params[i] = bswap16(ptr[i]);
+    }
   }
   return pdl / sizeof(uint16_t);
 }
@@ -270,12 +288,20 @@ size_t rdm_decode_16bit(const void *pd, void *data, size_t size, size_t pdl) {
  * @return The number of bytes encoded.
  */
 size_t rdm_encode_8bit(void *pd, const void *data, size_t size) {
-  uint8_t *restrict ptr = pd;
-  const uint32_t *restrict params = data;
-  for (int i = 0; i < size; ++i) {
-    ptr[i] = params[i];
+  if (size > RDM_PACKET_MAX_PARAMS(uint8_t)) {
+    // Don't encode more data than can fit in a single packet
+    size = RDM_PACKET_MAX_PARAMS(uint8_t);
   }
-  return size;
+  size_t pdl = 0;
+  if (data != NULL) {
+    uint8_t *restrict ptr = pd;
+    const uint32_t *restrict params = data;
+    for (int i = 0; i < size; ++i) {
+      ptr[i] = params[i];
+    }
+    pdl = size;
+  }
+  return pdl;
 }
 
 /**
@@ -285,43 +311,50 @@ size_t rdm_encode_8bit(void *pd, const void *data, size_t size) {
  * @param[out] data A pointer to an array in which to store the decoded data.
  * @param size The size of the array to store decoded data.
  * @param pdl The length of the parameter data.
- * @return The number of of values decoded.
+ * @return The number of of values available to be decoded.
  */
 size_t rdm_decode_8bit(const void *pd, void *data, size_t size,
                        size_t pdl) {
-  if (size > pdl) {
-    size = pdl;
+  if (size > RDM_PDL_MAX_PARAMS(pdl, uint8_t)) {
+    size = RDM_PDL_MAX_PARAMS(pdl, uint8_t);
   }
-  const uint8_t *restrict ptr = pd;
-  uint32_t *restrict params = data;
-  for (int i = 0; i < size; ++i) {
-    params[i] = ptr[i];
+  if (data != NULL) {
+    const uint8_t *restrict ptr = pd;
+    uint32_t *restrict params = data;
+    for (int i = 0; i < size; ++i) {
+      params[i] = ptr[i];
+    }
   }
   return pdl;
 }
 
 // TODO: docs
 size_t rdm_encode_string(void *pd, const void *data, size_t size) {
-  char *restrict destination = pd;
-  const char *restrict source = data;
-  size_t encoded = 0;
-  while (encoded < size) {
-    if (*source) {
-      *destination = *source;
-      ++encoded;
-      ++destination;
-      ++source;
-    } else {
-      break;  // Don't encode null terminators
+  if (size > RDM_PACKET_MAX_PARAMS(char)) {
+    size = RDM_PACKET_MAX_PARAMS(char);
+  }
+  size_t pdl = 0;
+  if (data != NULL) {
+    char *restrict destination = pd;
+    const char *restrict source = data;
+    while (pdl < size) {
+      if (*source) {
+        *destination = *source;
+        ++destination;
+        ++source;
+        ++pdl;
+      } else {
+        break;  // Don't encode null terminators
+      }
     }
   }
-  return encoded;
+  return pdl;
 }
 
 // TODO: docs
 size_t rdm_decode_string(const void *pd, void *data, size_t size, size_t pdl) {
-  if (size > pdl) {
-    size = pdl;
+  if (size > RDM_PDL_MAX_PARAMS(pdl, char)) {
+    size = RDM_PDL_MAX_PARAMS(pdl, char);
   }
   if (data != NULL) {
     char *restrict string = data;
@@ -339,22 +372,24 @@ size_t rdm_decode_string(const void *pd, void *data, size_t size, size_t pdl) {
  * @return The number of bytes encoded.
  */
 size_t rdm_encode_device_info(void *pd, const void *data) {
-  rdm_device_info_data_t *const restrict ptr = pd;
-  const rdm_device_info_t *const restrict device_info = data;
-  ptr->major_rdm_version = device_info->major_rdm_version;
-  ptr->minor_rdm_version = device_info->minor_rdm_version;
-  ptr->model_id = bswap16(device_info->model_id);
-  ptr->coarse_product_category = device_info->coarse_product_category;
-  ptr->fine_product_category = device_info->fine_product_category;
-  ptr->software_version_id = bswap32(device_info->software_version_id);
-  ptr->footprint = bswap16(device_info->footprint);
-  ptr->current_personality = device_info->current_personality;
-  ptr->personality_count = device_info->personality_count;
-  ptr->start_address = device_info->start_address != -1
-                           ? bswap16(device_info->start_address)
-                           : 0xffff;
-  ptr->sub_device_count = bswap16(device_info->sub_device_count);
-  ptr->sensor_count = device_info->sensor_count;
+  if (data != NULL) {
+    rdm_device_info_data_t *const restrict ptr = pd;
+    const rdm_device_info_t *const restrict device_info = data;
+    ptr->major_rdm_version = device_info->major_rdm_version;
+    ptr->minor_rdm_version = device_info->minor_rdm_version;
+    ptr->model_id = bswap16(device_info->model_id);
+    ptr->coarse_product_category = device_info->coarse_product_category;
+    ptr->fine_product_category = device_info->fine_product_category;
+    ptr->software_version_id = bswap32(device_info->software_version_id);
+    ptr->footprint = bswap16(device_info->footprint);
+    ptr->current_personality = device_info->current_personality;
+    ptr->personality_count = device_info->personality_count;
+    ptr->start_address = device_info->start_address != -1
+                            ? bswap16(device_info->start_address)
+                            : 0xffff;
+    ptr->sub_device_count = bswap16(device_info->sub_device_count);
+    ptr->sensor_count = device_info->sensor_count;
+  }
   return sizeof(rdm_device_info_data_t);
 }
 
@@ -369,21 +404,23 @@ size_t rdm_encode_device_info(void *pd, const void *data) {
  */
 size_t rdm_decode_device_info(const void *pd, void *data, size_t size,
                               size_t pdl) {
-  const rdm_device_info_data_t *restrict ptr = pd;
-  rdm_device_info_t *const restrict device_info = data;
-  device_info->major_rdm_version = ptr->major_rdm_version;
-  device_info->minor_rdm_version = ptr->minor_rdm_version;
-  device_info->model_id = bswap16(ptr->model_id);
-  device_info->coarse_product_category = ptr->coarse_product_category;
-  device_info->fine_product_category = ptr->fine_product_category;
-  device_info->software_version_id = bswap32(ptr->software_version_id);
-  device_info->footprint = bswap16(ptr->footprint);
-  device_info->current_personality = ptr->current_personality;
-  device_info->personality_count = ptr->personality_count;
-  device_info->start_address =
-      ptr->start_address != 0xffff ? bswap16(ptr->start_address) : -1;
-  device_info->sub_device_count = bswap16(ptr->sub_device_count);
-  device_info->sensor_count = ptr->sensor_count;
+  if (data != NULL) {
+    const rdm_device_info_data_t *restrict ptr = pd;
+    rdm_device_info_t *const restrict device_info = data;
+    device_info->major_rdm_version = ptr->major_rdm_version;
+    device_info->minor_rdm_version = ptr->minor_rdm_version;
+    device_info->model_id = bswap16(ptr->model_id);
+    device_info->coarse_product_category = ptr->coarse_product_category;
+    device_info->fine_product_category = ptr->fine_product_category;
+    device_info->software_version_id = bswap32(ptr->software_version_id);
+    device_info->footprint = bswap16(ptr->footprint);
+    device_info->current_personality = ptr->current_personality;
+    device_info->personality_count = ptr->personality_count;
+    device_info->start_address =
+        ptr->start_address != 0xffff ? bswap16(ptr->start_address) : -1;
+    device_info->sub_device_count = bswap16(ptr->sub_device_count);
+    device_info->sensor_count = ptr->sensor_count;
+  }
   return 1;
 }
 
