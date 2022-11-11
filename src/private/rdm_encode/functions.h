@@ -328,7 +328,14 @@ size_t rdm_decode_8bit(const void *pd, void *data, size_t size,
   return pdl;
 }
 
-// TODO: docs
+/**
+ * @brief Encode a string into the desired array.
+ * 
+ * @param[out] pd A buffer into which to encode the data.
+ * @param[in] data A pointer to an array of values to encode.
+ * @param size The size of the string.
+ * @return The number of bytes encoded.
+ */
 size_t rdm_encode_string(void *pd, const void *data, size_t size) {
   if (size > RDM_PACKET_MAX_PARAMS(char)) {
     size = RDM_PACKET_MAX_PARAMS(char);
@@ -351,7 +358,15 @@ size_t rdm_encode_string(void *pd, const void *data, size_t size) {
   return pdl;
 }
 
-// TODO: docs
+/**
+ * @brief Decode a string from a buffer.
+ *
+ * @param pd A buffer in which the to decode is stored.
+ * @param data A pointer into which to store the decoded data.
+ * @param size The size of the buffer to store the decoded data.
+ * @param pdl The length of the parameter data.
+ * @return The number of characters that was decoded.
+ */
 size_t rdm_decode_string(const void *pd, void *data, size_t size, size_t pdl) {
   if (size > RDM_PDL_MAX_PARAMS(pdl, char)) {
     size = RDM_PDL_MAX_PARAMS(pdl, char);
