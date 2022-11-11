@@ -154,10 +154,10 @@ size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
                                    const size_t size);
 
 // TODO: docs
-// size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
-//                                     rdm_sub_device_t sub_device,
-//                                     rdm_response_t *response, rdm_pid_t *pids,
-//                                     size_t size);
+size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
+                                    rdm_sub_device_t sub_device,
+                                    rdm_response_t *response, rdm_pid_t *pids,
+                                    size_t size);
 
 // TODO: docs
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
