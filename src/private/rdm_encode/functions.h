@@ -173,9 +173,11 @@ size_t rdm_encode_uids(void *data, const rdm_uid_t *uids, size_t size) {
  * @param[in] data The buffer in which the data to decode is stored.
  * @param[out] uids A pointer to an array of UIDs to store decoded data.
  * @param size The size of the array of UIDs.
+ * @param pdl The length of the parameter data.
  * @return The number of UIDs decoded.
  */
-size_t rdm_decode_uids(const void *data, rdm_uid_t *const uids, size_t size) {
+size_t rdm_decode_uids(const void *data, rdm_uid_t *const uids, size_t size,
+                       size_t pdl) {
   size_t num_params = 0;
   for (int i = 0; num_params < size; ++num_params, i += 6) {
     uids[num_params] = buf_to_uid(data + i);
@@ -210,11 +212,11 @@ size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
  * @param[in] data The buffer in which the data to decode is stored.
  * @param[out] param A pointer to a discovery mute parameter to store decoded
  * data.
- * @param pdl The parameter data length of the RDM packet. This is needed
- * because discovery mute parameters have variable length.
+ * @param pdl The length of the parameter data.
  * @return The number of parameters decoded (always 1).
  */
-size_t rdm_decode_mute(const void *data, rdm_disc_mute_t *param, size_t pdl) {
+size_t rdm_decode_mute(const void *data, rdm_disc_mute_t *param, size_t size,
+                       size_t pdl) {
   const struct rdm_disc_mute_data_t *const ptr = data;
   param->managed_proxy = ptr->managed_proxy;
   param->sub_device = ptr->sub_device;
@@ -227,114 +229,159 @@ size_t rdm_decode_mute(const void *data, rdm_disc_mute_t *param, size_t pdl) {
 /**
  * @brief Encode an array of 16-bit numbers into the desired array.
  *
- * @param[out] data The buffer in which to encode the data.
- * @param[in] params A pointer to an array of values to encode.
+ * @param[out] pd The buffer in which to encode the data.
+ * @param[in] data A pointer to an array of values to encode.
  * @param size The size of the array of values.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_16bit(void *data, const uint32_t *params, size_t size) {
-  size_t pdl = 0;
-  for (int i = 0; i < size; ++i, pdl += 2) {
-    *(uint16_t *)(data + pdl) = bswap16((uint16_t)params[i]);
+size_t rdm_encode_16bit(void *pd, const void *data, size_t size) {
+  uint16_t *const restrict ptr = pd;
+  const uint32_t *const restrict params = data;
+  for (int i = 0; i < size; ++i) {
+    ptr[i] = bswap16(params[i]);
   }
-  return pdl;
+  return size * sizeof(uint16_t);
 }
 
 /**
  * @brief Decode an array of 16-bit numbers into the desired array.
  *
- * @param[in] data A buffer in which the data to decode is stored.
- * @param[out] params A pointer to an array in which to store the decoded data.
+ * @param[in] pd A pointer to the parameter data to decode.
+ * @param[out] data A pointer to an array in which to store the decoded data.
  * @param size The size of the array to store decoded data.
+ * @param pdl The length of the parameter data.
  * @return The number of of values decoded.
  */
-size_t rdm_decode_16bit(const void *data, uint32_t *params, size_t size) {
-  size_t num_params = 0;
-  for (; num_params < size; ++num_params) {
-    params[num_params] = bswap16(((uint16_t *)data)[num_params]);
+size_t rdm_decode_16bit(const void *pd, void *data, size_t size, size_t pdl) {
+  const uint16_t *const restrict ptr = pd;
+  uint32_t *restrict params = data;
+  for (int i = 0; i < size; ++i) {
+    params[i] = bswap16(ptr[i]);
   }
-  return num_params;
+  return pdl / sizeof(uint16_t);
 }
 
 /**
  * @brief Encode an array of 8-bit numbers into the desired array.
  *
- * @param[out] data The buffer in which to encode the data.
- * @param[in] params A pointer to an array of values to encode.
+ * @param[out] pd The buffer in which to encode the data.
+ * @param[in] data A pointer to an array of values to encode.
  * @param size The size of the array of values.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_8bit(void *data, const uint32_t *params, size_t size) {
-  size_t pdl = 0;
-  for (int i = 0; i < size; ++i, pdl += 1) {
-    *(uint8_t *)(data + pdl) = (uint8_t)params[i];
+size_t rdm_encode_8bit(void *pd, const void *data, size_t size) {
+  uint8_t *restrict ptr = pd;
+  const uint32_t *restrict params = data;
+  for (int i = 0; i < size; ++i) {
+    ptr[i] = params[i];
   }
-  return pdl;
+  return size;
 }
 
 /**
  * @brief Decode an array of 8-bit numbers into the desired array.
  *
- * @param[in] data A buffer in which the data to decode is stored.
- * @param[out] params A pointer to an array in which to store the decoded data.
+ * @param[in] pd A buffer in which the data to decode is stored.
+ * @param[out] data A pointer to an array in which to store the decoded data.
  * @param size The size of the array to store decoded data.
+ * @param pdl The length of the parameter data.
  * @return The number of of values decoded.
  */
-size_t rdm_decode_8bit(const void *data, uint32_t *params, size_t size) {
-  size_t num_params = 0;
-  for (; num_params < size; ++num_params) {
-    params[num_params] = ((uint8_t *)data)[num_params];
+size_t rdm_decode_8bit(const void *pd, void *data, size_t size,
+                       size_t pdl) {
+  if (size > pdl) {
+    size = pdl;
   }
-  return num_params;
+  const uint8_t *restrict ptr = pd;
+  uint32_t *restrict params = data;
+  for (int i = 0; i < size; ++i) {
+    params[i] = ptr[i];
+  }
+  return pdl;
+}
+
+// TODO: docs
+size_t rdm_encode_string(void *pd, const void *data, size_t size) {
+  char *restrict destination = pd;
+  const char *restrict source = data;
+  size_t encoded = 0;
+  while (encoded < size) {
+    if (*source) {
+      *destination = *source;
+      ++encoded;
+      ++destination;
+      ++source;
+    } else {
+      break;  // Don't encode null terminators
+    }
+  }
+  return encoded;
+}
+
+// TODO: docs
+size_t rdm_decode_string(const void *pd, void *data, size_t size, size_t pdl) {
+  if (size > pdl) {
+    size = pdl;
+  }
+  char *restrict string = data;
+  memcpy(string, pd, size);
+  string[size] = 0;
+  return pdl;
 }
 
 /**
  * @brief Encodes RDM device info into the desired buffer.
  *
- * @param[out] data The buffer in which to encode the data.
- * @param[in] param A pointer to a discovery mute parameter to encode.
+ * @param[out] pd The buffer in which to encode the data.
+ * @param[in] data A pointer to a discovery mute parameter to encode.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_device_info(void *data, const rdm_device_info_t *param) {
-  struct rdm_device_info_data_t *const ptr = data;
-  ptr->major_rdm_version = param->major_rdm_version;
-  ptr->minor_rdm_version = param->minor_rdm_version;
-  ptr->model_id = bswap16(param->model_id);
-  ptr->coarse_product_category = param->coarse_product_category;
-  ptr->fine_product_category = param->fine_product_category;
-  ptr->software_version_id = bswap32(param->software_version_id);
-  ptr->footprint = bswap16(param->footprint);
-  ptr->current_personality = param->current_personality;
-  ptr->personality_count = param->personality_count;
-  ptr->start_address =
-      param->start_address != -1 ? bswap16(param->start_address) : 0xffff;
-  ptr->sub_device_count = bswap16(param->sub_device_count);
-  ptr->sensor_count = param->sensor_count;
-  return sizeof(struct rdm_device_info_data_t);
+size_t rdm_encode_device_info(void *pd, const void *data) {
+  rdm_device_info_data_t *const restrict ptr = pd;
+  const rdm_device_info_t *const restrict device_info = data;
+  ptr->major_rdm_version = device_info->major_rdm_version;
+  ptr->minor_rdm_version = device_info->minor_rdm_version;
+  ptr->model_id = bswap16(device_info->model_id);
+  ptr->coarse_product_category = device_info->coarse_product_category;
+  ptr->fine_product_category = device_info->fine_product_category;
+  ptr->software_version_id = bswap32(device_info->software_version_id);
+  ptr->footprint = bswap16(device_info->footprint);
+  ptr->current_personality = device_info->current_personality;
+  ptr->personality_count = device_info->personality_count;
+  ptr->start_address = device_info->start_address != -1
+                           ? bswap16(device_info->start_address)
+                           : 0xffff;
+  ptr->sub_device_count = bswap16(device_info->sub_device_count);
+  ptr->sensor_count = device_info->sensor_count;
+  return sizeof(rdm_device_info_data_t);
 }
 
 /**
  * @brief Decodes RDM device info.
  *
- * @param[in] data The buffer in which the data to decode is stored.
- * @param[out] param A pointer to a device info parameter to store decoded data.
+ * @param[in] pd The buffer in which the data to decode is stored.
+ * @param[out] data A pointer to a device info parameter to store decoded data.
+ * @param size The size of the array to store decoded data.
+ * @param pdl The length of the parameter data.
  * @return The number of parameters decoded (always 1).
  */
-size_t rdm_decode_device_info(const void *data, rdm_device_info_t *param) {
-  const struct rdm_device_info_data_t *ptr = data;
-  param->major_rdm_version = ptr->major_rdm_version;
-  param->minor_rdm_version = ptr->minor_rdm_version;
-  param->model_id = bswap16(ptr->model_id);
-  param->coarse_product_category = ptr->coarse_product_category;
-  param->fine_product_category = ptr->fine_product_category;
-  param->software_version_id = bswap32(ptr->software_version_id);
-  param->footprint = bswap16(ptr->footprint);
-  param->current_personality = ptr->current_personality;
-  param->personality_count = ptr->personality_count;
-  param->start_address =
+size_t rdm_decode_device_info(const void *pd, void *data, size_t size,
+                              size_t pdl) {
+  const rdm_device_info_data_t *restrict ptr = pd;
+  rdm_device_info_t *const restrict device_info = data;
+  device_info->major_rdm_version = ptr->major_rdm_version;
+  device_info->minor_rdm_version = ptr->minor_rdm_version;
+  device_info->model_id = bswap16(ptr->model_id);
+  device_info->coarse_product_category = ptr->coarse_product_category;
+  device_info->fine_product_category = ptr->fine_product_category;
+  device_info->software_version_id = bswap32(ptr->software_version_id);
+  device_info->footprint = bswap16(ptr->footprint);
+  device_info->current_personality = ptr->current_personality;
+  device_info->personality_count = ptr->personality_count;
+  device_info->start_address =
       ptr->start_address != 0xffff ? bswap16(ptr->start_address) : -1;
-  param->sub_device_count = bswap16(ptr->sub_device_count);
-  param->sensor_count = ptr->sensor_count;
+  device_info->sub_device_count = bswap16(ptr->sub_device_count);
+  device_info->sensor_count = ptr->sensor_count;
   return 1;
 }
 
