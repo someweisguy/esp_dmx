@@ -323,9 +323,11 @@ size_t rdm_decode_string(const void *pd, void *data, size_t size, size_t pdl) {
   if (size > pdl) {
     size = pdl;
   }
-  char *restrict string = data;
-  memcpy(string, pd, size);
-  string[size] = 0;
+  if (data != NULL) {
+    char *restrict string = data;
+    memcpy(string, pd, size);
+    string[size] = 0;
+  }
   return pdl;
 }
 
