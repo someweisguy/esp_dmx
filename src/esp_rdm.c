@@ -574,7 +574,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                   rdm_decode_8bit, identify, 1, response);
 }
 
-size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
+bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, bool identify) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
