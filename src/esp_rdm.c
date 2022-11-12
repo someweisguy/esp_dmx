@@ -12,6 +12,7 @@
 #include "private/driver.h"
 #include "private/rdm_encode/functions.h"
 #include "private/rdm_encode/types.h"
+#include <string.h>
 
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
@@ -102,6 +103,45 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
 
   xSemaphoreGiveRecursive(driver->mux);
   return written;
+}
+
+
+size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn)
+{
+  //TODO add support for Control Field and Binding UID
+
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // Take mutex so driver values may be accessed
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+
+  // Prepare the RDM message
+  rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
+  
+  // set control field
+  const uint16_t control_field = 0;
+  memcpy(&rdm->pd, &control_field, sizeof(control_field));
+  size_t written = sizeof(control_field); 
+
+  rdm_header_t header = {
+      .destination_uid = uid,
+      .source_uid = rdm_get_uid(dmx_num),
+      .tn = tn, 
+      .port_id = dmx_num + 1,
+      .message_count = 0,
+      .sub_device = 0,
+      .cc = RDM_CC_DISC_COMMAND_RESPONSE,
+      .pid = RDM_PID_DISC_MUTE,
+      .pdl = 0x02, 
+  };
+  written += rdm_encode_header(rdm, &header);
+  const size_t sent = dmx_send(dmx_num, written);
+
+  xSemaphoreGiveRecursive(driver->mux);
+  return sent;
 }
 
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
@@ -600,6 +640,7 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                   RDM_PID_IDENTIFY_DEVICE, rdm_encode_8bit,
                                   &identify, 1, NULL, NULL, 0, response);
 }
+
 bool rdm_get_header(rdm_header_t* header, const void* data)
 {
     return rdm_decode_header(data, header);
