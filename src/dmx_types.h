@@ -26,7 +26,7 @@ extern "C" {
 #define DMX_DEFAULT_INTR_FLAGS (ESP_INTR_FLAG_IRAM)
 
 /**
- * @brief The default interrupt flags for the DMX sniffer. Places the interrupts
+ * @brief The default interrupt flags for the DMX sniffer. Places the interrupt
  * in IRAM.
  */
 #define DMX_DEFAULT_SNIFFER_INTR_FLAGS (ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM)
@@ -41,11 +41,6 @@ extern "C" {
  */
 #define DMX_DEFAULT_SNIFFER_INTR_FLAGS (ESP_INTR_FLAG_EDGE)
 #endif
-
-/**
- * @brief The default interrupt flags for the DMX sniffer.
- */
-#define DMX_SNIFFER_INTR_FLAGS (ESP_INTR_FLAG_EDGE | DMX_DEFAULT_INTR_FLAGS)
 
 /**
  * @brief DMX port type.
