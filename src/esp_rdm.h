@@ -103,6 +103,11 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
 void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
 
 /**
+ * @brief Extracts the rdm header from an rdm message
+ * @param header Will contain the header if @p data is valid
+ * @return true if the data contained a valid rdm header.
+*/
+bool rdm_get_header(rdm_header_t* header, const void* data);/**
  * @brief Returns true if RDM discovery responses are be muted on this device.
  *
  * @param dmx_num The DMX port number.

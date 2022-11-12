@@ -586,3 +586,7 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                   RDM_PID_IDENTIFY_DEVICE, rdm_encode_8bit,
                                   &identify, 1, NULL, NULL, 0, response);
 }
+bool rdm_get_header(rdm_header_t* header, const void* data)
+{
+    return rdm_decode_header(data, header);
+}
