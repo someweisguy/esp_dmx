@@ -122,7 +122,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
 
   // Wait for a response
   size_t num_params = 0;
-  dmx_event_t event;
+  dmx_packet_t event;
   const size_t read = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
   if (!read) {
     if (response != NULL) {
@@ -187,7 +187,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   size_t num_params = 0;
   if (!RDM_UID_IS_BROADCAST(uid)) {
     // Receive the response
-    dmx_event_t event;
+    dmx_packet_t event;
     const size_t read = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
     if (!read) {
       if (response != NULL) {
@@ -426,7 +426,7 @@ static size_t rdm_send_generic_request(
   // Receive and decode the RDM response
   uint32_t return_val = 0;
   if (!RDM_UID_IS_BROADCAST(uid)) {
-    dmx_event_t event;
+    dmx_packet_t event;
     const size_t read = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(20));
     if (!read) {
       if (response != NULL) {

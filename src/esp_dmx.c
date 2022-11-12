@@ -931,7 +931,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   return value;
 }
 
-size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                    TickType_t wait_ticks) {
   DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -944,11 +944,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   vTaskSetTimeOutState(&timeout);
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
-    if (event != NULL) {
-      event->err = ESP_ERR_TIMEOUT;
-      event->sc = -1;
-      event->size = 0;
-      event->is_rdm = false;
+    if (packet != NULL) {
+      packet->err = ESP_ERR_TIMEOUT;
+      packet->sc = -1;
+      packet->size = 0;
+      packet->is_rdm = false;
     }
     return 0;
   }
@@ -957,11 +957,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   if (!dmx_wait_sent(dmx_num, wait_ticks) ||
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     xSemaphoreGiveRecursive(driver->mux);
-    if (event != NULL) {
-      event->err = ESP_ERR_TIMEOUT;
-      event->sc = -1;
-      event->size = 0;
-      event->is_rdm = false;
+    if (packet != NULL) {
+      packet->err = ESP_ERR_TIMEOUT;
+      packet->sc = -1;
+      packet->size = 0;
+      packet->is_rdm = false;
     }
     return 0;
   }
@@ -1025,11 +1025,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
       driver->task_waiting = NULL;
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
-      if (event != NULL) {
-        event->err = ESP_ERR_TIMEOUT;
-        event->sc = -1;
-        event->size = 0;
-        event->is_rdm = false;
+      if (packet != NULL) {
+        packet->err = ESP_ERR_TIMEOUT;
+        packet->sc = -1;
+        packet->size = 0;
+        packet->is_rdm = false;
       }
       return packet_size;
     }
@@ -1044,10 +1044,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   }
   driver->task_waiting = NULL;
 
-  // Report packet data in the DMX event
-  if (event != NULL) {
-    event->err = err;
-    event->size = packet_size;
+  // Report data in the DMX packet
+  if (packet != NULL) {
+    packet->err = err;
+    packet->size = packet_size;
     if (packet_size > 0) {
       bool is_rdm = false;
       if (!err) {
@@ -1058,11 +1058,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
                  rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;
         taskEXIT_CRITICAL(spinlock);
       }
-      event->sc = driver->data.buffer[0];
-      event->is_rdm = is_rdm;
+      packet->sc = driver->data.buffer[0];
+      packet->is_rdm = is_rdm;
     } else {
-      event->sc = -1;
-      event->is_rdm = false;
+      packet->sc = -1;
+      packet->is_rdm = false;
     }
   }
 

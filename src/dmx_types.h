@@ -294,15 +294,15 @@ typedef struct dmx_metadata_t {
 } dmx_metadata_t;
 
 /**
- * @brief Provides a synopsis of the received DMX packet so that users may
+ * @brief Provides a summary of the received DMX packet so that users may
  * quickly and easily process and respond to DMX data.
  */
-typedef struct dmx_event_t {
+typedef struct dmx_packet_t {
   esp_err_t err;    // Evaluates to true if an error occurred reading DMX data.
   int sc;           // Start code of the DMX packet.
   size_t size;      // The size of the received DMX packet in bytes.
   bool is_rdm;      // True if the received packet is RDM.
-} dmx_event_t;
+} dmx_packet_t;
 
 #ifdef __cplusplus
 }

@@ -127,7 +127,7 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num);
  * @brief Gets sniffer data if it is available.
  *
  * @param dmx_num The DMX port number.
- * @param[out] metadata A pointer to a dmx_metadata_t struct into which to 
+ * @param[out] metadata A pointer to a dmx_metadata_t struct into which to
  * copy DMX sniffer data.
  * @param wait_ticks The number of ticks to wait before this function times out.
  * @return true if data was copied.
@@ -291,12 +291,12 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
  * can lead to undesired behavior and program instability.
  *
  * @param dmx_num The DMX port number.
- * @param[out] event An optional pointer to a dmx_event_t which contains
+ * @param[out] packet An optional pointer to a dmx_packet_t which contains
  * information about the received DMX packet.
  * @param wait_ticks The number of ticks to wait before this function times out.
  * @return The size of the received DMX packet or 0 if no packet was received.
  */
-size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
+size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                    TickType_t wait_ticks);
 
 /**
