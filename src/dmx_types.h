@@ -295,11 +295,13 @@ enum dmx_start_code_t {
 #define RDM_MAB_LEN_IS_VALID(mab) \
   (mab >= RDM_MIN_MAB_LEN_US && mab <= RDM_MAX_MAB_LEN_US)
 
-// TODO: docs
-typedef struct dmx_sniffer_data_t {
+/**
+ * @brief Metadata for received DMX packets. For use in the DMX sniffer.
+ */
+typedef struct dmx_metadata_t {
   uint32_t break_len;  // Length in microseconds of the last received DMX break.
   uint32_t mab_len;    // Length in microseconds of the last received DMX mark-after-break.
-} dmx_sniffer_data_t;
+} dmx_metadata_t;
 
 /**
  * @brief Provides a synopsis of the received DMX packet so that users may
