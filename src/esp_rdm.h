@@ -130,6 +130,13 @@ bool rdm_is_directed_at_us(dmx_port_t dmx_num, rdm_header_t* header);
 bool rdm_is_muted(dmx_port_t dmx_num);
 
 /**
+ * @brief (Un)mutes RDM discovery responses.
+ * @return true if value was set
+ * @return false if an error occured
+ */
+bool rdm_set_muted(dmx_port_t dmx_num, bool muted);
+
+/**
  * @brief Sends an RDM discovery response on the desired DMX port.
  *
  * @param dmx_num The DMX port number.
