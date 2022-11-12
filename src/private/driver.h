@@ -40,8 +40,8 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   struct dmx_data_t {
     int head;                  // The index of the current slot being either transmitted or received.
     uint8_t *restrict buffer;  // The buffer that stores the DMX packet.
-    size_t tx_size;            // The size of the outgoing data packet.
-    size_t rx_size;            // The expected size of the incoming data packet.
+    int tx_size;            // The size of the outgoing data packet.
+    int rx_size;            // The expected size of the incoming data packet.
 
     int sent_last;      // True if the last packet was sent from this driver.
     int type;           // The type of the packet received.
@@ -52,7 +52,6 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
 
   int is_in_break;         // True if the driver is sending or receiving a DMX break.
   int received_a_packet;   // True if the driver is receiving data.
-  int packet_was_handled;  // True if the latest packet has been handled by a call to dmx_receive()
   int is_sending;          // True if the driver is sending data.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.

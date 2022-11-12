@@ -142,7 +142,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                                             driver->timer_idx, 0);
 #endif
 
-      if (!driver->received_a_packet) {
+      if (!driver->received_a_packet && driver->data.head > 0 &&
+          driver->data.head < DMX_MAX_PACKET_SIZE) {
         // When a DMX break is received before the driver thinks a packet is
         // finished, the data.rx_size must be updated.
         driver->data.rx_size = driver->data.head;
@@ -152,7 +153,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Set driver flags
       driver->is_in_break = true;
       driver->received_a_packet = false;
-      driver->packet_was_handled = false;
       driver->data.head = 0;  // Driver buffer is ready for data
       taskEXIT_CRITICAL_ISR(spinlock);
     }
@@ -301,7 +301,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(spinlock);
       if (expecting_response) {
         driver->received_a_packet = false;
-        driver->packet_was_handled = false;
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
         dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
@@ -452,7 +451,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   // Initialize driver flags
   driver->is_in_break = false;
   driver->received_a_packet = false;
-  driver->packet_was_handled = false;
   driver->is_sending = false;
 
   driver->rdm.uid = 0;
@@ -525,6 +523,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(spinlock);
+  xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
   dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
   dmx_uart_set_rts(uart, 1);
   taskEXIT_CRITICAL(spinlock);
@@ -966,6 +965,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   taskENTER_CRITICAL(spinlock);
   if (dmx_uart_get_rts(uart) == 0) {
     dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
+    xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     dmx_uart_set_rts(uart, 1);
     dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
     driver->data.head = -1;  // Wait for DMX break before reading data
@@ -975,75 +975,68 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
   // Receive the latest data packet or check if the driver must wait
   esp_err_t err = ESP_OK;
   uint32_t packet_size = 0;
-  taskENTER_CRITICAL(spinlock);
-  const bool driver_received_a_packet = driver->received_a_packet;
-  const bool packet_was_handled = driver->packet_was_handled;
-  driver->packet_was_handled = true;
-  taskEXIT_CRITICAL(spinlock);
-  if (!driver_received_a_packet || packet_was_handled) {
-    driver->task_waiting = xTaskGetCurrentTaskHandle();
-  } else {
+  if (ulTaskNotifyTake(true, 0)) {
     taskENTER_CRITICAL(spinlock);
     packet_size = driver->data.head;
+    err = driver->data.err;
+    taskEXIT_CRITICAL(spinlock);
+    if (packet_size == -1) {
+      packet_size = 0;
+    }
+  } else {
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
+  }
+
+  // Get additional driver flags
+  taskENTER_CRITICAL(spinlock);
+  const bool driver_sent_last = driver->data.sent_last;
+  const enum rdm_packet_type_t data_type = driver->data.type;
+  taskEXIT_CRITICAL(spinlock);
+
+  if (driver_sent_last && (data_type == RDM_PACKET_TYPE_REQUEST ||
+                           data_type == RDM_PACKET_TYPE_DISCOVERY)) {
+    // An RDM response is expected in <10ms so a hardware timer may be needed
+    taskENTER_CRITICAL(spinlock);
+    const int64_t elapsed = esp_timer_get_time() - driver->data.timestamp;
+    if (elapsed < RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
+      // Start a timer alarm that triggers when the RDM timeout occurs
+#if ESP_IDF_MAJOR_VERSION >= 5
+#error ESP-IDF v5 not supported yet!
+      // TODO
+#else
+      const timer_group_t timer_group = driver->timer_group;
+      const timer_idx_t timer_idx = driver->timer_idx;
+      timer_set_counter_value(timer_group, timer_idx, elapsed);
+      timer_set_alarm_value(timer_group, timer_idx,
+                            RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
+      timer_start(timer_group, timer_idx);
+#endif
+    }
+    taskEXIT_CRITICAL(spinlock);
+
+    // Check if the response has already timed out
+    if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
+      driver->task_waiting = NULL;
+      xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+      xSemaphoreGiveRecursive(driver->mux);
+      if (event != NULL) {
+        event->err = ESP_ERR_TIMEOUT;
+        event->sc = -1;
+        event->size = 0;
+        event->is_rdm = false;
+      }
+      return packet_size;
+    }
+  }
+
+  // Wait for a task notification
+  if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, wait_ticks)) {
     err = driver->data.err;
     if (packet_size == -1) {
       packet_size = 0;
     }
-    taskEXIT_CRITICAL(spinlock);
   }
-
-  if (!driver_received_a_packet) {
-    // Get additional driver flags
-    taskENTER_CRITICAL(spinlock);
-    const bool driver_sent_last = driver->data.sent_last;
-    const bool expecting_response =
-        driver->data.type == RDM_PACKET_TYPE_DISCOVERY ||
-        driver->data.type == RDM_PACKET_TYPE_REQUEST;
-    taskEXIT_CRITICAL(spinlock);
-
-    if (driver_sent_last && expecting_response) {
-      // An RDM response is expected in <10ms so a hardware timer may be needed
-      taskENTER_CRITICAL(spinlock);
-      const int64_t elapsed = esp_timer_get_time() - driver->data.timestamp;
-      if (elapsed < RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
-        // Start a timer alarm that triggers when the RDM timeout occurs
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-        // TODO
-#else
-        timer_set_counter_value(driver->timer_group, driver->timer_idx,
-                                elapsed);
-        timer_set_alarm_value(driver->timer_group, driver->timer_idx,
-                              RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
-        timer_start(driver->timer_group, driver->timer_idx);
-#endif
-      }
-      taskEXIT_CRITICAL(spinlock);
-
-      // Check if the response has already timed out
-      if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
-        driver->task_waiting = NULL;
-        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-        xSemaphoreGiveRecursive(driver->mux);
-        if (event != NULL) {
-          event->err = ESP_ERR_TIMEOUT;
-          event->sc = -1;
-          event->size = 0;
-          event->is_rdm = false;
-        }
-        return packet_size;
-      }
-    }
-
-    // Wait for a task notification
-    if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, wait_ticks)) {
-      err = driver->data.err;
-      if (packet_size == -1) {
-        packet_size = 0;
-      }
-    }
-    driver->task_waiting = NULL;
-  }
+  driver->task_waiting = NULL;
 
   // Report packet data in the DMX event
   if (event != NULL) {
@@ -1158,6 +1151,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   taskENTER_CRITICAL(spinlock);
   if (dmx_uart_get_rts(uart) == 1) {
     dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
+    xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     dmx_uart_set_rts(uart, 0);
   }
   taskEXIT_CRITICAL(spinlock);
