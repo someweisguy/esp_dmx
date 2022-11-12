@@ -104,12 +104,13 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Prepare the RDM message
+  const uint8_t tn = driver->rdm.tn;
   rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
   size_t written = rdm_encode_uids(&rdm->pd, (rdm_uid_t *)params, 2);
   rdm_header_t header = {
       .destination_uid = RDM_BROADCAST_ALL_UID,
       .source_uid = rdm_get_uid(dmx_num),
-      .tn = 0,  // TODO: get up-to-date transaction number
+      .tn = tn,
       .port_id = dmx_num + 1,
       .message_count = 0,
       .sub_device = 0,
@@ -170,10 +171,11 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Write and send the RDM message
+  const uint8_t tn = driver->rdm.tn;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   rdm_header_t header = {.destination_uid = uid,
                          .source_uid = rdm_get_uid(dmx_num),
-                         .tn = 0,  // TODO: get up-to-date transaction number
+                         .tn = tn,
                          .port_id = dmx_num + 1,
                          .message_count = 0,
                          .sub_device = 0,
@@ -404,6 +406,7 @@ static size_t rdm_send_generic_request(
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Encode and send the initial RDM request
+  const uint8_t tn = driver->rdm.tn;
   rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
   size_t written;
   if (encode && encode_params && num_encode_params) {
@@ -413,7 +416,7 @@ static size_t rdm_send_generic_request(
   }
   rdm_header_t header = {.destination_uid = uid,
                          .source_uid = rdm_get_uid(dmx_num),
-                         .tn = 0,  // TODO: get up-to-date TN
+                         .tn = tn,
                          .port_id = dmx_num + 1,
                          .message_count = 0,
                          .sub_device = sub_device,

@@ -1182,11 +1182,14 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     if (rdm->cc == RDM_CC_DISC_COMMAND &&
         rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
       packet_type = RDM_PACKET_TYPE_DISCOVERY;
+      ++driver->rdm.tn;
     } else if (RDM_UID_IS_BROADCAST(buf_to_uid(rdm->destination_uid))) {
       packet_type = RDM_PACKET_TYPE_BROADCAST;
+      ++driver->rdm.tn;
     } else if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND ||
                rdm->cc == RDM_CC_DISC_COMMAND) {
       packet_type = RDM_PACKET_TYPE_REQUEST;
+      ++driver->rdm.tn;
     } else {
       packet_type = RDM_PACKET_TYPE_RESPONSE;
     }
