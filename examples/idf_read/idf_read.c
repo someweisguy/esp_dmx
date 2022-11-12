@@ -18,68 +18,54 @@
 #include "esp_dmx.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "freertos/task.h"
 
-#define TX_PIN 17  // the pin we are using to TX with
-#define RX_PIN 16  // the pin we are using to RX with
-#define EN_PIN 21  // the pin we are using to enable TX on the DMX transceiver
+#define TX_PIN 17  // The DMX transmit pin.
+#define RX_PIN 16  // The DMX receive pin.
+#define EN_PIN 21  // The DMX transmit enable pin.
 
-static const char* TAG = "main";
+static const char *TAG = "main";  // The log tagline.
 
-// declare the user buffer to read in DMX data
-static uint8_t data[DMX_MAX_PACKET_SIZE] = {};
+static uint8_t data[DMX_PACKET_SIZE] = {};  // Buffer to store DMX data
 
 void app_main() {
-  // use DMX port 2
   const dmx_port_t dmx_num = DMX_NUM_2;
 
-  // set communications pins
+  // Set communication pins and install the driver
   ESP_ERROR_CHECK(dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN));
+  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, DMX_DEFAULT_INTR_FLAGS));
 
-  // initialize the DMX driver with an event queue to read data
-  QueueHandle_t queue;
+  dmx_packet_t packet;
+  bool is_connected = false;
 
-  // initialize the DMX driver without an event queue
-  dmx_config_t driver_config = DMX_DEFAULT_CONFIG;
-  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, &driver_config, 10, &queue));
+  TickType_t last_update = xTaskGetTickCount();
+  while (true) {
 
-  // allows us to know when the packet times out after it connects
-  bool timeout = true;
+    // Block until a packet is received
+    if (dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK)) {
+      const TickType_t now = xTaskGetTickCount();
 
-  TickType_t next_tick = xTaskGetTickCount();
-
-  while (1) {
-    const TickType_t now_tick = xTaskGetTickCount();
-    dmx_event_t packet;
-    // wait until a packet is received or times out
-    if (xQueueReceive(queue, &packet, DMX_RX_PACKET_TOUT_TICK)) {
-      if (packet.status == DMX_OK) {
-        // print a message upon initial DMX connection
-        if (timeout) {
-          ESP_LOGI(TAG, "dmx connected");
-          timeout = false;  // establish connection!
-          next_tick = now_tick + (1000 / portTICK_PERIOD_MS);
-        }
-
-        // read the packet into the data buffer
-        dmx_read_packet(dmx_num, data, packet.size);
-
-        // print a log message every 1 second
-        if (xTaskGetTickCount() >= next_tick) {
-          ESP_LOG_BUFFER_HEX(TAG, data, 16);
-
-          next_tick = now_tick + (1000 / portTICK_PERIOD_MS);
-        }
-
-      } else if (packet.status != DMX_OK) {
-        // something went wrong receiving data
-        ESP_LOGE(TAG, "dmx error %i - size: %i", packet.status, packet.size);
-        break;
+      if (!is_connected) {
+        // Log when we first connect
+        ESP_LOGI(TAG, "DMX is connected.");
+        is_connected = true;
       }
 
-    } else if (timeout == false) {
-      // lost connection
-      ESP_LOGW(TAG, "lost dmx signal");
+      if (now - last_update >= pdMS_TO_TICKS(1000)) {
+        // Only read data every 1000ms
+        dmx_read(dmx_num, data, DMX_PACKET_SIZE);
+        ESP_LOGI(TAG, "Start code: %02x, Size: %i", packet.sc, packet.size);
+        ESP_LOG_BUFFER_HEX(TAG, data, 16);  // Log first 16 bytes
+        last_update = now;
+      }
+      
+    } else if (is_connected) {
+      // DMX timed out after having been previously connected
+      ESP_LOGI(TAG, "DMX was disconnected.");
       break;
     }
   }
+
+  ESP_LOGI(TAG, "Uninstalling the DMX driver.");
+  dmx_driver_delete(dmx_num);
 }
