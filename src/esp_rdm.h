@@ -121,8 +121,7 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
  *
  * @param dmx_num The DMX port number.
  * @param[in] params A pointer to the discovery UID bounds to send.
- * @param[out] response A pointer to into which to store RDM response
- * information.
+ * @param[out] response A pointer to into which to store RDM response summary.
  * @param[out] uid The decoded UID of the response, if any. If no response, the
  * UID is set to 0.
  * @return 1 if a response is received.
@@ -132,61 +131,165 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                    rdm_response_t *response, rdm_uid_t *uid);
 
 /**
- * @brief Sends a RDM discovery mute request and reads the response, if any.
+ * @brief Sends an RDM discovery mute request and reads the response, if any.
  *
  * @param dmx_num The DMX port number.
  * @param uid The UID to which to send the request.
  * @param mute True to send a mute request, false to send an un-mute request.
- * @param[out] response A pointer to into which to store RDM response
- * information.
+ * @param[out] response A pointer into which to store the RDM response summary.
  * @param[out] params A pointer to the discovery mute params to receive.
  * @return 1 if a response is received.
  */
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
                           rdm_response_t *response, rdm_disc_mute_t *params);
 
-// TODO: docs
+/**
+ * @brief Performs the RDM device discovery algorithm and executes a callback
+ * function when a new device is discovered.
+ *
+ * @note This discovery algorithm is not recursive like the RDM technical
+ * standard suggests, but iterative. It requires the allocation of 784 bytes of
+ * data to store a list of discovery requests that must be made. By default,
+ * this data is heap allocated but may be stack allocated by configuring
+ * settings in the ESP-IDF sdkconfig.
+ *
+ * @param dmx_num The DMX port number.
+ * @param cb A callback function which is called when a new device is found.
+ * @param context Context which is passed to the callback function when a new
+ * device is found.
+ * @return The number of devices found.
+ */
 size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
                                   void *context);
 
-// TODO: docs
+/**
+ * @brief Performes the RDM device discovery algorithm with a default callback
+ * function to store the UIDs of found devices in an array.
+ * 
+ * @note This discovery algorithm is not recursive like the RDM technical
+ * standard suggests, but iterative. It requires the allocation of 784 bytes of
+ * data to store a list of discovery requests that must be made. By default,
+ * this data is heap allocated but may be stack allocated by configuring
+ * settings in the ESP-IDF sdkconfig.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param[out] uids An array of UIDs used to store found device UIDs.
+ * @param size The size of the provided UID array.
+ * @return The number of devices found.
+ */
 size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
                                    const size_t size);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM SUPPORTED_PARAMETERS request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to send the request.
+ * @param sub_device The sub-device to which to address the request.
+ * @param[out] response A pointer into which to store the RDM response summary.
+ * @param[out] pids An array of PIDs that the responding device supports.
+ * @param size The size of the provided PID array.
+ * @return The number of PIDs supported by the responding device, which may be
+ * less than the number of PIDs copied to the provided array.
+ */
 size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
                                     rdm_sub_device_t sub_device,
                                     rdm_response_t *response, rdm_pid_t *pids,
                                     size_t size);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM DEVICE_INFO request and reads the response, if any.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to address the request.
+ * @param sub_device The sub-device to which to address the request.
+ * @param[out] response A pointer into which to store the RDM response summary.
+ * @param[out] device_info A pointer to a struct which stores the device info of
+ * the responding device.
+ * @return 1 if a successful response is received. Otherwise, 0.
+ */
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            rdm_sub_device_t sub_device,
                            rdm_response_t *response,
                            rdm_device_info_t *device_info);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM SOFTWARE_VERSION_LABEL request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to address the request.
+ * @param sub_device The sub-device to which to address the request.
+ * @param response A pointer into which to store the RDM response summary.
+ * @param label A string which stores the software version label of the
+ * responding device. Should be 33 characters max.
+ * @param size The size of the provided string.
+ * @return The size of the null-terminated string that was sent, which may be
+ * smaller than the string that was copied.
+ */
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       rdm_sub_device_t sub_device,
                                       rdm_response_t *response, char *label,
                                       size_t size);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM DMX_START_ADDRESS GET request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to address the request.
+ * @param sub_device The sub-device to which to address the request.
+ * @param response A pointer into which to store the RDM response summary.
+ * @param start_address A pointer into which to store the response start
+ * address.
+ * @return 1 if a successful response is received. Otherwise, 0.
+ */
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  rdm_sub_device_t sub_device,
                                  rdm_response_t *response, int *start_address);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM DMX_START_ADDRESS SET request.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to address the request.
+ * @param sub_device The sub-device to which to address the request. 
+ * @param response A pointer into which to store the RDM response summary.
+ * @param start_address The start address to which to set the device or devices.
+ * @return true if the request was successful.
+ * @return false if the request was not successful.
+ */
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, int start_address);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM IDENTIFY_DEVICE GET request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to address the request.
+ * @param sub_device The sub-device to which to address the request.
+ * @param response A pointer into which to store the RDM response summary.
+ * @param identify A pointer into which to store the response identify state.
+ * @return 1 if a successful response is received. Otherwise, 0.
+ */
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, bool *identify);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM IDENTIFY_DEVICE SET request.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param uid The UID to which to address the request.
+ * @param sub_device The sub-device to which to address the request.
+ * @param response A pointer into which to store the RDM response summary.
+ * @param identify The identify state to which to set the device or devices.
+ * @return true if the request was successful.
+ * @return false if the request was not successful.
+ */
 bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, bool identify);
