@@ -131,7 +131,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     else if (intr_flags & DMX_INTR_RX_BREAK) {
       // Reset the FIFO and clear the interrupt
       dmx_uart_rxfifo_reset(uart);
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_BREAK);
+      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_BREAK | DMX_INTR_RX_DATA);
 
       // Pause the receive timer alarm
 #if ESP_IDF_MAJOR_VERSION >= 5
