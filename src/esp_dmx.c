@@ -96,6 +96,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
           dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
           driver->data.head += read_len;
+
+          // Packet type is non-RDM on errors
           taskENTER_CRITICAL_ISR(spinlock);
           driver->data.type = RDM_PACKET_TYPE_NON_RDM;
           taskEXIT_CRITICAL_ISR(spinlock);
