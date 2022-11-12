@@ -590,3 +590,12 @@ bool rdm_get_header(rdm_header_t* header, const void* data)
 {
     return rdm_decode_header(data, header);
 }
+
+bool rdm_is_directed_at_us(dmx_port_t dmx_num, rdm_header_t* header)
+{
+
+    return header->destination_uid == RDM_BROADCAST_ALL_UID || 
+           header->destination_uid == rdm_get_uid(dmx_num);
+
+}
+
