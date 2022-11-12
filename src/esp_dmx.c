@@ -1041,6 +1041,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     if (packet_size == -1) {
       packet_size = 0;
     }
+  } else {
+    err = ESP_ERR_TIMEOUT;
   }
   driver->task_waiting = NULL;
 
