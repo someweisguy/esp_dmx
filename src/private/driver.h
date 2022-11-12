@@ -66,7 +66,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
 
   struct dmx_sniffer_t {
     QueueHandle_t queue;       // The queue handle used to receive sniffer data.
-    dmx_sniffer_data_t data;   // The data received by the DMX sniffer.
+    dmx_metadata_t data;       // The metadata received by the DMX sniffer.
 
     int intr_pin;              // The GPIO number of the DMX sniffer interrupt pin.
     int is_in_mab;             // True if the sniffer is receiving a DMX mark-after-break.

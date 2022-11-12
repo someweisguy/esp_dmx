@@ -127,13 +127,13 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num);
  * @brief Gets sniffer data if it is available.
  *
  * @param dmx_num The DMX port number.
- * @param[out] sniffer_data A pointer to a dmx_sniffer_data_t struct into which
- * to copy DMX sniffer data.
+ * @param[out] metadata A pointer to a dmx_metadata_t struct into which to 
+ * copy DMX sniffer data.
  * @param wait_ticks The number of ticks to wait before this function times out.
  * @return true if data was copied.
  * @return false if data was not copied.
  */
-bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
+bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
                           TickType_t wait_ticks);
 
 /**

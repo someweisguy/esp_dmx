@@ -613,7 +613,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Allocate the sniffer queue
-  driver->sniffer.queue = xQueueCreate(1, sizeof(dmx_sniffer_data_t));
+  driver->sniffer.queue = xQueueCreate(1, sizeof(dmx_metadata_t));
   if (driver->sniffer.queue == NULL) {
     ESP_LOGE(TAG, "DMX sniffer queue malloc error");
     return ESP_ERR_NO_MEM;
@@ -666,16 +666,16 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
          dmx_driver[dmx_num]->sniffer.queue != NULL;
 }
 
-bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_sniffer_data_t *sniffer_data,
+bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
                           TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(sniffer_data, ESP_ERR_INVALID_ARG, "sniffer_data is null");
+  DMX_CHECK(metadata, ESP_ERR_INVALID_ARG, "metadata is null");
   DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "sniffer is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  return xQueueReceive(driver->sniffer.queue, sniffer_data, wait_ticks);
+  return xQueueReceive(driver->sniffer.queue, metadata, wait_ticks);
 }
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
