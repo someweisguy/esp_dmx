@@ -11,6 +11,7 @@
 #pragma once
 
 #include "dmx_types.h"
+#include "driver/gpio.h"
 #include "esp_rdm.h"
 #include "freertos/FreeRTOS.h"
 #include "rdm_types.h"
