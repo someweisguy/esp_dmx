@@ -346,6 +346,8 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     }
     driver->sniffer.last_neg_edge_ts = now;
   }
+
+  if (task_awoken) portYIELD_FROM_ISR();
 }
 
 static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
