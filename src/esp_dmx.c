@@ -404,7 +404,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
 static const char *TAG = "dmx";  // The log tagline for the file.
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
+            "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
 
@@ -534,7 +535,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 }
 
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
+            "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is not installed");
 
@@ -587,11 +589,12 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 }
 
 bool dmx_driver_is_installed(dmx_port_t dmx_num) {
-  return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
+  return dmx_num >= 0 && dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
+            "dmx_num error");
   DMX_CHECK(tx_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_pin),
             ESP_ERR_INVALID_ARG, "tx_pin error");
   DMX_CHECK(rx_pin < 0 || GPIO_IS_VALID_GPIO(rx_pin), ESP_ERR_INVALID_ARG,
@@ -603,7 +606,8 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
 }
 
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
+            "dmx_num error");
   DMX_CHECK(intr_pin > 0 && GPIO_IS_VALID_GPIO(intr_pin), ESP_ERR_INVALID_ARG,
             "intr_pin error");
   DMX_CHECK(!dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
@@ -639,7 +643,8 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
 }
 
 esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
+            "dmx_num error");
   DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "sniffer is not enabled");
 
@@ -667,7 +672,8 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
                           TickType_t wait_ticks) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
+            "dmx_num error");
   DMX_CHECK(metadata, ESP_ERR_INVALID_ARG, "metadata is null");
   DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "sniffer is not enabled");
@@ -678,7 +684,7 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
 }
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
 
   // Clamp the baud rate to within DMX specification
   if (baud_rate < DMX_MIN_BAUD_RATE) {
@@ -696,7 +702,7 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
 }
 
 uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   taskENTER_CRITICAL(spinlock);
@@ -707,7 +713,7 @@ uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
 }
 
 uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp the break length to within DMX specification
@@ -726,7 +732,7 @@ uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
 }
 
 uint32_t dmx_get_break_len(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -738,7 +744,7 @@ uint32_t dmx_get_break_len(dmx_port_t dmx_num) {
 }
 
 uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp the mark-after-break length to within DMX specification
@@ -757,7 +763,7 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
 }
 
 uint32_t dmx_get_mab_len(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -769,7 +775,7 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num) {
 }
 
 size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(destination, 0, "destination is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -790,7 +796,7 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
 
 size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
                        size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
   DMX_CHECK(destination, 0, "destination is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -811,7 +817,7 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
 }
 
 int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
   DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
 
@@ -822,7 +828,7 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
 }
 
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -858,7 +864,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
 
 size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
                         size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -894,7 +900,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 }
 
 int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
   DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
 
@@ -927,7 +933,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
 
 size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
                    TickType_t wait_ticks) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -1066,7 +1072,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_event_t *event,
 }
 
 size_t dmx_send(dmx_port_t dmx_num, size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -1229,7 +1235,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 }
 
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];

@@ -45,18 +45,13 @@ extern "C" {
 /**
  * @brief DMX port type.
  */
-typedef unsigned int dmx_port_t;
-
-/**
- * @brief DMX port number constants.
- */
-enum dmx_port_t {
+typedef enum dmx_port_t {
   DMX_NUM_0,  // DMX port 0.
   DMX_NUM_1,  // DMX port 1.
 #if SOC_UART_NUM > 2
   DMX_NUM_2,  // DMX port 2.
 #endif
-};
+} dmx_port_t;
 
 enum dmx_pin_t {
   /**
