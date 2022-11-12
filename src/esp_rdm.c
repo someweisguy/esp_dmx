@@ -20,7 +20,7 @@
 static const char *TAG = "rdm";  // The log tagline for the file.
 
 rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -44,7 +44,7 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
 }
 
 void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, , "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
   RDM_CHECK(uid <= RDM_MAX_UID, , "uid error");
 
@@ -57,7 +57,7 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
 }
 
 bool rdm_is_muted(dmx_port_t dmx_num) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -73,7 +73,7 @@ bool rdm_is_muted(dmx_port_t dmx_num) {
 
 size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
                               rdm_uid_t uid) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(preamble_len <= 7, 0, "preamble_len error");
 
@@ -93,7 +93,7 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                    rdm_disc_unique_branch_t *params,
                                    rdm_response_t *response, rdm_uid_t *uid) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(params != NULL, 0, "params is null");
   RDM_CHECK(uid != NULL, 0, "uid is null");
@@ -158,7 +158,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
                           rdm_response_t *response, rdm_disc_mute_t *params) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Determine which PID to use (mute and un-mute are different PIDs)
@@ -240,7 +240,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
 
 size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
                                   void *context) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Allocate the instruction stack. The max binary tree depth is 49
@@ -382,7 +382,7 @@ static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
 
 size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
                                    const size_t size) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   struct rdm_disc_default_ctx context = {.size = size, .uids = uids};
@@ -505,7 +505,7 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
                                     rdm_sub_device_t sub_device,
                                     rdm_response_t *response, rdm_pid_t *pids,
                                     size_t size) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
@@ -517,7 +517,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            rdm_sub_device_t sub_device,
                            rdm_response_t *response,
                            rdm_device_info_t *device_info) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
   RDM_CHECK(device_info != NULL, 0, "device_info is null");
@@ -530,7 +530,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       rdm_sub_device_t sub_device,
                                       rdm_response_t *response, char *label,
                                       size_t size) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
@@ -541,7 +541,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  rdm_sub_device_t sub_device,
                                  rdm_response_t *response, int *start_address) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
   RDM_CHECK(start_address != NULL, 0, "start_address is null");
@@ -553,7 +553,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, int start_address) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(start_address > 0 && start_address < DMX_MAX_PACKET_SIZE, 0,
             "start_address must be >0 and <513");
@@ -565,7 +565,7 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, bool *identify) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
   RDM_CHECK(identify != NULL, 0, "identify is null");
@@ -577,7 +577,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
 bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                              rdm_sub_device_t sub_device,
                              rdm_response_t *response, bool identify) {
-  RDM_CHECK(dmx_num >= 0 && dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_SET_COMMAND,
                                   RDM_PID_IDENTIFY_DEVICE, rdm_encode_8bit,

@@ -45,14 +45,22 @@ extern "C" {
 /**
  * @brief DMX port type.
  */
-typedef enum dmx_port_t {
-  DMX_NUM_0,  // DMX port 0.
-  DMX_NUM_1,  // DMX port 1.
-#if SOC_UART_NUM > 2
-  DMX_NUM_2,  // DMX port 2.
-#endif
-} dmx_port_t;
+typedef unsigned int dmx_port_t;
 
+/**
+ * @brief DMX port constants.
+ */
+enum dmx_num_t {
+  DMX_NUM_0,  /** @brief DMX port 0. */
+  DMX_NUM_1,  /** @brief DMX port 1. */
+#if SOC_UART_NUM > 2
+  DMX_NUM_2,  /** @brief DMX port 2. */
+#endif
+};
+
+/**
+ * @brief DMX pin constants.
+ */
 enum dmx_pin_t {
   /**
    * @brief Constant for dmx_set_pin(). Indicates the pin should not be changed.
