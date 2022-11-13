@@ -284,6 +284,14 @@ typedef struct rdm_device_info_t {
 } rdm_device_info_t;
 
 
+/**
+ * All parameters of a rdm client device
+*/
+typedef struct rdm_parameters_t {
+  rdm_device_info_t device_info;
+  bool identify_device;  
+} rdm_parameters_t;
+
 #ifdef __cplusplus
 }
 #endif
