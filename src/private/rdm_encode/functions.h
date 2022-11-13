@@ -383,27 +383,39 @@ size_t rdm_decode_string(const void *pd, void *data, size_t size, size_t pdl) {
  * @brief Encodes RDM device info into the desired buffer.
  *
  * @param[out] pd The buffer in which to encode the data.
+ * @param[in] device_info A pointer to the device info data
+ * @return The number of bytes encoded.
+ */
+size_t rdm_encode_device_info_(void *pd, const rdm_device_info_t *const restrict device_info) {
+  rdm_device_info_data_t *const restrict ptr = pd;
+  ptr->major_rdm_version = device_info->major_rdm_version;
+  ptr->minor_rdm_version = device_info->minor_rdm_version;
+  ptr->model_id = bswap16(device_info->model_id);
+  ptr->coarse_product_category = device_info->coarse_product_category;
+  ptr->fine_product_category = device_info->fine_product_category;
+  ptr->software_version_id = bswap32(device_info->software_version_id);
+  ptr->footprint = bswap16(device_info->footprint);
+  ptr->current_personality = device_info->current_personality;
+  ptr->personality_count = device_info->personality_count;
+  ptr->start_address = device_info->start_address != -1
+                          ? bswap16(device_info->start_address)
+                          : 0xffff;
+  ptr->sub_device_count = bswap16(device_info->sub_device_count);
+  ptr->sensor_count = device_info->sensor_count;
+  return sizeof(rdm_device_info_data_t);
+}
+
+/**
+ * @brief Encodes RDM device info into the desired buffer.
+ *
+ * @param[out] pd The buffer in which to encode the data.
  * @param[in] data A pointer to a discovery mute parameter to encode.
  * @return The number of bytes encoded.
  */
 size_t rdm_encode_device_info(void *pd, const void *data) {
   if (data != NULL) {
-    rdm_device_info_data_t *const restrict ptr = pd;
     const rdm_device_info_t *const restrict device_info = data;
-    ptr->major_rdm_version = device_info->major_rdm_version;
-    ptr->minor_rdm_version = device_info->minor_rdm_version;
-    ptr->model_id = bswap16(device_info->model_id);
-    ptr->coarse_product_category = device_info->coarse_product_category;
-    ptr->fine_product_category = device_info->fine_product_category;
-    ptr->software_version_id = bswap32(device_info->software_version_id);
-    ptr->footprint = bswap16(device_info->footprint);
-    ptr->current_personality = device_info->current_personality;
-    ptr->personality_count = device_info->personality_count;
-    ptr->start_address = device_info->start_address != -1
-                            ? bswap16(device_info->start_address)
-                            : 0xffff;
-    ptr->sub_device_count = bswap16(device_info->sub_device_count);
-    ptr->sensor_count = device_info->sensor_count;
+    return rdm_encode_device_info(pd, device_info);
   }
   return sizeof(rdm_device_info_data_t);
 }
