@@ -325,16 +325,27 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                              rdm_sub_device_t sub_device,
                              rdm_response_t *response, bool identify);
 
-
 /**
  * @brief Sends response for the RDM_PID_DISC_MUTE request.
  * @param dmx_num The DMX port number.
  * @param uid The UID to which to address the response.
  * @param tn The transaction number of the request that is beeing answered.
  * @return the number of bytes that was sent.
-*/
+ */
 size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, const rdm_disc_mute_t *mute_params);
 
+/**
+ * @brief Sends RDM_CC_GET_COMMAND_RESPONSE with the device_info as payload
+*/
+size_t rdm_send_device_info_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, const rdm_device_info_t *device_info);
+
+/**
+ * @brief Sends RDM_CC_GET_COMMAND_RESPONSE with the identify_device as payload
+*/
+size_t rdm_send_idenfiy_device_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, rdm_sub_device_t sub_device, bool identify);
+
+//TODO
+size_t rdm_send_set_command_ack_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, rdm_sub_device_t sub_device, rdm_pid_t pid);
 
 #ifdef __cplusplus
 }
