@@ -333,7 +333,7 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
  * @param tn The transaction number of the request that is beeing answered.
  * @return the number of bytes that was sent.
 */
-size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn);
+size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, const rdm_disc_mute_t *mute_params);
 
 
 #ifdef __cplusplus

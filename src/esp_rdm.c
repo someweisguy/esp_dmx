@@ -106,7 +106,7 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
 }
 
 
-size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn)
+size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, const rdm_disc_mute_t *mute_params)
 {
   //TODO add support for Control Field and Binding UID
 
@@ -122,9 +122,7 @@ size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn)
   rdm_data_t *rdm = (rdm_data_t *)driver->data.buffer;
   
   // set control field
-  const uint16_t control_field = 0;
-  memcpy(&rdm->pd, &control_field, sizeof(control_field));
-  size_t written = sizeof(control_field); 
+  size_t written = rdm_encode_mute(&rdm->pd, mute_params);
 
   rdm_header_t header = {
       .destination_uid = uid,
