@@ -10,22 +10,33 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [PlatformIO](#platformio)
 - [Quick-Start Guide](#quick-start-guide)
 - [What is DMX?](#what-is-dmx)
+- [What is RDM?](#what-is-rdm)
+  - [RDM Basics](#rdm-basics)
+    - [Unique IDs](#unique-ids)
+    - [Sub-devices](#sub-devices)
+    - [Parameters](#parameters)
+    - [Discovery](#discovery)
+    - [Response Types](#response-types)
 - [Configuring the DMX Port](#configuring-the-dmx-port)
   - [Setting Communication Pins](#setting-communication-pins)
   - [Installing the Driver](#installing-the-driver)
   - [Parameter Configuration](#parameter-configuration)
-- [Reading and Writing](#reading-and-writing)
-  - [Reading](#reading)
+- [Reading and Writing DMX](#reading-and-writing-dmx)
+  - [Reading DMX](#reading-dmx)
   - [DMX Sniffer](#dmx-sniffer)
-  - [Writing](#writing)
-- [RDM Tools](#rdm-tools)
+  - [Writing DMX](#writing-dmx)
+- [Reading and Writing RDM](#reading-and-writing-rdm)
+  - [RDM Controller](#rdm-controller)
+    - [Discovering Devices](#discovering-devices)
+    - [Sending Requests](#sending-requests)
+  - [RDM Responder](#rdm-responder)
 - [Error Handling](#error-handling)
-  - [Packet Errors](#packet-errors)
+  - [DMX Packet Errors](#dmx-packet-errors)
+  - [RDM Packet Errors](#rdm-packet-errors)
   - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
   - [Hardware Specifications](#hardware-specifications)
-  - [Remote Device Management](#remote-device-management)
 - [API Reference](#api-reference)
 - [To Do](#to-do)
 
@@ -59,8 +70,7 @@ const int rts_pin = 21;
 dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
 
 // ...and then install the driver!
-const bool use_timer = true;
-dmx_driver_install(dmx_num, use_timer, DMX_DEFAULT_INTR_FLAGS);
+dmx_driver_install(dmx_num, DMX_DEFAULT_INTR_FLAGS);
 ```
 
 To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
@@ -83,9 +93,9 @@ while (true) {
 To read from the DMX bus, two additional functions are provided. The function `dmx_receive()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
 
 ```c
-dmx_event_t event;  // Read more about the dmx_event_t in Reading and Writing
+dmx_packet_t packet;
 while (true) {
-  const int size = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
+  const int size = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
   if (size > 0) {
     dmx_read(dmx_num, data, size);
     // Process data here...
@@ -96,7 +106,7 @@ while (true) {
 }
 ```
 
-That's it! For more detailed information on how this library works including details on RDM tools, keep reading.
+That's it! For more detailed information on how this library works including details on RDM, keep reading.
 
 ## What is DMX?
 
@@ -109,6 +119,86 @@ DMX imposes very strict timing requirements to allow for backwards compatibility
 Today, DMX often struggles to keep up with the demands of the latest hardware. Its low data rate and small packet size sees it losing market popularity over more capable protocols. However its simplicity and robustness often makes it the first choice for small scale projects.
 
 For in-depth information on DMX, see the [E1.11 standards document](https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf).
+
+## What is RDM?
+
+RDM stands for Remote Device Management. It is an extension to the DMX protocol to allow intelligent, bidirectional communication between devices from multiple manufacturers utilizing a modified DMX data link. RDM permits a console or other controlling device to discover and then configure, monitor, and manage intermediate and end-devices connected through a DMX network.
+
+When RDM capable devices must be configured but are inconveniently out of reach, it is said that RDM is "faster than the ladder." Instead of needing to climb a ladder to reach a device users are able to make changes to device settings from their DMX controller.
+
+For in-depth information on RDM, see the [E1.20 standards document](https://getdlight.com/media/kunena/attachments/42/ANSI_E1-20_2010.pdf).
+
+### RDM Basics
+
+#### Unique IDs
+
+In an RDM network, there is one controller device and several listener devices. Each device in the network has a Unique ID (UID) which uniquely identifies itself against others in the network. If an RDM device has multiple DMX ports, it may possess multiple UIDs; one for each DMX port. UIDs are 48-bits long. The most-significant 16-bits are a device's manufacturer ID. Devices made by the same manufacturer have the same most-significant 16-bits. The remaining, 32 least-significant-bits are a device's device ID. Readers may draw a reasonable comparison to MAC addresses in IP networking equipment. Every IP capable device has at least one MAC address and if they have multiple network interfaces they may have multiple MAC addresses. Likewise, the most significant bits in a MAC address identify a network interface's manufacturer.
+
+UIDs are represented in text by displaying the UID in hexadecimal and by separating the manufacturer ID from the device ID with a `:`. If a device has a manufacturer ID with a value of `0xabcd` and device ID with a value of `0x12345678`, its full UID would be displayed as `abcd:12345678`.
+
+When a controller device composes an RDM request, it must address the request to a specific UID. The addressee may be a singular device or multiple devices. A broadcast UID may address all devices or every device of a specific manufacturer. To address a broadcast request to every device of a specific manufacturer, the manufacturer ID must be set to the manufacturer ID of the desired manufacturer. The device ID will then be set to all 1's. To broadcast to the manufacturer ID of `05e0`, the UID must be set to `05e0:ffffffff`. The UID used to broadcast to all devices regardless of manufacturer is `ffff:ffffffff`.
+
+The lowest possible UID is `0000:00000000` and the highest possible UID is `ffff:fffffffe`. In practice the manufacturer IDs `0000` and `ffff` are not permitted so real-world RDM devices would never possess these UIDs.
+
+Organizations may apply for a unique manufacturer ID by contacting ESTA. The instructions to do so and a list of registered manufacturer ID can be found [here](https://tsp.esta.org/tsp/working_groups/CP/mfctrIDs.php). This software library is officially registered with the manufacturer ID of `05e0`. Users of this library may use this software library's manufacturer ID for their devices.
+
+In this library, UIDs are represented with the `rdm_uid_t` type. The macro `RDM_BROADCAST_MAN_UID()` can be used to create a UID which broadcasts to the desired manufacturer ID and the constant `RDM_BROADCAST_ALL_UID` can be used to broadcast to all devices.
+
+When printing UIDs to the terminal, the macros `UIDSTR` and `UID2STR()` can be used in printf-like functions.
+
+```c
+rdm_uid_t my_uid = rdm_get_uid(DMX_NUM_2);
+printf("My UID is " UIDSTR, UID2STR(my_uid));  // My UID is 05e0:1299159a
+```
+
+#### Sub-devices
+
+Each RDM device may support up to 512 sub-devices. An example of a device that may support sub-devices is a dimmer rack which possess multiple dimmers. Requests may be addressed to a specific dimmer in the dimmer rack by addressing the dimmer rack's UID, and specifying a specific sub-device to target a specific dimmer.
+
+The sub-device number which represents the root device is `0x0000`. A request may also be addressed to all sub-devices of a root device by using the sub-device number `0xffff`.
+
+A root device and its sub-devices may support different RDM parameters, but each sub-device within a root device must support the same parameters as each other.
+
+The constants `RDM_ROOT_DEVICE` and `RDM_ALL_SUB_DEVICES` are provided to improve code readability.
+
+#### Parameters
+
+RDM requests must be able to fetch and update parameters. The RDM standard specifies 52 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/) or in [rdm_types.h](src/rdm_types.h).
+
+Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device must support the following PIDs at a minimum:
+
+Parameter Name           | GET                | SET                | Notes
+:------------------------|:------------------:|:------------------:|:------
+`DEVICE_INFO`            | :heavy_check_mark: |                    |
+`DISC_MUTE`              |                    |                    |
+`DISC_UN_MUTE`           |                    |                    |
+`DISC_UNIQUE_BRANCH`     |                    |                    |
+`DMX_START_ADDRESS`      | :heavy_check_mark: | :heavy_check_mark: | Support required if device uses a DMX slot.
+`IDENTIFY_DEVICE`        | :heavy_check_mark: | :heavy_check_mark: |
+`PARAMETER_DESCRIPTION`  | :heavy_check_mark: |                    | Support required for manufacturer-specific PIDs.
+`SOFTWARE_VERSION_LABEL` | :heavy_check_mark: |                    |
+`SUPPORTED_PARAMETERS`   | :heavy_check_mark: |                    | Only required if supporting PIDs beyond the minimum set.
+
+#### Discovery
+
+When making RDM requests it is typically desired (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting a `DISC_UNIQUE_BRANCH` command to all devices. The parameters included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller device splits the address space in half and searches each half separately in a binary tree search. The resulting address spaces are divided in two and `DISC_UNIQUE_BRANCH` commands are sent until a single device is found within an address space.
+
+When a single device is found within an address space, that device is sent a `DISC_MUTE` request to mute its response to future `DISC_UNIQUE_BRANCH` requests. When responding to `DISC_MUTE` requests, devices with multiple UIDs return a binding UID which represents its primary UID.
+
+Some RDM devices act as proxy devices. A proxy device is any inline device that acts as an agent or representative for one or more devices. A proxy device shall respond to all controller messages on behalf of the devices it represents as if it is the represented device. If a device is acting as a proxy device or if it is proxied by another device, it will indicate so in its response to `DISC_MUTE` and `DISC_UN_MUTE` requests.
+
+Discovery should be performed periodically as discovered devices may be removed from the RDM network or new devices may be added. Before restarting the discovery algorithm, a `DISC_UN_MUTE` request should be broadcast to all devices in order to detect if devices were removed from the RDM network.
+
+#### Response Types
+
+Responding devices shall respond to requests only if the request was a non-broadcast request. Responding devices may respond to requests with the following response types:
+
+- `RESPONSE_TYPE_ACK` indicates that the responder has correctly received the controller message and is acting upon the message.
+- `RESPONSE_TYPE_ACK_OVERFLOW` indicates that the responder has correctly received the controller message and is acting upon the message, but there is more response data available than will fit in a single response message. To receive the remaining information, controllers are able to send repeated requests to the same PID until the remaining information can fit in a single message.
+- `RESPONSE_TYPE_ACK_TIMER` indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time. When sending this response, responding devices include an estimated response time that must elapse before the responder can provide the required information.
+- `RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response.
+
+Responders must respond to every non-broadcast GET or SET request as well as every broadcast `DISC_UNIQUE_BRANCH` if their UID falls within the request's address space. When responding to `DISC_UNIQUE_BRANCH` requests, responders shall not send a DMX break and mark-after-break to improve discovery times and shall encode their response to reduce data loss during data collisions. Responders may only respond to `DISC_MUTE` and `DISC_UN_MUTE` requests with `RESPONSE_TYPE_ACK`.
 
 ## Configuring the DMX Port
 
@@ -128,19 +218,15 @@ dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 After the communication pins are set, install the driver by calling `dmx_driver_install()`. This function will allocate the necessary resources for the DMX driver. It instantiates the driver to default DMX settings. The following parameters are passed to this function:
 
 - The DMX port to use.
-- Whether to use the ESP32 hardware timer with the DMX driver.
 - Flags to allocate interrupts. The macro `DMX_DEFAULT_INTR_FLAGS` can be used to allocate the interrupts using the default interrupt flags.
 
 ```c
-const bool use_timer = true;
-dmx_driver_install(DMX_NUM_2, use_timer, DMX_DEFAULT_INTR_FLAGS);
+dmx_driver_install(DMX_NUM_2, DMX_DEFAULT_INTR_FLAGS);
 ```
-
-Hardware timers are used for several purposes including the generation of the DMX reset sequence. Users may opt to use busy-waits instead of the hardware timer. If this is desired, the DMX driver will still be able to send and receive proper DMX but some RDM functions may take longer than normal.
 
 ### Parameter Configuration
 
-In most situations it is not necessary to adjust the default parameters of the DMX driver. Nonetheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break. After the DMX driver has been installed, the following functions may be called.
+In most situations it is not necessary to adjust the default parameters of the DMX driver. Nevertheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break. After the DMX driver has been installed, the following functions may be called.
 
 ```c
 dmx_set_baud_rate(DMX_NUM_2, DMX_BAUD_RATE);     // Set DMX baud rate.
@@ -152,32 +238,30 @@ If parameters values that are not within the DMX specification are passed to the
 
 The above functions each have `_get_` counterparts to retrieve the currently set DMX parameters.
 
-## Reading and Writing
+## Reading and Writing DMX
 
 DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once. If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports.
 
-### Reading
+### Reading DMX
 
 Reading may be performed synchronously or asynchronously from the DMX bus. It is typically desired to perform reads synchronously. This means that reads are only performed when a new DMX packet is received. This is ideal because it is not commonly desired to perform reads on the same data multiple times.
 
 To read synchronously from the DMX bus the DMX driver must wait for a new packet. The blocking function `dmx_receive()` can be used for this purpose.
 
 ```c
-dmx_event_t event;
+dmx_packet_t packet;
 // Wait for a packet. Returns the size of the received packet or 0 on timeout.
-int packet_size = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
+int packet_size = dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK);
 ```
 
-The function `dmx_receive()` takes three arguments. The first argument is the `dmx_port_t` which identifies which DMX port to use. The second argument is a pointer to a `dmx_event_t` struct. Data about the received packet is copied into the `dmx_event_t` struct when a packet is received. This data includes:
+The function `dmx_receive()` takes three arguments. The first argument is the `dmx_port_t` which identifies which DMX port to use. The second argument is a pointer to a `dmx_packet_t` struct. Data about the received packet is copied into the `dmx_packet_t` struct when a packet is received. This data includes:
 
 - `err` reports any errors that occurred while receiving the packet (see: [Error Handling](#error-handling)).
 - `sc` is the start code of the packet.
 - `size` is the size of the packet in bytes, including the DMX start code. This value will never be higher than `DMX_PACKET_SIZE`.
 - `is_rdm` evaluates to true if the packet is an RDM packet and if the RDM checksum is valid.
 
-The `dmx_event_t` struct also contains detailed information about received RDM packets. If `is_rdm` is true, RDM information can be read from the `dmx_event_t` struct. More information about parsing RDM data can be found in //TODO add link.
-
-Using the `dmx_event_t` struct is optional. If processing DMX or RDM packet data is not desired, users can pass `NULL` in place of a pointer to a `dmx_event_t` struct.
+Using the `dmx_packet_t` struct is optional. If processing DMX or RDM packet data is not desired, users can pass `NULL` in place of a pointer to a `dmx_packet_t` struct.
 
 The final argument to `dmx_receive()` is the amount of FreeRTOS ticks to block until the function times out. This library defines a constant, `DMX_TIMEOUT_TICK`, which is the length of time that must be waited until the DMX signal is considered lost according to DMX specification. According to DMX specification this constant is equivalent to 1250 milliseconds.
 
@@ -186,12 +270,12 @@ After a packet is received, `dmx_read()` can be called to read the packet into a
 ```c
 uint8_t data[DMX_PACKET_SIZE];
 
-dmx_event_t event;
-if (dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK)) {
+dmx_packet_t packet;
+if (dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK)) {
 
   // Check that no errors occurred.
-  if (event.err == DMX_OK) {
-    dmx_read(DMX_NUM_2, data, event.size);
+  if (packet.err == ESP_OK) {
+    dmx_read(DMX_NUM_2, data, packet.size);
   } else {
     printf("An error occurred receiving DMX!");
   }
@@ -209,7 +293,7 @@ const int offset = 5;  // The start address of this device.
 uint8_t data[size];
 
 // Read slots 5 through 17. Returns the number of slots that were read.
-int slots_read = dmx_read_offset(DMX_NUM_2, offset, data, size);
+int num_slots_read = dmx_read_offset(DMX_NUM_2, offset, data, size);
 ```
 
 Lastly, `dmx_read_slot()` can be used to read a single slot of DMX data.
@@ -227,30 +311,30 @@ This library offers an option to measure DMX break and mark-after-break timings 
 
 The DMX sniffer installs an edge-triggered interrupt on the specified GPIO pin. This library uses the ESP-IDF provided GPIO ISR which allows the use of individual interrupt handlers for specific GPIO interrupts. The interrupt handler works by iterating through each GPIO to determine if it triggered an interrupt and if so, it calls the appropriate handler.
 
-A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed earlier than higher GPIO numbers. It is recommended that the DMX RX pin be shorted to a lower GPIO number in order to ensure that the DMX sniffer can run with low latency.
+A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed earlier than higher GPIO numbers. It is recommended that the DMX read pin be shorted to a lower GPIO number in order to ensure that the DMX sniffer can run with low latency.
 
 It is important to note that the sniffer requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the sniffer, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig` if the ESP-IDF is used.
 
-Before enabling the sniffer tool, `gpio_install_isr_service()` must be called with the required DMX sniffer interrupt flags. The macro `DMX_SNIFFER_INTR_FLAGS` can be used to provide the proper interrupt flags.
+Before enabling the sniffer tool, `gpio_install_isr_service()` must be called with the required DMX sniffer interrupt flags. The macro `DMX_DEFAULT_SNIFFER_INTR_FLAGS` can be used to provide the proper interrupt flags.
 
 ```c
-gpio_install_isr_service(DMX_SNIFFER_INTR_FLAGS);
+gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS);
 
 const int sniffer_pin = 4; // Lowest exposed pin on the Feather breakout board.
 dmx_sniffer_enable(DMX_NUM_2, sniffer_pin);
 ```
 
-Break and mark-after-break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()`. This will wait until the sniffer receives a packet and copy the sniffer data so that it may be processed by the user. If data is copied, this function will return `true`.
+Break and mark-after-break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()`. This will block until the sniffer receives a packet and copy the sniffer data so that it may be processed by the user. If data is copied, this function will return `true`.
 
 ```c
-dmx_sniffer_data_t sniffer_data;
-if (dmx_sniffer_get_data(DMX_NUM_2, &sniffer_data, DMX_TIMEOUT_TICK)) {
-  printf("The DMX break length was: %i\n", sniffer_data.break_len);
-  printf("The DMX mark-after-break length was: %i\n", sniffer_data.mab_len);
+dmx_metadata_t metadata;
+if (dmx_sniffer_get_data(DMX_NUM_2, &metadata, DMX_TIMEOUT_TICK)) {
+  printf("The DMX break length was: %i\n", metadata.break_len);
+  printf("The DMX mark-after-break length was: %i\n", metadata.mab_len);
 }
 ```
 
-### Writing
+### Writing DMX
 
 To write to the DMX bus, `dmx_write()` can be called. This writes data to the DMX driver but it does not transmit a packet onto the bus. In order to transmit the data that was written, `dmx_send()` must be called.
 
@@ -274,10 +358,9 @@ while (true) {
   // Send the DMX packet.
   dmx_send(DMX_NUM_2, DMX_PACKET_SIZE);
 
-  // Process the next DMX packet (while the previous is being sent) here...
-  // For example, increment the value of each slot excluding the start code.
-  for (int i = 1; i < DMX_PACKET_SIZE; ++i) {
-    ++data[i];
+  // Process the next DMX packet (while the previous is being sent) here.
+  for (int i = 1; i < DMX_PACKET_SIZE; i++) {
+    data[i]++;  // Increment the value of each slot, excluding the start code.
   }
 
   // Wait until the packet is finished being sent before proceeding.
@@ -299,46 +382,75 @@ dmx_write_slot(DMX_NUM_2, slot_num, value);
 // Don't forget to call dmx_send()!
 ```
 
-## RDM Tools
+## Reading and Writing RDM
 
 Using only the functions listed above it is possible to send and receive RDM packets. When an RDM packet is written using `dmx_write()` the DMX driver will respond accordingly and ensure that RDM timing requirements are met. For example, calls to `dmx_send()` typically send a DMX break and mark-after-break when sending a DMX packet with a null start code. When sending an RDM discovery response packet the DMX driver automatically removes the DMX break and mark-after-break which is required per the RDM standard. Sending RDM responses with `dmx_send()` may also fail when the DMX driver has detected that the RDM response timeout has already elapsed. This is done to reduce the number of data collisions on the RDM bus and keeps the RDM bus operating properly.
 
-Likewise, the function `dmx_receive()` behaves contextually when receiving DMX or RDM packets. When receiving DMX, calls to `dmx_receive()` may timeout according to the timeout value provided, such as `DMX_TIMEOUT_TICK`. When receiving RDM packets, the DMX driver may timeout much more quickly than the provided timeout value as the timing requirements for receiving RDM packets are much smaller. This feature of the DMX driver is only enabled when the DMX driver is configured to use a hardware timer.
+Likewise, the function `dmx_receive()` behaves contextually when receiving DMX or RDM packets. When receiving DMX, calls to `dmx_receive()` will timeout according to the timeout value provided, such as `DMX_TIMEOUT_TICK`. When receiving RDM packets, the DMX driver may timeout much more quickly than the provided timeout value as the timing requirements for receiving RDM packets are much smaller.
+
+### RDM Controller
+
+#### Discovering Devices
+
+This library provides two functions for performing RDM discovery. The function `rdm_discover_devices_simple()` is provided as a simple implementation of the discovery algorithm which takes a pointer to an array of UIDs to store discovered UIDs and returns the number of UIDs found.
+
+```c
+rdm_uid_t uids[10];
+
+// This function blocks and may take some time to complete!
+size_t num_uids = rdm_discover_devices_simple(DMX_NUM_2, uids, 10);
+```
+
+Discovery can take several seconds to complete. Users may want to perform an action, such as update a progress bar, whenever a new UID is found. When this is desired, the function `rdm_discover_with_callback()` may be used to specify a callback function which is called whenever a new UID is discovered.
+
+#### Sending Requests
 
 // TODO
 
+### RDM Responder
+
+While it is currently possible to use this library as an RDM responder, no such user-friendly API is exposed to allow for convenient RDM response. This feature is currently in progress.
+
 ## Error Handling
 
-### Packet Errors
+### DMX Packet Errors
 
-On rare occasions, DMX packets can become corrupted. Errors are typically detected upon initially connecting to an active DMX bus but are resolved on receiving the next packet. Errors can be checked by reading the error code from the `dmx_event_t` structure. The error types are as follows:
+On rare occasions, DMX packets can become corrupted. Errors are typically detected upon initially connecting to an active DMX bus but are resolved on receiving the next packet. Errors can be checked by reading the error code from the `dmx_packet_t` struct. The error types are as follows:
 
 - `ESP_OK` indicates data was read successfully.
-- `ESP_ERR_INVALID_RESPONSE` occurs when the DMX driver detects missing stop bits. If a missing stop bit is detected the driver shall discard the improperly framed slot data and all following slots in the packet. When this error is reported the `dmx_event_t` size can be read to determine at which slot the error occurred.
-- `ESP_FAIL` occurs when the ESP32 hardware overflows resulting in loss of data.
+- `ESP_ERR_TIMEOUT` indicates that the driver timed out waiting for a packet.
+- `ESP_FAIL` occurs when the DMX driver detects missing stop bits. If this condition occurs, the driver shall discard the improperly framed slot data and all following slots in the packet. When this error is reported the `dmx_packet_t` size can be read to determine at which slot the error occurred.
+- `ESP_ERR_NOT_FINISHED` occurs when the ESP32 hardware overflows resulting in loss of data.
 
 ```c
 uint8_t data[DMX_PACKET_SIZE];
 
-dmx_event_t event;
+dmx_packet_t packet;
 while (true) {
   if (dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK)) {
-    switch (event.err) {
+    switch (packet.err) {
       case ESP_OK:
         printf("Received packet with start code: %02X and size: %i.\n",
-          event.sc, event.size);
+          packet.sc, packet.size);
         // Data is OK. Now read the packet into the buffer.
-        dmx_read(DMX_NUM_2, data, event.size);
+        dmx_read(DMX_NUM_2, data, packet.size);
+        break;
+      
+      case ESP_ERR_TIMEOUT:
+        printf("The driver timed out waiting for the packet.\n");
+        // If the provided timeout was less than DMX_TIMEOUT_TICK, it may be
+        //  worthwhile to call dmx_receive() again to see if the packet could be
+        //  received.
         break;
 
-      case ESP_ERR_INVALID_RESPONSE:
-        printf("Received malformed byte at slot %i.\n", event.size);
+      case ESP_FAIL:
+        printf("Received malformed byte at slot %i.\n", packet.size);
         // A slot in the packet is malformed. Data can be recovered up until 
         //  event.size
         break;
 
-      case ESP_FAIL:
-        printf("Data could not be processed in time.\n");
+      case ESP_ERR_NOT_FINISHED:
+        printf("The DMX port overflowed.\n");
         // The ESP32 UART overflowed. This could occur if the DMX ISR is being
         //  constantly preempted.
         break;
@@ -362,9 +474,13 @@ It should be noted that this library does not automatically check for DMX timing
 
 DMX and RDM specify different timing requirements for receivers and transmitters. This library attempts to simplify error checking by combining timing requirements for receiving and transmitting. Therefore there are only the above six timing error checking macros instead of six macros each for receiving and transmitting.
 
+### RDM Packet Errors
+
+// TODO
+
 ### DMX Start Codes
 
-This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in `dmx_constants.h`.
+This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in [dmx_types.h](src/dmx_types.h).
 
 - `DMX_SC` is the standard DMX null start code.
 - `RDM_SC` is the standard Remote Device Management start code.
@@ -374,7 +490,7 @@ This library offers the following macro constants for use as DMX start codes. Mo
 - `DMX_ORG_ID_SC` is the organization/manufacturer ID start code.
 - `DMX_SIP_SC` is the System Information Packet start code.
 
-Additional macros constants include the following:
+Additional macro constants include the following:
 
 - `RDM_SUB_SC` is the sub-start code for Remote Device Management. It is the first byte received after the RDM start code.
 - `RDM_PREAMBLE` is not considered a start code but is often the first byte received in an RDM discovery response packet.
@@ -392,21 +508,17 @@ RS-485 transceivers typically have four data input pins: `RO`, `DI`, `DE`, and `
 
 Because `DE` and `/RE` enable writing and reading respectively, and because `DE` is active high and `/RE` is active low, these pins are often shorted together. In this example, these pins are wired together and are controlled with one pin on the ESP32. This pin is called the enable pin. It can also be referred to as the RTS pin. The example schematic can be seen below.
 
-![An example RS-485 circuit](/media/rs485-ckt.png)
+![An example RS-485 circuit](media/rs485-ckt.png)
 
 In this example circuit, R1 and R3 are 680 ohms each. Many RS-485 breakout boards set these resistor values to 20k ohm or higher. Such high resistance values are acceptable and should still allow DMX to be written and read.
 
-R2, the 120 ohm resistor, is a terminating resistor. It is not required to include this resistor but it can ensure system stability when connecting long lines of DMX consisting of multiple devices. If it is decided not to include this resistor, DMX-A and DMX-B should not be shorted together.
+R2, the 120 ohm resistor, is a terminating resistor. It is required only when using RDM. Including this resistor in schematics can also ensure system stability when connecting long lines of DMX consisting of multiple devices. If it is decided not to include this resistor, DMX-A and DMX-B should not be shorted together.
 
 Many RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips may require 5v data to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
 
 ### Hardware Specifications
 
 ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated from other devices on the DMX bus. In the event of a power surge, the likely worse-case scenario would mean the failure of the RS-485 circuitry and not the entire DMX device. Some DMX devices may function without isolation, but using non-isolated equipment is not recommended.
-
-### Remote Device Management
-
-Support for RDM is currently in progress.
 
 ## API Reference
 
