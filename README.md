@@ -132,11 +132,11 @@ For in-depth information on RDM, see the [E1.20 standards document](https://getd
 
 #### Unique IDs
 
-In an RDM network, there is one controller device and several listener devices. Each device in the network has a Unique ID (UID) which uniquely identifies itself against others in the network. If an RDM device has multiple DMX ports, it may possess multiple UIDs; one for each DMX port. UIDs are 48-bits long. The most-significant 16-bits are a device's manufacturer ID. Devices made by the same manufacturer have the same most-significant 16-bits. The remaining, 32 least-significant-bits are a device's device ID. Readers may draw a reasonable comparison to MAC addresses in IP networking equipment. Every IP capable device has at least one MAC address and if they have multiple network interfaces they may have multiple MAC addresses. Likewise, the most significant bits in a MAC address identify a network interface's manufacturer.
+In an RDM network, there is one controller device and several responder devices. Each device in the network has a Unique ID (UID) which uniquely identifies itself against others in the network. If an RDM device has multiple DMX ports, it may possess multiple UIDs; one for each DMX port. UIDs are 48-bits long. The most-significant 16-bits are a device's manufacturer ID. Devices made by the same manufacturer have the same most-significant 16-bits. The remaining, 32 least-significant-bits are a device's device ID. Readers may draw a reasonable comparison to MAC addresses in IP networking equipment. Every IP capable device has at least one MAC address and if they have multiple network interfaces they may have multiple MAC addresses. Likewise, the most significant bits in a MAC address identify a network interface's manufacturer.
 
 UIDs are represented in text by displaying the UID in hexadecimal and by separating the manufacturer ID from the device ID with a `:`. If a device has a manufacturer ID with a value of `0xabcd` and device ID with a value of `0x12345678`, its full UID would be displayed as `abcd:12345678`.
 
-When a controller device composes an RDM request, it must address the request to a specific UID. The addressee may be a singular device or multiple devices. A broadcast UID may address all devices or every device of a specific manufacturer. To address a broadcast request to every device of a specific manufacturer, the manufacturer ID must be set to the manufacturer ID of the desired manufacturer. The device ID will then be set to all 1's. To broadcast to the manufacturer ID of `05e0`, the UID must be set to `05e0:ffffffff`. The UID used to broadcast to all devices regardless of manufacturer is `ffff:ffffffff`.
+When a controller device composes an RDM request, it must address the request to a specific UID. The addressee may be a single device or multiple devices. A broadcast request may be addressed to all devices or to every device of a specific manufacturer. To address a broadcast request to every device of a specific manufacturer, the manufacturer ID must be set to the manufacturer ID of the desired manufacturer. The device ID will then be set to all 1's. To broadcast to every device with the manufacturer ID of `05e0`, the UID must be set to `05e0:ffffffff`. The UID used to broadcast to all devices regardless of manufacturer is `ffff:ffffffff`.
 
 The lowest possible UID is `0000:00000000` and the highest possible UID is `ffff:fffffffe`. In practice the manufacturer IDs `0000` and `ffff` are not permitted so real-world RDM devices would never possess these UIDs.
 
@@ -169,19 +169,19 @@ Most PIDs can be either GET or SET if the responding device supports the request
 
 Parameter Name           | GET                | SET                | Notes
 :------------------------|:------------------:|:------------------:|:------
-`DEVICE_INFO`            | :heavy_check_mark: |                    |
+`DEVICE_INFO`            | :white_check_mark: |                    |
 `DISC_MUTE`              |                    |                    |
 `DISC_UN_MUTE`           |                    |                    |
 `DISC_UNIQUE_BRANCH`     |                    |                    |
-`DMX_START_ADDRESS`      | :heavy_check_mark: | :heavy_check_mark: | Support required if device uses a DMX slot.
-`IDENTIFY_DEVICE`        | :heavy_check_mark: | :heavy_check_mark: |
-`PARAMETER_DESCRIPTION`  | :heavy_check_mark: |                    | Support required for manufacturer-specific PIDs.
-`SOFTWARE_VERSION_LABEL` | :heavy_check_mark: |                    |
-`SUPPORTED_PARAMETERS`   | :heavy_check_mark: |                    | Only required if supporting PIDs beyond the minimum set.
+`DMX_START_ADDRESS`      | :white_check_mark: | :white_check_mark: | Support required if device uses a DMX slot.
+`IDENTIFY_DEVICE`        | :white_check_mark: | :white_check_mark: |
+`PARAMETER_DESCRIPTION`  | :white_check_mark: |                    | Support required for manufacturer-specific PIDs.
+`SOFTWARE_VERSION_LABEL` | :white_check_mark: |                    |
+`SUPPORTED_PARAMETERS`   | :white_check_mark: |                    | Only required if supporting PIDs beyond the minimum set.
 
 #### Discovery
 
-When making RDM requests it is typically desired (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting a `DISC_UNIQUE_BRANCH` command to all devices. The parameters included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller device splits the address space in half and searches each half separately in a binary tree search. The resulting address spaces are divided in two and `DISC_UNIQUE_BRANCH` commands are sent until a single device is found within an address space.
+When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting a `DISC_UNIQUE_BRANCH` command to all devices. The parameters included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. A `DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
 
 When a single device is found within an address space, that device is sent a `DISC_MUTE` request to mute its response to future `DISC_UNIQUE_BRANCH` requests. When responding to `DISC_MUTE` requests, devices with multiple UIDs return a binding UID which represents its primary UID.
 
