@@ -12,7 +12,7 @@
 static const char *TAG = "main";
 static uint8_t data[DMX_MAX_PACKET_SIZE] = {};
 
-void handleRdmEvent(const dmx_event_t *event, const void *data, const uint16_t size);
+void handleRdmEvent(const dmx_packet_t *dmxPacket, const void *data, const uint16_t size);
 
 void dmxTask(void *unused)
 {
@@ -21,29 +21,29 @@ void dmxTask(void *unused)
 
     while (true)
     {
-        dmx_event_t event;
+        dmx_packet_t dmxPacket;
         size_t ret = 0;
-        ret = dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK);
+        ret = dmx_receive(DMX_NUM_2, &dmxPacket, DMX_TIMEOUT_TICK);
         if (ret)
         {
-            if (event.err == ESP_OK)
+            if (dmxPacket.err == ESP_OK)
             {
-                if (event.is_rdm)
+                if (dmxPacket.is_rdm)
                 {
-                    dmx_read(DMX_NUM_2, data, event.size);
-                    handleRdmEvent(&event, data, event.size);
+                    dmx_read(DMX_NUM_2, data, dmxPacket.size);
+                    handleRdmEvent(&dmxPacket, data, dmxPacket.size);
                 }
             }
             else
             {
-                ESP_LOGE(TAG, "dmx error: %s", esp_err_to_name(event.err));
+                ESP_LOGE(TAG, "dmx error: %s", esp_err_to_name(dmxPacket.err));
             }
         }
     }
 }
 
 
-void handleRdmEvent(const dmx_event_t *event, const void *data, const uint16_t size)
+void handleRdmEvent(const dmx_packet_t *dmxPacket, const void *data, const uint16_t size)
 {
     rdm_header_t header;
     if (rdm_get_header(&header, data))
