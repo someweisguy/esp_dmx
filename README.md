@@ -167,17 +167,17 @@ RDM requests must be able to fetch and update parameters. The RDM standard speci
 
 Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device must support the following PIDs at a minimum:
 
-Parameter Name           | GET                | SET                | Notes
-:------------------------|:------------------:|:------------------:|:------
-`DEVICE_INFO`            | :white_check_mark: |                    |
-`DISC_MUTE`              |                    |                    |
-`DISC_UN_MUTE`           |                    |                    |
-`DISC_UNIQUE_BRANCH`     |                    |                    |
-`DMX_START_ADDRESS`      | :white_check_mark: | :white_check_mark: | Support required if device uses a DMX slot.
-`IDENTIFY_DEVICE`        | :white_check_mark: | :white_check_mark: |
-`PARAMETER_DESCRIPTION`  | :white_check_mark: |                    | Support required for manufacturer-specific PIDs.
-`SOFTWARE_VERSION_LABEL` | :white_check_mark: |                    |
-`SUPPORTED_PARAMETERS`   | :white_check_mark: |                    | Only required if supporting PIDs beyond the minimum set.
+Parameter Name           | GET | SET | Notes
+:------------------------|:---:|:---:|:------
+`DEVICE_INFO`            |  X  |     |
+`DISC_MUTE`              |     |     |
+`DISC_UN_MUTE`           |     |     |
+`DISC_UNIQUE_BRANCH`     |     |     |
+`DMX_START_ADDRESS`      |  X  |  X  | Support required if device uses a DMX slot.
+`IDENTIFY_DEVICE`        |  X  |  X  |
+`PARAMETER_DESCRIPTION`  |  X  |     | Support required for manufacturer-specific PIDs.
+`SOFTWARE_VERSION_LABEL` |  X  |     |
+`SUPPORTED_PARAMETERS`   |  X  |     | Only required if supporting PIDs beyond the minimum set.
 
 #### Discovery
 
@@ -456,7 +456,7 @@ while (true) {
         break;
     }
   } else {
-    printf("Lost DMX signal\n");
+    printf("Lost DMX signal.\n");
     // A packet hasn't been received in DMX_TIMEOUT_TICK ticks.
     // Handle packet timeout here...
   }
