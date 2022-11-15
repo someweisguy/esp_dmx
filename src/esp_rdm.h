@@ -335,9 +335,9 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
 size_t rdm_send_mute_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, const rdm_disc_mute_t *mute_params);
 
 /**
- * @brief Sends RDM_CC_GET_COMMAND_RESPONSE with the device_info as payload
+ * @brief Sends RDM_CC_GET_COMMAND_RESPONSE with the specified payload
 */
-size_t rdm_send_device_info_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, const rdm_device_info_t *device_info);
+size_t rdm_send_get_param_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t tn, rdm_pid_t pid, uint16_t sub_device, const void* pd, size_t pdl);
 
 /**
  * @brief Sends RDM_CC_GET_COMMAND_RESPONSE with the identify_device as payload

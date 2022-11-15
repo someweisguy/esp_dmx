@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_dmx.h"
+#include "private/rdm_encode/functions.h"
 
 rdm_parameters_t rdm_parameters[DMX_NUM_MAX] = {0};
 
@@ -33,7 +34,6 @@ bool rdm_client_init(dmx_port_t dmx_num, uint16_t start_address, uint16_t footpr
 
     return true;
 }
-
 
 void rdm_client_handle_discovery_command(dmx_port_t dmx_num, const rdm_header_t *header, const void *data, const uint16_t data_size)
 {
@@ -93,15 +93,29 @@ void rdm_client_handle_rdm_message(dmx_port_t dmx_num, const dmx_packet_t *dmxPa
                 {
                 case RDM_PID_DEVICE_INFO:
                 {
-                    const size_t bytesSent = rdm_send_device_info_response(dmx_num, header.source_uid, header.tn, &rdm_parameters[dmx_num].device_info);
+                    uint8_t buffer[0x13]; // FIXME this is not good style
+                    const size_t pdl = rdm_encode_device_info_(&buffer, &rdm_parameters[dmx_num].device_info);
+                    if (pdl != 0x13)
+                    {
+                        ESP_LOGE("RDM DBG", "buffer overflow in rdm_encode_device_info_");
+                        return;
+                    }
+                    const size_t bytesSent = rdm_send_get_param_response(dmx_num, header.source_uid, header.tn,
+                                                                         RDM_PID_DEVICE_INFO, header.sub_device, buffer, pdl);
                     ESP_LOGI("RDM DBG", "Sent DEVICE_INFO response. %d bytes", bytesSent);
                 }
                 break;
                 case RDM_PID_IDENTIFY_DEVICE:
                 {
                     const rdm_parameters_t *params = &rdm_parameters[dmx_num];
-                    const size_t bytesSent = rdm_send_idenfiy_device_response(dmx_num, header.source_uid, header.tn, header.sub_device, params->identify_device);
+                    const size_t bytesSent = rdm_send_get_param_response(dmx_num, header.source_uid, header.tn,
+                                                                         RDM_PID_IDENTIFY_DEVICE, header.sub_device, &params->identify_device, 1);
+
                     ESP_LOGI("RDM DBG", "Sent IDENTIFY_DEVICE response. %d bytes", bytesSent);
+                }
+                break;
+                case RDM_PID_DEVICE_LABEL:
+                {
                 }
                 break;
                 default:
