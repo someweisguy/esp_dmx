@@ -672,7 +672,7 @@ size_t rdm_send_device_info_response(dmx_port_t dmx_num, rdm_uid_t uid, uint8_t 
       .destination_uid = uid,
       .source_uid = rdm_get_uid(dmx_num),
       .tn = tn, 
-      .port_id = dmx_num + 1,
+      .port_id = RDM_RESPONSE_TYPE_ACK,
       .message_count = 0,
       .sub_device = 0,
       .cc = RDM_CC_GET_COMMAND_RESPONSE,
