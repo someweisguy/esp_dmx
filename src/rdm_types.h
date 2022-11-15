@@ -289,7 +289,9 @@ typedef struct rdm_device_info_t {
 */
 typedef struct rdm_parameters_t {
   rdm_device_info_t device_info;
-  bool identify_device;  
+  bool identify_device;
+  char device_label[32];
+  size_t device_label_len;  
 } rdm_parameters_t;
 
 #ifdef __cplusplus

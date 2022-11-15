@@ -5,14 +5,21 @@
 #include "esp_check.h"
 #include "esp_dmx.h"
 #include "private/rdm_encode/functions.h"
+#include <string.h>
 
 rdm_parameters_t rdm_parameters[DMX_NUM_MAX] = {0};
 
-bool rdm_client_init(dmx_port_t dmx_num, uint16_t start_address, uint16_t footprint)
+bool rdm_client_init(dmx_port_t dmx_num, uint16_t start_address, uint16_t footprint, const char *device_label)
 {
     if (dmx_num >= DMX_NUM_MAX)
     {
         ESP_LOGE("rdm_client", "dmx_num too large");
+        return false;
+    }
+
+    if (strlen(device_label) > 31)
+    {
+        ESP_LOGE("rdm_client", "device_label too long. Max size is 31");
         return false;
     }
 
@@ -31,6 +38,9 @@ bool rdm_client_init(dmx_port_t dmx_num, uint16_t start_address, uint16_t footpr
     params->device_info.sub_device_count = 0;
     params->device_info.sensor_count = 0;
     params->identify_device = false;
+
+    strcpy(params->device_label, device_label);
+    params->device_label_len = strlen(device_label);
 
     return true;
 }
@@ -116,6 +126,10 @@ void rdm_client_handle_rdm_message(dmx_port_t dmx_num, const dmx_packet_t *dmxPa
                 break;
                 case RDM_PID_DEVICE_LABEL:
                 {
+                    const rdm_parameters_t *params = &rdm_parameters[dmx_num];
+                    const size_t bytesSent = rdm_send_get_param_response(dmx_num, header.source_uid, header.tn,
+                                                                         RDM_PID_DEVICE_LABEL, header.sub_device, params->device_label, params->device_label_len);
+                    ESP_LOGI("RDM DBG", "Sent SET DEVICE_LABEL response. label: %s, %d bytes", params->device_label, bytesSent);
                 }
                 break;
                 default:
