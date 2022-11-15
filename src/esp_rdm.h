@@ -161,8 +161,8 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
  *
  * @param dmx_num The DMX port number.
  * @param cb A callback function which is called when a new device is found.
- * @param context Context which is passed to the callback function when a new
- * device is found.
+ * @param[inout] context Context which is passed to the callback function when a
+ * new device is found.
  * @return The number of devices found.
  */
 size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
