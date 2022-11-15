@@ -133,7 +133,7 @@ void rdm_client_handle_rdm_message(dmx_port_t dmx_num, const dmx_packet_t *dmxPa
                 }
                 break;
                 default:
-                    ESP_LOGI("RDM DBG", " get pid: %04x", header.pid);
+                    ESP_LOGI("RDM DBG", "unknown get pid: %04x", header.pid);
                 }
             }
             else if (header.cc == RDM_CC_SET_COMMAND)
@@ -143,10 +143,22 @@ void rdm_client_handle_rdm_message(dmx_port_t dmx_num, const dmx_packet_t *dmxPa
                 case RDM_PID_IDENTIFY_DEVICE:
                 {
                     // TODO notify someone that identify changed!
-                    rdm_parameters[dmx_num].identify_device = ((uint8_t *)data)[24];
+                    rdm_parameters[dmx_num].identify_device = ((uint8_t *)data)[24]; // FIXME find better way to get the address
                     const size_t bytesSent = rdm_send_set_command_ack_response(dmx_num, header.source_uid, header.tn, header.sub_device, RDM_PID_IDENTIFY_DEVICE);
                     ESP_LOGI("RDM DBG", "Sent SET IDENTIFY_DEVICE response. %d bytes", bytesSent);
                     ESP_LOGI("RDM DBG", "Set identify: %d", rdm_parameters[dmx_num].identify_device);
+                }
+                break;
+                case RDM_PID_DMX_START_ADDRESS:
+                {
+                    rdm_parameters_t *params = &rdm_parameters[dmx_num];
+                    uint16_t addr;
+                    memcpy(&addr, data + 24, 2);  // FIXME find better way to get the address
+                    params->device_info.start_address = bswap16(addr);
+                    const size_t bytesSent = rdm_send_set_command_ack_response(dmx_num, header.source_uid, header.tn, header.sub_device, RDM_PID_DMX_START_ADDRESS);
+                    ESP_LOGI("RDM DBG", "Sent SET DMX_START_ADDRESS response. %d bytes", bytesSent);
+                    ESP_LOGI("RDM DBG", "Start Address set to %d", params->device_info.start_address);
+                    ESP_LOG_BUFFER_HEX("RDM", data, size);
                 }
                 break;
                 default:
