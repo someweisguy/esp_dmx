@@ -421,16 +421,16 @@ static size_t rdm_send_generic_request(
   } else {
     written = 0;
   }
-  rdm_header_t header = {.destination_uid = uid,
-                         .source_uid = rdm_get_uid(dmx_num),
-                         .tn = tn,
-                         .port_id = dmx_num + 1,
-                         .message_count = 0,
-                         .sub_device = sub_device,
-                         .cc = cc,
-                         .pid = pid,
-                         .pdl = written};
-  written += rdm_encode_header(rdm, &header);
+  rdm_header_t req_header = {.destination_uid = uid,
+                             .source_uid = rdm_get_uid(dmx_num),
+                             .tn = tn,
+                             .port_id = dmx_num + 1,
+                             .message_count = 0,
+                             .sub_device = sub_device,
+                             .cc = cc,
+                             .pid = pid,
+                             .pdl = written};
+  written += rdm_encode_header(rdm, &req_header);
   dmx_send(dmx_num, written);
 
   // Receive and decode the RDM response
@@ -447,55 +447,59 @@ static size_t rdm_send_generic_request(
     } else {
       // Parse the response to ensure it is valid
       esp_err_t err;
-      if (!rdm_decode_header(driver->data.buffer, &header)) {
+      rdm_header_t resp_header;
+      if (!rdm_decode_header(driver->data.buffer, &resp_header)) {
         err = ESP_ERR_INVALID_RESPONSE;
-      } else if (!header.checksum_is_valid) {
+      } else if (!resp_header.checksum_is_valid) {
         err = ESP_ERR_INVALID_CRC;
-      } else if (header.destination_uid != rdm_get_uid(dmx_num)) {
+      } else if (resp_header.cc != req_header.cc + 1 ||
+                 resp_header.pid != req_header.pid ||
+                 resp_header.destination_uid != req_header.source_uid ||
+                 resp_header.source_uid != req_header.destination_uid ||
+                 resp_header.sub_device != req_header.sub_device ||
+                 resp_header.tn != req_header.tn) {
         err = ESP_ERR_INVALID_RESPONSE;
       } else {
         err = ESP_OK;
-      }
 
-      // Handle the parameter data
-      uint32_t response_val;
-      if (header.cc == cc + 1 && header.pid == pid) {
-        if (header.response_type == RDM_RESPONSE_TYPE_ACK) {
+        // Handle the parameter data
+        uint32_t response_val;
+        if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK) {
           // Decode the parameter data
           if (decode) {
             // Return the number of params available when response is received
-            return_val =
-                decode(&rdm->pd, decode_params, num_decode_params, header.pdl);
+            return_val = decode(&rdm->pd, decode_params, num_decode_params,
+                                resp_header.pdl);
             response_val = return_val;
           } else {
             // Return true when no response parameters are expected
             return_val = true;
             response_val = 0;
           }
-        } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+        } else if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
           // Get the estimated response time and convert it to FreeRTOS ticks
-          rdm_decode_16bit(&rdm->pd, &response_val, 1, header.pdl);
+          rdm_decode_16bit(&rdm->pd, &response_val, 1, resp_header.pdl);
           response_val = pdMS_TO_TICKS(response_val * 10);
-        } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+        } else if (resp_header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
           // Report the NACK reason
-          rdm_decode_16bit(&rdm->pd, &response_val, 1, header.pdl);
-        } else if (header.response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+          rdm_decode_16bit(&rdm->pd, &response_val, 1, resp_header.pdl);
+        } else if (resp_header.response_type ==
+                   RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
           // TODO: implement overflow support
           err = ESP_ERR_NOT_SUPPORTED;
+          response_val = 0;
         } else {
           // An unknown response type was received
           err = ESP_ERR_INVALID_RESPONSE;
+          response_val = 0;
         }
-      } else {
-        // The received CC and PID are invalid
-        err = ESP_ERR_INVALID_RESPONSE;
-      }
 
-      // Report response back to user
-      if (response != NULL) {
-        response->err = err;
-        response->type = header.response_type;
-        response->num_params = response_val;
+        // Report response back to user
+        if (response != NULL) {
+          response->err = err;
+          response->type = resp_header.response_type;
+          response->num_params = response_val;
+        }
       }
     }
   } else {
@@ -516,8 +520,11 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
                                     rdm_response_t *response, rdm_pid_t *pids,
                                     size_t size) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  // TODO: rdm check for valid uid
+  // TODO: rdm check for valid sub_device
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
+  // TODO: sub_device cannot be broadcast
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_SUPPORTED_PARAMETERS, NULL, NULL, 0,
                                   rdm_decode_16bit, pids, size, response);
