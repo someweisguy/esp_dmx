@@ -128,9 +128,10 @@ typedef enum rdm_nr_t {
  */
 typedef enum rdm_pid_t {
   // Category: Network Management
-  RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,  // TODO: required
-  RDM_PID_DISC_MUTE = 0x0002,  // TODO: required
-  RDM_PID_DISC_UN_MUTE = 0x0003,  // TODO: required
+  RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,  // Discovery Unique Branch. This parameter is used for the device discovery process. @note Does not support GET or SET. Must only be sent to RDM_BROADCAST_ALL_UIDS. Must only be sent to root devices.
+  RDM_PID_DISC_MUTE = 0x0002,  // A responder port shall set its Mute flag when it receives this message containing its UID, or a broadcast address. @note Does not support GET or SET. Must only be sent to root devices.
+  RDM_PID_DISC_UN_MUTE = 0x0003,  // A responder port shall clear its Mute flag when it receives this message containing its UID, or a broadcast address. @note Does not support GET or SET. Must only be sent to root devices.
+
   RDM_PID_PROXIED_DEVICES = 0x0010,
   RDM_PID_PROXIED_DEVICE_COUNT = 0x0011,
   RDM_PID_COMMS_STATUS = 0x0015,
@@ -143,11 +144,11 @@ typedef enum rdm_pid_t {
   RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,  // TODO: See rdm_status_t
 
   // Category: RDM Information
-  RDM_PID_SUPPORTED_PARAMETERS = 0x0050,  // TODO: req'd if using more than minimum PIDs
+  RDM_PID_SUPPORTED_PARAMETERS = 0x0050,  // This parameter is used to retrieve a list of supported PIDs. @note Supports GET.
   RDM_PID_PARAMETER_DESCRIPTION = 0x0051,  // TODO: req'd if using manufacturer specific PIDs
   
   // Category: Product Information
-  RDM_PID_DEVICE_INFO = 0x0060,  // TODO: required
+  RDM_PID_DEVICE_INFO = 0x0060,  // This parameter is used to retrieve a variety of information about the device that is normally required by a controller. @note Supports GET.
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
   RDM_PID_DEVICE_MODEL_DESCRIPTION = 0x0080,
   RDM_PID_MANUFACTURER_LABEL = 0x0081,
@@ -155,14 +156,14 @@ typedef enum rdm_pid_t {
   RDM_PID_FACTORY_DEFAULTS = 0x0090,
   RDM_PID_LANGUAGE_CAPABILITIES = 0x00a0,
   RDM_PID_LANGUAGE = 0x00b0,
-  RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,  // TODO: required
+  RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,  // This parameter is used to get a descriptive ASCII text label for the device‘s operating software version. The descriptive text returned by this parameter is intended for display to the user. @note Supports GET.
   RDM_PID_BOOT_SOFTWARE_VERSION_ID = 0x00c1,
   RDM_PID_BOOT_SOFTWARE_VERSION_LABEL = 0x00c2,
 
   // Category: DMX512 Setup
   RDM_PID_DMX_PERSONALITY = 0x00e0,
   RDM_PID_DMX_PERSONALITY_DESCRIPTION = 0x00e1,
-  RDM_PID_DMX_START_ADDRESS = 0x00f0,  // TODO: required
+  RDM_PID_DMX_START_ADDRESS = 0x00f0,  // This parameter is used to set or get the DMX512 start address. @note Supports GET and SET.
   RDM_PID_SLOT_INFO = 0x0120,
   RDM_PID_SLOT_DESCRIPTION = 0x0121,
   RDM_PID_DEFAULT_SLOT_VALUE = 0x0122,
@@ -194,7 +195,7 @@ typedef enum rdm_pid_t {
   RDM_PID_REAL_TIME_CLOCK = 0x0603,
 
   // Category: Control (0x10xx)
-  RDM_PID_IDENTIFY_DEVICE = 0x1000,  // TODO: required
+  RDM_PID_IDENTIFY_DEVICE = 0x1000,  // This parameter is used for the user to physically identify the device represented by the UID. @note Supports GET and SET.
   RDM_PID_RESET_DEVICE = 0x1001, 
   RDM_PID_POWER_STATE = 0x1010,  // TODO: See rdm_power_state_t
   RDM_PID_PERFORM_SELF_TEST = 0x1020,  // TODO: See rdm_self_test_t
