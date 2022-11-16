@@ -132,7 +132,7 @@ rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
     esp_err_t err;
     rdm_response_type_t response_type;
     size_t num_params;
-    if (!rdm_decode_disc_response(rdm, &uid)) {
+    if (!rdm_decode_disc_response((uint8_t *)rdm, &uid)) {
       err = ESP_ERR_INVALID_CRC;
       response_type = RDM_RESPONSE_TYPE_NONE;
       num_params = 0;
