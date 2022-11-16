@@ -26,10 +26,8 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
     - [Parameters](#parameters)
     - [Discovery](#discovery)
     - [Response Types](#response-types)
-  - [RDM Controller](#rdm-controller)
-    - [Sending Requests](#sending-requests)
-    - [Discovering Devices](#discovering-devices)
-    - [Currently Supported PIDs](#currently-supported-pids)
+  - [RDM Requests](#rdm-requests)
+  - [Discovering Devices](#discovering-devices)
   - [RDM Responder](#rdm-responder)
 - [Error Handling](#error-handling)
   - [DMX Packet Errors](#dmx-packet-errors)
@@ -37,6 +35,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
+  - [Currently Supported RDM PIDs](#currently-supported-rdm-pids)
   - [Hardware Specifications](#hardware-specifications)
 - [API Reference](#api-reference)
 - [To Do](#to-do)
@@ -421,11 +420,9 @@ Responding devices shall respond to requests only if the request was a non-broad
 
 Responders must respond to every non-broadcast GET or SET request as well as every broadcast `DISC_UNIQUE_BRANCH` if their UID falls within the request's address space. When responding to `DISC_UNIQUE_BRANCH` requests, responders shall not send a DMX break and mark-after-break in order to improve discovery times and shall encode their response to reduce data loss during data collisions. Responders may only respond to `DISC_MUTE` and `DISC_UN_MUTE` requests with `RESPONSE_TYPE_ACK`.
 
-### RDM Controller
+### RDM Requests
 
-#### Sending Requests
-
-This library currently supports the minimum required PIDs specified in the RDM standard. Request functions in library are named using the prefix `rdm_`, whether the request is a GET or a SET, and the PID name. To GET a device's `DEVICE_INFO`, users can call `rdm_get_device_info()`. To SET a device's `DMX_START_ADDRESS`, users can call `rdm_set_dmx_start_address()`. Functions which perform GET requests return the number of parameters it received from the responder. Functions which perform SET requests return `true` if a request was successful.
+This library currently supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_`, whether the request is a GET or a SET, and the parameter name. To GET a device's `DEVICE_INFO`, users can call `rdm_get_device_info()`. To SET a device's `DMX_START_ADDRESS`, users can call `rdm_set_dmx_start_address()`. Functions which perform GET requests return the number of parameters it received from the responder. Functions which perform SET requests return `true` if a request was successful.
 
 ```c
 rdm_uid_t uid = 0x3b1044c06fbf;  // The destination UID for the request.
@@ -446,9 +443,20 @@ if (success) {
 }
 ```
 
-// TODO `rdm_response_t` tutorial goes here. Don't forget to link to RDM error handling.
+Response information from requests is read into a `rdm_response_t` pointer which is provided by the user. Users can use this type to ensure that requests were successful and, if they are not successful, handle errors.
 
-#### Discovering Devices
+The `response_type_t` type contains the following fields:
+
+- `err` evaluates to `true` if an error occurred reading DMX or RDM data. More information on error handling can be found in the [RDM Packet Errors](#rdm-packet-errors) section.
+- `type` is the type of the RDM response received. It can be any of the RDM response types enumerated above or `RDM_RESPONSE_TYPE_NONE` if no response was received.
+
+The remaining response field is a union which should be read depending on the value in `type.`
+
+- `num_params` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_ACK_OVERFLOW`. It returns the number of RDM parameters that was received from the RDM responder.
+- `timer` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_TIMER`. It returns the number of FreeRTOS ticks that must elapse before the RDM responder will be ready to process the request.
+- `nack_reason` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_NACK_REASON`. It returns the NACK reason code that was received from the RDM responder.
+
+### Discovering Devices
 
 This library provides two functions for performing full RDM discovery. The function `rdm_discover_devices_simple()` is provided as a simple implementation of the discovery algorithm which takes a pointer to an array of UIDs to store discovered UIDs and returns the number of UIDs found.
 
@@ -462,13 +470,7 @@ size_t num_uids = rdm_discover_devices_simple(DMX_NUM_2, uids, array_size);
 
 Discovery can take several seconds to complete. Users may want to perform an action, such as update a progress bar, whenever a new UID is found. When this is desired, the function `rdm_discover_with_callback()` may be used to specify a callback function which is called when a new UID is discovered.
 
-// TODO: talk about how `rdm_send_disc_unique_branch()` and `rdm_send_mute()` are available for users to be able to send individual requests or to implement their own discovery algorithm.
-
-// TODO: split the next paragraph into two sections.
-
-`DISC_UNIQUE_BRANCH` commands support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_MUTE` and `DISC_UN_MUTE` similarly do not support GET nor SET. These PIDs have been combined into one function, `rdm_send_mute()`. Muting or un-muting may be selected by providing the appropriate function argument, `true` to mute, `false` to un-mute. `DISC_MUTE` and `DISC_UN_MUTE` commands may only be sent to the root device, so the `sub_device` argument has been omitted from `rdm_send_mute()`. `DISC_UNIQUE_BRANCH` commands may only be sent to the root device, and may only be addressed to all devices on the RDM network. The `sub_device` and `uid` arguments have been omitted from the `rdm_send_disc_unique_branch()` function.
-
-// TODO:  `rdm_send_disc_unique_branch()` example that explains that it returns `true` if it receives any response, even if the response is a data collision. Users should then check `response.err == ESP_ERR_INVALID_CRC` to detect if a data collision occurred.
+`DISC_UNIQUE_BRANCH` commands support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_UNIQUE_BRANCH` commands may only be sent to the root device, and may only be addressed to all devices on the RDM network. The `sub_device` and `uid` arguments have therefore been omitted from the function signature. This function is unique amongst the RDM functions provided by this library because it returns the decoded UID received from its response or `0` if no response was received. Due to the possibility of data collisions from this request, it is imperative that `response.err` is checked to verify data integrity.
 
 ```c
 // Define the address space within which devices will be discovered.
@@ -477,10 +479,9 @@ const rdm_disc_unique_branch_t disc_unique_branch = {
   .lower_bound = 0
 };
 rdm_response_t response;  // Stores response information.
-rdm_uid_t uid;            // Stores the response UID, if it is received.
-bool got_reply = rdm_send_disc_unique_branch(DMX_NUM_2, &disc_unique_branch, 
-                                             &response, &uid);
-if (got_reply) {
+rdm_uid_t uid = rdm_send_disc_unique_branch(DMX_NUM_2, &disc_unique_branch, 
+                                            &response);
+if (uid != 0) {
   // Got a DISC_UNIQUE_BRANCH response!
 
   if (response.err == ESP_OK) {
@@ -498,7 +499,7 @@ if (got_reply) {
 }
 ```
 
-// TODO: `rdm_disc_mute()` tutorial goes here.
+`DISC_MUTE` and `DISC_UN_MUTE` similarly do not support GET nor SET. These PIDs have been combined into one function, `rdm_send_mute()`. Muting or un-muting may be selected by providing the appropriate function argument, `true` to mute, `false` to un-mute. `DISC_MUTE` and `DISC_UN_MUTE` commands may only be sent to the root device, so the `sub_device` argument has been omitted from `rdm_send_mute()`.
 
 ```c
 rdm_uid_t uid = RDM_BROADCAST_ALL_UID;  // Broadcast to all devices.
@@ -514,21 +515,6 @@ if (success) {
     NULL instead of an rdm_response_t pointer or an rdm_disc_mute_t pointer. */
 }
 ```
-
-#### Currently Supported PIDs
-
-The PIDs currently implemented by this library are listed below.
-
-Parameter                | GET | SET | Notes
-:------------------------|:---:|:---:|:------
-`DEVICE_INFO`            |  X  |     |
-`DISC_MUTE`              |     |     | `DISC_MUTE` and `DISC_UN_MUTE` combined into one function.
-`DISC_UN_MUTE`           |     |     | `DISC_MUTE` and `DISC_UN_MUTE` combined into one function.
-`DISC_UNIQUE_BRANCH`     |     |     |
-`DMX_START_ADDRESS`      |  X  |  X  |
-`IDENTIFY_DEVICE`        |  X  |  X  |
-`SOFTWARE_VERSION_LABEL` |  X  |     |
-`SUPPORTED_PARAMETERS`   |  X  |     | `RESPONSE_TYPE_ACK_OVERFLOW` not currently supported.
 
 ### RDM Responder
 
@@ -550,7 +536,7 @@ uint8_t data[DMX_PACKET_SIZE];
 
 dmx_packet_t packet;
 while (true) {
-  if (dmx_receive(DMX_NUM_2, &event, DMX_TIMEOUT_TICK)) {
+  if (dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK)) {
     switch (packet.err) {
       case ESP_OK:
         printf("Received packet with start code: %02X and size: %i.\n",
@@ -561,26 +547,27 @@ while (true) {
       
       case ESP_ERR_TIMEOUT:
         printf("The driver timed out waiting for the packet.\n");
-        // If the provided timeout was less than DMX_TIMEOUT_TICK, it may be
-        //  worthwhile to call dmx_receive() again to see if the packet could be
-        //  received.
+        /* If the provided timeout was less than DMX_TIMEOUT_TICK, it may be
+          worthwhile to call dmx_receive() again to see if the packet could be
+          received. */
         break;
 
       case ESP_FAIL:
         printf("Received malformed byte at slot %i.\n", packet.size);
-        // A slot in the packet is malformed. Data can be recovered up until 
-        //  event.size
+        /* A slot in the packet is malformed. Data can be recovered up until 
+          packet.size. */
         break;
 
       case ESP_ERR_NOT_FINISHED:
         printf("The DMX port overflowed.\n");
-        // The ESP32 UART overflowed. This could occur if the DMX ISR is being
-        //  constantly preempted.
+        /* The ESP32 UART overflowed. This could occur if the DMX ISR is being
+          constantly preempted. */
         break;
     }
   } else {
     printf("Lost DMX signal.\n");
     // A packet hasn't been received in DMX_TIMEOUT_TICK ticks.
+
     // Handle packet timeout here...
   }
 }
@@ -638,6 +625,21 @@ In this example circuit, R1 and R3 are 680 ohms each. Many RS-485 breakout board
 R2, the 120 ohm resistor, is a terminating resistor. It is required only when using RDM. Including this resistor in schematics can also ensure system stability when connecting long lines of DMX consisting of multiple devices. If it is decided not to include this resistor, DMX-A and DMX-B should not be shorted together.
 
 Many RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips may require 5v data to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
+
+### Currently Supported RDM PIDs
+
+The PIDs currently implemented by this library are listed below.
+
+Parameter                | GET | SET | Notes
+:------------------------|:---:|:---:|:------
+`DEVICE_INFO`            |  X  |     |
+`DISC_MUTE`              |     |     | `DISC_MUTE` and `DISC_UN_MUTE` combined into one function.
+`DISC_UN_MUTE`           |     |     | `DISC_MUTE` and `DISC_UN_MUTE` combined into one function.
+`DISC_UNIQUE_BRANCH`     |     |     |
+`DMX_START_ADDRESS`      |  X  |  X  |
+`IDENTIFY_DEVICE`        |  X  |  X  |
+`SOFTWARE_VERSION_LABEL` |  X  |     |
+`SUPPORTED_PARAMETERS`   |  X  |     | `RESPONSE_TYPE_ACK_OVERFLOW` not currently supported.
 
 ### Hardware Specifications
 
