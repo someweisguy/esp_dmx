@@ -206,16 +206,15 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
                  resp_header.pid != pid ||
                  resp_header.destination_uid != req_header.source_uid ||
                  resp_header.source_uid != req_header.destination_uid ||
-                 resp_header.pdl < 2) {
-        err = ESP_ERR_INVALID_RESPONSE;
-      } else if (resp_header.tn != tn ||
+                 resp_header.tn != tn ||
                  resp_header.sub_device != RDM_ROOT_DEVICE) {
-        err = ESP_ERR_INVALID_ARG;
+        err = ESP_ERR_INVALID_RESPONSE;
       } else {
         err = ESP_OK;
 
         // Decode the response
-        if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK) {
+        if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK &&
+            resp_header.pdl < 2) {
           if (params != NULL) {
             rdm_decode_mute(&rdm->pd, params, 1, resp_header.pdl);
           }
