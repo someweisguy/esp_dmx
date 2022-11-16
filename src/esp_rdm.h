@@ -128,13 +128,11 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
  * @param dmx_num The DMX port number.
  * @param[in] params A pointer to the discovery UID bounds to send.
  * @param[out] response A pointer to into which to store RDM response summary.
- * @param[out] uid The decoded UID of the response, if any. If no response, the
- * UID is set to 0.
- * @return 1 if a response is received.
+ * @return // TODO
  */
-size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
-                                   rdm_disc_unique_branch_t *params,
-                                   rdm_response_t *response, rdm_uid_t *uid);
+rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
+                                      rdm_disc_unique_branch_t *params,
+                                      rdm_response_t *response);
 
 /**
  * @brief Sends an RDM discovery mute request and reads the response, if any.
@@ -144,10 +142,11 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
  * @param mute True to send a mute request, false to send an un-mute request.
  * @param[out] response A pointer into which to store the RDM response summary.
  * @param[out] params A pointer to the discovery mute params to receive.
- * @return 1 if a response is received.
+ * @return true  // TODO
+ * @return false  // TODO
  */
-size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
-                          rdm_response_t *response, rdm_disc_mute_t *params);
+bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
+                        rdm_response_t *response, rdm_disc_mute_t *params);
 
 /**
  * @brief Performs the RDM device discovery algorithm and executes a callback
