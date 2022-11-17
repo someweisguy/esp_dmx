@@ -214,7 +214,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
 
         // Decode the response
         if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK &&
-            resp_header.pdl < 2) {
+            resp_header.pdl >= 2) {
           if (params != NULL) {
             rdm_decode_mute(&rdm->pd, params, 1, resp_header.pdl);
           }
