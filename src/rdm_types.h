@@ -33,26 +33,11 @@ typedef uint32_t rdm_sub_device_t;
 #define RDM_DEFAULT_MAN_ID (0x05e0)
 
 /**
- * @brief This macro creates a broadcast UID for a specific manufacturer. This
- * can be used to send commands to all devices made by one manufacturer. For
- * example, commands sent to RDM_MANUFACTURER_BROADCAST_UID(0x05e0) will be
- * processed by devices that use the default manufacturer ID of this library.
- */
-#define RDM_BROADCAST_MAN_UID(man_id) \
-  ((((rdm_uid_t)man_id & 0xffff) << 32) | (rdm_uid_t)0xffffffff)
-
-/**
- * @brief Returns true if a UID is a broadcast UID.
- */
-#define RDM_UID_IS_BROADCAST(uid) \
-  (((rdm_uid_t)uid & (rdm_uid_t)0xffffffff) == (rdm_uid_t)0xffffffff)
-
-/**
  * @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
  * messages.
  */
-static const rdm_uid_t RDM_BROADCAST_ALL_UID = RDM_BROADCAST_MAN_UID(0xffff);
+static const rdm_uid_t RDM_BROADCAST_ALL_UID = 0xffffffffffff;
 
 /**
  * @brief The maximum RDM UID possible. Any UID above this value (except

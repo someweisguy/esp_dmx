@@ -184,7 +184,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
 
   // Determine if a response is expected
   size_t num_params = 0;
-  if (!RDM_UID_IS_BROADCAST(uid)) {
+  if (!rdm_uid_is_broadcast(uid)) {
     // Receive the response
     dmx_packet_t event;
     const size_t read = dmx_receive(dmx_num, &event, DMX_TIMEOUT_TICK);
@@ -434,7 +434,7 @@ static size_t rdm_send_generic_request(
 
   // Receive and decode the RDM response
   uint32_t return_val = 0;
-  if (!RDM_UID_IS_BROADCAST(uid)) {
+  if (!rdm_uid_is_broadcast(uid)) {
     dmx_packet_t event;
     const size_t read = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(20));
     if (!read) {
@@ -522,7 +522,7 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
   // TODO: rdm check for valid uid
   // TODO: rdm check for valid sub_device
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
+  RDM_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
   // TODO: sub_device cannot be broadcast
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_SUPPORTED_PARAMETERS, NULL, NULL, 0,
@@ -535,7 +535,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            rdm_device_info_t *device_info) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
+  RDM_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
   RDM_CHECK(device_info != NULL, 0, "device_info is null");
   return rdm_send_generic_request(
       dmx_num, uid, sub_device, RDM_CC_GET_COMMAND, RDM_PID_DEVICE_INFO, NULL,
@@ -548,7 +548,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       size_t size) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
+  RDM_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_SOFTWARE_VERSION_LABEL, NULL, NULL, 0,
                                   rdm_decode_string, label, size, response);
@@ -559,7 +559,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  rdm_response_t *response, int *start_address) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
+  RDM_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
   RDM_CHECK(start_address != NULL, 0, "start_address is null");
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_DMX_START_ADDRESS, NULL, NULL, 0,
@@ -583,7 +583,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_response_t *response, bool *identify) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(!RDM_UID_IS_BROADCAST(uid), 0, "uid cannot be broadcast");
+  RDM_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
   RDM_CHECK(identify != NULL, 0, "identify is null");
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_IDENTIFY_DEVICE, NULL, NULL, 0,

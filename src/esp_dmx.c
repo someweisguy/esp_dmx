@@ -205,7 +205,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             if (rdm->cc == RDM_CC_DISC_COMMAND &&
                 rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
               driver->data.type = RDM_PACKET_TYPE_DISCOVERY;
-            } else if (RDM_UID_IS_BROADCAST(buf_to_uid(rdm->destination_uid))) {
+            } else if (rdm_uid_is_broadcast(buf_to_uid(rdm->destination_uid))) {
               driver->data.type = RDM_PACKET_TYPE_BROADCAST;
             } else if (rdm->cc == RDM_CC_GET_COMMAND ||
                        rdm->cc == RDM_CC_SET_COMMAND ||
@@ -1185,7 +1185,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
         rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
       packet_type = RDM_PACKET_TYPE_DISCOVERY;
       ++driver->rdm.tn;
-    } else if (RDM_UID_IS_BROADCAST(buf_to_uid(rdm->destination_uid))) {
+    } else if (rdm_uid_is_broadcast(buf_to_uid(rdm->destination_uid))) {
       packet_type = RDM_PACKET_TYPE_BROADCAST;
       ++driver->rdm.tn;
     } else if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND ||
