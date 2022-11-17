@@ -39,6 +39,33 @@ typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
                                  rdm_disc_mute_t *mute_params, void *context);
 
 /**
+ * @brief Returns true if the specified UID is a broadcast address.
+ * 
+ * @param uid The UID to compare.
+ * @return true if the UID is a broadcast address.
+ * @return false if the UID is not a broadcast address.
+ */
+inline bool rdm_uid_is_broadcast(rdm_uid_t uid) {
+  return (uint32_t)uid == 0xffffffff;
+}
+
+/**
+ * @brief Returns true if the specified UID is addressed to the desired UID.
+ * 
+ * @param uid The UID to check against an addressee.
+ * @param addressee The addressee UID.
+ * @return true if the addressee UID is targeted by the specified UID.
+ * @return false if the addressee is not targeted by the specified UID.
+ */
+inline bool rdm_uid_is_addressed_to(rdm_uid_t uid, rdm_uid_t addressee) {
+  uid &= 0xffffffffffff;
+  addressee &= 0xffffffffffff;
+  return addressee == uid ||
+         ((uid >> 32 == 0xffff || uid >> 32 == addressee >> 32) &&
+          (uint32_t)uid == 0xffffffff);
+}
+
+/**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
  * first buffer and copies it to least-significant-byte first endianness, which
  * is what ESP32 uses.
