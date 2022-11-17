@@ -21,7 +21,7 @@ extern "C" {
  */
 typedef uint64_t rdm_uid_t;
 
-typedef uint32_t rdm_sub_device_t;
+typedef uint16_t rdm_sub_device_t;
 
 /**
  * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
