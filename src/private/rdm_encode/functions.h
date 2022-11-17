@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string.h>
 
 #include "endian.h"
 #include "esp_dmx.h"
@@ -56,7 +57,7 @@ size_t rdm_encode_disc_response(uint8_t *data, size_t preamble_len,
  *
  * @param[in] data The buffer in which the data to decode is stored.
  * @param[out] uid The decoded UID in the response.
- * @return true if the data checksum was a valid.
+ * @return true if the data checksum was valid.
  * @return false if the data checksum was invalid.
  */
 bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid) {
@@ -66,9 +67,6 @@ bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid) {
     if (data[preamble_len] == RDM_DELIMITER) {
       break;
     }
-  }
-  if (data[preamble_len] != RDM_DELIMITER) {
-    return false;  // Not a valid discovery response
   }
 
   // Decode the 6-byte UID and get the packet sum
