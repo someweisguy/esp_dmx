@@ -30,14 +30,12 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Discovering Devices](#discovering-devices)
   - [RDM Responder](#rdm-responder)
 - [Error Handling](#error-handling)
-  - [DMX Packet Errors](#dmx-packet-errors)
-  - [RDM Packet Errors](#rdm-packet-errors)
+  - [Timing Macros](#timing-macros)
   - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
   - [Currently Supported RDM PIDs](#currently-supported-rdm-pids)
   - [Hardware Specifications](#hardware-specifications)
-- [API Reference](#api-reference)
 - [To Do](#to-do)
 
 ## Library Installation
@@ -447,7 +445,7 @@ Response information from requests is read into a `rdm_response_t` pointer which
 
 The `response_type_t` type contains the following fields:
 
-- `err` evaluates to `true` if an error occurred reading DMX or RDM data. More information on error handling can be found in the [RDM Packet Errors](#rdm-packet-errors) section.
+- `err` evaluates to `true` if an error occurred reading DMX or RDM data. More information on error handling can be found in the [Error Handling](#error-handling) section.
 - `type` is the type of the RDM response received. It can be any of the RDM response types enumerated above or `RDM_RESPONSE_TYPE_NONE` if no response was received.
 
 The remaining response field is a union which should be read depending on the value in `type.`
@@ -522,8 +520,6 @@ While it is currently possible to use this library as an RDM responder, no such 
 
 ## Error Handling
 
-### DMX Packet Errors
-
 On rare occasions, DMX packets can become corrupted. Errors are typically detected upon initially connecting to an active DMX bus but are resolved on receiving the next packet. Errors can be checked by reading the error code from the `dmx_packet_t` struct. The error types are as follows:
 
 - `ESP_OK` indicates data was read successfully.
@@ -573,6 +569,18 @@ while (true) {
 }
 ```
 
+When an RDM responder receives a non-broadcast packet addressed to it, it must respond with a properly formatted response packet. Packets may become lost or corrupted due to poor bus conditions or due to poorly-made RDM devices. Many devices are advertised as being RDM compliant but may not be. Non-compliant devices are often sold by third-party manufacturers or by knock-off imitation brands. Some RDM commands may work on non-compliant devices, but others may not.
+
+To determine if an RDM error occurred, the error code in `rdm_response_t` can be read.
+
+- `ESP_ERR_INVALID_RESPONSE` occurs when an RDM response was improperly formatted.
+- `ESP_ERR_INVALID_CRC` indicates that the computed checksum does not match the checksum received in the RDM packet.
+- `ESP_ERR_NOT_SUPPORTED` indicates that an RDM `RESPONSE_TYPE_ACK_OVERFLOW` response was received. This response is valid for some RDM commands but is not currently supported by this library.
+
+Receiving any other error code in the `rdm_response_t` indicates an error receiving DMX data. The appropriate error condition can be determined by referencing the DMX error codes listed above.
+
+### Timing Macros
+
 It should be noted that this library does not automatically check for DMX timing errors. This library does provide macros to assist with timing error checking, but it is left to the user to implement such measures. DMX and RDM each have their own timing requirements so macros for checking DMX and RDM are both provided. The following macros can be used to assist with timing error checking.
 
 - `DMX_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid for DMX.
@@ -583,10 +591,6 @@ It should be noted that this library does not automatically check for DMX timing
 - `RDM_MAB_LEN_IS_VALID()` evaluates to true if the RDM mark-after-break duration is valid.
 
 DMX and RDM specify different timing requirements for receivers and transmitters. This library attempts to simplify error checking by combining timing requirements for receiving and transmitting. Therefore there are only the above six timing error checking macros instead of six macros each for receiving and transmitting.
-
-### RDM Packet Errors
-
-// TODO
 
 ### DMX Start Codes
 
@@ -644,10 +648,6 @@ Parameter                | GET | SET | Notes
 ### Hardware Specifications
 
 ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated from other devices on the DMX bus. In the event of a power surge, the likely worse-case scenario would mean the failure of the RS-485 circuitry and not the entire DMX device. Some DMX devices may function without isolation, but using non-isolated equipment is not recommended.
-
-## API Reference
-
-// TODO
 
 ## To Do
 
