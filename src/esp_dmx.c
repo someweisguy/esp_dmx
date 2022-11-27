@@ -502,7 +502,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_flags, &dmx_uart_isr,
                  driver, &driver->uart_isr_handle);
 
-  // TODO: Allow busy-waiting instead of hardware timers
   // Initialize hardware timer
 #if ESP_IDF_MAJOR_VERSION >= 5
 #error ESP-IDF v5 not supported yet!
