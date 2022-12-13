@@ -32,8 +32,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
 #if ESP_IDF_VERSION_MAJOR >= 5
-#error ESP-IDF v5 not supported yet!
-  // TODO
+  gptimer_handle_t gptimer_handle;  // The general purpose timer to use for DMX functions.
 #else
   timer_group_t timer_group;  // The timer group to use for DMX functions.
   timer_idx_t timer_idx;      // The timer index to use for DMX functions.
