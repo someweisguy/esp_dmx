@@ -16,11 +16,11 @@
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
+#include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
-// TODO: replacement for "driver/periph_ctrl.h"
 #else
-#include "driver/timer.h"
 #include "driver/periph_ctrl.h"
+#include "driver/timer.h"
 #endif
 
 #ifdef CONFIG_DMX_ISR_IN_IRAM
