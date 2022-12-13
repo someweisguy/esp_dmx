@@ -12,10 +12,8 @@
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
-// TODO: replacement for "driver/periph_ctrl.h"
 #else
 #include "driver/timer.h"
-#include "driver/periph_ctrl.h"
 #endif
 
 #ifdef __cplusplus
