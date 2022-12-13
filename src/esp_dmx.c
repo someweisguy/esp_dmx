@@ -4,8 +4,6 @@
 
 #include "dmx_types.h"
 #include "driver/gpio.h"
-#include "driver/periph_ctrl.h"
-#include "driver/timer.h"
 #include "driver/uart.h"
 #include "endian.h"
 #include "esp_check.h"
@@ -15,6 +13,15 @@
 #include "private/driver.h"
 #include "private/rdm_encode/types.h"
 #include "rdm_types.h"
+
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "driver/gptimer.h"
+#include "esp_timer.h"
+// TODO: replacement for "driver/periph_ctrl.h"
+#else
+#include "driver/timer.h"
+#include "driver/periph_ctrl.h"
+#endif
 
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 #define DMX_ISR_ATTR IRAM_ATTR
@@ -134,7 +141,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_clear_interrupt(uart, DMX_INTR_RX_BREAK | DMX_INTR_RX_DATA);
 
       // Pause the receive timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
@@ -180,7 +187,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_clear_interrupt(uart, DMX_INTR_RX_DATA);
 
       // Pause the receive timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
@@ -359,7 +366,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
       driver->is_in_break = false;
 
       // Reset the alarm for the end of the DMX mark-after-break
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
@@ -373,7 +380,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
       driver->data.head += write_size;
 
       // Pause MAB timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
@@ -389,7 +396,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
                        eSetValueWithOverwrite, &task_awoken);
 
     // Pause the receive timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
     // TODO
 #else
@@ -503,7 +510,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
                  driver, &driver->uart_isr_handle);
 
   // Initialize hardware timer
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
   // TODO
 #else
@@ -565,7 +572,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
   // TODO
 #else
@@ -1005,7 +1012,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     const int64_t elapsed = esp_timer_get_time() - driver->data.timestamp;
     if (elapsed < RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
       // Start a timer alarm that triggers when the RDM timeout occurs
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
@@ -1122,7 +1129,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   elapsed = esp_timer_get_time() - driver->data.timestamp;
   if (elapsed < timeout) {
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
     // TODO
 #else
@@ -1138,7 +1145,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
       // TODO
 #else
@@ -1219,7 +1226,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->data.head = 0;
     driver->is_in_break = true;
     driver->is_sending = true;
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
     // TODO
 #else

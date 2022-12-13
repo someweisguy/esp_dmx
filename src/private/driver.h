@@ -3,13 +3,20 @@
 #include <stdint.h>
 
 #include "dmx_types.h"
-#include "driver/timer.h"
 #include "esp_err.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "hal/uart_hal.h"
+
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "driver/gptimer.h"
+// TODO: replacement for "driver/periph_ctrl.h"
+#else
+#include "driver/timer.h"
+#include "driver/periph_ctrl.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +33,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   uart_dev_t *restrict uart;      // A pointer to the UART port.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
-#if ESP_IDF_MAJOR_VERSION >= 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #error ESP-IDF v5 not supported yet!
   // TODO
 #else

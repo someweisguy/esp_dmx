@@ -18,6 +18,10 @@
 #include "driver.h"
 #include "hal/uart_hal.h"
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "esp_private/esp_clk.h"
+#endif
+
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 #define DMX_ISR_ATTR IRAM_ATTR
 #else
@@ -36,7 +40,11 @@ extern "C" {
 void dmx_uart_init(uart_dev_t *uart) {
   // Configure the UART for DMX output
   uart_ll_set_sclk(uart, UART_SCLK_APB);
+#if ESP_IDF_VERSION_MAJOR >= 5
+  uart_ll_set_baudrate(uart, DMX_BAUD_RATE, esp_clk_apb_freq());
+#else
   uart_ll_set_baudrate(uart, DMX_BAUD_RATE);
+#endif
   uart_ll_set_mode(uart, UART_MODE_RS485_HALF_DUPLEX);
   uart_ll_set_parity(uart, UART_PARITY_DISABLE);
   uart_ll_set_data_bit_num(uart, UART_DATA_8_BITS);
@@ -60,7 +68,11 @@ void dmx_uart_init(uart_dev_t *uart) {
  * @return The baud rate of the UART hardware.
  */
 uint32_t dmx_uart_get_baud_rate(uart_dev_t *uart) {
+#if ESP_IDF_VERSION_MAJOR >= 5
+  return uart_ll_get_baudrate(uart, esp_clk_apb_freq());
+#else
   return uart_ll_get_baudrate(uart);
+#endif
 }
 
 /**
@@ -70,7 +82,11 @@ uint32_t dmx_uart_get_baud_rate(uart_dev_t *uart) {
  * @param baud_rate The baud rate to use.
  */
 void dmx_uart_set_baud_rate(uart_dev_t *uart, uint32_t baud_rate) {
+#if ESP_IDF_VERSION_MAJOR >= 5
+  uart_ll_set_baudrate(uart, baud_rate, esp_clk_apb_freq());
+#else
   uart_ll_set_baudrate(uart, baud_rate);
+#endif
 }
 
 /**
