@@ -387,6 +387,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       // Pause MAB timer alarm
 #if ESP_IDF_VERSION_MAJOR >= 5
       gptimer_stop(gptimer_handle);
+      gptimer_set_raw_count(gptimer_handle, 0);
 #else
       timer_group_set_counter_enable_in_isr(driver->timer_group,
                                             driver->timer_idx, 0);
@@ -402,6 +403,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     // Pause the receive timer alarm
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_stop(gptimer_handle);
+    gptimer_set_raw_count(gptimer_handle, 0);
 #else
     timer_group_set_counter_enable_in_isr(driver->timer_group,
                                           driver->timer_idx, 0);
@@ -1144,7 +1146,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   elapsed = esp_timer_get_time() - driver->data.timestamp;
   if (elapsed < timeout) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-    // FIXME: The driver isn't waiting long enough after sending an RDM packet before sending a new packet
     gptimer_set_raw_count(driver->gptimer_handle, elapsed);
     const gptimer_alarm_config_t alarm_config = {
         .alarm_count = timeout,
