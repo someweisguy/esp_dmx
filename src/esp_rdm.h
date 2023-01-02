@@ -11,11 +11,19 @@
 extern "C" {
 #endif
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+/**
+ * @brief The recommended method for representing the UID in text by separating
+ * the manufacturer ID and the device ID. For use with printf-like functions.
+ */
+#define UIDSTR "%04x:%08lx"
+#else
 /**
  * @brief The recommended method for representing the UID in text by separating
  * the manufacturer ID and the device ID. For use with printf-like functions.
  */
 #define UIDSTR "%04x:%08x"
+#endif
 
 /**
  * @brief Used to generate arguments for the UIDSTR macro for representing the

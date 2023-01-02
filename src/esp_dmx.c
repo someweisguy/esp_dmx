@@ -4,8 +4,6 @@
 
 #include "dmx_types.h"
 #include "driver/gpio.h"
-#include "driver/periph_ctrl.h"
-#include "driver/timer.h"
 #include "driver/uart.h"
 #include "endian.h"
 #include "esp_check.h"
@@ -15,6 +13,15 @@
 #include "private/driver.h"
 #include "private/rdm_encode/types.h"
 #include "rdm_types.h"
+
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "driver/gptimer.h"
+#include "esp_private/periph_ctrl.h"
+#include "esp_timer.h"
+#else
+#include "driver/periph_ctrl.h"
+#include "driver/timer.h"
+#endif
 
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 #define DMX_ISR_ATTR IRAM_ATTR
@@ -134,9 +141,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_clear_interrupt(uart, DMX_INTR_RX_BREAK | DMX_INTR_RX_DATA);
 
       // Pause the receive timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-      // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+      gptimer_stop(driver->gptimer_handle);
 #else
       timer_group_set_counter_enable_in_isr(driver->timer_group,
                                             driver->timer_idx, 0);
@@ -180,9 +186,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_clear_interrupt(uart, DMX_INTR_RX_DATA);
 
       // Pause the receive timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-      // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+      gptimer_stop(driver->gptimer_handle);
 #else
       timer_group_set_counter_enable_in_isr(driver->timer_group,
                                             driver->timer_idx, 0);
@@ -349,7 +354,12 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
-static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
+static bool DMX_ISR_ATTR dmx_timer_isr(
+#if ESP_IDF_VERSION_MAJOR >= 5
+    gptimer_handle_t gptimer_handle,
+    const gptimer_alarm_event_data_t *event_data,
+#endif
+    void *arg) {
   dmx_driver_t *const restrict driver = (dmx_driver_t *)arg;
   int task_awoken = false;
 
@@ -359,9 +369,11 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
       driver->is_in_break = false;
 
       // Reset the alarm for the end of the DMX mark-after-break
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-      // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+      const gptimer_alarm_config_t alarm_config = {
+          .alarm_count = driver->mab_len,
+          .flags.auto_reload_on_alarm = false};
+      gptimer_set_alarm_action(gptimer_handle, &alarm_config);
 #else
       timer_group_set_alarm_value_in_isr(driver->timer_group, driver->timer_idx,
                                          driver->mab_len);
@@ -373,9 +385,9 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
       driver->data.head += write_size;
 
       // Pause MAB timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-      // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+      gptimer_stop(gptimer_handle);
+      gptimer_set_raw_count(gptimer_handle, 0);
 #else
       timer_group_set_counter_enable_in_isr(driver->timer_group,
                                             driver->timer_idx, 0);
@@ -389,9 +401,9 @@ static bool DMX_ISR_ATTR dmx_timer_isr(void *arg) {
                        eSetValueWithOverwrite, &task_awoken);
 
     // Pause the receive timer alarm
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-    // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+    gptimer_stop(gptimer_handle);
+    gptimer_set_raw_count(gptimer_handle, 0);
 #else
     timer_group_set_counter_enable_in_isr(driver->timer_group,
                                           driver->timer_idx, 0);
@@ -503,9 +515,16 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
                  driver, &driver->uart_isr_handle);
 
   // Initialize hardware timer
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-  // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+  const gptimer_config_t timer_config = {
+      .clk_src = GPTIMER_CLK_SRC_APB,
+      .direction = GPTIMER_COUNT_UP,
+      .resolution_hz = 1000000,  // 1MHz resolution timer
+  };
+  gptimer_new_timer(&timer_config, &driver->gptimer_handle);  // TODO: err check
+  const gptimer_event_callbacks_t gptimer_cb = {.on_alarm = dmx_timer_isr};
+  gptimer_register_event_callbacks(driver->gptimer_handle, &gptimer_cb, driver);
+  gptimer_enable(driver->gptimer_handle);
 #else
   driver->timer_group = dmx_num / 2;
   driver->timer_idx = dmx_num % 2;
@@ -565,9 +584,9 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-  // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+  gptimer_disable(driver->gptimer_handle);
+  gptimer_del_timer(driver->gptimer_handle);
 #else
   timer_isr_callback_remove(driver->timer_group, driver->timer_idx);
   timer_deinit(driver->timer_group, driver->timer_idx);
@@ -1005,9 +1024,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     const int64_t elapsed = esp_timer_get_time() - driver->data.timestamp;
     if (elapsed < RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
       // Start a timer alarm that triggers when the RDM timeout occurs
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-      // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+      gptimer_set_raw_count(driver->gptimer_handle, elapsed);
+      const gptimer_alarm_config_t alarm_config = {
+          .alarm_count = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT,
+          .flags.auto_reload_on_alarm = false};
+      gptimer_set_alarm_action(driver->gptimer_handle, &alarm_config);
+      gptimer_start(driver->gptimer_handle);
 #else
       const timer_group_t timer_group = driver->timer_group;
       const timer_idx_t timer_idx = driver->timer_idx;
@@ -1122,9 +1145,13 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   elapsed = esp_timer_get_time() - driver->data.timestamp;
   if (elapsed < timeout) {
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-    // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+    gptimer_set_raw_count(driver->gptimer_handle, elapsed);
+    const gptimer_alarm_config_t alarm_config = {
+        .alarm_count = timeout,
+        .flags.auto_reload_on_alarm = false};
+    gptimer_set_alarm_action(driver->gptimer_handle, &alarm_config);
+    gptimer_start(driver->gptimer_handle);
 #else
     timer_set_counter_value(driver->timer_group, driver->timer_idx, elapsed);
     timer_set_alarm_value(driver->timer_group, driver->timer_idx, timeout);
@@ -1138,9 +1165,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-      // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+      gptimer_stop(driver->gptimer_handle);
 #else
       timer_pause(driver->timer_group, driver->timer_idx);
 #endif
@@ -1219,9 +1245,14 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->data.head = 0;
     driver->is_in_break = true;
     driver->is_sending = true;
-#if ESP_IDF_MAJOR_VERSION >= 5
-#error ESP-IDF v5 not supported yet!
-    // TODO
+#if ESP_IDF_VERSION_MAJOR >= 5
+    gptimer_set_raw_count(driver->gptimer_handle, 0);
+    const gptimer_alarm_config_t alarm_config = {
+        .alarm_count = driver->break_len,
+        .reload_count = 0,
+        .flags.auto_reload_on_alarm = true};
+    gptimer_set_alarm_action(driver->gptimer_handle, &alarm_config);
+    gptimer_start(driver->gptimer_handle);
 #else
     timer_set_counter_value(driver->timer_group, driver->timer_idx, 0);
     timer_set_alarm_value(driver->timer_group, driver->timer_idx,

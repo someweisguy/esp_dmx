@@ -13,6 +13,10 @@
 #include "private/rdm_encode/functions.h"
 #include "private/rdm_encode/types.h"
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "esp_mac.h"
+#endif
+
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)

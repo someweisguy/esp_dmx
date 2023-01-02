@@ -1,17 +1,14 @@
-menu "DMX Configuration"
+menu "DMX/RDM Configuration"
 
     config DMX_ISR_IN_IRAM
         bool "Place DMX ISR functions in IRAM"
-        default n
+        default y
+        select GPTIMER_ISR_IRAM_SAFE
+        select GPTIMER_CTRL_FUNC_IN_IRAM
         help
             The ISR of the DMX driver can be placed in IRAM so that it can work 
             without the flash when an interrupt is triggered. If this option is
-            disabled, DMX interrupts may take extra time when accessing flash 
-            memory.
-    
-endmenu
-
-menu "RDM Configuration"
+            disabled, DMX interrupts may take extra time to fire.
 
     config RDM_DEBUG_DEVICE_DISCOVERY
         bool "Enable debugging for RDM device discovery"
