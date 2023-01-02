@@ -6,26 +6,29 @@ menu "DMX/RDM Configuration"
         select GPTIMER_ISR_IRAM_SAFE
         select GPTIMER_CTRL_FUNC_IN_IRAM
         help
-            The ISR of the DMX driver can be placed in IRAM so that it can work 
-            without the flash when an interrupt is triggered. If this option is
-            disabled, DMX interrupts may take extra time to fire.
+            The DMX driver ISR is placed in IRAM to reduce latency. In 
+            particular, printing to the terminal with this option disabled can
+            interfere with the RDM timer causing it to output RDM that is
+            slightly out of specification. ESP-IDF v5 only: enabling this also
+            enables some kconfig options in the GPTimer driver.
+    
+    config RDM_STATIC_DEVICE_DISCOVERY
+        bool "Enable static memory use for RDM device discovery"
+        default n
+        help
+            RDM Device Discovery needs nearly 1KB of memory. Allocating this
+            much memory on the stack can lead to stack overflow crashes.
+            Therefore, the default behavior is for the DMX driver to heap
+            allocate the needed memory. Enabling this option instructs the DMX
+            driver to allocate the needed memory on the stack.
 
     config RDM_DEBUG_DEVICE_DISCOVERY
         bool "Enable debugging for RDM device discovery"
         default n
         help
-            Enabling this option can help to find bugs within the RDM discovery
-            algorithm, but it can make the discovery process take significantly
-            longer.
-
-    config RDM_STATIC_DEVICE_DISCOVERY
-        bool "Enable static memory use for RDM device discovery"
-        default n
-        help
-            In some situations, RDM device discovery can take several kilobytes
-            of memory to execute. This is more stack space than the ESP32 main
-            task has by default. When this option is enabled, RDM device 
-            discovery does not allocate any more memory before its search. Use
-            caution when enabling this option as it can lead to stack overflows!
+            Enabling this option can help to find bugs within the DMX driver's
+            RDM discovery algorithm, but it can make the discovery process take
+            significantly longer. This options should remain disabled unless
+            changes are being made to the RDM API.
 
 endmenu
