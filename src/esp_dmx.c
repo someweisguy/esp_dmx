@@ -868,7 +868,6 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
     return 0;
   } else if (dmx_uart_get_rts(uart) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
     dmx_uart_set_rts(uart, 0);
   }
   driver->data.tx_size = size;  // Update driver transmit size
@@ -905,7 +904,6 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
     return 0;
   } else if (dmx_uart_get_rts(uart) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
     dmx_uart_set_rts(uart, 0);
   }
   driver->data.tx_size = offset + size;  // Update driver transmit size
@@ -933,7 +931,6 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
     return 0;
   } else if (dmx_uart_get_rts(uart) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
     dmx_uart_set_rts(uart, 0);
   }
 
@@ -1183,7 +1180,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   uart_dev_t *const restrict uart = driver->uart;
   taskENTER_CRITICAL(spinlock);
   if (dmx_uart_get_rts(uart) == 1) {
-    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     dmx_uart_set_rts(uart, 0);
   }
