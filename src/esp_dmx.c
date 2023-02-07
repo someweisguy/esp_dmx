@@ -95,7 +95,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ERR) {
-      if (!driver->received_a_packet) {
+      if (!driver->received_eop) {
         // Read data from the FIFO into the driver buffer if possible
         if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
           // Data can be read into driver buffer
@@ -116,7 +116,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         // Set driver flags
         driver->is_in_break = false;
         driver->data.timestamp = now;
-        driver->received_a_packet = true;
+        driver->received_eop = true;
         driver->data.type = RDM_PACKET_TYPE_NON_RDM;
         driver->data.err = intr_flags & DMX_INTR_RX_FRAMING_ERR
                                ? ESP_FAIL
@@ -148,7 +148,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                                             driver->timer_idx, 0);
 #endif
 
-      if (!driver->received_a_packet && driver->data.head > 0 &&
+      if (!driver->received_eop && driver->data.head > 0 &&
           driver->data.head < DMX_MAX_PACKET_SIZE) {
         // When a DMX break is received before the driver thinks a packet is
         // finished, the data.rx_size must be updated.
@@ -158,7 +158,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(spinlock);
       // Set driver flags
       driver->is_in_break = true;
-      driver->received_a_packet = false;
+      driver->received_eop = false;
       driver->data.head = 0;  // Driver buffer is ready for data
       taskEXIT_CRITICAL_ISR(spinlock);
     }
@@ -171,7 +171,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
         dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
         driver->data.head += read_len;
-        if (driver->received_a_packet) {
+        if (driver->received_eop) {
           // Update expected size if already sent a packet notification
           driver->data.rx_size = driver->data.head;
         }
@@ -201,7 +201,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Determine if a complete packet has been received
       bool packet_is_complete = false;
-      if (!driver->received_a_packet) {
+      if (!driver->received_eop) {
         const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
         if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
           // The packet is a standard RDM packet
@@ -255,7 +255,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (packet_is_complete) {
         taskENTER_CRITICAL_ISR(spinlock);
         driver->data.err = ESP_OK;
-        driver->received_a_packet = true;
+        driver->received_eop = true;
         driver->data.sent_last = false;
         if (driver->task_waiting) {
           xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
@@ -305,7 +305,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
       taskENTER_CRITICAL_ISR(spinlock);
       if (expecting_response) {
-        driver->received_a_packet = false;
+        driver->received_eop = false;
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
         dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
@@ -463,7 +463,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize driver flags
   driver->is_in_break = false;
-  driver->received_a_packet = false;
+  driver->received_eop = false;
   driver->is_sending = false;
 
   driver->rdm.uid = 0;

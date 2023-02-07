@@ -54,9 +54,9 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
     esp_err_t err;  // The error state of the received DMX data.
   } data;
 
-  int is_in_break;         // True if the driver is sending or receiving a DMX break.
-  int received_a_packet;   // True if the driver is receiving data.
-  int is_sending;          // True if the driver is sending data.
+  int is_in_break;   // True if the driver is sending or receiving a DMX break.
+  int received_eop;  // True if the driver received an end-of-packet condition. When this is true, the driver doesn't check for an end-of-packet condition when it receives DMX data.
+  int is_sending;    // True if the driver is sending data.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
