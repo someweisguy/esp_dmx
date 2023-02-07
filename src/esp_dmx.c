@@ -94,33 +94,50 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     if (intr_flags == 0) break;
 
     // DMX Receive ####################################################
+    if (intr_flags & DMX_INTR_RX_ALL) {
+      // Stop the RDM receive alarm (which may or may not be running)
+#if ESP_IDF_VERSION_MAJOR >= 5
+      gptimer_stop(driver->gptimer_handle);
+#else
+      timer_group_set_counter_enable_in_isr(driver->timer_group,
+                                            driver->timer_idx, 0);
+#endif
+
+      // Read data into the DMX buffer if there is enough space
+      if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
+        int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
+        if (intr_flags & DMX_INTR_RX_BREAK) --read_len;  // Ignore DMX breaks
+      
+        uint8_t *current_slot = &driver->data.buffer[driver->data.head];
+        dmx_uart_read_rxfifo(uart, current_slot, &read_len);
+        driver->data.head += read_len;
+      } else {
+        if (driver->data.head > 0) {
+          // Record the number of slots received for error reporting
+          driver->data.head += dmx_uart_get_rxfifo_len(uart);
+        }
+        dmx_uart_rxfifo_reset(uart);
+      }
+
+      // Set data timestamp and DMX break flag
+      taskENTER_CRITICAL_ISR(spinlock);
+      driver->data.timestamp = now;
+      driver->is_in_break = (intr_flags & DMX_INTR_RX_BREAK);
+      taskEXIT_CRITICAL_ISR(spinlock);
+
+      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
+    }
+
     if (intr_flags & DMX_INTR_RX_ERR) {
       if (!driver->received_eop) {
-        // Read data from the FIFO into the driver buffer if possible
-        if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
-          // Data can be read into driver buffer
-          int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-          uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-          dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
-          driver->data.head += read_len;
-        } else {
-          // Data cannot be read into driver buffer
-          if (driver->data.head > 0) {
-            // Only increment head if data has already been read into the buffer
-            driver->data.head += dmx_uart_get_rxfifo_len(uart);
-          }
-          dmx_uart_rxfifo_reset(uart);
-        }
-
+        // Receiving an error is an end-of-packet condition
         taskENTER_CRITICAL_ISR(spinlock);
         // Set driver flags
-        driver->is_in_break = false;
-        driver->data.timestamp = now;
         driver->received_eop = true;
         driver->data.type = RDM_PACKET_TYPE_NON_RDM;
         driver->data.err = intr_flags & DMX_INTR_RX_FRAMING_ERR
-                               ? ESP_FAIL
-                               : ESP_ERR_NOT_FINISHED;
+                               ? ESP_FAIL  // Slot is missing stop bits
+                               : ESP_ERR_NOT_FINISHED;  // UART overflow
 
         // Notify the task if there is one waiting
         if (driver->task_waiting) {
@@ -128,77 +145,25 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                              eSetValueWithOverwrite, &task_awoken);
         }
         taskEXIT_CRITICAL_ISR(spinlock);
-      } else {
-        // Packet has already been received - don't process errors
-        dmx_uart_rxfifo_reset(uart);
       }
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ERR);
     }
-
+    
     else if (intr_flags & DMX_INTR_RX_BREAK) {
-      // Reset the FIFO and clear the interrupt
-      dmx_uart_rxfifo_reset(uart);
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_BREAK | DMX_INTR_RX_DATA);
+      taskENTER_CRITICAL_ISR(spinlock);
+      // Set driver flags
+      driver->received_eop = false;
+      driver->data.head = 0;  // Driver is ready for data
+      taskEXIT_CRITICAL_ISR(spinlock);
 
-      // Pause the receive timer alarm
-#if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_stop(driver->gptimer_handle);
-#else
-      timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                            driver->timer_idx, 0);
-#endif
-
+      // Update rx_size when a valid packet with an atypical size is received
       if (!driver->received_eop && driver->data.head > 0 &&
           driver->data.head < DMX_MAX_PACKET_SIZE) {
-        // When a DMX break is received before the driver thinks a packet is
-        // finished, the data.rx_size must be updated.
         driver->data.rx_size = driver->data.head;
       }
 
-      taskENTER_CRITICAL_ISR(spinlock);
-      // Set driver flags
-      driver->is_in_break = true;
-      driver->received_eop = false;
-      driver->data.head = 0;  // Driver buffer is ready for data
-      taskEXIT_CRITICAL_ISR(spinlock);
     }
-
+    
     else if (intr_flags & DMX_INTR_RX_DATA) {
-      // Read data from the FIFO into the driver buffer if possible
-      if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
-        // Data can be read into driver buffer
-        int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-        uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-        dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
-        driver->data.head += read_len;
-        if (driver->received_eop) {
-          // Update expected size if already sent a packet notification
-          driver->data.rx_size = driver->data.head;
-        }
-      } else {
-        // Data cannot be read into driver buffer
-        if (driver->data.head > 0) {
-          // Only increment head if data has already been read into the buffer
-          driver->data.head += dmx_uart_get_rxfifo_len(uart);
-        }
-        dmx_uart_rxfifo_reset(uart);
-      }
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_DATA);
-
-      // Pause the receive timer alarm
-#if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_stop(driver->gptimer_handle);
-#else
-      timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                            driver->timer_idx, 0);
-#endif
-
-      // Set driver flags
-      taskENTER_CRITICAL_ISR(spinlock);
-      driver->is_in_break = false;
-      driver->data.timestamp = now;
-      taskEXIT_CRITICAL_ISR(spinlock);
-
       // Determine if a complete packet has been received
       bool packet_is_complete = false;
       if (!driver->received_eop) {
