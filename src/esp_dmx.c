@@ -208,6 +208,11 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         } else if (driver->data.head < driver->data.rx_size) {
           continue;  // Guard against smaller DMX packets than expected
         }
+      } else {
+        // This code should never run, but can prevent crashes just in case!
+        dmx_uart_disable_interrupt(uart, ~(DMX_INTR_RX_ALL | DMX_INTR_TX_ALL));
+        dmx_uart_clear_interrupt(uart, ~(DMX_INTR_RX_ALL | DMX_INTR_TX_ALL));
+        continue;
       }
 
       // Set driver flags and notify task
