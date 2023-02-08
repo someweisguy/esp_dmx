@@ -113,7 +113,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         uint8_t *current_slot = &driver->data.buffer[driver->data.head];
         dmx_uart_read_rxfifo(uart, current_slot, &read_len);
         driver->data.head += read_len;
-        
+
         // Handle receiving a valid packet with larger than expected size
         if (driver->data.head > driver->data.rx_size) {
           driver->data.rx_size = driver->data.head;
