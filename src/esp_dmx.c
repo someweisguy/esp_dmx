@@ -130,15 +130,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Handle DMX break condition
       if (is_in_break) {
         // Handle receiveing a valid packet with smaller than expected size
-        if (!driver->received_eop && driver->data.head > 0 &&
+        if (!driver->end_of_packet && driver->data.head > 0 &&
             driver->data.head < DMX_MAX_PACKET_SIZE) {
           driver->data.rx_size = driver->data.head;
         }
 
         // Set driver flags
         taskENTER_CRITICAL_ISR(spinlock);
-        driver->received_eop = false;  // A new packet is being received
-        driver->data.head = 0;         // Driver is ready for data
+        driver->end_of_packet = false;  // A new packet is being received
+        driver->data.head = 0;          // Driver is ready for data
         taskEXIT_CRITICAL_ISR(spinlock);
       }
 
@@ -150,7 +150,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
 
       // Don't process data if end-of-packet condition already reached
-      if (driver->received_eop) {
+      if (driver->end_of_packet) {
         continue;
       }
 
@@ -212,7 +212,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(spinlock);
-      driver->received_eop = true;
+      driver->end_of_packet = true;
       driver->data.sent_last = false;
       driver->data.type = packet_type;
       driver->data.err = packet_err;
@@ -263,7 +263,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
       taskENTER_CRITICAL_ISR(spinlock);
       if (expecting_response) {
-        driver->received_eop = false;
+        driver->end_of_packet = false;
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
         dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
@@ -421,7 +421,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize driver flags
   driver->is_in_break = false;
-  driver->received_eop = true;
+  driver->end_of_packet = true;
   driver->is_sending = false;
 
   driver->rdm.uid = 0;
