@@ -172,7 +172,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             continue;  // Guard against base packet size too small
           }
 
-          // Determine the packet type
+          // Determine the RDM packet type
           if (rdm->cc == RDM_CC_DISC_COMMAND &&
               rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
             packet_type = RDM_PACKET_TYPE_DISCOVERY;
