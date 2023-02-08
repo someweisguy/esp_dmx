@@ -261,15 +261,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         expecting_response = true;
         driver->data.head = -1;  // Expecting a DMX break
       }
-      taskENTER_CRITICAL_ISR(spinlock);
       if (expecting_response) {
+        taskENTER_CRITICAL_ISR(spinlock);
         driver->end_of_packet = false;
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
         dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
         dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
+        taskEXIT_CRITICAL_ISR(spinlock);
       }
-      taskEXIT_CRITICAL_ISR(spinlock);
     }
   }
 
