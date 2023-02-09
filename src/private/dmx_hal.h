@@ -45,20 +45,13 @@ void dmx_uart_init(uart_dev_t *uart) {
 #else
   uart_ll_set_baudrate(uart, DMX_BAUD_RATE);
 #endif
-  uart_ll_set_mode(uart, UART_MODE_RS485_HALF_DUPLEX);
+  uart_ll_set_mode(uart, UART_MODE_UART);
   uart_ll_set_parity(uart, UART_PARITY_DISABLE);
   uart_ll_set_data_bit_num(uart, UART_DATA_8_BITS);
   uart_ll_set_stop_bits(uart, UART_STOP_BITS_2);
   uart_ll_tx_break(uart, 0);
   uart_ll_set_tx_idle_num(uart, 0);
   uart_ll_set_hw_flow_ctrl(uart, UART_HW_FLOWCTRL_DISABLE, 0);
-
-#if defined(CONFIG_IDF_TARGET_ESP32C3)
-  // Fix inter-byte time on ESP32-C3. See below:
-  // https://github.com/someweisguy/esp_dmx/issues/17#issuecomment-1133748359
-  uart->rs485_conf.dl0_en = 0;
-  uart->rs485_conf.dl1_en = 0;
-#endif
 }
 
 /**
