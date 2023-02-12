@@ -74,12 +74,15 @@ enum rdm_packet_timing_t {
 };
 
 enum rdm_packet_type_t {
-  RDM_PACKET_TYPE_NON_RDM,
-  RDM_PACKET_TYPE_DISCOVERY,
-  RDM_PACKET_TYPE_DISCOVERY_RESPONSE,
-  RDM_PACKET_TYPE_REQUEST,
-  RDM_PACKET_TYPE_RESPONSE,
-  RDM_PACKET_TYPE_BROADCAST
+  RDM_PACKET_TYPE_NON_RDM = 0,
+  RDM_PACKET_TYPE_DISCOVERY = BIT(0),
+  RDM_PACKET_TYPE_DISCOVERY_RESPONSE = BIT(1),
+  RDM_PACKET_TYPE_REQUEST = BIT(2),
+  RDM_PACKET_TYPE_RESPONSE = BIT(3),
+  RDM_PACKET_TYPE_BROADCAST = BIT(4),
+
+  RDM_PACKET_TYPE_EARLY_TIMEOUT =
+      (RDM_PACKET_TYPE_REQUEST | RDM_PACKET_TYPE_DISCOVERY)
 };
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
@@ -964,8 +967,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     taskEXIT_CRITICAL(spinlock);
 
     // Check for early timeout according to RDM specification
-    if (sent_last &&  // FIXME: can this be one line?
-        data_type & (RDM_PACKET_TYPE_REQUEST | RDM_PACKET_TYPE_DISCOVERY)) {
+    if (sent_last && (data_type & RDM_PACKET_TYPE_EARLY_TIMEOUT)) {
       taskENTER_CRITICAL(spinlock);
       const int64_t last_timestamp = driver->data.timestamp;
       taskEXIT_CRITICAL(spinlock);
