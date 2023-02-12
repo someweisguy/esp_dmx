@@ -270,8 +270,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         driver->end_of_packet = false;
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
-        dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
-        dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
         taskEXIT_CRITICAL_ISR(spinlock);
       }
     }
@@ -950,7 +948,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     dmx_uart_set_rts(uart, 1);
-    dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
     driver->data.head = -1;  // Wait for DMX break before reading data
   }
   taskEXIT_CRITICAL(spinlock);
