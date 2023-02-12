@@ -9,6 +9,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_rdm.h"
+#include "esp_task_wdt.h"
 #include "private/dmx_hal.h"
 #include "private/driver.h"
 #include "private/rdm_encode/types.h"
@@ -924,6 +925,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     packet->size = 0;
     packet->is_rdm = false;
   }
+
+  // Block until mutex is taken and driver is idle, or until a timeout
+  TimeOut_t timeout;
+  vTaskSetTimeOutState(&timeout);
+  if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
+      (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
+    return packet_size;
+  } else if (!dmx_wait_sent(dmx_num, wait_ticks) ||
+             (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
+    xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
 
@@ -1217,7 +1228,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   TimeOut_t timeout;
   vTaskSetTimeOutState(&timeout);
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
-      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
+      (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
     return false;
   }
 
