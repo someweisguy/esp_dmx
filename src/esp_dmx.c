@@ -216,6 +216,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(spinlock);
+      driver->new_packet = true;
       driver->end_of_packet = true;
       driver->data.sent_last = false;
       driver->data.type = packet_type;
@@ -268,6 +269,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (expecting_response) {
         taskENTER_CRITICAL_ISR(spinlock);
         driver->end_of_packet = false;
+        driver->new_packet = false;
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
         taskEXIT_CRITICAL_ISR(spinlock);
@@ -425,6 +427,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->is_in_break = false;
   driver->end_of_packet = true;
   driver->is_sending = false;
+  driver->new_packet = false;
 
   driver->rdm.uid = 0;
   driver->rdm.discovery_is_muted = false;
@@ -911,13 +914,15 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+  size_t packet_size = 0;
 
-  // Block until the mutex can be taken
+  // Block until mutex is taken and driver is idle, or until a timeout
   TimeOut_t timeout;
   vTaskSetTimeOutState(&timeout);
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
+      xTaskCheckForTimeOut(&timeout, &wait_ticks) ||
+      !dmx_wait_sent(dmx_num, wait_ticks) ||
       xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
     if (packet != NULL) {
       packet->err = ESP_ERR_TIMEOUT;
@@ -925,36 +930,23 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       packet->size = 0;
       packet->is_rdm = false;
     }
-    return 0;
+    return packet_size;
   }
 
-  // Block until the driver is done sending
-  if (!dmx_wait_sent(dmx_num, wait_ticks) ||
-      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    if (packet != NULL) {
-      packet->err = ESP_ERR_TIMEOUT;
-      packet->sc = -1;
-      packet->size = 0;
-      packet->is_rdm = false;
-    }
-    return 0;
-  }
-
-  // Set the RTS pin to read from the DMX bus
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   uart_dev_t *const restrict uart = driver->uart;
-  taskENTER_CRITICAL(spinlock);
-  if (dmx_uart_get_rts(uart) == 0) {
-    dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
-    xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    dmx_uart_set_rts(uart, 1);
-    driver->data.head = -1;  // Wait for DMX break before reading data
-  }
-  taskEXIT_CRITICAL(spinlock);
 
-  // Receive the latest data packet or check if the driver must wait
+  // Set the RTS pin to enable reading from the DMX bus
+  if (dmx_uart_get_rts(uart) == 0) {
+    taskENTER_CRITICAL(spinlock);
+    xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+    driver->data.head = -1;  // Wait for DMX break before reading data
+    driver->new_packet = false;
+    dmx_uart_set_rts(uart, 1);
+    taskEXIT_CRITICAL(spinlock);
+  }
+
   esp_err_t err = ESP_OK;
-  uint32_t packet_size = 0;
   if (ulTaskNotifyTake(true, 0)) {
     taskENTER_CRITICAL(spinlock);
     packet_size = driver->data.head;
@@ -966,6 +958,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   } else {
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
+
 
   // Get additional driver flags
   taskENTER_CRITICAL(spinlock);
