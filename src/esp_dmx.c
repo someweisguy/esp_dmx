@@ -9,6 +9,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_rdm.h"
+#include "esp_task_wdt.h"
 #include "private/dmx_hal.h"
 #include "private/driver.h"
 #include "private/rdm_encode/types.h"
@@ -73,12 +74,15 @@ enum rdm_packet_timing_t {
 };
 
 enum rdm_packet_type_t {
-  RDM_PACKET_TYPE_NON_RDM,
-  RDM_PACKET_TYPE_DISCOVERY,
-  RDM_PACKET_TYPE_DISCOVERY_RESPONSE,
-  RDM_PACKET_TYPE_REQUEST,
-  RDM_PACKET_TYPE_RESPONSE,
-  RDM_PACKET_TYPE_BROADCAST
+  RDM_PACKET_TYPE_NON_RDM = 0,
+  RDM_PACKET_TYPE_DISCOVERY = BIT(0),
+  RDM_PACKET_TYPE_DISCOVERY_RESPONSE = BIT(1),
+  RDM_PACKET_TYPE_REQUEST = BIT(2),
+  RDM_PACKET_TYPE_RESPONSE = BIT(3),
+  RDM_PACKET_TYPE_BROADCAST = BIT(4),
+
+  RDM_PACKET_TYPE_EARLY_TIMEOUT =
+      (RDM_PACKET_TYPE_REQUEST | RDM_PACKET_TYPE_DISCOVERY)
 };
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
@@ -93,53 +97,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     if (intr_flags == 0) break;
 
     // DMX Receive ####################################################
-    if (intr_flags & DMX_INTR_RX_ERR) {
-      if (!driver->received_a_packet) {
-        // Read data from the FIFO into the driver buffer if possible
-        if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
-          // Data can be read into driver buffer
-          int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-          uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-          dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
-          driver->data.head += read_len;
-        } else {
-          // Data cannot be read into driver buffer
-          if (driver->data.head > 0) {
-            // Only increment head if data has already been read into the buffer
-            driver->data.head += dmx_uart_get_rxfifo_len(uart);
-          }
-          dmx_uart_rxfifo_reset(uart);
-        }
-
-        taskENTER_CRITICAL_ISR(spinlock);
-        // Set driver flags
-        driver->is_in_break = false;
-        driver->data.timestamp = now;
-        driver->received_a_packet = true;
-        driver->data.type = RDM_PACKET_TYPE_NON_RDM;
-        driver->data.err = intr_flags & DMX_INTR_RX_FRAMING_ERR
-                               ? ESP_FAIL
-                               : ESP_ERR_NOT_FINISHED;
-
-        // Notify the task if there is one waiting
-        if (driver->task_waiting) {
-          xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
-                             eSetValueWithOverwrite, &task_awoken);
-        }
-        taskEXIT_CRITICAL_ISR(spinlock);
-      } else {
-        // Packet has already been received - don't process errors
-        dmx_uart_rxfifo_reset(uart);
-      }
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ERR);
-    }
-
-    else if (intr_flags & DMX_INTR_RX_BREAK) {
-      // Reset the FIFO and clear the interrupt
-      dmx_uart_rxfifo_reset(uart);
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_BREAK | DMX_INTR_RX_DATA);
-
-      // Pause the receive timer alarm
+    if (intr_flags & DMX_INTR_RX_ALL) {
+      // Stop the RDM receive alarm (which may or may not be running)
 #if ESP_IDF_VERSION_MAJOR >= 5
       gptimer_stop(driver->gptimer_handle);
 #else
@@ -147,121 +106,130 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                                             driver->timer_idx, 0);
 #endif
 
-      if (!driver->received_a_packet && driver->data.head > 0 &&
-          driver->data.head < DMX_MAX_PACKET_SIZE) {
-        // When a DMX break is received before the driver thinks a packet is
-        // finished, the data.rx_size must be updated.
-        driver->data.rx_size = driver->data.head;
-      }
-
-      taskENTER_CRITICAL_ISR(spinlock);
-      // Set driver flags
-      driver->is_in_break = true;
-      driver->received_a_packet = false;
-      driver->data.head = 0;  // Driver buffer is ready for data
-      taskEXIT_CRITICAL_ISR(spinlock);
-    }
-
-    else if (intr_flags & DMX_INTR_RX_DATA) {
-      // Read data from the FIFO into the driver buffer if possible
+      // Read data into the DMX buffer if there is enough space
+      const bool is_in_break = intr_flags & DMX_INTR_RX_BREAK;
       if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
-        // Data can be read into driver buffer
         int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
-        uint8_t *data_ptr = &driver->data.buffer[driver->data.head];
-        dmx_uart_read_rxfifo(uart, data_ptr, &read_len);
+        if (is_in_break) --read_len;  // Ignore DMX breaks
+
+        // Read the UART data into the DMX buffer and increment the head
+        uint8_t *current_slot = &driver->data.buffer[driver->data.head];
+        dmx_uart_read_rxfifo(uart, current_slot, &read_len);
         driver->data.head += read_len;
-        if (driver->received_a_packet) {
-          // Update expected size if already sent a packet notification
+
+        // Handle receiving a valid packet with larger than expected size
+        if (driver->data.head > driver->data.rx_size) {
           driver->data.rx_size = driver->data.head;
         }
+
       } else {
-        // Data cannot be read into driver buffer
+        // Record the number of slots received for error reporting
         if (driver->data.head > 0) {
-          // Only increment head if data has already been read into the buffer
           driver->data.head += dmx_uart_get_rxfifo_len(uart);
         }
         dmx_uart_rxfifo_reset(uart);
       }
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_DATA);
 
-      // Pause the receive timer alarm
-#if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_stop(driver->gptimer_handle);
-#else
-      timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                            driver->timer_idx, 0);
-#endif
-
-      // Set driver flags
-      taskENTER_CRITICAL_ISR(spinlock);
-      driver->is_in_break = false;
-      driver->data.timestamp = now;
-      taskEXIT_CRITICAL_ISR(spinlock);
-
-      // Determine if a complete packet has been received
-      bool packet_is_complete = false;
-      if (!driver->received_a_packet) {
-        const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-        if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-          // The packet is a standard RDM packet
-          if (driver->data.head >= RDM_BASE_PACKET_SIZE &&
-              driver->data.head >= rdm->message_len + 2) {
-            if (rdm->cc == RDM_CC_DISC_COMMAND &&
-                rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
-              driver->data.type = RDM_PACKET_TYPE_DISCOVERY;
-            } else if (rdm_uid_is_broadcast(buf_to_uid(rdm->destination_uid))) {
-              driver->data.type = RDM_PACKET_TYPE_BROADCAST;
-            } else if (rdm->cc == RDM_CC_GET_COMMAND ||
-                       rdm->cc == RDM_CC_SET_COMMAND ||
-                       rdm->cc == RDM_CC_DISC_COMMAND) {
-              driver->data.type = RDM_PACKET_TYPE_REQUEST;
-            } else {
-              driver->data.type = RDM_PACKET_TYPE_RESPONSE;
-            }
-            packet_is_complete = true;
-          }
-        } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
-          // The packet is a DISC_UNIQUE_BRANCH response
-          if (driver->data.head >= 17) {
-            // Find the length of the preamble (0 to 7 bytes)
-            size_t preamble_len = 0;
-            for (; preamble_len < 7; ++preamble_len) {
-              if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
-                break;
-              }
-            }
-
-            if (driver->data.head >= preamble_len + 17) {
-              // DISC_UNIQUE_BRANCH responses should be 17 bytes after preamble
-              taskENTER_CRITICAL_ISR(spinlock);
-              driver->data.type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
-              taskEXIT_CRITICAL_ISR(spinlock);
-              packet_is_complete = true;
-            }
-          }
-        } else {
-          // The packet is a DMX packet
-          if (driver->data.head >= driver->data.rx_size) {
-            taskENTER_CRITICAL_ISR(spinlock);
-            driver->data.type = RDM_PACKET_TYPE_NON_RDM;
-            taskEXIT_CRITICAL_ISR(spinlock);
-            packet_is_complete = true;
-          }
+      // Handle DMX break condition
+      if (is_in_break) {
+        // Handle receiveing a valid packet with smaller than expected size
+        if (!driver->end_of_packet && driver->data.head > 0 &&
+            driver->data.head < DMX_MAX_PACKET_SIZE) {
+          driver->data.rx_size = driver->data.head;
         }
-      }
 
-      // Notify tasks that the packet is complete
-      if (packet_is_complete) {
+        // Set driver flags
         taskENTER_CRITICAL_ISR(spinlock);
-        driver->data.err = ESP_OK;
-        driver->received_a_packet = true;
-        driver->data.sent_last = false;
-        if (driver->task_waiting) {
-          xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
-                             eSetValueWithOverwrite, &task_awoken);
-        }
+        driver->end_of_packet = false;  // A new packet is being received
+        driver->data.head = 0;          // Driver is ready for data
         taskEXIT_CRITICAL_ISR(spinlock);
       }
+
+      // Set data timestamp, DMX break flag, and clear interrupts
+      taskENTER_CRITICAL_ISR(spinlock);
+      driver->data.timestamp = now;
+      driver->is_in_break = is_in_break;
+      taskEXIT_CRITICAL_ISR(spinlock);
+      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
+
+      // Don't process data if end-of-packet condition already reached
+      if (driver->end_of_packet) {
+        continue;
+      }
+
+      // Handle DMX errors or process DMX data
+      esp_err_t packet_err = ESP_OK;
+      rdm_response_type_t packet_type = RDM_PACKET_TYPE_NON_RDM;
+      if (intr_flags & DMX_INTR_RX_ERR) {
+        packet_err = intr_flags & DMX_INTR_RX_FRAMING_ERR
+                         ? ESP_FAIL               // Missing stop bits
+                         : ESP_ERR_NOT_FINISHED;  // UART overflow
+      } else if (intr_flags & DMX_INTR_RX_DATA) {
+        // Determine if a complete packet has been received
+        const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
+
+        if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
+          // The packet is a standard RDM packet
+          if (driver->data.head < RDM_BASE_PACKET_SIZE ||
+              driver->data.head < rdm->message_len + 2) {
+            continue;  // Guard against base packet size too small
+          }
+
+          // Determine the RDM packet type
+          if (rdm->cc == RDM_CC_DISC_COMMAND &&
+              rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
+            packet_type = RDM_PACKET_TYPE_DISCOVERY;
+          } else if (rdm_uid_is_broadcast(buf_to_uid(rdm->destination_uid))) {
+            packet_type = RDM_PACKET_TYPE_BROADCAST;
+          } else if (rdm->cc == RDM_CC_GET_COMMAND ||
+                     rdm->cc == RDM_CC_SET_COMMAND ||
+                     rdm->cc == RDM_CC_DISC_COMMAND) {
+            packet_type = RDM_PACKET_TYPE_REQUEST;
+          } else {
+            packet_type = RDM_PACKET_TYPE_RESPONSE;
+          }
+
+        } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
+          // The packet is a DISC_UNIQUE_BRANCH response
+          if (driver->data.head < 17) {
+            continue;  // Guard against base packet size too small
+          }
+
+          // Find the length of the preamble (0 to 7 bytes)
+          size_t preamble_len = 0;
+          for (; preamble_len < 7; ++preamble_len) {
+            if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
+              break;
+            }
+          }
+          if (driver->data.buffer[preamble_len] != RDM_DELIMITER ||
+              driver->data.head < preamble_len + 17) {
+            continue;  // Delimiter not found or packet not complete yet
+          }
+          packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
+
+        } else if (driver->data.head < driver->data.rx_size) {
+          continue;  // Guard against smaller DMX packets than expected
+        }
+      } else {
+        // This code should never run, but can prevent crashes just in case!
+        dmx_uart_disable_interrupt(uart, ~(DMX_INTR_RX_ALL | DMX_INTR_TX_ALL));
+        dmx_uart_clear_interrupt(uart, ~(DMX_INTR_RX_ALL | DMX_INTR_TX_ALL));
+        continue;
+      }
+
+      // Set driver flags and notify task
+      taskENTER_CRITICAL_ISR(spinlock);
+      driver->new_packet = true;
+      driver->end_of_packet = true;
+      driver->data.sent_last = false;
+      driver->data.type = packet_type;
+      driver->data.err = packet_err;
+      if (driver->task_waiting) {
+        xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
+                           eSetValueWithOverwrite, &task_awoken);
+      }
+      taskEXIT_CRITICAL_ISR(spinlock);
     }
 
     // DMX Transmit #####################################################
@@ -302,15 +270,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         expecting_response = true;
         driver->data.head = -1;  // Expecting a DMX break
       }
-      taskENTER_CRITICAL_ISR(spinlock);
       if (expecting_response) {
-        driver->received_a_packet = false;
+        taskENTER_CRITICAL_ISR(spinlock);
+        driver->end_of_packet = false;
+        driver->new_packet = false;
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
-        dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
-        dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
+        taskEXIT_CRITICAL_ISR(spinlock);
       }
-      taskEXIT_CRITICAL_ISR(spinlock);
     }
   }
 
@@ -462,8 +429,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize driver flags
   driver->is_in_break = false;
-  driver->received_a_packet = false;
+  driver->end_of_packet = true;
   driver->is_sending = false;
+  driver->new_packet = false;
 
   driver->rdm.uid = 0;
   driver->rdm.discovery_is_muted = false;
@@ -950,83 +918,77 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_driver_t *const restrict driver = dmx_driver[dmx_num];
 
-  // Block until the mutex can be taken
+  // Set default return value and default values for output argument
+  uint32_t packet_size = 0;
+  if (packet != NULL) {
+    packet->err = ESP_ERR_TIMEOUT;
+    packet->sc = -1;
+    packet->size = 0;
+    packet->is_rdm = false;
+  }
+
+  // Block until mutex is taken and driver is idle, or until a timeout
   TimeOut_t timeout;
   vTaskSetTimeOutState(&timeout);
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
-      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
-    if (packet != NULL) {
-      packet->err = ESP_ERR_TIMEOUT;
-      packet->sc = -1;
-      packet->size = 0;
-      packet->is_rdm = false;
-    }
-    return 0;
-  }
-
-  // Block until the driver is done sending
-  if (!dmx_wait_sent(dmx_num, wait_ticks) ||
-      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
+      (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
+    return packet_size;
+  } else if (!dmx_wait_sent(dmx_num, wait_ticks) ||
+             (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
     xSemaphoreGiveRecursive(driver->mux);
-    if (packet != NULL) {
-      packet->err = ESP_ERR_TIMEOUT;
-      packet->sc = -1;
-      packet->size = 0;
-      packet->is_rdm = false;
-    }
-    return 0;
+    return packet_size;
   }
 
-  // Set the RTS pin to read from the DMX bus
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   uart_dev_t *const restrict uart = driver->uart;
-  taskENTER_CRITICAL(spinlock);
+
+  // Set the RTS pin to enable reading from the DMX bus
   if (dmx_uart_get_rts(uart) == 0) {
-    dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
+    taskENTER_CRITICAL(spinlock);
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    dmx_uart_set_rts(uart, 1);
-    dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
     driver->data.head = -1;  // Wait for DMX break before reading data
-  }
-  taskEXIT_CRITICAL(spinlock);
-
-  // Receive the latest data packet or check if the driver must wait
-  esp_err_t err = ESP_OK;
-  uint32_t packet_size = 0;
-  if (ulTaskNotifyTake(true, 0)) {
-    taskENTER_CRITICAL(spinlock);
-    packet_size = driver->data.head;
-    err = driver->data.err;
+    driver->new_packet = false;
+    dmx_uart_set_rts(uart, 1);
     taskEXIT_CRITICAL(spinlock);
-    if (packet_size == -1) {
-      packet_size = 0;
-    }
-  } else {
-    driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
 
-  // Get additional driver flags
+  // Wait for new DMX packet to be received
   taskENTER_CRITICAL(spinlock);
-  const bool driver_sent_last = driver->data.sent_last;
-  const enum rdm_packet_type_t data_type = driver->data.type;
+  const bool new_packet_available = driver->new_packet;
   taskEXIT_CRITICAL(spinlock);
-
-  if (driver_sent_last && (data_type == RDM_PACKET_TYPE_REQUEST ||
-                           data_type == RDM_PACKET_TYPE_DISCOVERY)) {
-    // An RDM response is expected in <10ms so a hardware timer may be needed
+  if (!new_packet_available && wait_ticks > 0) {
+    // Set task waiting and get additional DMX driver flags
     taskENTER_CRITICAL(spinlock);
-    const int64_t elapsed = esp_timer_get_time() - driver->data.timestamp;
-    if (elapsed < RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
-      // Start a timer alarm that triggers when the RDM timeout occurs
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
+    const bool sent_last = driver->data.sent_last;
+    const enum rdm_packet_type_t data_type = driver->data.type;
+    taskEXIT_CRITICAL(spinlock);
+
+    // Check for early timeout according to RDM specification
+    if (sent_last && (data_type & RDM_PACKET_TYPE_EARLY_TIMEOUT)) {
+      taskENTER_CRITICAL(spinlock);
+      const int64_t last_timestamp = driver->data.timestamp;
+      taskEXIT_CRITICAL(spinlock);
+
+      // Guard against setting hardware alarm durations with negative values
+      int64_t elapsed = esp_timer_get_time() - last_timestamp;
+      if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
+        xSemaphoreGiveRecursive(driver->mux);
+        return packet_size;
+      }
+
+      // Set an early timeout with the hardware timer
+      taskENTER_CRITICAL(spinlock);
 #if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_set_raw_count(driver->gptimer_handle, elapsed);
+      const gptimer_handle_t gptimer_handle = driver->gptimer_handle;
       const gptimer_alarm_config_t alarm_config = {
           .alarm_count = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT,
           .flags.auto_reload_on_alarm = false};
-      gptimer_set_alarm_action(driver->gptimer_handle, &alarm_config);
-      gptimer_start(driver->gptimer_handle);
+      gptimer_set_raw_count(gptimer_handle, elapsed);
+      gptimer_set_alarm_action(gptimer_handle, &alarm_config);
+      gptimer_start(gptimer_handle);
 #else
       const timer_group_t timer_group = driver->timer_group;
       const timer_idx_t timer_idx = driver->timer_idx;
@@ -1035,55 +997,48 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                             RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
       timer_start(timer_group, timer_idx);
 #endif
+      taskEXIT_CRITICAL(spinlock);
     }
-    taskEXIT_CRITICAL(spinlock);
 
-    // Check if the response has already timed out
-    if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
-      driver->task_waiting = NULL;
+    // Wait for a task notification
+    const bool notified = xTaskNotifyWait(0, -1, &packet_size, wait_ticks);
+    taskENTER_CRITICAL(spinlock);
+    driver->task_waiting = NULL;
+    taskEXIT_CRITICAL(spinlock);
+    if (!notified) {
+#if ESP_IDF_VERSION_MAJOR >= 5
+      gptimer_stop(driver->gptimer_handle);
+#else
+      timer_pause(driver->timer_group, driver->timer_idx);
+#endif
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
-      if (packet != NULL) {
-        packet->err = ESP_ERR_TIMEOUT;
-        packet->sc = -1;
-        packet->size = 0;
-        packet->is_rdm = false;
-      }
       return packet_size;
     }
+
+  } else if (!new_packet_available) {
+    // Fail early if there is no data available and this function cannot block
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
   }
 
-  // Wait for a task notification
-  if (xTaskNotifyWait(0, ULONG_MAX, &packet_size, wait_ticks)) {
-    err = driver->data.err;
+  // Parse DMX data packet
+  if (packet != NULL) {
+    taskENTER_CRITICAL(spinlock);
+    packet->err = driver->data.err;
+    packet_size = driver->data.head;
+    if (packet_size > 0) {
+      const rdm_data_t *const restrict rdm = (rdm_data_t *)driver->data.buffer;
+      packet->is_rdm = (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) ||
+                       rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;
+      packet->sc = driver->data.buffer[0];
+    }
+    driver->new_packet = false;
+    taskEXIT_CRITICAL(spinlock);
     if (packet_size == -1) {
       packet_size = 0;
     }
-  } else {
-    err = ESP_ERR_TIMEOUT;
-  }
-  driver->task_waiting = NULL;
-
-  // Report data in the DMX packet
-  if (packet != NULL) {
-    packet->err = err;
     packet->size = packet_size;
-    if (packet_size > 0) {
-      bool is_rdm = false;
-      if (!err) {
-        // Quickly check if the packet is an RDM packet
-        const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-        taskENTER_CRITICAL(spinlock);
-        is_rdm = (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) ||
-                 rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;
-        taskEXIT_CRITICAL(spinlock);
-      }
-      packet->sc = driver->data.buffer[0];
-      packet->is_rdm = is_rdm;
-    } else {
-      packet->sc = -1;
-      packet->is_rdm = false;
-    }
   }
 
   // Give the mutex back and return
@@ -1275,7 +1230,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   TimeOut_t timeout;
   vTaskSetTimeOutState(&timeout);
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
-      xTaskCheckForTimeOut(&timeout, &wait_ticks)) {
+      (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
     return false;
   }
 
