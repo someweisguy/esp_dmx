@@ -30,7 +30,6 @@
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
 #define EN_PIN 21  // The DMX transmit enable pin.
-#define SN_PIN 4   // The DMX sniffer pin.
 
 static const char *TAG = "main";
 
