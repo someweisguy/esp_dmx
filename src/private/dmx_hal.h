@@ -124,7 +124,7 @@ DMX_ISR_ATTR void dmx_uart_invert_tx(uart_dev_t *uart, uint32_t invert) {
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   uart->conf0.txd_inv = invert;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  uart->uart_conf0_reg_t.txd_inv = invert;
+  uart->conf0.txd_inv = invert;
 #else
 #error Unknown target hardware.
 #endif
@@ -149,7 +149,7 @@ int dmx_uart_get_rts(uart_dev_t *uart) {
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   return uart->conf0.sw_rts;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  return uart->uart_conf0_reg_t.sw_rts;
+  return uart->conf0.sw_rts;
 #else
 #error Unknown target hardware.
 #endif
@@ -224,7 +224,7 @@ DMX_ISR_ATTR uint32_t dmx_uart_get_rx_level(uart_dev_t *uart) {
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
   return uart->status.rxd;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  return uart->uart_status_reg_t.rxd;
+  return uart->status.rxd;
 #else
 #error Unknown target hardware.
 #endif
