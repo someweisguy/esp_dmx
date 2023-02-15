@@ -27,7 +27,6 @@ static const char *TAG = "main";
 static uint8_t data[DMX_PACKET_SIZE] = {};  // Buffer to store DMX data
 
 void app_main() {
-  // use DMX port 2
   const dmx_port_t dmx_num = DMX_NUM_2;
 
   // Set communication pins and install the driver
@@ -51,7 +50,7 @@ void app_main() {
       ESP_LOGI(TAG, "Incremented packet slots to 0x%02x", data[1]);
       last_update = now;
     }
-    
+
     // Only send a packet every 30ms
     vTaskDelayUntil(&now, pdMS_TO_TICKS(30));
   }
