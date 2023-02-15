@@ -11,7 +11,7 @@
 
   Discovery can take several seconds to complete, especially when there are
   several responder devices on the RDM network. In this example, the amount of
-  time that discovery takes is measured and logged to the terminal. 
+  time that discovery takes is measured and logged to the terminal.
 
   Note: this example is for use with the ESP-IDF. It will not work on Arduino!
 
