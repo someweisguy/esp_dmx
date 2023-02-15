@@ -24,6 +24,7 @@
 #include "esp_dmx.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_timer.h"
 #include "freertos/task.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
