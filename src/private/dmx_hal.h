@@ -289,7 +289,7 @@ DMX_ISR_ATTR void dmx_uart_write_txfifo(uart_dev_t *uart, const void *buf,
                                         size_t *size) {
   const size_t txfifo_len = uart_ll_get_txfifo_len(uart);
   if (*size > txfifo_len) *size = txfifo_len;
-  uart_ll_write_txfifo(uart, buf, *size);
+  uart_ll_write_txfifo(uart, (uint8_t *)buf, *size);
 }
 
 /**

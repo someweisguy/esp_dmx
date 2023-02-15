@@ -28,7 +28,7 @@ extern "C" {
 typedef __attribute__((aligned(4))) struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
-  uart_dev_t *restrict uart;      // A pointer to the UART port.
+  uart_dev_t *uart;               // A pointer to the UART port.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -79,7 +79,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   } sniffer;
 } dmx_driver_t;
 
-extern dmx_driver_t *restrict dmx_driver[DMX_NUM_MAX];
+extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 #ifdef __cplusplus

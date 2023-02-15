@@ -56,7 +56,7 @@ void app_main() {
 
       if (now - last_update >= pdMS_TO_TICKS(1000)) {
         // Only log data every 1000ms
-        ESP_LOGI(TAG, "Break: %i, MAB: %i", metadata.break_len,
+        ESP_LOGI(TAG, "Break: %li, MAB: %li", metadata.break_len,
                  metadata.mab_len);
         last_update = now;
       }

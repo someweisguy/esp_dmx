@@ -40,7 +40,6 @@ void app_main() {
 
   TickType_t last_update = xTaskGetTickCount();
   while (true) {
-
     // Block until a packet is received
     if (dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK)) {
       const TickType_t now = xTaskGetTickCount();
@@ -58,7 +57,7 @@ void app_main() {
         ESP_LOG_BUFFER_HEX(TAG, data, 16);  // Log first 16 bytes
         last_update = now;
       }
-      
+
     } else if (is_connected) {
       // DMX timed out after having been previously connected
       ESP_LOGI(TAG, "DMX was disconnected.");

@@ -11,7 +11,7 @@
 
   Discovery can take several seconds to complete, especially when there are
   several responder devices on the RDM network. In this example, the amount of
-  time that discovery takes is measured and logged to the terminal. 
+  time that discovery takes is measured and logged to the terminal.
 
   Note: this example is for use with the ESP-IDF. It will not work on Arduino!
 
@@ -24,12 +24,12 @@
 #include "esp_dmx.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_timer.h"
 #include "freertos/task.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
 #define EN_PIN 21  // The DMX transmit enable pin.
-#define SN_PIN 4   // The DMX sniffer pin.
 
 static const char *TAG = "main";
 
