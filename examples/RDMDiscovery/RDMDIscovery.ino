@@ -57,11 +57,11 @@ void setup() {
     RDM devices on the network. When a device is found, its UID is added to an
     array of UIDs. This function will never overflow the UID array as long as
     the size argument is set properly. */
-  size_t devices_found = rdm_discover_devices_simple(dmxPort, uids, 32);
-  if (devices_found) {
+  size_t devicesFound = rdm_discover_devices_simple(dmxPort, uids, 32);
+  if (devicesFound) {
     /* Now we'll print the devices we found to the Serial Monitor! */
-    Serial.printf("Discovery found %i device(s).\n", devices_found);
-    for (int i = 0; i < devices_found; i++) {
+    Serial.printf("Discovery found %i device(s).\n", devicesFound);
+    for (int i = 0; i < devicesFound; i++) {
       /* Log each UID that we found! */
       Serial.printf("Device %i has UID " UIDSTR "\n", i, UID2STR(uids[i]));
     }
