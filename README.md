@@ -184,7 +184,7 @@ The constants `RDM_ROOT_DEVICE` and `RDM_ALL_SUB_DEVICES` are provided to improv
 
 RDM requests must be able to fetch and update parameters. The RDM standard specifies 52 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/) or in [rdm_types.h](src/rdm_types.h).
 
-Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device (but not its sub-devices necessarily) must support the following PIDs at a minimum:
+Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device (but not its sub-devices necessarily) must support the following PIDs:
 
 Parameter Name           | GET | SET | Notes
 :------------------------|:---:|:---:|:------
