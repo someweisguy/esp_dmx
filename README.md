@@ -179,8 +179,6 @@ Many DMX fixtures support multiple controllable DMX parameters. Fixtures that su
 
 When more than 512 DMX addresses are used, it is required to use multiple DMX ports. Each DMX port is called a DMX universe. DMX fixtures can be uniquely identified by their DMX universe and address numbers. A common way to notate this is by separating the universe and address with a `/`. Therefore `3/475` represents universe three, address 475. It is important to understand that DMX fixtures are not aware of the concept of a universe. A fixture set to DMX address one will respond to writes to slot one on whichever universe to which is is connected.
 
-It can be cumbersome to refer to fixtures by their DMX addresses, especially when using large DMX footprints. Consider the example of five fixtures with 16-address DMX footprints. The addresses of these fixtures would be `1/1`, `1/17`, `1/33`, `1/49`, and `1/65`. To make it easier to select fixtures to control, DMX controllers can patch DMX addresses to fixture numbers. This allows each address to be mapped to an easy-to-recall number. Instead of referring to each fixture by their DMX addresses, the DMX controller would control fixtures `1`, `2`, `3`, `4`, and `5`. Patching fixtures is an important concept that nearly every DMX controller supports. This library does not natively support fixture numbers. Users wanting to implement fixture numbers for their DMX fixtures must do so in their own code.
-
 ### Reading DMX
 
 Reading may be performed synchronously or asynchronously from the DMX bus. It is typically desired to perform reads synchronously. This means that reads are only performed when a new DMX packet is received. This is ideal because it is not commonly desired to perform reads on the same data multiple times.
