@@ -222,7 +222,6 @@ Responding devices shall respond to requests only if the request was a non-broad
 
 Responders must respond to every non-broadcast GET or SET request as well as every broadcast `DISC_UNIQUE_BRANCH` if their UID falls within the request's address space. When responding to `DISC_UNIQUE_BRANCH` requests, responders shall not send a DMX break and mark-after-break in order to improve discovery times and shall encode their response to reduce data loss during data collisions. Responders may only respond to `DISC_MUTE` and `DISC_UN_MUTE` requests with `RESPONSE_TYPE_ACK`.
 
-
 ## Configuring the DMX Port
 
 The DMX driver’s functions identify each of the UART controllers using `dmx_port_t`. This identification is needed for all the following function calls.
