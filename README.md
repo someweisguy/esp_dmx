@@ -11,6 +11,16 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
 - [Quick-Start Guide](#quick-start-guide)
 - [What is DMX?](#what-is-dmx)
   - [What is RDM?](#what-is-rdm)
+- [DMX Basics](#dmx-basics)
+  - [Addresses and the Start Code](#addresses-and-the-start-code)
+  - [Footprints](#footprints)
+  - [Universes](#universes)
+- [RDM Basics](#rdm-basics)
+  - [Unique IDs](#unique-ids)
+  - [Sub-devices](#sub-devices)
+  - [Parameters](#parameters)
+  - [Discovery](#discovery)
+  - [Response Types](#response-types)
 - [Configuring the DMX Port](#configuring-the-dmx-port)
   - [Setting Communication Pins](#setting-communication-pins)
   - [Installing the Driver](#installing-the-driver)
@@ -20,12 +30,6 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [DMX Sniffer](#dmx-sniffer)
   - [Writing DMX](#writing-dmx)
 - [Reading and Writing RDM](#reading-and-writing-rdm)
-  - [RDM Basics](#rdm-basics)
-    - [Unique IDs](#unique-ids)
-    - [Sub-devices](#sub-devices)
-    - [Parameters](#parameters)
-    - [Discovery](#discovery)
-    - [Response Types](#response-types)
   - [RDM Requests](#rdm-requests)
   - [Discovering Devices](#discovering-devices)
   - [RDM Responder](#rdm-responder)
@@ -124,7 +128,99 @@ RDM stands for Remote Device Management. It is an extension to the DMX protocol 
 
 When RDM capable devices must be configured but are inconveniently out of reach, it is said that RDM is "faster than the ladder." Instead of needing to climb a ladder to reach a device users are able to make changes to device settings from their DMX controller.
 
-For in-depth information on RDM, see the [E1.20 standards document](https://getdlight.com/media/kunena/attachments/42/ANSI_E1-20_2010.pdf). To get started with RDM in this library, see the [RDM Basics](#rdm-basics) section.
+For in-depth information on RDM, see the [E1.20 standards document](https://getdlight.com/media/kunena/attachments/42/ANSI_E1-20_2010.pdf).
+
+## DMX Basics
+
+In a typical configuration, a DMX system consists of one DMX controller and up to 32 DMX fixtures per DMX port. A five-pin XLR cable, commonly known as a DMX cable, is connected to the DMX-out port of the DMX controller and into the the DMX-in port of the first DMX fixture. Each subsequent fixture is connected by a DMX cable between the DMX-out port of the previous fixture and the DMX-in port of the next fixture. A DMX terminator may be connected to the DMX-out port of the final fixture. This is only required when using RDM but can be helpful to ensure DMX signal stability when connecting more than 32 fixtures or for long runs of DMX cable.
+
+### Addresses and the Start Code
+
+DMX addresses are needed for DMX controllers to communicate with fixtures. A fixture's address can be set between 1 and 512 (inclusive) by setting the fixture's DIP switches or by using the fixture's built-in display. DMX addresses correspond to DMX slots in a DMX packet. DMX address one is mapped to DMX packet slot one. Each DMX slot is an 8-bit number. A slot's minimum value is 0 and its maximum value is 255. To control a DMX dimmer set to DMX address five, DMX packet slot five must be written. To set the DMX dimmer to full intensity, slot five must be written to value 255. To set the dimmer to zero intensity, slot five must be written to value 0. Setting slot five to any value in between will dim the intensity appropriately.
+
+Slot zero in the DMX packet is called the DMX start code. The start code informs DMX fixtures what type of packet is being sent. Standard DMX packets use a start code of `0x00`, also called the null start code. DMX fixtures will not respond to DMX packets unless the packet begins with a null start code! A list of the other supported start codes can be found in the [DMX start codes](#dmx-start-codes) section.
+
+### Footprints
+
+Many DMX fixtures support multiple controllable DMX parameters. Fixtures that support multiple parameters use multiple DMX addresses. An RGB LED fixture is a common example of a multi-parameter fixture. It uses three parameters: red, green, and blue. In this example, this fixture would therefore use three, consecutive DMX addresses. This is called the fixture's DMX footprint. The red, green, and blue parameters of an RGB LED fixture set to DMX address five can be controlled by writing to slots five, six, and seven, respectively. A fixture's DMX footprint can be found by reading its user manual. It is possible to address multiple DMX fixtures so that their DMX footprints overlap but this is uncommon.
+
+Multi-parameter fixtures may support multiple footprints. On a fixture that supports multiple footprints, only one footprint can be active at a time. Larger footprints may be used to provide finer control of the fixture's DMX parameters. Conversely, smaller footprints may be used when finer control of a fixture is not needed. Instructions to change a fixture's active footprint may be found by consulting its user manual.
+
+A fixture's DMX footprint may also be called a DMX personality, particularly when a fixture supports multiple footprints.
+
+### Universes
+
+When more than 512 DMX addresses are used, it is required to use multiple DMX ports. Each DMX port is called a DMX universe. DMX fixtures can be uniquely identified by their DMX universe and address numbers. A common way to notate this is by separating the universe and address with a `/`. Therefore `3/475` represents universe three, address 475. It is important to understand that DMX fixtures are not aware of the concept of a universe. A fixture set to DMX address one will respond to writes to slot one on whichever universe to which it is connected.
+
+## RDM Basics
+
+Compared to DMX, RDM is a fairly complex protocol which utilizes different packet and data types depending on the information that is being requested. This library attempts to abstract away many of the details of the RDM implementation to facilitate code ease-of-use while still providing a powerful feature set. The following sections are intended to provide a introduction to RDM as it pertains to this library. For a more comprehensive introduction of RDM, see the [E1.20 standards document](https://getdlight.com/media/kunena/attachments/42/ANSI_E1-20_2010.pdf).
+
+### Unique IDs
+
+In an RDM network, there is one controller device and several responder devices. Each device in the network has a Unique ID (UID) which uniquely identifies itself against others in the network. If an RDM device has multiple DMX ports, it may possess multiple UIDs; one for each DMX port. UIDs are 48-bits long. The most-significant 16-bits are a device's manufacturer ID. Devices made by the same manufacturer have the same most-significant 16-bits. The remaining, 32 least-significant-bits are a device's device ID. Readers may draw a reasonable comparison to MAC addresses in IP networking equipment. Every IP capable device has at least one MAC address and if they have multiple network interfaces they may have multiple MAC addresses. Similarly, the most significant bits in a MAC address identify a network interface's manufacturer.
+
+UIDs are represented in text by displaying the UID in hexadecimal and by separating the manufacturer ID from the device ID with a `:`. If a device has a manufacturer ID with a value of `0xabcd` and device ID with a value of `0x12345678`, its full UID would be displayed as `abcd:12345678`.
+
+When a controller device composes an RDM request, it must be addressed using a destination UID. The recipient of a request may be a single device, by using the device's UID, or multiple devices, by using a broadcast UID. Broadcast UIDs can be addressed to every device of a specific manufacturer or to all devices on the RDM network. To send a manufacturer broadcast, the destination UID's manufacturer ID must match the manufacturer ID of the desired manufacturer, and the device ID must be `ffffffff`. To broadcast to every device with the manufacturer ID of `05e0`, the UID must be set to `05e0:ffffffff`. The UID used to broadcast to all devices on the RDM network is `ffff:ffffffff`.
+
+The lowest possible UID is `0000:00000000` and the highest possible UID is `ffff:fffffffe`. In practice the manufacturer IDs `0000` and `ffff` are not permitted so real-world RDM devices would never possess these UIDs. This library represents the maximum UID with the constant `RDM_MAX_UID`.
+
+Organizations may apply for a unique manufacturer ID by contacting ESTA. The instructions to do so and a list of registered manufacturer IDs can be found [here](https://tsp.esta.org/tsp/working_groups/CP/mfctrIDs.php). This software library is registered and listed with the manufacturer ID of `05e0`. Users of this library may use this manufacturer ID for their devices.
+
+In this library, UIDs are represented with the `rdm_uid_t` type. The macro `RDM_BROADCAST_MAN_UID()` can be used to create a UID which broadcasts to the desired manufacturer ID and the constant `RDM_BROADCAST_ALL_UID` can be used to broadcast to all devices on the RDM network.
+
+### Sub-devices
+
+Each RDM device may support up to 512 sub-devices. An example of a device that may support sub-devices is a dimmer rack which possesses multiple dimmers. Requests may be addressed to a specific dimmer in the dimmer rack by addressing the dimmer rack's UID, and specifying a sub-device number to target the appropriate dimmer.
+
+The sub-device number which represents the root device is `0x0000`. A request may also be addressed to all sub-devices of a root device by using the sub-device number `0xffff`.
+
+A root device and its sub-devices may support different RDM parameters, but each sub-device within a root device must support the same parameters as each other.
+
+The constants `RDM_ROOT_DEVICE` and `RDM_ALL_SUB_DEVICES` are provided to improve code readability.
+
+### Parameters
+
+RDM requests must be able to fetch and update parameters. The RDM standard specifies 52 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/) or in [rdm_types.h](src/rdm_types.h).
+
+Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device (but not its sub-devices necessarily) must support the following PIDs:
+
+Parameter Name           | GET | SET | Notes
+:------------------------|:---:|:---:|:------
+`DEVICE_INFO`            |  X  |     |
+`DISC_MUTE`              |     |     |
+`DISC_UN_MUTE`           |     |     |
+`DISC_UNIQUE_BRANCH`     |     |     |
+`DMX_START_ADDRESS`      |  X  |  X  | Support required if device uses a DMX slot.
+`IDENTIFY_DEVICE`        |  X  |  X  |
+`PARAMETER_DESCRIPTION`  |  X  |     | Support required for manufacturer-specific PIDs.
+`SOFTWARE_VERSION_LABEL` |  X  |     |
+`SUPPORTED_PARAMETERS`   |  X  |     | Only required if supporting PIDs beyond the minimum set.
+
+### Discovery
+
+When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting a `DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. A `DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
+
+When a single device is found within an address space, that device is sent a `DISC_MUTE` request to mute its response to future `DISC_UNIQUE_BRANCH` requests. When responding to `DISC_MUTE` requests, devices that have multiple UIDs return a binding UID which represents its primary UID.
+
+Some RDM devices act as proxy devices. A proxy device is any inline device that acts as an agent or representative for one or more devices. A proxy device shall respond to all controller messages on behalf of the devices it represents as if it is the represented device. If a device is acting as a proxy device or if it is proxied by another device, it will indicate so in its response to `DISC_MUTE` and `DISC_UN_MUTE` requests.
+
+Discovery should be performed periodically as discovered devices may be removed from the RDM network or new devices may be added. Before restarting the discovery algorithm, a `DISC_UN_MUTE` request should be broadcast to all devices in order to detect if devices were removed from the RDM network.
+
+### Response Types
+
+Responding devices shall respond to requests only if the request was a non-broadcast request. Responding devices may respond to requests with the following response types:
+
+- `RESPONSE_TYPE_ACK` indicates that the responder has correctly received the controller message and is acting upon the request.
+
+- `RESPONSE_TYPE_ACK_OVERFLOW` indicates that the responder has correctly received the controller message and is acting upon the request, but there is more response data available than will fit in a single response packet. To receive the remaining information, controllers are able to send repeated requests to the same PID until the remaining information can fit in a single message.
+
+- `RESPONSE_TYPE_ACK_TIMER` indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time. When sending this response, responding devices include an estimated response time that must elapse before the responder can provide the required information.
+
+- `RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response. NACK reason codes are enumerated in the [rdm_types.h](src/rdm_types.h#L108) header.
+
+Responders must respond to every non-broadcast GET or SET request as well as every broadcast `DISC_UNIQUE_BRANCH` if their UID falls within the request's address space. When responding to `DISC_UNIQUE_BRANCH` requests, responders shall not send a DMX break and mark-after-break in order to improve discovery times and shall encode their response to reduce data loss during data collisions. Responders may only respond to `DISC_MUTE` and `DISC_UN_MUTE` requests with `RESPONSE_TYPE_ACK`.
 
 ## Configuring the DMX Port
 
@@ -166,7 +262,7 @@ The above functions each have `_get_` counterparts to retrieve the currently set
 
 ## Reading and Writing DMX
 
-DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once. If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports.
+DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once. If sending and receiving data concurrently is desired, users can use two UART ports and install a driver on each port.
 
 ### Reading DMX
 
@@ -341,86 +437,11 @@ dmx_packet_t packet;
 dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK);  // Unblocks in 3ms
 ```
 
-### RDM Basics
-
-Compared to DMX, RDM is a fairly complex protocol which utilizes different packet and data types depending on the information that is being requested. This library attempts to abstract away many of the details of the RDM implementation to facilitate code ease-of-use while still providing a powerful feature set. The following sections are intended to provide a introduction to RDM as it pertains to this library. For a more comprehensive introduction of RDM, see the [E1.20 standards document](https://getdlight.com/media/kunena/attachments/42/ANSI_E1-20_2010.pdf).
-
-#### Unique IDs
-
-In an RDM network, there is one controller device and several responder devices. Each device in the network has a Unique ID (UID) which uniquely identifies itself against others in the network. If an RDM device has multiple DMX ports, it may possess multiple UIDs; one for each DMX port. UIDs are 48-bits long. The most-significant 16-bits are a device's manufacturer ID. Devices made by the same manufacturer have the same most-significant 16-bits. The remaining, 32 least-significant-bits are a device's device ID. Readers may draw a reasonable comparison to MAC addresses in IP networking equipment. Every IP capable device has at least one MAC address and if they have multiple network interfaces they may have multiple MAC addresses. Similarly, the most significant bits in a MAC address identify a network interface's manufacturer.
-
-UIDs are represented in text by displaying the UID in hexadecimal and by separating the manufacturer ID from the device ID with a `:`. If a device has a manufacturer ID with a value of `0xabcd` and device ID with a value of `0x12345678`, its full UID would be displayed as `abcd:12345678`.
-
-When a controller device composes an RDM request, it must be addressed using a destination UID. The recipient of a request may be a single device, by using the device's UID, or multiple devices, by using a broadcast UID. Broadcast UIDs can be addressed to every device of a specific manufacturer or to all devices on the RDM network. To send a manufacturer broadcast, the destination UID's manufacturer ID must match the manufacturer ID of the desired manufacturer, and the device ID must be `ffffffff`. To broadcast to every device with the manufacturer ID of `05e0`, the UID must be set to `05e0:ffffffff`. The UID used to broadcast to all devices on the RDM network is `ffff:ffffffff`.
-
-The lowest possible UID is `0000:00000000` and the highest possible UID is `ffff:fffffffe`. In practice the manufacturer IDs `0000` and `ffff` are not permitted so real-world RDM devices would never possess these UIDs. This library represents the maximum UID with the constant `RDM_MAX_UID`.
-
-Organizations may apply for a unique manufacturer ID by contacting ESTA. The instructions to do so and a list of registered manufacturer IDs can be found [here](https://tsp.esta.org/tsp/working_groups/CP/mfctrIDs.php). This software library is registered and listed with the manufacturer ID of `05e0`. Users of this library may use this manufacturer ID for their devices.
-
-In this library, UIDs are represented with the `rdm_uid_t` type. The macro `RDM_BROADCAST_MAN_UID()` can be used to create a UID which broadcasts to the desired manufacturer ID and the constant `RDM_BROADCAST_ALL_UID` can be used to broadcast to all devices on the RDM network.
-
-When printing UIDs to the terminal, the macros `UIDSTR` and `UID2STR()` can be used in printf-like functions.
-
-```c
-rdm_uid_t my_uid = rdm_get_uid(DMX_NUM_2);
-printf("My UID is " UIDSTR, UID2STR(my_uid));  // My UID is 05e0:1299159a
-```
-
-#### Sub-devices
-
-Each RDM device may support up to 512 sub-devices. An example of a device that may support sub-devices is a dimmer rack which possesses multiple dimmers. Requests may be addressed to a specific dimmer in the dimmer rack by addressing the dimmer rack's UID, and specifying a sub-device number to target the appropriate dimmer.
-
-The sub-device number which represents the root device is `0x0000`. A request may also be addressed to all sub-devices of a root device by using the sub-device number `0xffff`.
-
-A root device and its sub-devices may support different RDM parameters, but each sub-device within a root device must support the same parameters as each other.
-
-The constants `RDM_ROOT_DEVICE` and `RDM_ALL_SUB_DEVICES` are provided to improve code readability.
-
-#### Parameters
-
-RDM requests must be able to fetch and update parameters. The RDM standard specifies 52 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/) or in [rdm_types.h](src/rdm_types.h).
-
-Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device (but not its sub-devices necessarily) must support the following PIDs at a minimum:
-
-Parameter Name           | GET | SET | Notes
-:------------------------|:---:|:---:|:------
-`DEVICE_INFO`            |  X  |     |
-`DISC_MUTE`              |     |     |
-`DISC_UN_MUTE`           |     |     |
-`DISC_UNIQUE_BRANCH`     |     |     |
-`DMX_START_ADDRESS`      |  X  |  X  | Support required if device uses a DMX slot.
-`IDENTIFY_DEVICE`        |  X  |  X  |
-`PARAMETER_DESCRIPTION`  |  X  |     | Support required for manufacturer-specific PIDs.
-`SOFTWARE_VERSION_LABEL` |  X  |     |
-`SUPPORTED_PARAMETERS`   |  X  |     | Only required if supporting PIDs beyond the minimum set.
-
-#### Discovery
-
-When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting a `DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. A `DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
-
-When a single device is found within an address space, that device is sent a `DISC_MUTE` request to mute its response to future `DISC_UNIQUE_BRANCH` requests. When responding to `DISC_MUTE` requests, devices that have multiple UIDs return a binding UID which represents its primary UID.
-
-Some RDM devices act as proxy devices. A proxy device is any inline device that acts as an agent or representative for one or more devices. A proxy device shall respond to all controller messages on behalf of the devices it represents as if it is the represented device. If a device is acting as a proxy device or if it is proxied by another device, it will indicate so in its response to `DISC_MUTE` and `DISC_UN_MUTE` requests.
-
-Discovery should be performed periodically as discovered devices may be removed from the RDM network or new devices may be added. Before restarting the discovery algorithm, a `DISC_UN_MUTE` request should be broadcast to all devices in order to detect if devices were removed from the RDM network.
-
-#### Response Types
-
-Responding devices shall respond to requests only if the request was a non-broadcast request. Responding devices may respond to requests with the following response types:
-
-- `RESPONSE_TYPE_ACK` indicates that the responder has correctly received the controller message and is acting upon the request.
-
-- `RESPONSE_TYPE_ACK_OVERFLOW` indicates that the responder has correctly received the controller message and is acting upon the request, but there is more response data available than will fit in a single response packet. To receive the remaining information, controllers are able to send repeated requests to the same PID until the remaining information can fit in a single message.
-
-- `RESPONSE_TYPE_ACK_TIMER` indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time. When sending this response, responding devices include an estimated response time that must elapse before the responder can provide the required information.
-
-- `RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response. NACK reason codes are enumerated in the [rdm_types.h](src/rdm_types.h#L108) header.
-
-Responders must respond to every non-broadcast GET or SET request as well as every broadcast `DISC_UNIQUE_BRANCH` if their UID falls within the request's address space. When responding to `DISC_UNIQUE_BRANCH` requests, responders shall not send a DMX break and mark-after-break in order to improve discovery times and shall encode their response to reduce data loss during data collisions. Responders may only respond to `DISC_MUTE` and `DISC_UN_MUTE` requests with `RESPONSE_TYPE_ACK`.
-
 ### RDM Requests
 
 This library currently supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_`, whether the request is a GET or a SET, and the parameter name. To GET a device's `DEVICE_INFO`, users can call `rdm_get_device_info()`. To SET a device's `DMX_START_ADDRESS`, users can call `rdm_set_dmx_start_address()`. Functions which perform GET requests return the number of parameters it received from the responder. Functions which perform SET requests return `true` if a request was successful.
+
+When printing UIDs to the terminal, the macros `UIDSTR` and `UID2STR()` can be used in printf-like functions.
 
 ```c
 rdm_uid_t uid = 0x3b1044c06fbf;  // The destination UID for the request.
@@ -437,7 +458,7 @@ const int new_address = 123;  // The new DMX_START_ADDRESS to send.
 bool success = rdm_set_dmx_start_address(DMX_NUM_2, uid, RDM_ROOT_DEVICE, 
                                          &response, new_address);
 if (success) {
-  printf("Device has been set to DMX address %i.\n", new_address);
+  printf("Device " UIDSTR " has been set to DMX address %i.\n", UID2STR(uid), new_address);
 }
 ```
 
@@ -446,7 +467,7 @@ Response information from requests is read into a `rdm_response_t` pointer which
 The `response_type_t` type contains the following fields:
 
 - `err` evaluates to `true` if an error occurred reading DMX or RDM data. More information on error handling can be found in the [Error Handling](#error-handling) section.
-- `type` is the type of the RDM response received. It can be any of the RDM response types enumerated above or `RDM_RESPONSE_TYPE_NONE` if no response was received.
+- `type` is the type of the RDM response received. It can be any of the RDM response types enumerated in [Response Types](#response-types) or `RDM_RESPONSE_TYPE_NONE` if no response was received.
 
 The remaining response field is a union which should be read depending on the value in `type.`
 
