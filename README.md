@@ -458,7 +458,8 @@ const int new_address = 123;  // The new DMX_START_ADDRESS to send.
 bool success = rdm_set_dmx_start_address(DMX_NUM_2, uid, RDM_ROOT_DEVICE, 
                                          &response, new_address);
 if (success) {
-  printf("Device " UIDSTR " has been set to DMX address %i.\n", UID2STR(uid), new_address);
+  printf("Device " UIDSTR " has been set to DMX address %i.\n", UID2STR(uid), 
+         new_address);
 }
 ```
 
