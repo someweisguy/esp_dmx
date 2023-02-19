@@ -337,8 +337,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       // Reset the alarm for the end of the DMX mark-after-break
 #if ESP_IDF_VERSION_MAJOR >= 5
       const gptimer_alarm_config_t alarm_config = {
-          .alarm_count = driver->mab_len,
-          .flags.auto_reload_on_alarm = false};
+          .alarm_count = driver->mab_len, .flags.auto_reload_on_alarm = false};
       gptimer_set_alarm_action(gptimer_handle, &alarm_config);
 #else
       timer_group_set_alarm_value_in_isr(driver->timer_group, driver->timer_idx,
@@ -382,8 +381,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 static const char *TAG = "dmx";  // The log tagline for the file.
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
 
@@ -520,8 +518,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 }
 
 esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is not installed");
 
@@ -578,8 +575,7 @@ bool dmx_driver_is_installed(dmx_port_t dmx_num) {
 }
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(tx_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_pin),
             ESP_ERR_INVALID_ARG, "tx_pin error");
   DMX_CHECK(rx_pin < 0 || GPIO_IS_VALID_GPIO(rx_pin), ESP_ERR_INVALID_ARG,
@@ -591,8 +587,7 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
 }
 
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(intr_pin > 0 && GPIO_IS_VALID_GPIO(intr_pin), ESP_ERR_INVALID_ARG,
             "intr_pin error");
   DMX_CHECK(!dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
@@ -628,8 +623,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
 }
 
 esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "sniffer is not enabled");
 
@@ -657,8 +651,7 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
                           TickType_t wait_ticks) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(metadata, ESP_ERR_INVALID_ARG, "metadata is null");
   DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "sniffer is not enabled");
@@ -1099,8 +1092,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_set_raw_count(driver->gptimer_handle, elapsed);
     const gptimer_alarm_config_t alarm_config = {
-        .alarm_count = timeout,
-        .flags.auto_reload_on_alarm = false};
+        .alarm_count = timeout, .flags.auto_reload_on_alarm = false};
     gptimer_set_alarm_action(driver->gptimer_handle, &alarm_config);
     gptimer_start(driver->gptimer_handle);
 #else
