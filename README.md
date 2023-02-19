@@ -467,7 +467,7 @@ Response information from requests is read into a `rdm_response_t` pointer which
 The `response_type_t` type contains the following fields:
 
 - `err` evaluates to `true` if an error occurred reading DMX or RDM data. More information on error handling can be found in the [Error Handling](#error-handling) section.
-- `type` is the type of the RDM response received. It can be any of the RDM response types enumerated above or `RDM_RESPONSE_TYPE_NONE` if no response was received.
+- `type` is the type of the RDM response received. It can be any of the RDM response types enumerated in [Response Types](#response-types) or `RDM_RESPONSE_TYPE_NONE` if no response was received.
 
 The remaining response field is a union which should be read depending on the value in `type.`
 
