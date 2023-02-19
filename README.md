@@ -10,13 +10,13 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [PlatformIO](#platformio)
 - [Quick-Start Guide](#quick-start-guide)
 - [What is DMX?](#what-is-dmx)
-  - [DMX Basics](#dmx-basics)
   - [What is RDM?](#what-is-rdm)
 - [Configuring the DMX Port](#configuring-the-dmx-port)
   - [Setting Communication Pins](#setting-communication-pins)
   - [Installing the Driver](#installing-the-driver)
   - [Parameter Configuration](#parameter-configuration)
 - [Reading and Writing DMX](#reading-and-writing-dmx)
+  - [DMX Basics](#dmx-basics)
   - [Reading DMX](#reading-dmx)
   - [DMX Sniffer](#dmx-sniffer)
   - [Writing DMX](#writing-dmx)
@@ -117,20 +117,6 @@ DMX imposes very strict timing requirements to allow for backwards compatibility
 
 Today, DMX often struggles to keep up with the demands of the latest hardware. Its low data rate and small packet size sees it losing market popularity over more capable protocols. However its simplicity and robustness often makes it the first choice for small scale projects.
 
-### DMX Basics
-
-In a typical configuration, a DMX system consists of one DMX controller and up to 32 DMX fixtures per DMX port. A five-pin XLR cable, commonly known as a DMX cable, is connected to the DMX-out port of the DMX controller and into the the DMX-in port of the first DMX fixture. Each subsequent fixture is connected by a DMX cable between the DMX-out port of the previous fixture and the DMX-in port of the next fixture. A DMX terminator may be connected to the DMX-out port of the final fixture. This is only required when using RDM but can be helpful to ensure DMX signal stability when connecting more than 32 fixtures or for long runs of DMX cable.
-
-DMX addresses are needed for DMX controllers to communicate with fixtures. A fixture's address can be set between 1 and 512 (inclusive) by setting the fixture's DIP switches or by using the fixture's built-in display. DMX addresses correspond to DMX slots in a DMX packet. DMX address one is mapped to DMX packet slot one. Each DMX slot is an 8-bit number. A slot's minimum value is 0 and its maximum value is 255. To control a DMX dimmer set to DMX address five, DMX packet slot five must be written. To set the DMX dimmer to full intensity, slot five must be written to value 255. To set the dimmer to zero intensity, slot five must be written to value 0. Setting slot five to any value in between will dim the intensity appropriately.
-
-Slot zero in the DMX packet is called the DMX start code. The start code informs DMX fixtures what type of packet is being received. Standard DMX packets use a start code of `0x00`, also called the null start code. A list of the other supported start codes can be found in the [DMX start codes](#dmx-start-codes) section.
-
-Many DMX fixtures support multiple controllable DMX parameters. Fixtures that support multiple parameters use multiple DMX addresses. An RGB LED fixture is a common example of a multi-parameter fixture. It uses three parameters: red, green, and blue. In this example, this fixture would therefore use three, consecutive DMX addresses. This is called the fixture's DMX footprint. The red, green, and blue parameters of an RGB LED fixture set to DMX address five can be controlled by writing to slots five, six, and seven respectively. A fixture's DMX footprint can be found by reading its user manual. It is possible to address multiple DMX fixtures so that their DMX footprints overlap but this is uncommon.
-
-When more than 512 DMX addresses are used, it is required to use multiple DMX ports. Each DMX port is called a DMX universe. DMX fixtures can be uniquely identified by their DMX universe and address numbers. A common way to notate this is by separating the universe and address with a slash. Therefore `3/475` represents universe three, address 475. It is important to understand that DMX fixtures are not aware of the concept of a universe. A fixture set to DMX address one will respond to writes to slot one on whichever universe to which is is connected.
-
-It can be cumbersome to refer to fixtures by their DMX addresses, especially when using large DMX footprints. Consider the example of five fixtures with 16-address DMX footprints. The addresses of these fixtures would be `1/1`, `1/17`, `1/33`, `1/49`, and `1/65`. To make it easier to select fixtures to control, DMX controllers can patch DMX addresses to fixture numbers. This allows each address to be mapped to an easy-to-recall number. Instead of referring to each fixture by their DMX addresses, the DMX controller would control fixtures `1`, `2`, `3`, `4`, and `5`. Patching fixtures is an important concept that nearly every DMX controller supports. This library does not natively support fixture numbers. Users wanting to implement fixture numbers for their DMX fixtures must do so in their own code.
-
 For in-depth information on DMX, see the [E1.11 standards document](https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf).
 
 ### What is RDM?
@@ -181,7 +167,19 @@ The above functions each have `_get_` counterparts to retrieve the currently set
 
 ## Reading and Writing DMX
 
-DMX is a unidirectional protocol. This means that on the DMX bus only one device can transmit commands and many devices (typically up to 32) listen for commands. Therefore, this library permits either reading or writing to the bus but not both at once. If transmitting and receiving data simultaneously is desired, the user can install two drivers on two UART ports.
+In a typical configuration, a DMX system consists of one DMX controller and up to 32 DMX fixtures per DMX port. A five-pin XLR cable, commonly known as a DMX cable, is connected to the DMX-out port of the DMX controller and into the the DMX-in port of the first DMX fixture. Each subsequent fixture is connected by a DMX cable between the DMX-out port of the previous fixture and the DMX-in port of the next fixture. A DMX terminator may be connected to the DMX-out port of the final fixture. This is only required when using RDM but can be helpful to ensure DMX signal stability when connecting more than 32 fixtures or for long runs of DMX cable.
+
+### DMX Basics
+
+DMX addresses are needed for DMX controllers to communicate with fixtures. A fixture's address can be set between 1 and 512 (inclusive) by setting the fixture's DIP switches or by using the fixture's built-in display. DMX addresses correspond to DMX slots in a DMX packet. DMX address one is mapped to DMX packet slot one. Each DMX slot is an 8-bit number. A slot's minimum value is 0 and its maximum value is 255. To control a DMX dimmer set to DMX address five, DMX packet slot five must be written. To set the DMX dimmer to full intensity, slot five must be written to value 255. To set the dimmer to zero intensity, slot five must be written to value 0. Setting slot five to any value in between will dim the intensity appropriately.
+
+Slot zero in the DMX packet is called the DMX start code. The start code informs DMX fixtures what type of packet is being received. Standard DMX packets use a start code of `0x00`, also called the null start code. A list of the other supported start codes can be found in the [DMX start codes](#dmx-start-codes) section.
+
+Many DMX fixtures support multiple controllable DMX parameters. Fixtures that support multiple parameters use multiple DMX addresses. An RGB LED fixture is a common example of a multi-parameter fixture. It uses three parameters: red, green, and blue. In this example, this fixture would therefore use three, consecutive DMX addresses. This is called the fixture's DMX footprint. The red, green, and blue parameters of an RGB LED fixture set to DMX address five can be controlled by writing to slots five, six, and seven respectively. A fixture's DMX footprint can be found by reading its user manual. It is possible to address multiple DMX fixtures so that their DMX footprints overlap but this is uncommon.
+
+When more than 512 DMX addresses are used, it is required to use multiple DMX ports. Each DMX port is called a DMX universe. DMX fixtures can be uniquely identified by their DMX universe and address numbers. A common way to notate this is by separating the universe and address with a `/`. Therefore `3/475` represents universe three, address 475. It is important to understand that DMX fixtures are not aware of the concept of a universe. A fixture set to DMX address one will respond to writes to slot one on whichever universe to which is is connected.
+
+It can be cumbersome to refer to fixtures by their DMX addresses, especially when using large DMX footprints. Consider the example of five fixtures with 16-address DMX footprints. The addresses of these fixtures would be `1/1`, `1/17`, `1/33`, `1/49`, and `1/65`. To make it easier to select fixtures to control, DMX controllers can patch DMX addresses to fixture numbers. This allows each address to be mapped to an easy-to-recall number. Instead of referring to each fixture by their DMX addresses, the DMX controller would control fixtures `1`, `2`, `3`, `4`, and `5`. Patching fixtures is an important concept that nearly every DMX controller supports. This library does not natively support fixture numbers. Users wanting to implement fixture numbers for their DMX fixtures must do so in their own code.
 
 ### Reading DMX
 
