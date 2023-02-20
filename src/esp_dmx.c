@@ -159,7 +159,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Handle DMX errors or process DMX data
       esp_err_t packet_err = ESP_OK;
-      rdm_response_type_t packet_type = RDM_PACKET_TYPE_NON_RDM;
+      enum rdm_packet_type_t packet_type = RDM_PACKET_TYPE_NON_RDM;
       if (intr_flags & DMX_INTR_RX_ERR) {
         packet_err = intr_flags & DMX_INTR_RX_FRAMING_ERR
                          ? ESP_FAIL               // Missing stop bits
