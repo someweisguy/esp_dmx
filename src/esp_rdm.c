@@ -23,6 +23,32 @@
 
 static const char *TAG = "rdm";  // The log tagline for the file.
 
+bool rdm_uid_array_is_broadcast(uint8_t *uid) {
+  // bool is_broadcast = false;
+  for (int i = 2; i < 6; ++i) {
+    if (0xff != uid[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// UNDER CONSTRUCTION !!!!!
+bool rdm_uid_array_is_addressed_to(uint8_t *uid, uint8_t *addressee) {
+  // uid &= 0xffffffffffff;
+  // addressee &= 0xffffffffffff;
+  // bool temp = addressee == uid ||
+  //        ((uid >> 32 == 0xffff || uid >> 32 == addressee >> 32) &&
+  //         (uint32_t)uid == 0xffffffff);
+  for (int i = 0; i < 6; ++i) {
+    if ((addressee[i] != uid[i]) && 
+        (0xff != uid[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -40,6 +66,30 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
     esp_efuse_mac_get_default((void *)&mac);
     driver->rdm.uid = (bswap32(mac.device) + dmx_num) & 0xffffffff;
     driver->rdm.uid |= (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
+  }
+  rdm_uid_t uid = driver->rdm.uid;
+  taskEXIT_CRITICAL(spinlock);
+
+  return uid;
+}
+
+rdm_uid_t rdm_get_uid_for_mfr(dmx_port_t dmx_num, uint16_t mfrID) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Initialize the RDM UID
+  taskENTER_CRITICAL(spinlock);
+  if (driver->rdm.uid == 0) {
+    struct __attribute__((__packed__)) {
+      uint16_t manufacturer;
+      uint64_t device;
+    } mac;
+    esp_efuse_mac_get_default((void *)&mac);
+    driver->rdm.uid = (bswap32(mac.device) + dmx_num) & 0xffffffff;
+    driver->rdm.uid |= (rdm_uid_t)mfrID << 32;
   }
   rdm_uid_t uid = driver->rdm.uid;
   taskEXIT_CRITICAL(spinlock);
@@ -75,8 +125,76 @@ bool rdm_is_muted(dmx_port_t dmx_num) {
   return is_muted;
 }
 
+bool set_rdm_muted(dmx_port_t dmx_num, bool mute) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  bool was_muted;
+  taskENTER_CRITICAL(spinlock);
+  was_muted = driver->rdm.discovery_is_muted;
+  driver->rdm.discovery_is_muted = mute;
+  taskEXIT_CRITICAL(spinlock);
+
+  return was_muted;
+}
+
+size_t rdm_send_response(dmx_port_t dmx_num, rdm_data_t *data, const void *payload, size_t pd_len,
+                         rdm_response_type_t response, uint8_t *packet) {
+  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  RDM_CHECK(pd_len <= 231, 0, "pd_len error");
+  RDM_CHECK(response <= RDM_RESPONSE_TYPE_ACK_OVERFLOW, 0, "invalid response type error");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+
+  // Fill in the fields of the response over those of the command
+  data->sc = RDM_SC;
+  data->sub_sc = RDM_SUB_SC;
+  data->message_len = 24 + pd_len;
+  data->cc++;  // turn cmd code into response? 1 higher 
+  // data->pid = data->pid;   // Let it be
+  data->pdl = pd_len;
+  uint8_t *pPD = ((uint8_t*)&(data->pd));
+  // Fill the payload Parameter Data, if any, into the packet
+  if (NULL != payload) {
+    for (int i = 0; i < pd_len; ++i) {
+      pPD[i] = ((uint8_t *)payload)[i];
+    }
+  }
+
+  uint8_t temp[6];
+  memcpy(temp, data->destination_uid, 6);
+  memcpy(data->destination_uid, data->source_uid, 6);
+  memcpy(data->source_uid, temp, 6);
+  
+  data->response_type = response;  // was RDM_RESPONSE_TYPE_ACK;
+  data->sub_device = RDM_ROOT_DEVICE;
+
+  // Put the packet as it is so far into the driver's buffer for transmission
+  memcpy(driver->data.buffer, data, 24 + pd_len);
+
+  // Write and send the response
+  size_t written =
+      rdm_encode_response(driver->data.buffer, 24 + pd_len);
+  // dmx_send(dmx_num, written);
+
+  // For diagnostics (rcd)
+  if (NULL != packet) {
+    memcpy(packet, driver->data.buffer, written);
+  }
+  dmx_send(dmx_num, written);
+
+  xSemaphoreGiveRecursive(driver->mux);
+  return written;
+}
+
 size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
-                              rdm_uid_t uid) {
+                              rdm_uid_t uid, uint8_t *packet) {
   RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   RDM_CHECK(preamble_len <= 7, 0, "preamble_len error");
@@ -89,6 +207,11 @@ size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
   size_t written =
       rdm_encode_disc_response(driver->data.buffer, preamble_len, uid);
   dmx_send(dmx_num, written);
+
+  // For diagnostics (rcd)
+  if (NULL != packet) {
+    memcpy(packet, driver->data.buffer, written);
+  }
 
   xSemaphoreGiveRecursive(driver->mux);
   return written;

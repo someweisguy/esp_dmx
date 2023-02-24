@@ -58,6 +58,16 @@ inline bool rdm_uid_is_broadcast(rdm_uid_t uid) {
 }
 
 /**
+ * @brief Returns true if the specified UID is a broadcast address.
+ * 
+ * @param uid The UID to compare.  An array of 6 uint8_t's
+ * @return true if the UID is a broadcast address.
+ * @return false if the UID is not a broadcast address.
+ */
+// inline 
+bool rdm_uid_array_is_broadcast(uint8_t *uid);
+
+/**
  * @brief Returns true if the specified UID is addressed to the desired UID.
  * 
  * @param uid The UID to check against an addressee.
@@ -72,6 +82,17 @@ inline bool rdm_uid_is_addressed_to(rdm_uid_t uid, rdm_uid_t addressee) {
          ((uid >> 32 == 0xffff || uid >> 32 == addressee >> 32) &&
           (uint32_t)uid == 0xffffffff);
 }
+
+/**
+ * @brief Returns true if the specified UID is addressed to the desired UID.
+ * 
+ * @param uid The UID to check against an addressee.  An array of 6 uint8_t's
+ * @param addressee The addressee UID.  An array of 6 uint8_t's
+ * @return true if the addressee UID is targeted by the specified UID.
+ * @return false if the addressee is not targeted by the specified UID.
+ */
+// inline 
+bool rdm_uid_array_is_addressed_to(uint8_t *uid, uint8_t *addressee);
 
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
@@ -128,6 +149,15 @@ FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
 rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
 
 /**
+ * @brief Returns the 48 bit unique ID of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param 
+ * @return The UID of the DMX port.
+ */
+rdm_uid_t rdm_get_uid_for_mfr(dmx_port_t dmx_num, uint16_t mfrID);
+
+/**
  * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
  * the UID to its default value.
  *
@@ -147,15 +177,38 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
 bool rdm_is_muted(dmx_port_t dmx_num);
 
 /**
+ * @brief Returns true if RDM discovery responses are be muted on this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param mute The boolean value to set the discovery_is_muted flag to.
+ * @return true if RDM discovery was muted.
+ * @return false if RDM discovery was not muted.
+ */
+bool set_rdm_muted(dmx_port_t dmx_num, bool mute);
+
+/**
+ * @brief Sends a "normal" RDM response on the desired DMX port.
+ *
+ * @param dmx_num The DMX port number.
+ * @param pd_len The length of the Message Data Block.
+ * @param uid The UID to encode into the packet.
+ * @param packet The response packet sent out.
+ * @return The number of bytes sent.
+ */
+size_t rdm_send_response(dmx_port_t dmx_num, rdm_data_t *data, const void *payload, size_t pd_len,
+                         rdm_response_type_t response, uint8_t *packet);
+
+/**
  * @brief Sends an RDM discovery response on the desired DMX port.
  *
  * @param dmx_num The DMX port number.
  * @param preamble_len The length of the packet preamble (max: 7).
  * @param uid The UID to encode into the packet.
+ * @param packet The response packet sent out.
  * @return The number of bytes sent.
  */
 size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
-                              rdm_uid_t uid);
+                              rdm_uid_t uid, uint8_t *packet);
 
 /**
  * @brief Sends an RDM discovery request and reads the response, if any.
