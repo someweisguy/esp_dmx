@@ -1,5 +1,18 @@
 #include "functions.h"
 
+size_t rdm_encode_response(uint8_t *data, size_t mdb_len) {
+  // Encode the ? and calculate the checksum
+  uint16_t checksum = 0;
+  
+  // Encode the checksum
+  for (int i = 0; i < mdb_len; ++i) {
+    checksum += ((uint8_t *)data)[i];
+  }
+  *(uint16_t *)(data + mdb_len) = bswap16(checksum);
+ 
+  return mdb_len + 2;
+}
+
 size_t rdm_encode_disc_response(uint8_t *data, size_t preamble_len,
                                 const rdm_uid_t uid) {
   // Encode the RDM preamble and delimiter
