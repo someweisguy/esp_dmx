@@ -135,7 +135,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         // Handle receiveing a valid packet with smaller than expected size
         if (!driver->end_of_packet && driver->data.head > 0 &&
             driver->data.head < DMX_MAX_PACKET_SIZE) {
-          driver->data.rx_size = driver->data.head;
+          driver->data.rx_size = driver->data.head - 1;
         }
 
         // Set driver flags
