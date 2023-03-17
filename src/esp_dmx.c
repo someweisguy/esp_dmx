@@ -135,7 +135,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         // Handle receiveing a valid packet with smaller than expected size
         if (!driver->end_of_packet && driver->data.head > 0 &&
             driver->data.head < DMX_MAX_PACKET_SIZE) {
-          driver->data.rx_size = driver->data.head;
+          driver->data.rx_size = driver->data.head - 1;
         }
 
         // Set driver flags
@@ -486,7 +486,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
       .direction = GPTIMER_COUNT_UP,
       .resolution_hz = 1000000,  // 1MHz resolution timer
   };
-  gptimer_new_timer(&timer_config, &driver->gptimer_handle);  // TODO: err check
+  esp_err_t err = gptimer_new_timer(&timer_config, &driver->gptimer_handle);
+  if (err) {
+    ESP_LOGE(TAG, "DMX driver gptimer error");
+    dmx_driver_delete(dmx_num);
+    return err;
+  }
   const gptimer_event_callbacks_t gptimer_cb = {.on_alarm = dmx_timer_isr};
   gptimer_register_event_callbacks(driver->gptimer_handle, &gptimer_cb, driver);
   gptimer_enable(driver->gptimer_handle);
