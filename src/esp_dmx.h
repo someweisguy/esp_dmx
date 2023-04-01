@@ -69,10 +69,49 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
  * */
 bool dmx_driver_is_installed(dmx_port_t dmx_num);
 
+/**
+ * @brief Disables the DMX driver. When the DMX driver is not placed in IRAM,
+ * functions which disable the cache, such as functions which read or write to
+ * flash, will also stop DMX interrupts from firing. This can cause incoming DMX
+ * data to become corrupted. To avoid this issue, the DMX driver should be
+ * disabled before disabling the cache. When cache is reenabled, the DMX driver
+ * can be reenabled as well. When the DMX driver is placed in IRAM, disabling
+ * and reenabling the DMX driver is not needed.
+ * 
+ * @param dmx_num The DMX port number.
+ * @retval true if the driver was disabled.
+ * @retval false if the driver was not disabled.
+ */
 bool dmx_driver_disable(dmx_port_t dmx_num);
 
+/**
+ * @brief Enables the DMX driver. When the DMX driver is not placed in IRAM,
+ * functions which disable the cache, such as functions which read or write to
+ * flash, will also stop DMX interrupts from firing. This can cause incoming DMX
+ * data to become corrupted. To avoid this issue, the DMX driver should be
+ * disabled before disabling the cache. When cache is reenabled, the DMX driver
+ * can be reenabled as well. When the DMX driver is placed in IRAM, disabling
+ * and reenabling the DMX driver is not needed.
+ * 
+ * @param dmx_num The DMX port number.
+ * @retval true if the driver was enabled.
+ * @retval false if the driver was enabled.
+ */
 bool dmx_driver_enable(dmx_port_t dmx_num);
 
+/**
+ * @brief Checks if the DMX driver is enabled. When the DMX driver is not placed
+ * in IRAM, functions which disable the cache, such as functions which read or
+ * write to flash, will also stop DMX interrupts from firing. This can cause
+ * incoming DMX data to become corrupted. To avoid this issue, the DMX driver
+ * should be disabled before disabling the cache. When cache is reenabled, the
+ * DMX driver can be reenabled as well. When the DMX driver is placed in IRAM,
+ * disabling and reenabling the DMX driver is not needed.
+ *
+ * @param dmx_num The DMX port number.
+ * @retval true if the driver is enabled.
+ * @retval false if the driver is disabled.
+ */
 bool dmx_driver_is_enabled(dmx_port_t dmx_num);
 
 /**
