@@ -69,6 +69,12 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
  * */
 bool dmx_driver_is_installed(dmx_port_t dmx_num);
 
+bool dmx_driver_disable(dmx_port_t dmx_num);
+
+bool dmx_driver_enable(dmx_port_t dmx_num);
+
+bool dmx_driver_is_enabled(dmx_port_t dmx_num);
+
 /**
  * @brief Sets DMX pin number.
  *
