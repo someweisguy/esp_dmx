@@ -432,6 +432,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->end_of_packet = true;
   driver->is_sending = false;
   driver->new_packet = false;
+  driver->is_enabled = true;
 
   driver->rdm.uid = 0;
   driver->rdm.discovery_is_muted = false;
@@ -580,6 +581,67 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
 bool dmx_driver_is_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
+}
+bool dmx_driver_disable(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), false,
+            "driver is already disabled");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  bool success = false;
+
+  // Disable receive interrupts
+  taskENTER_CRITICAL(spinlock);
+  if (!driver->is_sending) {
+    dmx_uart_disable_interrupt(driver->uart, DMX_INTR_RX_ALL);
+    dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
+    driver->is_enabled = false;
+    success = true;
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  return success;
+}
+
+bool dmx_driver_enable(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(!dmx_driver_is_enabled(dmx_num), false,
+            "driver is already enabled");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Initialize driver flags and reenable interrupts
+  taskENTER_CRITICAL(spinlock);
+  driver->is_in_break = false;
+  driver->end_of_packet = true;
+  driver->new_packet = false;
+  driver->data.head = -1;  // Wait for DMX break before reading data
+  dmx_uart_rxfifo_reset(driver->uart);
+  dmx_uart_txfifo_reset(driver->uart);
+  dmx_uart_enable_interrupt(driver->uart, DMX_INTR_RX_ALL);
+  dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
+  driver->is_enabled = true;
+  taskEXIT_CRITICAL(spinlock);
+
+  return true;
+}
+
+bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
+  bool is_enabled = false;
+
+  if(dmx_driver_is_installed(dmx_num)) {
+    spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+    taskENTER_CRITICAL(spinlock);
+    is_enabled = dmx_driver[dmx_num]->is_enabled;
+    taskEXIT_CRITICAL(spinlock);
+  }
+
+  return is_enabled;
 }
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
@@ -922,6 +984,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                    TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
   dmx_driver_t *const restrict driver = dmx_driver[dmx_num];
 
@@ -1054,6 +1117,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
