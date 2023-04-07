@@ -37,6 +37,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Timing Macros](#timing-macros)
   - [DMX Start Codes](#dmx-start-codes)
 - [Additional Considerations](#additional-considerations)
+  - [Using Flash or Disabling Cache](#using-flash-or-disabling-cache)
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
   - [Currently Supported RDM PIDs](#currently-supported-rdm-pids)
   - [Hardware Specifications](#hardware-specifications)
@@ -57,6 +58,8 @@ This library requires ESP-IDF version 4.4.1 or newer. Clone this repository into
 ### PlatformIO
 
 This library is compatible with the PlatformIO IDE. Search for this library in the PlatformIO library registry and add it to your project. The library can be included by writing `#include "esp_dmx.h"` at the top of your `main.c` or `main.cpp` file.
+
+This library includes a `Kconfig` file for configuring build options on the ESP32. When using the ESP-IDF framework, it is recommended to move library folders to a `components` folder located in your project's root directory rather than leaving PlatformIO installed libraries in their default location. This is not required but it can result in more a more performant driver. See [Using Flash or Disabling Cache](#using-flash-or-disabling-cache) for more information.
 
 ## Quick-Start Guide
 
@@ -635,6 +638,29 @@ Additional macro constants include the following:
 Some start codes are considered invalid and should not be used in a DMX packet. The validity of the start code can be checked using the macro `DMX_START_CODE_IS_VALID()`. If the start code is valid, this macro will evaluate to true. This library does not automatically check for valid start codes. Such error checking is left to the user to implement.
 
 ## Additional Considerations
+
+### Using Flash or Disabling Cache
+
+When calling functions that read from or write to flash memory on the ESP32, cache is momentarily disabled and certain interrupts are prevented from firing. This can result in data corruption if the DMX driver is configured improperly.
+
+The included `Kconfig` file in this library instructs the ESP32's build system to place the DMX driver and some of its functions into IRAM. This and other configuration options can be disabled using the ESP32's `menuconfig`. The use of `menuconfig` and `Kconfig` files is not supported when using the Arduino framework.
+
+The DMX driver can be placed in either IRAM or flash memory. The DMX driver and its associated functions are automatically placed in IRAM to reduce the penalty associated with loading code from flash. Placing the DMX driver in flash is acceptable although less performant. When using the Arduino framework, the DMX driver will be placed in flash. It is not currently possible to place the DMX driver in IRAM when using the Arduino framework.
+
+When this driver is not placed in IRAM, functions which disable the cache will also temporarily disable the DMX driver. To prevent data corruption, it is required to gracefully disable the DMX driver before cache is disabled. This can be done with `dmx_driver_disable()`. The driver can be reenabled with `dmx_driver_enable()`. The function `dmx_driver_is_enabled()` can be used to check the status of the DMX driver.
+
+```c
+// Disable the DMX driver if it isn't already
+if (dmx_driver_is_enabled(DMX_NUM_2)) {
+  dmx_driver_disable(DMX_NUM_2);
+}
+
+// Read from or write to flash memory (or otherwise disable the cache) here...
+
+dmx_driver_enable(DMX_NUM_2);
+```
+
+Disabling and reenabling the DMX driver before disabling the cache is not required if the DMX driver is placed in IRAM.
 
 ### Wiring an RS-485 Circuit
 

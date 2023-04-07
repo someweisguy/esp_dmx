@@ -58,6 +58,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   int end_of_packet;  // True if the driver received an end-of-packet condition.
   int is_sending;     // True if the driver is sending data.
   int new_packet;     // True if the driver has a new, unhandled packet.
+  int is_enabled;     // True if the driver is enabled.
 
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
