@@ -1097,7 +1097,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     driver->new_packet = false;
     taskEXIT_CRITICAL(spinlock);
     if (packet_size == -1) {
-      packet_size = 0;
+      packet_size = 0;  // FIXME
     }
     packet->size = packet_size;
   }
