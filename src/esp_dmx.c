@@ -1076,6 +1076,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
     }
+    /* FIXME: add the following here
+    if (packet_size == -1) {
+      packet_size = 0;
+    }
+    */
 
   } else if (!new_packet_available) {
     // Fail early if there is no data available and this function cannot block
@@ -1096,9 +1101,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
     driver->new_packet = false;
     taskEXIT_CRITICAL(spinlock);
-    if (packet_size == -1) {
-      packet_size = 0;  // FIXME
-    }
+    if (packet_size == -1) {  // FIXME: remove this line
+      packet_size = 0;        // FIXME: remove this line
+    }                         // FIXME: remove this line
     packet->size = packet_size;
   }
 
