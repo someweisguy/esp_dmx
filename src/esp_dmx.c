@@ -12,6 +12,7 @@
 #include "esp_task_wdt.h"
 #include "private/dmx_hal.h"
 #include "private/driver.h"
+#include "private/rdm_encode/functions.h"
 #include "private/rdm_encode/types.h"
 #include "rdm_types.h"
 
@@ -1088,15 +1089,78 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   }
 
+  // Respond to potential RDM packets
+  bool is_rdm = false;
+  if (packet_size > 0) {
+    // Parse the packet header
+    rdm_header_t header;
+    taskENTER_CRITICAL(spinlock);
+    rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
+    const bool got_header = rdm_decode_header(rdm, &header);
+    is_rdm = got_header || rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;    
+    taskEXIT_CRITICAL(spinlock);
+
+    // Determine if callback must fire and if a response is expected
+    const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
+    if (got_header && header.checksum_is_valid &&
+        rdm_uid_is_addressed_to(header.destination_uid, my_uid)) {
+      // Get a copy of the parameter data
+      uint8_t data[300]; // TODO: malloc? set to max RDM data size?
+      if (header.pdl > 0) {
+        taskENTER_CRITICAL(spinlock);
+        memcpy(data, &rdm->pd, header.pdl);
+        taskEXIT_CRITICAL(spinlock);
+      }
+
+      // TODO: Process the incoming command    
+      if (header.cc == RDM_CC_DISC_COMMAND) {
+        if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+          if (!driver->rdm.discovery_is_muted) {
+            rdm_disc_unique_branch_t disc_unique_branch;
+            rdm_decode_uids(data, (rdm_uid_t *)&disc_unique_branch, 2,
+                            header.pdl);
+
+            // Per the RDM spec, a responder shall only respond if its UID is 
+            // greater than or equal to the lower bound UID less than or equal 
+            // to the upper bound UID.
+            if (my_uid >= disc_unique_branch.lower_bound &&
+                my_uid <= disc_unique_branch.upper_bound) {
+              rdm_send_disc_response(dmx_num, 7, my_uid);
+            }
+          }
+        } else if (header.pid == RDM_PID_DISC_UN_MUTE ||
+                   header.pid == RDM_PID_DISC_MUTE) {
+          driver->rdm.discovery_is_muted = (header.pid == RDM_PID_DISC_MUTE);
+          if (!rdm_uid_is_broadcast(header.destination_uid)) {
+            rdm_disc_mute_t disc_mute = {
+              // TODO: get device mute flags
+            };
+            size_t written = rdm_encode_mute(&rdm->pd, &disc_mute);
+            header.destination_uid = header.source_uid;
+            header.source_uid = my_uid;
+            header.cc = RDM_CC_DISC_COMMAND_RESPONSE;
+            header.response_type = RDM_RESPONSE_TYPE_ACK;
+            header.pdl = written;
+            written += rdm_encode_header(rdm, &header);
+            dmx_send(dmx_num, written);            
+          }
+        } else {
+          // TODO: respond with unknown/invalid PID
+        }
+      } // TODO: else if (header.cc == RDM_CC_GET_COMMAND) ...
+
+
+
+      // TODO: check if a response is needed and send one if so
+    }
+  }
+
   // Parse DMX data packet
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
     packet->err = driver->data.err;
     packet_size = driver->data.head;
     if (packet_size > 0) {
-      const rdm_data_t *const restrict rdm = (rdm_data_t *)driver->data.buffer;
-      packet->is_rdm = (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) ||
-                       rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;
       packet->sc = driver->data.buffer[0];
     }
     driver->new_packet = false;
@@ -1105,6 +1169,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       packet_size = 0;        // FIXME: remove this line
     }                         // FIXME: remove this line
     packet->size = packet_size;
+    packet->is_rdm = is_rdm;
   }
 
   // Give the mutex back and return

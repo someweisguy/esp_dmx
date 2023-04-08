@@ -83,25 +83,27 @@ size_t rdm_encode_header(void *data, const rdm_header_t *header) {
 
 bool rdm_decode_header(const void *data, rdm_header_t *header) {
   const rdm_data_t *const rdm = data;
-  header->destination_uid = buf_to_uid(rdm->destination_uid);
-  header->source_uid = buf_to_uid(rdm->source_uid);
-  header->tn = rdm->tn;
-  header->port_id = rdm->port_id;
-  header->message_count = rdm->message_count;
-  header->sub_device = bswap16(rdm->sub_device);
-  header->cc = rdm->cc;
-  header->pid = bswap16(rdm->pid);
-  header->pdl = rdm->pdl;
+  const bool has_header = (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC);
+  if (has_header) {
+    header->destination_uid = buf_to_uid(rdm->destination_uid);
+    header->source_uid = buf_to_uid(rdm->source_uid);
+    header->tn = rdm->tn;
+    header->port_id = rdm->port_id;
+    header->message_count = rdm->message_count;
+    header->sub_device = bswap16(rdm->sub_device);
+    header->cc = rdm->cc;
+    header->pid = bswap16(rdm->pid);
+    header->pdl = rdm->pdl;
 
-  // Calculate checksum
-  uint16_t sum = 0;
-  const uint16_t checksum = bswap16(*(uint16_t *)(data + rdm->message_len));
-  for (int i = 0; i < rdm->message_len; ++i) {
-    sum += *(uint8_t *)(data + i);
+    // Calculate checksum
+    uint16_t sum = 0;
+    const uint16_t checksum = bswap16(*(uint16_t *)(data + rdm->message_len));
+    for (int i = 0; i < rdm->message_len; ++i) {
+      sum += *(uint8_t *)(data + i);
+    }
+    header->checksum_is_valid = (sum == checksum);
   }
-  header->checksum_is_valid = (sum == checksum);
-
-  return (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC);
+  return has_header;
 }
 
 size_t rdm_encode_uids(void *data, const rdm_uid_t *uids, size_t size) {
@@ -124,6 +126,7 @@ size_t rdm_decode_uids(const void *data, rdm_uid_t *const uids, size_t size,
 size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
   size_t pdl = 2;
   struct rdm_disc_mute_data_t *const ptr = data;
+  bzero(data, 2);  // FIXME: make the bit field more efficient?
   ptr->managed_proxy = param->managed_proxy;
   ptr->sub_device = param->sub_device;
   ptr->boot_loader = param->boot_loader;
