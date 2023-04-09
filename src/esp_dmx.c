@@ -433,9 +433,28 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->new_packet = false;
   driver->is_enabled = true;
 
+  // Initialize RDM settings
   driver->rdm.uid = 0;
-  driver->rdm.discovery_is_muted = false;
   driver->rdm.tn = 0;
+  driver->rdm.discovery_is_muted = false;
+  driver->rdm.identify_device = false;
+
+  // Initialize RDM device info
+  driver->rdm.device_info.major_rdm_version = 1;  // Required per specification
+  driver->rdm.device_info.minor_rdm_version = 0;  // Required per specification
+  driver->rdm.device_info.model_id = 0;  // Defined by user
+  driver->rdm.device_info.coarse_product_category = 0;
+  driver->rdm.device_info.fine_product_category = 0;
+  driver->rdm.device_info.software_version_id = 303;
+  driver->rdm.device_info.footprint = 0;
+  driver->rdm.device_info.current_personality = 0;
+  driver->rdm.device_info.personality_count = 0;
+  driver->rdm.device_info.start_address = -1;  // Must be -1 if footprint == 0
+  driver->rdm.device_info.sub_device_count = 0;
+  driver->rdm.device_info.sensor_count = 0;
+
+  // Initialize RDM software version label
+  strncpy(driver->rdm.software_version_label, "esp_dmx v3.0.3-beta", 32);
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
@@ -1105,7 +1124,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     if (got_header && header.checksum_is_valid &&
         rdm_uid_is_addressed_to(header.destination_uid, my_uid)) {
       // Get a copy of the parameter data
-      uint8_t data[300]; // TODO: malloc? set to max RDM data size?
+      uint8_t data[257]; // TODO: malloc? make buffer copy in driver?
       if (header.pdl > 0) {
         taskENTER_CRITICAL(spinlock);
         memcpy(data, &rdm->pd, header.pdl);
@@ -1144,12 +1163,65 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
             written += rdm_encode_header(rdm, &header);
             dmx_send(dmx_num, written);            
           }
+        } // DISC_COMMAND_RESPONSE packet cannot be sent with NACK_REASON
+      } else if (header.cc == RDM_CC_GET_COMMAND) {
+        // TODO
+        if (header.pid == RDM_PID_DEVICE_INFO) {
+          if (!rdm_uid_is_broadcast(header.destination_uid)) {
+            // TODO: spinlock
+            rdm_device_info_t device_info = driver->rdm.device_info;
+            size_t written = rdm_encode_device_info(&rdm->pd, &device_info);
+            header.destination_uid = header.source_uid;
+            header.source_uid = my_uid;
+            header.cc = RDM_CC_GET_COMMAND_RESPONSE;
+            header.response_type = RDM_RESPONSE_TYPE_ACK;
+            header.pdl = written;
+            written += rdm_encode_header(rdm, &header);
+            dmx_send(dmx_num, written);
+          }
+
+        } else if (header.pid == RDM_PID_IDENTIFY_DEVICE) {
+          const int identify_device = driver->rdm.identify_device;
+          size_t written = rdm_encode_8bit(&rdm->pd, &identify_device, 1);
+          header.destination_uid = header.source_uid;
+          header.source_uid = my_uid;
+          header.cc = RDM_CC_GET_COMMAND_RESPONSE;
+          header.response_type = RDM_RESPONSE_TYPE_ACK;
+          header.pdl = written;
+          written += rdm_encode_header(rdm, &header);
+          dmx_send(dmx_num, written);
+
+        } else if (header.pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
+          char software_version_label[33];
+          // TODO: spinlock
+          strncpy(software_version_label, driver->rdm.software_version_label,
+                  32);
+          size_t written =
+              rdm_encode_string(&rdm->pd, software_version_label, 32);
+          header.destination_uid = header.source_uid;
+          header.source_uid = my_uid;
+          header.cc = RDM_CC_GET_COMMAND_RESPONSE;
+          header.response_type = RDM_RESPONSE_TYPE_ACK;
+          header.pdl = written;
+          written += rdm_encode_header(rdm, &header);
+          dmx_send(dmx_num, written);
+
         } else {
-          // TODO: respond with unknown/invalid PID
+          // ESP_LOGW(TAG, "Got unknown PID %x", header.pid);
         }
-      } // TODO: else if (header.cc == RDM_CC_GET_COMMAND) ...
+      } else if (header.cc == RDM_CC_SET_COMMAND) {
+        if (header.pid == RDM_PID_IDENTIFY_DEVICE) {
+          // TODO
 
 
+
+        }
+        
+      } else if (header.cc != RDM_CC_DISC_COMMAND_RESPONSE &&
+                 header.cc != RDM_CC_GET_COMMAND_RESPONSE &&
+                 header.cc != RDM_CC_SET_COMMAND_RESPONSE) {
+        // TODO: send invalid command class response
+      }
 
       // TODO: check if a response is needed and send one if so
     }
