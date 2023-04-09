@@ -1142,7 +1142,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
             // to the upper bound UID.
             if (my_uid >= disc_unique_branch.lower_bound &&
                 my_uid <= disc_unique_branch.upper_bound) {
-              size_t written = rdm_encode_disc_response(rdm, 7, uid);
+              size_t written = rdm_encode_disc_response(rdm, 7, my_uid);
               dmx_send(dmx_num, written);
             }
           }

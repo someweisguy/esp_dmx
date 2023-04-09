@@ -24,7 +24,7 @@ extern "C" {
  * @param uid The RDM UID to encode into the response.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_disc_response(uint8_t *data, size_t preamble_len,
+size_t rdm_encode_disc_response(void *data, size_t preamble_len,
                                 const rdm_uid_t uid);
 
 /**

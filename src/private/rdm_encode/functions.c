@@ -1,29 +1,29 @@
 #include "functions.h"
 
-size_t rdm_encode_disc_response(uint8_t *data, size_t preamble_len,
+size_t rdm_encode_disc_response(void *data, size_t preamble_len,
                                 const rdm_uid_t uid) {
   // Encode the RDM preamble and delimiter
   if (preamble_len > 7) {
     preamble_len = 7;  // Max preamble_len is 7
   }
   for (int i = 0; i < preamble_len; ++i) {
-    data[i] = RDM_PREAMBLE;
+    ((uint8_t *)data)[i] = RDM_PREAMBLE;
   }
-  data[7] = RDM_DELIMITER;
+  ((uint8_t *)data)[preamble_len] = RDM_DELIMITER;
 
   // Encode the UID and calculate the checksum
   uint16_t checksum = 0;
   for (int i = 8, j = 5; i < 20; i += 2, --j) {
-    data[i] = ((uint8_t *)&uid)[j] | 0xaa;
-    data[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
+    ((uint8_t *)data)[i] = ((uint8_t *)&uid)[j] | 0xaa;
+    ((uint8_t *)data)[i + 1] = ((uint8_t *)&uid)[j] | 0x55;
     checksum += ((uint8_t *)&uid)[j] + (0xaa + 0x55);
   }
 
   // Encode the checksum
-  data[20] = (checksum >> 8) | 0xaa;
-  data[21] = (checksum >> 8) | 0x55;
-  data[22] = checksum | 0xaa;
-  data[23] = checksum | 0x55;
+  ((uint8_t *)data)[20] = (checksum >> 8) | 0xaa;
+  ((uint8_t *)data)[21] = (checksum >> 8) | 0x55;
+  ((uint8_t *)data)[22] = checksum | 0xaa;
+  ((uint8_t *)data)[23] = checksum | 0x55;
 
   return preamble_len + 17;
 }
