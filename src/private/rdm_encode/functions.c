@@ -251,8 +251,8 @@ size_t rdm_encode_device_info(void *pd, const void *data) {
   if (data != NULL) {
     rdm_device_info_data_t *const restrict ptr = pd;
     const rdm_device_info_t *const restrict device_info = data;
-    ptr->major_rdm_version = device_info->major_rdm_version;
-    ptr->minor_rdm_version = device_info->minor_rdm_version;
+    ptr->major_rdm_version = 1;
+    ptr->minor_rdm_version = 0;
     ptr->model_id = bswap16(device_info->model_id);
     ptr->coarse_product_category = device_info->coarse_product_category;
     ptr->fine_product_category = device_info->fine_product_category;
@@ -274,8 +274,6 @@ size_t rdm_decode_device_info(const void *pd, void *data, size_t size,
   if (data != NULL) {
     const rdm_device_info_data_t *restrict ptr = pd;
     rdm_device_info_t *const restrict device_info = data;
-    device_info->major_rdm_version = ptr->major_rdm_version;
-    device_info->minor_rdm_version = ptr->minor_rdm_version;
     device_info->model_id = bswap16(ptr->model_id);
     device_info->coarse_product_category = ptr->coarse_product_category;
     device_info->fine_product_category = ptr->fine_product_category;

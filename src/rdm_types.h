@@ -254,8 +254,8 @@ typedef struct rdm_disc_mute_t {
  * @brief Parameter for use with RDM device info requests.
  */
 typedef struct rdm_device_info_t {
-  uint32_t major_rdm_version;    // This field contains the major version number of the published RDM standard supported by the device.
-  uint32_t minor_rdm_version;    // This field contains the minor version number of the published RDM standard supported by the device.
+  // uint32_t major_rdm_version;    // This field contains the major version number of the published RDM standard supported by the device.
+  // uint32_t minor_rdm_version;    // This field contains the minor version number of the published RDM standard supported by the device.
   int model_id;                  // This field identifies the device model ID of the root device or sub-device. The manufacturer shall not use the same ID to represent more than one unique model type.
   int coarse_product_category;   // Devices shall report a product category based on the product's primary function.
   int fine_product_category;     // Devices shall report a product category based on the product's primary function. The fine product category is optional.

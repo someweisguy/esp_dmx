@@ -440,8 +440,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->rdm.identify_device = false;
 
   // Initialize RDM device info
-  driver->rdm.device_info.major_rdm_version = 1;  // Required per specification
-  driver->rdm.device_info.minor_rdm_version = 0;  // Required per specification
   driver->rdm.device_info.model_id = 0;  // Defined by user
   driver->rdm.device_info.coarse_product_category = 0;
   driver->rdm.device_info.fine_product_category = 0;
