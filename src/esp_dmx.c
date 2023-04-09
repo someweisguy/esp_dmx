@@ -1211,10 +1211,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         }
       } else if (header.cc == RDM_CC_SET_COMMAND) {
         if (header.pid == RDM_PID_IDENTIFY_DEVICE) {
-          // TODO
-
-
-
+          const bool identify_device = *(bool *)(&rdm->pd);
+          driver->rdm.identify_device = identify_device;
+          header.destination_uid = header.source_uid;
+          header.source_uid = my_uid;
+          header.cc = RDM_CC_GET_COMMAND_RESPONSE;
+          header.response_type = RDM_RESPONSE_TYPE_ACK;
+          header.pdl = 0;
+          size_t written = rdm_encode_header(rdm, &header);
+          dmx_send(dmx_num, written);
+          // TODO: call identify device function
         }
         
       } else if (header.cc != RDM_CC_DISC_COMMAND_RESPONSE &&
