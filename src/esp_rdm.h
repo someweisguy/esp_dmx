@@ -120,44 +120,6 @@ FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
 }
 
 /**
- * @brief Returns the 48 bit unique ID of this device.
- *
- * @param dmx_num The DMX port number.
- * @return The UID of the DMX port.
- */
-rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
-
-/**
- * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
- * the UID to its default value.
- *
- * @param dmx_num The DMX port number.
- * @param uid The custom value to which to set the device UID. Must be less than
- * or equal to RDM_MAX_UID.
- */
-void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
-
-/**
- * @brief Returns true if RDM discovery responses are be muted on this device.
- *
- * @param dmx_num The DMX port number.
- * @return true if RDM discovery is muted.
- * @return false if RDM discovery is not muted.
- */
-bool rdm_is_muted(dmx_port_t dmx_num);
-
-/**
- * @brief Sends an RDM discovery response on the desired DMX port.
- *
- * @param dmx_num The DMX port number.
- * @param preamble_len The length of the packet preamble (max: 7).
- * @param uid The UID to encode into the packet.
- * @return The number of bytes sent.
- */
-size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
-                              rdm_uid_t uid);
-
-/**
  * @brief Sends an RDM discovery request and reads the response, if any.
  *
  * @param dmx_num The DMX port number.

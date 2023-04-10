@@ -13,86 +13,11 @@
 #include "private/rdm_encode/functions.h"
 #include "private/rdm_encode/types.h"
 
-#if ESP_IDF_VERSION_MAJOR >= 5
-#include "esp_mac.h"
-#endif
-
 // Used for argument checking at the beginning of each function.
 #define RDM_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 static const char *TAG = "rdm";  // The log tagline for the file.
-
-rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Initialize the RDM UID
-  taskENTER_CRITICAL(spinlock);
-  if (driver->rdm.uid == 0) {
-    struct __attribute__((__packed__)) {
-      uint16_t manufacturer;
-      uint64_t device;
-    } mac;
-    esp_efuse_mac_get_default((void *)&mac);
-    driver->rdm.uid = (bswap32(mac.device) + dmx_num) & 0xffffffff;
-    driver->rdm.uid |= (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
-  }
-  rdm_uid_t uid = driver->rdm.uid;
-  taskEXIT_CRITICAL(spinlock);
-
-  return uid;
-}
-
-void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  RDM_CHECK(uid <= RDM_MAX_UID, , "uid error");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  taskENTER_CRITICAL(spinlock);
-  driver->rdm.uid = uid;
-  taskEXIT_CRITICAL(spinlock);
-}
-
-bool rdm_is_muted(dmx_port_t dmx_num) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  bool is_muted;
-  taskENTER_CRITICAL(spinlock);
-  is_muted = driver->rdm.discovery_is_muted;
-  taskEXIT_CRITICAL(spinlock);
-
-  return is_muted;
-}
-
-size_t rdm_send_disc_response(dmx_port_t dmx_num, size_t preamble_len,
-                              rdm_uid_t uid) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(preamble_len <= 7, 0, "preamble_len error");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-  dmx_wait_sent(dmx_num, portMAX_DELAY);
-
-  // Write and send the response
-  size_t written =
-      rdm_encode_disc_response(driver->data.buffer, preamble_len, uid);
-  dmx_send(dmx_num, written);
-
-  xSemaphoreGiveRecursive(driver->mux);
-  return written;
-}
 
 rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                       rdm_disc_unique_branch_t *params,
