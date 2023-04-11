@@ -68,9 +68,11 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
     uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
     int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
     int identify_device;     // True if RDM identify is active.
-    // TODO: add RDM identify device function
     rdm_device_info_t device_info;    // The RDM device info of this device.
     char software_version_label[32];  // The RDM software version label of this device.
+
+    rdm_identify_function_t id_function;  // The function callback that is called when an RDM IDENTIFY_DEVICE request is received.
+    void *id_function_ctx;  // The context that is used in the identify device callback.
   } rdm;
 
   struct dmx_sniffer_t {

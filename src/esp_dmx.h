@@ -404,6 +404,19 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
  */
 bool rdm_is_muted(dmx_port_t dmx_num);
 
+// TODO: docs
+bool rdm_set_device_info(dmx_port_t dmx_num,
+                         const rdm_device_info_t *device_info);
+
+// TODO: docs
+bool rdm_set_software_version_label(dmx_port_t dmx_num,
+                                    char *software_version_label, size_t size);
+
+// TODO: docs
+bool rdm_register_identify_callback(dmx_port_t dmx_num,
+                                    rdm_identify_function_t id_function,
+                                    void *context);
+
 #ifdef __cplusplus
 }
 #endif

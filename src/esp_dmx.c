@@ -438,7 +438,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->rdm.uid = 0;
   driver->rdm.tn = 0;
   driver->rdm.discovery_is_muted = false;
-  driver->rdm.identify_device = false;
 
   // Initialize RDM device info
   driver->rdm.device_info.model_id = 0;  // Defined by user
@@ -454,6 +453,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize RDM software version label
   strncpy(driver->rdm.software_version_label, "esp_dmx v3.0.3-beta", 32);
+
+  // Initialize RDM identify device
+  driver->rdm.identify_device = false;
+  driver->rdm.id_function = NULL;
+  driver->rdm.id_function_ctx = NULL;
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
@@ -1130,7 +1134,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         taskEXIT_CRITICAL(spinlock);
       }
 
-      // TODO: Process the incoming command    
+      // Process the incoming command    
       if (header.cc == RDM_CC_DISC_COMMAND) {
         if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
           if (!driver->rdm.discovery_is_muted) {
@@ -1220,7 +1224,15 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
           header.pdl = 0;
           size_t written = rdm_encode_header(rdm, &header);
           dmx_send(dmx_num, written);
-          // TODO: call identify device function
+
+          // TODO: spinlock
+          const rdm_identify_function_t id_function = driver->rdm.id_function;
+          void *context = driver->rdm.id_function_ctx;
+
+          if (id_function != NULL) {
+            id_function(dmx_num, identify_device, context);
+          }
+
         }
         
       } else if (header.cc != RDM_CC_DISC_COMMAND_RESPONSE &&
@@ -1524,7 +1536,8 @@ bool rdm_is_muted(dmx_port_t dmx_num) {
   return is_muted;
 }
 
-bool rdm_set_device_info(dmx_port_t dmx_num, const rdm_device_info_t *device_info) {
+bool rdm_set_device_info(dmx_port_t dmx_num,
+                         const rdm_device_info_t *device_info) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   DMX_CHECK(device_info != NULL, false, "device_info is null");
@@ -1534,6 +1547,42 @@ bool rdm_set_device_info(dmx_port_t dmx_num, const rdm_device_info_t *device_inf
 
   taskENTER_CRITICAL(spinlock);
   driver->rdm.device_info = *device_info;
+  taskEXIT_CRITICAL(spinlock);
+
+  return true;
+}
+
+bool rdm_set_software_version_label(dmx_port_t dmx_num,
+                                    char *software_version_label, size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(software_version_label != NULL, false,
+            "software_version_label is null");
+  DMX_CHECK(size > 0 && size < 32, false, "size error");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  taskENTER_CRITICAL(spinlock);
+  memcpy(driver->rdm.software_version_label, software_version_label, size);
+  driver->rdm.software_version_label[size] = '\0';
+  taskEXIT_CRITICAL(spinlock);
+
+  return true;
+}
+
+bool rdm_register_identify_callback(dmx_port_t dmx_num,
+                                    rdm_identify_function_t id_function,
+                                    void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  taskENTER_CRITICAL(spinlock);
+  driver->rdm.id_function = id_function;
+  driver->rdm.id_function_ctx = context;
   taskEXIT_CRITICAL(spinlock);
 
   return true;
