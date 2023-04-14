@@ -106,23 +106,6 @@ bool rdm_decode_header(const void *data, rdm_header_t *header) {
   return has_header;
 }
 
-size_t rdm_encode_uids(void *data, const rdm_uid_t *uids, size_t size) {
-  size_t pdl = 0;
-  for (int i = 0; i < size; ++i, pdl += 6) {
-    uid_to_buf(data + pdl, uids[i]);
-  }
-  return pdl;
-}
-
-size_t rdm_decode_uids(const void *data, rdm_uid_t *const uids, size_t size,
-                       size_t pdl) {
-  size_t num_params = 0;
-  for (int i = 0; num_params < size; ++num_params, i += 6) {
-    uids[num_params] = buf_to_uid(data + i);
-  }
-  return num_params;
-}
-
 size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
   size_t pdl = 2;
   struct rdm_disc_mute_data_t *const ptr = data;
@@ -138,22 +121,38 @@ size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
   return pdl;
 }
 
-size_t rdm_decode_mute(const void *data, rdm_disc_mute_t *param, size_t size,
-                       size_t pdl) {
-  const struct rdm_disc_mute_data_t *const ptr = data;
-  param->managed_proxy = ptr->managed_proxy;
-  param->sub_device = ptr->sub_device;
-  param->boot_loader = ptr->boot_loader;
-  param->proxied_device = ptr->proxied_device;
-  param->binding_uid = pdl > 2 ? buf_to_uid(ptr->binding_uid) : 0;
-  return 1;
+int rdm_decode_mute(const void *pd, rdm_disc_mute_t *param, int size,
+                    size_t pdl) {
+  int decoded = 0;
+  if (param != NULL) {
+    const struct rdm_disc_mute_data_t *const ptr = pd;
+    param->managed_proxy = ptr->managed_proxy;
+    param->sub_device = ptr->sub_device;
+    param->boot_loader = ptr->boot_loader;
+    param->proxied_device = ptr->proxied_device;
+    param->binding_uid = pdl > 2 ? buf_to_uid(ptr->binding_uid) : 0;
+    decoded = 1;
+  }
+  return decoded;
 }
 
-size_t rdm_encode_16bit(void *pd, const void *data, size_t size) {
-  if (size > RDM_PACKET_MAX_PARAMS(uint16_t)) {
-    // Don't encode more data than can fit in a single packet
-    size = RDM_PACKET_MAX_PARAMS(uint16_t);
+size_t rdm_encode_uids(void *data, const void *uids, int size) {
+  size_t pdl = 0;
+  for (int i = 0; i < size; ++i, pdl += 6) {
+    uid_to_buf(data + pdl, ((rdm_uid_t *)uids)[i]);
   }
+  return pdl;
+}
+
+int rdm_decode_uids(const void *data, void *uids, int size) {
+  int decoded = 0;
+  for (int i = 0; decoded < size; ++decoded, i += 6) {
+    ((rdm_uid_t *)uids)[decoded] = buf_to_uid(data + i);
+  }
+  return decoded;
+}
+
+size_t rdm_encode_16bit(void *pd, const void *data, int size) {
   size_t pdl = 0;
   if (data != NULL) {
     uint16_t *const restrict ptr = pd;
@@ -166,26 +165,20 @@ size_t rdm_encode_16bit(void *pd, const void *data, size_t size) {
   return pdl;
 }
 
-size_t rdm_decode_16bit(const void *pd, void *data, size_t size, size_t pdl) {
-  if (size > RDM_PDL_MAX_PARAMS(pdl, uint16_t)) {
-    // Don't decode more data than can fit in a single packet
-    size = RDM_PDL_MAX_PARAMS(pdl, uint16_t);
-  }
+int rdm_decode_16bit(const void *pd, void *data, int size) {
+  int decoded = 0;
   if (data != NULL) {
     const uint16_t *const restrict ptr = pd;
     uint32_t *restrict params = data;
     for (int i = 0; i < size; ++i) {
       params[i] = bswap16(ptr[i]);
     }
+    decoded = size * sizeof(uint16_t);
   }
-  return pdl / sizeof(uint16_t);
+  return decoded;
 }
 
-size_t rdm_encode_8bit(void *pd, const void *data, size_t size) {
-  if (size > RDM_PACKET_MAX_PARAMS(uint8_t)) {
-    // Don't encode more data than can fit in a single packet
-    size = RDM_PACKET_MAX_PARAMS(uint8_t);
-  }
+size_t rdm_encode_8bit(void *pd, const void *data, int size) {
   size_t pdl = 0;
   if (data != NULL) {
     uint8_t *restrict ptr = pd;
@@ -198,25 +191,20 @@ size_t rdm_encode_8bit(void *pd, const void *data, size_t size) {
   return pdl;
 }
 
-size_t rdm_decode_8bit(const void *pd, void *data, size_t size,
-                       size_t pdl) {
-  if (size > RDM_PDL_MAX_PARAMS(pdl, uint8_t)) {
-    size = RDM_PDL_MAX_PARAMS(pdl, uint8_t);
-  }
+int rdm_decode_8bit(const void *pd, void *data, int size) {
+  int decoded = 0;
   if (data != NULL) {
     const uint8_t *restrict ptr = pd;
     uint32_t *restrict params = data;
     for (int i = 0; i < size; ++i) {
       params[i] = ptr[i];
     }
+    decoded = size;
   }
-  return pdl;
+  return decoded;
 }
 
-size_t rdm_encode_string(void *pd, const void *data, size_t size) {
-  if (size > RDM_PACKET_MAX_PARAMS(char)) {
-    size = RDM_PACKET_MAX_PARAMS(char);
-  }
+size_t rdm_encode_string(void *pd, const void *data, int size) {
   size_t pdl = 0;
   if (data != NULL) {
     char *restrict destination = pd;
@@ -235,19 +223,19 @@ size_t rdm_encode_string(void *pd, const void *data, size_t size) {
   return pdl;
 }
 
-size_t rdm_decode_string(const void *pd, void *data, size_t size, size_t pdl) {
-  if (size > RDM_PDL_MAX_PARAMS(pdl, char)) {
-    size = RDM_PDL_MAX_PARAMS(pdl, char);
-  }
+int rdm_decode_string(const void *pd, void *data, int size) {
+  int decoded = 0;
   if (data != NULL) {
     char *restrict string = data;
     memcpy(string, pd, size);
     string[size] = 0;
+    decoded = size + 1;
   }
-  return pdl;
+  return decoded;
 }
 
-size_t rdm_encode_device_info(void *pd, const void *data) {
+size_t rdm_encode_device_info(void *pd, const void *data, int size) {
+  size_t pdl = 0;
   if (data != NULL) {
     rdm_device_info_data_t *const restrict ptr = pd;
     const rdm_device_info_t *const restrict device_info = data;
@@ -265,12 +253,13 @@ size_t rdm_encode_device_info(void *pd, const void *data) {
                             : 0xffff;
     ptr->sub_device_count = bswap16(device_info->sub_device_count);
     ptr->sensor_count = device_info->sensor_count;
+    pdl = sizeof(rdm_device_info_data_t);
   }
-  return sizeof(rdm_device_info_data_t);
+  return pdl;
 }
 
-size_t rdm_decode_device_info(const void *pd, void *data, size_t size,
-                              size_t pdl) {
+int rdm_decode_device_info(const void *pd, void *data, int size) {
+  int decoded = 0;
   if (data != NULL) {
     const rdm_device_info_data_t *restrict ptr = pd;
     rdm_device_info_t *const restrict device_info = data;
@@ -285,6 +274,7 @@ size_t rdm_decode_device_info(const void *pd, void *data, size_t size,
         ptr->start_address != 0xffff ? bswap16(ptr->start_address) : -1;
     device_info->sub_device_count = bswap16(ptr->sub_device_count);
     device_info->sensor_count = ptr->sensor_count;
+    decoded = 1;
   }
-  return 1;
+  return decoded;
 }

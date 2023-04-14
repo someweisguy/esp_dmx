@@ -331,9 +331,9 @@ size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
 static size_t rdm_send_generic_request(
     dmx_port_t dmx_num, rdm_uid_t uid, rdm_sub_device_t sub_device,
     const rdm_cc_t cc, const rdm_pid_t pid,
-    size_t (*encode)(void *, const void *, size_t), void *encode_params,
+    size_t (*encode)(void *, const void *, int), void *encode_params,
     size_t num_encode_params,
-    size_t (*decode)(const void *, void *, size_t, size_t), void *decode_params,
+    int (*decode)(const void *, void *, int), void *decode_params,
     size_t num_decode_params, rdm_response_t *response) {
   // Take mutex so driver values may be accessed
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -396,8 +396,7 @@ static size_t rdm_send_generic_request(
           // Decode the parameter data
           if (decode) {
             // Return the number of params available when response is received
-            return_val = decode(&rdm->pd, decode_params, num_decode_params,
-                                resp_header.pdl);
+            return_val = decode(&rdm->pd, decode_params, num_decode_params);
             response_val = return_val;
           } else {
             // Return true when no response parameters are expected
@@ -406,11 +405,11 @@ static size_t rdm_send_generic_request(
           }
         } else if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
           // Get the estimated response time and convert it to FreeRTOS ticks
-          rdm_decode_16bit(&rdm->pd, &response_val, 1, resp_header.pdl);
+          rdm_decode_16bit(&rdm->pd, &response_val, 1);
           response_val = pdMS_TO_TICKS(response_val * 10);
         } else if (resp_header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
           // Report the NACK reason
-          rdm_decode_16bit(&rdm->pd, &response_val, 1, resp_header.pdl);
+          rdm_decode_16bit(&rdm->pd, &response_val, 1);
         } else if (resp_header.response_type ==
                    RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
           // TODO: implement overflow support
