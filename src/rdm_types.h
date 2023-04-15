@@ -268,6 +268,27 @@ typedef struct rdm_device_info_t {
   size_t sensor_count;           // This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
 } rdm_device_info_t;
 
+// TODO: docs
+typedef struct rdm_header2_t {
+  rdm_uid_t dest_uid;  // The UID of the target device(s).
+  rdm_uid_t src_uid;   // The UID of the device originating this packet.
+  int tn;  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
+  int port_id;  // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
+  int message_count;  // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
+  rdm_sub_device_t sub_device;  // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
+  rdm_cc_t cc;  // The command class (CC) specifies the action of the message.
+  rdm_pid_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
+} rdm_header2_t;
+
+// TODO: docs
+typedef struct rdm_mdb_t {
+  rdm_response_type_t response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
+  size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
+  union {
+    void *pd;  // The parameter data (PD) is the data section of the packet. Its length is included in its PDL.
+    size_t preamble_len;  // The preamble length is the number of preamble bytes (excluding the delimiter) in a DISC_UNIQUE_BRANCH response packet.
+  };
+} rdm_mdb_t;
 
 #ifdef __cplusplus
 }
