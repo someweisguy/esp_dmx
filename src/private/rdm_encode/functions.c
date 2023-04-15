@@ -278,3 +278,130 @@ int rdm_decode_device_info(const void *pd, void *data, int size) {
   }
   return decoded;
 }
+
+bool rdm_is_valid(const void *data, size_t size) {
+  return (size >= 24 && *(uint16_t *)data == (RDM_SC | (RDM_SUB_SC << 8))) ||
+         (size >= 17 && (*(uint8_t *)data == RDM_PREAMBLE ||
+                         *(uint8_t *)data == RDM_DELIMITER));
+}
+
+size_t rdm_get_message_len(const void *data) {
+  return ((rdm_data_t *)data)->message_len;
+}
+
+size_t rdm_get_preamble_len(const void *data) {
+  size_t preamble_len = 0;
+  for (const uint8_t *d = data; preamble_len <= 7; ++preamble_len) {
+    if (d[preamble_len] == RDM_DELIMITER) break;
+  }
+  return ++preamble_len;
+}
+
+bool rdm_checksum_is_valid(const void *data) {
+  uint16_t sum = 0;
+  uint16_t checksum;
+
+  const uint8_t *d = data;
+  const uint8_t sc = d[0];
+
+  // Get the packet checksum
+  if (sc == RDM_SC) {
+    // Calculate sum and decode checksum normally
+    const size_t message_len = rdm_get_message_len(data);
+    for (int i = 0; i < message_len; ++i) {
+      sum += d[i];
+    }
+    checksum = bswap16(*(uint16_t *)(&d[message_len]));
+  } else {
+    // Decode checksum from encoded DISC_UNIQUE_BRANCH response
+    d = &d[rdm_get_preamble_len(data)];
+    for (int i = 0; i < 12; ++i) {
+      sum += d[i];
+    }
+    checksum = (d[14] & 0x55) | (d[15] & 0xaa);
+    checksum |= ((d[12] & 0x55) | (d[13] & 0xaa)) << 8;
+  }
+
+  return (sum == checksum);
+}
+
+bool rdm_is_request(const void *data) {
+  return !(((rdm_data_t *)data)->cc & 0x1);
+}
+
+bool rdm_decode_packet(const void *data, size_t size, rdm_packet2_t *header,
+                       rdm_mdb_t *mdb, void *pd) {
+  // Check if the packet appears to be valid RDM
+  bool is_valid = rdm_is_valid(data, size);
+  if (!is_valid) {
+    return is_valid;
+  }
+
+  // Verify that the checksum is correct
+  is_valid = rdm_checksum_is_valid(data);
+  if (!is_valid) {
+    return is_valid;
+  }
+
+  // Decode the packet
+  const uint8_t sc = *(uint8_t *)data;
+  if (sc == RDM_SC) {
+    const rdm_data_t *const rdm = data;
+
+    // Copy or ignore the parameter data
+    const size_t pdl = rdm->pdl;
+    if (pdl > 231) {
+      return false;  // PDL must be <231
+    } else if (pdl > 0) {
+      memcpy(pd, &rdm->pd, pdl);
+      mdb->pd = pd;
+    } else {
+      mdb->pd = NULL;
+    }
+    mdb->pdl = pdl;
+
+    // Check if packet is a request or response
+    if (rdm_is_request(data)) {
+      header->port_id = rdm->port_id;
+      mdb->response_type = -1;
+    } else {
+      mdb->response_type = rdm->response_type;
+      header->port_id = -1;
+    }
+
+    // Copy the remaining header data
+    header->message_len = rdm->message_len;
+    header->dest_uid = buf_to_uid(rdm->destination_uid);
+    header->src_uid = buf_to_uid(rdm->source_uid);
+    header->tn = rdm->tn;
+    header->message_count = rdm->message_count;
+    header->sub_device = bswap16(rdm->sub_device);
+    header->cc = rdm->cc;
+    header->pid = bswap16(rdm->pid);
+
+  } else {
+    // Decode the EUID
+    uint8_t buf[6];
+    const uint8_t *d = data;
+    d = &d[rdm_get_preamble_len(data)];
+    for (int i = 0, j = 0; i < 6; ++i, j += 2) {
+      buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa);
+    }
+    header->src_uid = buf_to_uid(buf);
+
+    // Fill out the remaining header and MDB data
+    header->message_len = 0;
+    header->dest_uid = 0;
+    header->tn = -1;
+    header->port_id = -1;
+    header->message_count = -1;
+    header->sub_device = -1;
+    header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
+    header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
+    mdb->response_type = RDM_RESPONSE_TYPE_ACK;
+    mdb->pdl = 0;
+    mdb->pd = NULL;
+  }
+
+  return is_valid;
+}

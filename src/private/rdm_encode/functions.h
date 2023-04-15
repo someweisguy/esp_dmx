@@ -179,6 +179,25 @@ size_t rdm_encode_device_info(void *pd, const void *data, int size);
  */
 int rdm_decode_device_info(const void *pd, void *data, int size);
 
+// TODO: docs
+bool rdm_is_valid(const void *data, size_t size);
+
+// TODO: docs
+size_t rdm_get_message_len(const void *data);
+
+// TODO: docs
+size_t rdm_get_preamble_len(const void *data);
+
+// TODO: docs
+bool rdm_checksum_is_valid(const void *data);
+
+// TODO: docs
+bool rdm_is_request(const void *data);
+
+// TODO: docs
+bool rdm_decode_packet(const void *data, size_t size, rdm_packet2_t *header,
+                       rdm_mdb_t *mdb, void *pd);
+
 #ifdef __cplusplus
 }
 #endif
