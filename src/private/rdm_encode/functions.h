@@ -195,7 +195,7 @@ bool rdm_checksum_is_valid(const void *data);
 bool rdm_is_request(const void *data);
 
 // TODO: docs
-bool rdm_decode_packet(const void *data, size_t size, rdm_packet2_t *header,
+bool rdm_decode_packet(const void *data, size_t size, rdm_header2_t *header,
                        rdm_mdb_t *mdb, void *pd);
 
 #ifdef __cplusplus

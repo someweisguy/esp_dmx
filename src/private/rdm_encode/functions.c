@@ -294,7 +294,7 @@ size_t rdm_get_preamble_len(const void *data) {
   for (const uint8_t *d = data; preamble_len <= 7; ++preamble_len) {
     if (d[preamble_len] == RDM_DELIMITER) break;
   }
-  return ++preamble_len;
+  return preamble_len;
 }
 
 bool rdm_checksum_is_valid(const void *data) {
@@ -314,7 +314,7 @@ bool rdm_checksum_is_valid(const void *data) {
     checksum = bswap16(*(uint16_t *)(&d[message_len]));
   } else {
     // Decode checksum from encoded DISC_UNIQUE_BRANCH response
-    d = &d[rdm_get_preamble_len(data)];
+    d = &d[rdm_get_preamble_len(data) + 1];
     for (int i = 0; i < 12; ++i) {
       sum += d[i];
     }
@@ -326,10 +326,10 @@ bool rdm_checksum_is_valid(const void *data) {
 }
 
 bool rdm_is_request(const void *data) {
-  return !(((rdm_data_t *)data)->cc & 0x1);
+  return (((rdm_data_t *)data)->cc & 0x1) == 0;
 }
 
-bool rdm_decode_packet(const void *data, size_t size, rdm_packet2_t *header,
+bool rdm_decode_packet(const void *data, size_t size, rdm_header2_t *header,
                        rdm_mdb_t *mdb, void *pd) {
   // Check if the packet appears to be valid RDM
   bool is_valid = rdm_is_valid(data, size);
@@ -370,7 +370,6 @@ bool rdm_decode_packet(const void *data, size_t size, rdm_packet2_t *header,
     }
 
     // Copy the remaining header data
-    header->message_len = rdm->message_len;
     header->dest_uid = buf_to_uid(rdm->destination_uid);
     header->src_uid = buf_to_uid(rdm->source_uid);
     header->tn = rdm->tn;
@@ -383,14 +382,14 @@ bool rdm_decode_packet(const void *data, size_t size, rdm_packet2_t *header,
     // Decode the EUID
     uint8_t buf[6];
     const uint8_t *d = data;
-    d = &d[rdm_get_preamble_len(data)];
+    const size_t preamble_len = rdm_get_preamble_len(data);
+    d = &d[preamble_len + 1];
     for (int i = 0, j = 0; i < 6; ++i, j += 2) {
       buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa);
     }
     header->src_uid = buf_to_uid(buf);
 
     // Fill out the remaining header and MDB data
-    header->message_len = 0;
     header->dest_uid = 0;
     header->tn = -1;
     header->port_id = -1;
@@ -400,7 +399,7 @@ bool rdm_decode_packet(const void *data, size_t size, rdm_packet2_t *header,
     header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
     mdb->response_type = RDM_RESPONSE_TYPE_ACK;
     mdb->pdl = 0;
-    mdb->pd = NULL;
+    mdb->preamble_len = preamble_len;
   }
 
   return is_valid;
