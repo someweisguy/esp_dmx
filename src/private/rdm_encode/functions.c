@@ -330,7 +330,9 @@ bool rdm_is_request(const void *data) {
 }
 
 bool rdm_decode_packet(const void *data, size_t size, rdm_header_t *header,
-                       rdm_mdb_t *mdb, void *pd) {
+                       rdm_mdb_t *mdb) {
+  // TODO: arg check?
+
   // Check if the packet appears to be valid RDM
   bool is_valid = rdm_is_valid(data, size);
   if (!is_valid) {
@@ -348,13 +350,12 @@ bool rdm_decode_packet(const void *data, size_t size, rdm_header_t *header,
   if (sc == RDM_SC) {
     const rdm_data_t *const rdm = data;
 
-    // Copy or ignore the parameter data
+    // Assign or ignore the parameter data
     const size_t pdl = rdm->pdl;
     if (pdl > 231) {
-      return false;  // PDL must be <231
+      return false;  // PDL must be <= 231
     } else if (pdl > 0) {
-      memcpy(pd, &rdm->pd, pdl);
-      mdb->pd = pd;
+      mdb->pd = (void *)(&(rdm->pd));
     } else {
       mdb->pd = NULL;
     }
@@ -406,38 +407,79 @@ bool rdm_decode_packet(const void *data, size_t size, rdm_header_t *header,
 }
 
 size_t rdm_encode_packet(void *data, const rdm_header_t *header,
-                         const rdm_mdb_t *mdb) {
-  rdm_data_t *rdm = data;
-  const size_t message_len = 24 + mdb->pdl + 2;
+                         rdm_mdb_t *mdb) {
+  // TODO: arg check?
+  size_t encoded;
+  if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+    rdm_data_t *const rdm = data;
 
-  rdm->sc = RDM_SC;
-  rdm->sub_sc = RDM_SUB_SC;
-  rdm->message_len = message_len;
-  uid_to_buf(rdm->destination_uid, header->dest_uid);
-  uid_to_buf(rdm->source_uid, header->src_uid);
-  rdm->tn = header->tn;
-  if ((header->cc & 0x1) == 0) {
-    rdm->port_id = header->port_id;
+    // Encode the parameter data
+    if (mdb->pdl > 231) {
+      return 0;  // PDL must be <= 231
+    } else if (mdb->pdl > 0) {
+      if (mdb->pd == NULL) {
+        return 0;  // Invalid MDB
+      }
+      memcpy(&rdm->pd, mdb->pd, mdb->pdl);
+    }
+    rdm->pdl = mdb->pdl;
+
+    // Encode the packet header
+    const size_t message_len = 24 + mdb->pdl;
+    rdm->sc = RDM_SC;
+    rdm->sub_sc = RDM_SUB_SC;
+    rdm->message_len = 24 + mdb->pdl;
+    uid_to_buf(rdm->destination_uid, header->dest_uid);
+    uid_to_buf(rdm->source_uid, header->src_uid);
+    rdm->tn = header->tn;
+    if ((header->cc & 0x1) == 0) {
+      rdm->port_id = header->port_id;
+    } else {
+      rdm->response_type = mdb->response_type;
+    }
+    rdm->message_count = header->message_count;
+    rdm->sub_device = bswap16(header->sub_device);
+    rdm->cc = header->cc;
+    rdm->pid = bswap16(header->pid);
+
+    // Encode the checksum
+    uint16_t checksum = 0;
+    const uint8_t *d = data;
+    for (int i = 0; i < message_len; ++i) {
+      checksum += d[i];
+    }
+    *(uint16_t *)&d[message_len] = bswap16(checksum);
+
+    encoded = message_len + 2;
   } else {
-    rdm->response_type = mdb->response_type;
-  }
-  rdm->message_count = header->message_count;
-  rdm->sub_device = bswap16(header->sub_device);
-  rdm->cc = header->cc;
-  rdm->pid = bswap16(header->pid);
-  rdm->pdl = mdb->pdl;
-  if (mdb->pdl > 0) {
-    memcpy(&rdm->pd, mdb->pd, mdb->pdl);
+    // Encode the preamble
+    if (mdb->preamble_len > 7) {
+      return 0;  // Preamble length must be <= 7
+    }
+    uint8_t *d = data;
+    for (int i = 0; i < mdb->preamble_len; ++i) {
+      d[i] = RDM_PREAMBLE;
+    }
+    d[mdb->preamble_len] = RDM_DELIMITER;
+
+    // Encode the EUID and calculate the checksum
+    uint16_t checksum = 0;
+    d = &(d[mdb->preamble_len + 1]);
+    for (int i = 0, j = 5; i < 12; i += 2, --j) {
+      d[i] = ((uint8_t *)&(header->src_uid))[j] | 0xaa;
+      d[i + 1] = ((uint8_t *)&(header->src_uid))[j] | 0x55;
+      checksum += ((uint8_t *)&(header->src_uid))[j] + 0xaa + 0x55;
+    }
+
+    // Encode the checksum
+    d[12] = (checksum >> 8) | 0xaa;
+    d[13] = (checksum >> 8) | 0x55;
+    d[14] = (checksum & 0xff) | 0xaa;
+    d[15] = (checksum & 0xff) | 0x55;
+
+    encoded = mdb->preamble_len + 1 + 16;
   }
 
-  // Encode the checksum
-  uint16_t checksum = 0;
-  const uint8_t *d = data;
-  for (int i = 0; i < message_len; ++i) {
-    checksum += d[i];
-  }
-  *(uint16_t *)&d[message_len] = bswap16(checksum);
-
-  return message_len + 2;
+  return encoded;
 }
 

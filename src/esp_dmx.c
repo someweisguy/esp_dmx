@@ -1119,8 +1119,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     uint8_t pd[231];
     rdm_mdb_t mdb;
     taskENTER_CRITICAL(spinlock);
-    is_rdm =
-        rdm_decode_packet(driver->data.buffer, packet_size, &header, &mdb, pd);
+    is_rdm = rdm_decode_packet(driver->data.buffer, packet_size, &header, &mdb);
+    if (is_rdm && mdb.pdl > 0) {
+      memcpy(pd, mdb.pd, mdb.pdl);
+      mdb.pd = pd;
+    }
     taskEXIT_CRITICAL(spinlock);
     const bool is_request = (header.cc & 0x1) == 0;
     if (is_rdm && is_request) {

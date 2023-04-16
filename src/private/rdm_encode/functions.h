@@ -196,10 +196,10 @@ bool rdm_is_request(const void *data);
 
 // TODO: docs
 bool rdm_decode_packet(const void *data, size_t size, rdm_header_t *header,
-                       rdm_mdb_t *mdb, void *pd);
+                       rdm_mdb_t *mdb);
 
 size_t rdm_encode_packet(void *data, const rdm_header_t *header,
-                         const rdm_mdb_t *mdb);
+                         rdm_mdb_t *mdb);
 
 #ifdef __cplusplus
 }
