@@ -159,59 +159,83 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         continue;
       }
 
+      /* TODO: make packet_type a bit mask
+      1 / 0
+      sent_last           bit0
+      end_of_packet       bit1
+      missing_stop_bits   bit2
+      uart_overflow       bit3
+      rdm / non-rdm       bit4
+      request / response  bit5
+      disc_unique_branch  bit6
+      broadcast           bit7
+      addressed_to_me     bit8
+      checksum_is_valid   bit9
+
+      can remove:
+        sent_last
+        end_of_packet
+        err
+        packet_type (use packet_flags or data.flags instead)
+      */
+
       // Handle DMX errors or process DMX data
       esp_err_t packet_err = ESP_OK;
-      enum rdm_packet_type_t packet_type = RDM_PACKET_TYPE_NON_RDM;
+      enum rdm_packet_type_t packet_type;
       if (intr_flags & DMX_INTR_RX_ERR) {
+        packet_type = RDM_PACKET_TYPE_NON_RDM;
         packet_err = intr_flags & DMX_INTR_RX_FRAMING_ERR
                          ? ESP_FAIL               // Missing stop bits
                          : ESP_ERR_NOT_FINISHED;  // UART overflow
       } else if (intr_flags & DMX_INTR_RX_DATA) {
-        // Determine if a complete packet has been received
-        const rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-
-        if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-          // The packet is a standard RDM packet
+        // Check if a full packet has been received and process packet data
+        if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
           if (driver->data.head < RDM_BASE_PACKET_SIZE ||
-              driver->data.head < rdm->message_len + 2) {
-            continue;  // Guard against base packet size too small
+              driver->data.head < driver->data.buffer[2] + 2) {
+            continue;  // Haven't received RDM packet yet
           }
-
-          // Determine the RDM packet type
-          if (rdm->cc == RDM_CC_DISC_COMMAND &&
-              rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
+          const rdm_uid_t dest_uid = buf_to_uid(&driver->data.buffer[3]);
+          const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
+          if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
             packet_type = RDM_PACKET_TYPE_DISCOVERY;
-          } else if (rdm_uid_is_broadcast(buf_to_uid(rdm->destination_uid))) {
+          }
+          else if (rdm_uid_is_broadcast(dest_uid)) {
             packet_type = RDM_PACKET_TYPE_BROADCAST;
-          } else if (rdm->cc == RDM_CC_GET_COMMAND ||
-                     rdm->cc == RDM_CC_SET_COMMAND ||
-                     rdm->cc == RDM_CC_DISC_COMMAND) {
+          }
+          else if (rdm_is_request(driver->data.buffer)) {
             packet_type = RDM_PACKET_TYPE_REQUEST;
           } else {
             packet_type = RDM_PACKET_TYPE_RESPONSE;
           }
-
-        } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
-          // The packet is a DISC_UNIQUE_BRANCH response
-          if (driver->data.head < 17) {
-            continue;  // Guard against base packet size too small
+          if (rdm_uid_is_addressed_to(dest_uid, rdm_get_uid(driver->dmx_num))) {
+            // TODO: packet is addressed to me
           }
-
-          // Find the length of the preamble (0 to 7 bytes)
-          size_t preamble_len = 0;
-          for (; preamble_len < 7; ++preamble_len) {
-            if (driver->data.buffer[preamble_len] == RDM_DELIMITER) {
-              break;
+          if (rdm_checksum_is_valid(driver->data.buffer)) {
+            // TODO: RDM checksum is valid
+          }
+        } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
+                    *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
+          const size_t preamble_len = rdm_get_preamble_len(driver->data.buffer);
+          if (preamble_len <= 7) {
+            if (driver->data.head < preamble_len + 16) {
+              continue;  // Haven't received DISC_UNIQUE_BRANCH response yet
             }
+            packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
+            if (rdm_checksum_is_valid(driver->data.buffer)) {
+              // TODO: RDM checksum is valid
+            }
+          } else {
+            // When preamble_len > 7 the packet should not be considered RDM
+            if (driver->data.head < driver->data.rx_size) {
+              continue;  // Haven't received DMX packet yet
+            }
+            packet_type = RDM_PACKET_TYPE_NON_RDM;
           }
-          if (driver->data.buffer[preamble_len] != RDM_DELIMITER ||
-              driver->data.head < preamble_len + 17) {
-            continue;  // Delimiter not found or packet not complete yet
+        } else {
+          if (driver->data.head < driver->data.rx_size) {
+            continue;  // Haven't received full DMX packet yet
           }
-          packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
-
-        } else if (driver->data.head < driver->data.rx_size) {
-          continue;  // Guard against smaller DMX packets than expected
+          packet_type = RDM_PACKET_TYPE_NON_RDM;
         }
       } else {
         // This code should never run, but can prevent crashes just in case!
@@ -1117,10 +1141,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     uint8_t pd[231];
     rdm_mdb_t mdb;
     taskENTER_CRITICAL(spinlock);
-    is_rdm = rdm_decode_packet(driver->data.buffer, packet_size, &header, &mdb);
-    if (is_rdm && mdb.pdl > 0) {
-      memcpy(pd, mdb.pd, mdb.pdl);
-      mdb.pd = pd;
+    is_rdm = rdm_is_valid(driver->data.buffer, packet_size);
+    if (is_rdm) {
+      is_rdm = rdm_decode_packet(driver->data.buffer, &header, &mdb);
+      if (is_rdm && mdb.pdl > 0) {
+        memcpy(pd, mdb.pd, mdb.pdl);
+        mdb.pd = pd;
+      }
     }
     taskEXIT_CRITICAL(spinlock);
     const bool is_request = (header.cc & 0x1) == 0;
