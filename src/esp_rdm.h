@@ -46,6 +46,11 @@ typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
                                  size_t device_num,
                                  rdm_disc_mute_t *mute_params, void *context);
 
+// TODO: docs
+typedef int (*rdm_response_cb_t)(dmx_port_t dmx_num,
+                                 const rdm_header2_t *header, rdm_mdb_t *mdb,
+                                 void *context);
+
 /**
  * @brief Returns true if the specified UID is a broadcast address.
  * 
