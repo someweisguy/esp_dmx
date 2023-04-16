@@ -17,46 +17,41 @@ extern "C" {
 #endif
 
 /**
- * @brief Encodes a DISC_UNIQUE_BRANCH response in the desired data buffer.
+ * @brief Checks if a data buffer appears to contain valid RDM data. This
+ * function considers a packet valid if it is at least the right size and if the
+ * packet begins with the correct start code. This function does not verify
+ * packet format nor validate checksums.
  *
- * @param[out] data The buffer in which to encode the response.
- * @param preamble_len The length of the response preamble (max: 7).
- * @param uid The RDM UID to encode into the response.
- * @return The number of bytes encoded.
+ * @param data The buffer which stores a potentially valid RDM packet.
+ * @param size The size of the buffer.
+ * @return true if the data is a valid RDM packet.
+ * @return false if the packet is invalid.
  */
-// size_t rdm_encode_disc_response(void *data, size_t preamble_len,
-//                                 const rdm_uid_t uid);
+bool rdm_is_valid(const void *data, size_t size);
 
 /**
- * @brief Decodes a DISC_UNIQUE_BRANCH response.
- *
- * @param[in] data The buffer in which the data to decode is stored.
- * @param[out] uid The decoded UID in the response.
- * @return true if the data checksum was valid.
- * @return false if the data checksum was invalid.
+ * @brief Decodes an RDM packet from the desired data buffer. The function 
+ * `rdm_is_valid()` should be called on the data buffer first to ensure data
+ * is safely decoded.
+ * 
+ * @param[in] data The buffer which stores a valid, encoded RDM packet.
+ * @param[out] header A pointer to an RDM header in which data will be copied.
+ * @param[out] mdb A pointer to an RDM message data block in which data will be
+ * copied.
+ * @return true if the data is a valid RDM packet.
+ * @return false if the packet is invalid.
  */
-// bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid);
+bool rdm_decode_packet(const void *data, rdm_header_t *header, rdm_mdb_t *mdb);
 
 /**
- * @brief Encodes an RDM header and checksum into the desired buffer. When
- * encoding data, parameter data must be encoded before calling this function.
- * Otherwise, the encoded checksum will be invalid.
- *
- * @param[out] data The buffer in which to encode the header.
+ * @brief Encodes an RDM packet into the desired data buffer.
+ * 
+ * @param[out] data The buffer in which to encode the packet.
  * @param[in] header A pointer to an RDM header used to encode data.
+ * @param[in] mdb A pointer to an RDM message data block to encode data.
  * @return The number of bytes encoded.
  */
-// size_t rdm_encode_header(void *data, const rdm_header_t *header);
-
-/**
- * @brief Decodes an RDM header.
- *
- * @param[in] data The buffer in which the data to decode is stored.
- * @param[out] header A pointer to an RDM header used to store decoded data.
- * @return true if the data was a valid RDM packet.
- * @return false if the data was invalid.
- */
-// bool rdm_decode_header(const void *data, rdm_header_t *header);
+size_t rdm_encode_packet(void *data, rdm_header_t *header, rdm_mdb_t *mdb);
 
 /**
  * @brief Encodes RDM discovery mute parameters into the desired buffer.
@@ -180,9 +175,6 @@ size_t rdm_encode_device_info(void *pd, const void *data, int size);
 int rdm_decode_device_info(const void *pd, void *data, int size);
 
 // TODO: docs
-bool rdm_is_valid(const void *data, size_t size);
-
-// TODO: docs
 size_t rdm_get_message_len(const void *data);
 
 // TODO: docs
@@ -194,12 +186,6 @@ bool rdm_checksum_is_valid(const void *data);
 // TODO: docs
 bool rdm_is_request(const void *data);
 
-// TODO: docs
-bool rdm_decode_packet(const void *data, size_t size, rdm_header_t *header,
-                       rdm_mdb_t *mdb);
-
-size_t rdm_encode_packet(void *data, const rdm_header_t *header,
-                         rdm_mdb_t *mdb);
 
 #ifdef __cplusplus
 }
