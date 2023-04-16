@@ -417,6 +417,9 @@ bool rdm_register_identify_callback(dmx_port_t dmx_num,
                                     rdm_identify_function_t id_function,
                                     void *context);
 
+bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                           rdm_response_cb_t callback, void *context);
+
 #ifdef __cplusplus
 }
 #endif
