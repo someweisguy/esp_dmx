@@ -58,7 +58,7 @@ bool rdm_decode_packet(const void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
     const size_t preamble_len = rdm_get_preamble_len(data);
     d = &d[preamble_len + 1];
     for (int i = 0, j = 0; i < 6; ++i, j += 2) {
-      buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa);
+      buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa); // TODO: & each byte
     }
     header->src_uid = buf_to_uid(buf);
 
