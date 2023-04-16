@@ -24,8 +24,8 @@ extern "C" {
  * @param uid The RDM UID to encode into the response.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_disc_response(void *data, size_t preamble_len,
-                                const rdm_uid_t uid);
+// size_t rdm_encode_disc_response(void *data, size_t preamble_len,
+//                                 const rdm_uid_t uid);
 
 /**
  * @brief Decodes a DISC_UNIQUE_BRANCH response.
@@ -35,7 +35,7 @@ size_t rdm_encode_disc_response(void *data, size_t preamble_len,
  * @return true if the data checksum was valid.
  * @return false if the data checksum was invalid.
  */
-bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid);
+// bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid);
 
 /**
  * @brief Encodes an RDM header and checksum into the desired buffer. When
