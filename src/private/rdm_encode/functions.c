@@ -55,7 +55,7 @@ bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid) {
 
   return (sum == checksum);
 }
-
+/*
 size_t rdm_encode_header(void *data, const rdm_header_t *header) {
   rdm_data_t *const rdm = data;
   rdm->sc = RDM_SC;
@@ -105,7 +105,7 @@ bool rdm_decode_header(const void *data, rdm_header_t *header) {
   }
   return has_header;
 }
-
+*/
 size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
   size_t pdl = 2;
   struct rdm_disc_mute_data_t *const ptr = data;
@@ -329,7 +329,7 @@ bool rdm_is_request(const void *data) {
   return (((rdm_data_t *)data)->cc & 0x1) == 0;
 }
 
-bool rdm_decode_packet(const void *data, size_t size, rdm_header2_t *header,
+bool rdm_decode_packet(const void *data, size_t size, rdm_header_t *header,
                        rdm_mdb_t *mdb, void *pd) {
   // Check if the packet appears to be valid RDM
   bool is_valid = rdm_is_valid(data, size);
@@ -404,3 +404,40 @@ bool rdm_decode_packet(const void *data, size_t size, rdm_header2_t *header,
 
   return is_valid;
 }
+
+size_t rdm_encode_packet(void *data, const rdm_header_t *header,
+                         const rdm_mdb_t *mdb) {
+  rdm_data_t *rdm = data;
+  const size_t message_len = 24 + mdb->pdl + 2;
+
+  rdm->sc = RDM_SC;
+  rdm->sub_sc = RDM_SUB_SC;
+  rdm->message_len = message_len;
+  uid_to_buf(rdm->destination_uid, header->dest_uid);
+  uid_to_buf(rdm->source_uid, header->src_uid);
+  rdm->tn = header->tn;
+  if ((header->cc & 0x1) == 0) {
+    rdm->port_id = header->port_id;
+  } else {
+    rdm->response_type = mdb->response_type;
+  }
+  rdm->message_count = header->message_count;
+  rdm->sub_device = bswap16(header->sub_device);
+  rdm->cc = header->cc;
+  rdm->pid = bswap16(header->pid);
+  rdm->pdl = mdb->pdl;
+  if (mdb->pdl > 0) {
+    memcpy(&rdm->pd, mdb->pd, mdb->pdl);
+  }
+
+  // Encode the checksum
+  uint16_t checksum = 0;
+  const uint8_t *d = data;
+  for (int i = 0; i < message_len; ++i) {
+    checksum += d[i];
+  }
+  *(uint16_t *)&d[message_len] = bswap16(checksum);
+
+  return message_len + 2;
+}
+

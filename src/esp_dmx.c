@@ -1115,7 +1115,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   bool is_rdm = false;
   if (packet_size > 0) {
-    rdm_header2_t header;
+    rdm_header_t header;
     uint8_t pd[231];
     rdm_mdb_t mdb;
     taskENTER_CRITICAL(spinlock);

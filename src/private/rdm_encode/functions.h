@@ -46,7 +46,7 @@ bool rdm_decode_disc_response(const uint8_t *data, rdm_uid_t *uid);
  * @param[in] header A pointer to an RDM header used to encode data.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_header(void *data, const rdm_header_t *header);
+// size_t rdm_encode_header(void *data, const rdm_header_t *header);
 
 /**
  * @brief Decodes an RDM header.
@@ -56,7 +56,7 @@ size_t rdm_encode_header(void *data, const rdm_header_t *header);
  * @return true if the data was a valid RDM packet.
  * @return false if the data was invalid.
  */
-bool rdm_decode_header(const void *data, rdm_header_t *header);
+// bool rdm_decode_header(const void *data, rdm_header_t *header);
 
 /**
  * @brief Encodes RDM discovery mute parameters into the desired buffer.
@@ -195,8 +195,11 @@ bool rdm_checksum_is_valid(const void *data);
 bool rdm_is_request(const void *data);
 
 // TODO: docs
-bool rdm_decode_packet(const void *data, size_t size, rdm_header2_t *header,
+bool rdm_decode_packet(const void *data, size_t size, rdm_header_t *header,
                        rdm_mdb_t *mdb, void *pd);
+
+size_t rdm_encode_packet(void *data, const rdm_header_t *header,
+                         const rdm_mdb_t *mdb);
 
 #ifdef __cplusplus
 }

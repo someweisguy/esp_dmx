@@ -19,6 +19,19 @@
 
 static const char *TAG = "rdm";  // The log tagline for the file.
 
+unsigned int rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
+                              rdm_mdb_t *mdb) {
+  // TODO: check args
+
+  // Take mutex so driver values may be accessed
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+  dmx_wait_sent(dmx_num, portMAX_DELAY);
+
+  return 0;
+}
+
+/*
 rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                       rdm_disc_unique_branch_t *params,
                                       rdm_response_t *response) {
@@ -239,12 +252,12 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
         bool devices_remaining = true;
 
 #ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
-        /*
+        
         Stop the RDM controller from branching all the way down to the
         individual address if it is not necessary. When debugging, this code
         should not be called as it can hide bugs in the discovery algorithm.
         Users can use the sdkconfig to enable or disable discovery debugging.
-        */
+        
         if (!response.err) {
           for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
             // Attempt to mute the device
@@ -537,3 +550,4 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                   RDM_PID_IDENTIFY_DEVICE, rdm_encode_8bit,
                                   &identify, 1, NULL, NULL, 0, response);
 }
+*/
