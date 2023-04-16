@@ -170,7 +170,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       disc_unique_branch  bit6
       broadcast           bit7
       addressed_to_me     bit8
-      checksum_is_valid   bit9
 
       can remove:
         sent_last
@@ -210,9 +209,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           if (rdm_uid_is_addressed_to(dest_uid, rdm_get_uid(driver->dmx_num))) {
             // TODO: packet is addressed to me
           }
-          if (rdm_checksum_is_valid(driver->data.buffer)) {
-            // TODO: RDM checksum is valid
-          }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
                     *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
           const size_t preamble_len = rdm_get_preamble_len(driver->data.buffer);
@@ -221,9 +217,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               continue;  // Haven't received DISC_UNIQUE_BRANCH response yet
             }
             packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
-            if (rdm_checksum_is_valid(driver->data.buffer)) {
-              // TODO: RDM checksum is valid
-            }
           } else {
             // When preamble_len > 7 the packet should not be considered RDM
             if (driver->data.head < driver->data.rx_size) {
@@ -1152,13 +1145,47 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     taskEXIT_CRITICAL(spinlock);
     const bool is_request = (header.cc & 0x1) == 0;
     if (is_rdm && is_request) {
+
+      /* TODO: packet format check?
+      message_length must be >=24
+      pdl must be <=231
+      port_id must be >0 (this one may not need to be enforced)
+      sub-device must be between 0 and 512 (inclusive)
+      CC must be one of the enumerated CCs
+      GET commands cannot be sent to RDM_ALL_SUB_DEVICES
+      check if PID supports the CC
+      */
+      
       const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
       if (rdm_uid_is_addressed_to(header.dest_uid, my_uid)) {
-        // TODO search for the proper callback
-        // void rdm_cb(dmx_num, &header, &mdb, context);
-        // if can't find callback, send NACK response
+        
+        bool callback_fired = false;
+        for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
+          if (driver->rdm.cbs[i].pid == header.pid) {
+            driver->rdm.cbs[i].cb(dmx_num, &header, &mdb,
+                                  driver->rdm.cbs[i].context);
+            callback_fired = true;
+            break;
+          }
+        }
+
         if (!rdm_uid_is_broadcast(header.dest_uid)) {
-          // TODO: encode and send the response
+          
+          // Reformat the header so a response can be sent
+          header.dest_uid = header.src_uid;
+          header.src_uid = my_uid;
+          header.cc |= 0x1;
+          // TODO: update message_count
+          header.sub_device = RDM_ROOT_DEVICE;
+
+          size_t encoded;
+          if (!callback_fired && header.cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+            // TODO: send NACK, invalid PID
+            encoded = 0;
+          } else {
+            encoded = rdm_encode_packet(driver->data.buffer, &header, &mdb);
+          }
+          dmx_send(dmx_num, encoded);
         }
       }
     }
