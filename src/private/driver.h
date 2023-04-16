@@ -20,12 +20,6 @@
 extern "C" {
 #endif
 
-struct rdm_callback_t {
-  rdm_pid_t pid;
-  rdm_response_cb_t cb;
-  void *context;
-};
-
 /**
  * @brief The DMX driver object used to handle reading and writing DMX data on 
  * the UART port. It storese all the information needed to run and analyze DMX
@@ -78,7 +72,11 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
     char software_version_label[32];  // The RDM software version label of this device.
 
     uint32_t num_callbacks;
-    struct rdm_callback_t cbs[16];
+    struct rdm_cb_table_t {
+      rdm_pid_t pid;
+      rdm_response_cb_t cb;
+      void *context;
+    } cbs[16];
 
     rdm_identify_function_t id_function;  // The function callback that is called when an RDM IDENTIFY_DEVICE request is received.
     void *id_function_ctx;  // The context that is used in the identify device callback.
