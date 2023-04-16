@@ -438,6 +438,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->rdm.uid = 0;
   driver->rdm.tn = 0;
   driver->rdm.discovery_is_muted = false;
+  driver->rdm.num_callbacks = 0;
 
   // Initialize RDM device info
   driver->rdm.device_info.model_id = 0;  // Defined by user
@@ -1111,137 +1112,27 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   }
 
-  // Respond to potential RDM packets
+
   bool is_rdm = false;
   if (packet_size > 0) {
-    // Parse the packet header
-    rdm_header_t header;
+    rdm_header2_t header;
+    uint8_t pd[231];
+    rdm_mdb_t mdb;
     taskENTER_CRITICAL(spinlock);
-    rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-    const bool got_header = rdm_decode_header(rdm, &header);
-    is_rdm = got_header || rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER;    
+    is_rdm =
+        rdm_decode_packet(driver->data.buffer, packet_size, &header, &mdb, pd);
     taskEXIT_CRITICAL(spinlock);
-
-    // Determine if callback must fire and if a response is expected
-    const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
-    if (got_header && header.checksum_is_valid &&
-        rdm_uid_is_addressed_to(header.destination_uid, my_uid)) {
-      // Get a copy of the parameter data
-      uint8_t data[257]; // TODO: malloc? make buffer copy in driver?
-      if (header.pdl > 0) {
-        taskENTER_CRITICAL(spinlock);
-        memcpy(data, &rdm->pd, header.pdl);
-        taskEXIT_CRITICAL(spinlock);
-      }
-
-      // Process the incoming command    
-      if (header.cc == RDM_CC_DISC_COMMAND) {
-        if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-          if (!driver->rdm.discovery_is_muted) {
-            rdm_disc_unique_branch_t disc_unique_branch;
-            rdm_decode_uids(data, (rdm_uid_t *)&disc_unique_branch, 2,
-                            header.pdl);
-
-            // Per the RDM spec, a responder shall only respond if its UID is 
-            // greater than or equal to the lower bound UID less than or equal 
-            // to the upper bound UID.
-            if (my_uid >= disc_unique_branch.lower_bound &&
-                my_uid <= disc_unique_branch.upper_bound) {
-              size_t written = rdm_encode_disc_response(rdm, 7, my_uid);
-              dmx_send(dmx_num, written);
-            }
-          }
-        } else if (header.pid == RDM_PID_DISC_UN_MUTE ||
-                   header.pid == RDM_PID_DISC_MUTE) {
-          driver->rdm.discovery_is_muted = (header.pid == RDM_PID_DISC_MUTE);
-          if (!rdm_uid_is_broadcast(header.destination_uid)) {
-            rdm_disc_mute_t disc_mute = {
-              // TODO: get device mute flags
-            };
-            size_t written = rdm_encode_mute(&rdm->pd, &disc_mute);
-            header.destination_uid = header.source_uid;
-            header.source_uid = my_uid;
-            header.cc = RDM_CC_DISC_COMMAND_RESPONSE;
-            header.response_type = RDM_RESPONSE_TYPE_ACK;
-            header.pdl = written;
-            written += rdm_encode_header(rdm, &header);
-            dmx_send(dmx_num, written);            
-          }
-        } // DISC_COMMAND_RESPONSE packet cannot be sent with NACK_REASON
-      } else if (header.cc == RDM_CC_GET_COMMAND) {
-        // TODO
-        if (header.pid == RDM_PID_DEVICE_INFO) {
-          if (!rdm_uid_is_broadcast(header.destination_uid)) {
-            // TODO: spinlock
-            rdm_device_info_t device_info = driver->rdm.device_info;
-            size_t written = rdm_encode_device_info(&rdm->pd, &device_info);
-            header.destination_uid = header.source_uid;
-            header.source_uid = my_uid;
-            header.cc = RDM_CC_GET_COMMAND_RESPONSE;
-            header.response_type = RDM_RESPONSE_TYPE_ACK;
-            header.pdl = written;
-            written += rdm_encode_header(rdm, &header);
-            dmx_send(dmx_num, written);
-          }
-
-        } else if (header.pid == RDM_PID_IDENTIFY_DEVICE) {
-          const int identify_device = driver->rdm.identify_device;
-          size_t written = rdm_encode_8bit(&rdm->pd, &identify_device, 1);
-          header.destination_uid = header.source_uid;
-          header.source_uid = my_uid;
-          header.cc = RDM_CC_GET_COMMAND_RESPONSE;
-          header.response_type = RDM_RESPONSE_TYPE_ACK;
-          header.pdl = written;
-          written += rdm_encode_header(rdm, &header);
-          dmx_send(dmx_num, written);
-
-        } else if (header.pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
-          char software_version_label[33];
-          // TODO: spinlock
-          strncpy(software_version_label, driver->rdm.software_version_label,
-                  32);
-          size_t written =
-              rdm_encode_string(&rdm->pd, software_version_label, 32);
-          header.destination_uid = header.source_uid;
-          header.source_uid = my_uid;
-          header.cc = RDM_CC_GET_COMMAND_RESPONSE;
-          header.response_type = RDM_RESPONSE_TYPE_ACK;
-          header.pdl = written;
-          written += rdm_encode_header(rdm, &header);
-          dmx_send(dmx_num, written);
-
-        } else {
-          // ESP_LOGW(TAG, "Got unknown PID %x", header.pid);
+    const bool is_request = (header.cc & 0x1) == 0;
+    if (is_rdm && is_request) {
+      const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
+      if (rdm_uid_is_addressed_to(header.dest_uid, my_uid)) {
+        // TODO search for the proper callback
+        // void rdm_cb(dmx_num, &header, &mdb, context);
+        // if can't find callback, send NACK response
+        if (!rdm_uid_is_broadcast(header.dest_uid)) {
+          // TODO: encode and send the response
         }
-      } else if (header.cc == RDM_CC_SET_COMMAND) {
-        if (header.pid == RDM_PID_IDENTIFY_DEVICE) {
-          const bool identify_device = *(bool *)(&rdm->pd);
-          driver->rdm.identify_device = identify_device;
-          header.destination_uid = header.source_uid;
-          header.source_uid = my_uid;
-          header.cc = RDM_CC_GET_COMMAND_RESPONSE;
-          header.response_type = RDM_RESPONSE_TYPE_ACK;
-          header.pdl = 0;
-          size_t written = rdm_encode_header(rdm, &header);
-          dmx_send(dmx_num, written);
-
-          // TODO: spinlock
-          const rdm_identify_function_t id_function = driver->rdm.id_function;
-          void *context = driver->rdm.id_function_ctx;
-
-          if (id_function != NULL) {
-            id_function(dmx_num, identify_device, context);
-          }
-
-        }
-        
-      } else if (header.cc != RDM_CC_DISC_COMMAND_RESPONSE &&
-                 header.cc != RDM_CC_GET_COMMAND_RESPONSE &&
-                 header.cc != RDM_CC_SET_COMMAND_RESPONSE) {
-        // TODO: send invalid command class response
       }
-
-      // TODO: check if a response is needed and send one if so
     }
   }
 
@@ -1584,6 +1475,41 @@ bool rdm_register_identify_callback(dmx_port_t dmx_num,
   driver->rdm.id_function = id_function;
   driver->rdm.id_function_ctx = context;
   taskEXIT_CRITICAL(spinlock);
+
+  return true;
+}
+
+bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                           rdm_response_cb_t callback, void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // TODO: take mutex
+
+  // Iterate the callback list to see if a callback with this PID exists
+  int i = 0;
+  for (; i < driver->rdm.num_callbacks; ++i) {
+    if (driver->rdm.cbs[i].pid == pid) break;
+  }
+
+  // Check if there is space for callbacks
+  if (i >= 16) {  // TODO: replace 16 with macro configurable in menuconfig
+    ESP_LOGE(TAG, "No more space for RDM callbacks");
+    return false;
+  }
+  
+  // Add the requested callback to the callback list
+  taskENTER_CRITICAL(spinlock);
+  driver->rdm.cbs[i].pid = pid;
+  driver->rdm.cbs[i].cb = callback;
+  driver->rdm.cbs[i].context = context;
+  ++driver->rdm.num_callbacks;
+  taskEXIT_CRITICAL(spinlock);
+
+  // TODO: give mutex
 
   return true;
 }
