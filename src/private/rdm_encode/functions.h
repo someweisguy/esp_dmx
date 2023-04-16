@@ -186,6 +186,8 @@ bool rdm_checksum_is_valid(const void *data);
 // TODO: docs
 bool rdm_is_request(const void *data);
 
+// TODO: docs
+size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason);
 
 #ifdef __cplusplus
 }

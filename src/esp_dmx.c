@@ -1159,18 +1159,20 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
       if (rdm_uid_is_addressed_to(header.dest_uid, my_uid)) {
         
-        bool callback_fired = false;
+        bool cb_found = false;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
           if (driver->rdm.cbs[i].pid == header.pid) {
             driver->rdm.cbs[i].cb(dmx_num, &header, &mdb,
                                   driver->rdm.cbs[i].context);
-            callback_fired = true;
+            cb_found = true;
             break;
           }
         }
+        
+        ESP_LOGI(TAG, "cb was%s found", cb_found ? "" : " not");
 
-        if (!rdm_uid_is_broadcast(header.dest_uid)) {
-          
+        if (!rdm_uid_is_broadcast(header.dest_uid) ||
+            header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
           // Reformat the header so a response can be sent
           header.dest_uid = header.src_uid;
           header.src_uid = my_uid;
@@ -1178,14 +1180,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
           // TODO: update message_count
           header.sub_device = RDM_ROOT_DEVICE;
 
-          size_t encoded;
-          if (!callback_fired && header.cc != RDM_CC_DISC_COMMAND_RESPONSE) {
-            // TODO: send NACK, invalid PID
-            encoded = 0;
-          } else {
-            encoded = rdm_encode_packet(driver->data.buffer, &header, &mdb);
+          if (!cb_found && header.cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+            rdm_encode_nack_reason(&mdb, RDM_NR_UNKNOWN_PID);
+            cb_found = true;
           }
-          dmx_send(dmx_num, encoded);
+          if (cb_found) {
+            size_t wr = rdm_encode_packet(driver->data.buffer, &header, &mdb);
+            dmx_send(dmx_num, wr);
+          }
         }
       }
     }
