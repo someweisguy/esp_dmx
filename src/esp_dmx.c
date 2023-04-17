@@ -399,6 +399,34 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
+static void disc_unique_branch_response(dmx_port_t dmx_num,
+                                        const rdm_header_t *header,
+                                        rdm_mdb_t *mdb, void *context) {
+  // Ensure that the parameter data is the expected length
+  if (mdb->pdl != 12) {
+    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
+    return;
+  }
+  
+  // Decode the two UIDs
+  rdm_disc_unique_branch_t branch;
+  rdm_decode_uids(mdb, &branch, 2);
+  
+  // Respond if the device UID is between the branch bounds
+  const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
+  if (my_uid >= branch.lower_bound && my_uid <= branch.upper_bound) {
+    mdb->response_type = RDM_RESPONSE_TYPE_ACK;
+  } else {
+    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
+  }
+}
+
+static void disc_mute_response(dmx_port_t dmx_num, const rdm_header_t *header, 
+                               rdm_mdb_t *mdb, void *context) {
+  mdb->response_type = RDM_RESPONSE_TYPE_ACK;
+
+}
+
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
@@ -551,6 +579,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   timer_isr_callback_add(driver->timer_group, driver->timer_idx, dmx_timer_isr,
                          driver, intr_flags);
 #endif
+
+  // Add required RDM response callbacks
+  rdm_register_callback(dmx_num, RDM_PID_DISC_UNIQUE_BRANCH,
+                        disc_unique_branch_response, NULL);
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(spinlock);
@@ -1130,6 +1162,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Handle RDM responses
   bool is_rdm = false;
   if (packet_size > 0) {
+    // TODO: make this its own function
     rdm_header_t header;
     uint8_t pd[231];
     rdm_mdb_t mdb;
@@ -1158,7 +1191,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       
       const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
       if (rdm_uid_is_addressed_to(header.dest_uid, my_uid)) {
-        
         bool cb_found = false;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
           if (driver->rdm.cbs[i].pid == header.pid) {
@@ -1168,26 +1200,39 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
             break;
           }
         }
-        
-        ESP_LOGI(TAG, "cb was%s found", cb_found ? "" : " not");
 
-        if (!rdm_uid_is_broadcast(header.dest_uid) ||
-            header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-          // Reformat the header so a response can be sent
-          header.dest_uid = header.src_uid;
-          header.src_uid = my_uid;
-          header.cc |= 0x1;
-          // TODO: update message_count
-          header.sub_device = RDM_ROOT_DEVICE;
+        // Reformat the header so a response can be sent
+        header.dest_uid = header.src_uid;
+        header.src_uid = my_uid;
+        header.cc |= 0x1;
+        header.sub_device = RDM_ROOT_DEVICE;
+        header.message_count = 0;  // TODO: update message_count
 
-          if (!cb_found && header.cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+        // Ensure the response type is correct
+        if (header.cc == RDM_CC_DISC_COMMAND_RESPONSE) {
+          if (mdb.response_type != RDM_RESPONSE_TYPE_ACK ||
+              mdb.response_type != RDM_RESPONSE_TYPE_NONE) {
+            mdb.response_type = RDM_RESPONSE_TYPE_NONE;
+            ESP_LOGE(TAG, "invalid response type");  // TODO: better logging
+          }
+        } else if (!rdm_uid_is_broadcast(my_uid)) {
+          if (!cb_found) {
             rdm_encode_nack_reason(&mdb, RDM_NR_UNKNOWN_PID);
-            cb_found = true;
+          } else if (mdb.response_type != RDM_RESPONSE_TYPE_ACK ||
+                     mdb.response_type != RDM_RESPONSE_TYPE_ACK_TIMER ||
+                     mdb.response_type != RDM_RESPONSE_TYPE_NACK_REASON ||
+                     mdb.response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+            rdm_encode_nack_reason(&mdb, RDM_NR_HARDWARE_FAULT);
+            ESP_LOGW(TAG, "invalid response type");  // TODO: better logging
           }
-          if (cb_found) {
-            size_t wr = rdm_encode_packet(driver->data.buffer, &header, &mdb);
-            dmx_send(dmx_num, wr);
-          }
+        } else {
+          mdb.response_type = RDM_RESPONSE_TYPE_NONE;
+        }
+
+        // Send a response if it is required
+        if (mdb.response_type != RDM_RESPONSE_TYPE_NONE) {
+          size_t wr = rdm_encode_packet(driver->data.buffer, &header, &mdb);
+          dmx_send(dmx_num, wr);
         }
       }
     }

@@ -92,7 +92,7 @@ size_t rdm_encode_uids(void *data, const void *uids, int size);
  * @param size The size of the array of UIDs.
  * @return The number of UIDs decoded.
  */
-int rdm_decode_uids(const void *data, void *uids, int size);
+// int rdm_decode_uids(const void *data, void *uids, int size);
 
 /**
  * @brief Encode an array of 16-bit numbers into the desired array.
@@ -188,6 +188,9 @@ bool rdm_is_request(const void *data);
 
 // TODO: docs
 size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason);
+
+// TODO: docs
+int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num);
 
 #ifdef __cplusplus
 }

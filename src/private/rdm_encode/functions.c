@@ -36,7 +36,7 @@ bool rdm_decode_packet(const void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
     // Check if packet is a request or response
     if (rdm_is_request(data)) {
       header->port_id = rdm->port_id;
-      mdb->response_type = -1;
+      mdb->response_type = RDM_RESPONSE_TYPE_NONE;
     } else {
       mdb->response_type = rdm->response_type;
       header->port_id = -1;
@@ -126,6 +126,11 @@ size_t rdm_encode_packet(void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
 
     encoded = message_len + 2;
   } else {
+    // Don't encode if the response type is not an ACK
+    if (mdb->response_type != RDM_RESPONSE_TYPE_ACK) {
+      return 0;
+    }
+
     // Encode the preamble
     if (mdb->preamble_len > 7) {
       return 0;  // Preamble length must be <= 7
@@ -232,13 +237,13 @@ size_t rdm_encode_uids(void *data, const void *uids, int size) {
   return pdl;
 }
 
-int rdm_decode_uids(const void *data, void *uids, int size) {
-  int decoded = 0;
-  for (int i = 0; decoded < size; ++decoded, i += 6) {
-    ((rdm_uid_t *)uids)[decoded] = buf_to_uid(data + i);
-  }
-  return decoded;
-}
+// int rdm_decode_uids(const void *data, void *uids, int size) {
+//   int decoded = 0;
+//   for (int i = 0; decoded < size; ++decoded, i += 6) {
+//     ((rdm_uid_t *)uids)[decoded] = buf_to_uid(data + i);
+//   }
+//   return decoded;
+// }
 
 size_t rdm_encode_16bit(void *pd, const void *data, int size) {
   size_t pdl = 0;
@@ -380,6 +385,16 @@ size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
   const size_t encoded = rdm_encode_16bit(mdb->pd, &nack_reason, 1);
   mdb->pdl = encoded;
   return encoded;
+}
+
+int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  for (int i = 0; decoded < num && i < mdb->pdl; ++decoded, i += 6) {
+    if (decoded < num && data != NULL) {
+      ((rdm_uid_t *)data)[decoded] = buf_to_uid(data + i);
+    }
+  }
+  return decoded;
 }
 
 /* TODO
