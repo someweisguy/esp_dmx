@@ -412,10 +412,6 @@ bool rdm_set_device_info(dmx_port_t dmx_num,
 bool rdm_set_software_version_label(dmx_port_t dmx_num,
                                     char *software_version_label, size_t size);
 
-// TODO: docs
-bool rdm_register_identify_callback(dmx_port_t dmx_num,
-                                    rdm_identify_function_t id_function,
-                                    void *context);
 
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_response_cb_t callback, void *context);

@@ -525,8 +525,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize RDM identify device
   driver->rdm.identify_device = false;
-  driver->rdm.id_function = NULL;
-  driver->rdm.id_function_ctx = NULL;
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
@@ -1587,23 +1585,6 @@ bool rdm_set_software_version_label(dmx_port_t dmx_num,
   taskENTER_CRITICAL(spinlock);
   memcpy(driver->rdm.software_version_label, software_version_label, size);
   driver->rdm.software_version_label[size] = '\0';
-  taskEXIT_CRITICAL(spinlock);
-
-  return true;
-}
-
-bool rdm_register_identify_callback(dmx_port_t dmx_num,
-                                    rdm_identify_function_t id_function,
-                                    void *context) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  taskENTER_CRITICAL(spinlock);
-  driver->rdm.id_function = id_function;
-  driver->rdm.id_function_ctx = context;
   taskEXIT_CRITICAL(spinlock);
 
   return true;

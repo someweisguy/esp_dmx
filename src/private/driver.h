@@ -77,9 +77,6 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
       rdm_response_cb_t cb;
       void *context;
     } cbs[16];
-
-    rdm_identify_function_t id_function;  // The function callback that is called when an RDM IDENTIFY_DEVICE request is received.
-    void *id_function_ctx;  // The context that is used in the identify device callback.
   } rdm;
 
   struct dmx_sniffer_t {
