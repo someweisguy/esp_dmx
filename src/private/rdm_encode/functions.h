@@ -60,7 +60,7 @@ size_t rdm_encode_packet(void *data, rdm_header_t *header, rdm_mdb_t *mdb);
  * @param[in] param A pointer to a discovery mute parameter to encode.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param);
+// size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param);
 
 /**
  * @brief Decodes RDM discovery mute parameters.
@@ -191,6 +191,8 @@ size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason);
 
 // TODO: docs
 int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num);
+
+size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num);
 
 #ifdef __cplusplus
 }

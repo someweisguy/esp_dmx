@@ -80,60 +80,15 @@ bool rdm_decode_packet(const void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
 
 size_t rdm_encode_packet(void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
   if (data == NULL || header == NULL || mdb == NULL) {
-    return false;
+    return 0;
   }
 
   size_t encoded;
-  if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
-    rdm_data_t *const rdm = data;
-
-    // Encode the parameter data
-    if (mdb->pdl > 231) {
-      return 0;  // PDL must be <= 231
-    } else if (mdb->pdl > 0) {
-      if (mdb->pd == NULL) {
-        return 0;  // Invalid MDB
-      }
-      memcpy(&rdm->pd, mdb->pd, mdb->pdl);
-    }
-    rdm->pdl = mdb->pdl;
-
-    // Encode the packet header
-    const size_t message_len = 24 + mdb->pdl;
-    rdm->sc = RDM_SC;
-    rdm->sub_sc = RDM_SUB_SC;
-    rdm->message_len = 24 + mdb->pdl;
-    uid_to_buf(rdm->destination_uid, header->dest_uid);
-    uid_to_buf(rdm->source_uid, header->src_uid);
-    rdm->tn = header->tn;
-    if ((header->cc & 0x1) == 0) {
-      rdm->port_id = header->port_id;
-    } else {
-      rdm->response_type = mdb->response_type;
-    }
-    rdm->message_count = header->message_count;
-    rdm->sub_device = bswap16(header->sub_device);
-    rdm->cc = header->cc;
-    rdm->pid = bswap16(header->pid);
-
-    // Encode the checksum
-    uint16_t checksum = 0;
-    const uint8_t *d = data;
-    for (int i = 0; i < message_len; ++i) {
-      checksum += d[i];
-    }
-    *(uint16_t *)&d[message_len] = bswap16(checksum);
-
-    encoded = message_len + 2;
-  } else {
-    // Don't encode if the response type is not an ACK
-    if (mdb->response_type != RDM_RESPONSE_TYPE_ACK) {
-      return 0;
-    }
-
+  if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
+      header->cc == RDM_CC_DISC_COMMAND_RESPONSE) {
     // Encode the preamble
     if (mdb->preamble_len > 7) {
-      return 0;  // Preamble length must be <= 7
+      mdb->preamble_len = 7;
     }
     uint8_t *d = data;
     for (int i = 0; i < mdb->preamble_len; ++i) {
@@ -157,6 +112,47 @@ size_t rdm_encode_packet(void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
     d[15] = (checksum & 0xff) | 0x55;
 
     encoded = mdb->preamble_len + 1 + 16;
+  } else {
+    rdm_data_t *const rdm = data;
+
+    // Encode the parameter data
+    if (mdb->pdl > 231) {
+      return 0;  // PDL must be <= 231
+    } else if (mdb->pdl > 0) {
+      if (mdb->pd == NULL) {
+        return 0;  // Invalid MDB
+      }
+      memmove(&rdm->pd, mdb->pd, mdb->pdl);
+    }
+    rdm->pdl = mdb->pdl;
+
+    // Encode the packet header
+    const size_t message_len = 24 + mdb->pdl;
+    rdm->sc = RDM_SC;
+    rdm->sub_sc = RDM_SUB_SC;
+    rdm->message_len = message_len;
+    uid_to_buf(rdm->destination_uid, header->dest_uid);
+    uid_to_buf(rdm->source_uid, header->src_uid);
+    rdm->tn = header->tn;
+    if ((header->cc & 0x1) == 0) {
+      rdm->port_id = header->port_id;
+    } else {
+      rdm->response_type = mdb->response_type;
+    }
+    rdm->message_count = header->message_count;
+    rdm->sub_device = bswap16(header->sub_device);
+    rdm->cc = header->cc;
+    rdm->pid = bswap16(header->pid);
+
+    // Encode the checksum
+    uint16_t checksum = 0;
+    const uint8_t *d = data;
+    for (int i = 0; i < message_len; ++i) {
+      checksum += d[i];
+    }
+    *(uint16_t *)&d[message_len] = bswap16(checksum);
+
+    encoded = message_len + 2;
   }
 
   return encoded;
@@ -199,20 +195,20 @@ bool rdm_checksum_is_valid(const void *data) {
   return (sum == checksum);
 }
 
-size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
-  size_t pdl = 2;
-  struct rdm_disc_mute_data_t *const ptr = data;
-  bzero(data, 2);  // FIXME: make the bit field more efficient?
-  ptr->managed_proxy = param->managed_proxy;
-  ptr->sub_device = param->sub_device;
-  ptr->boot_loader = param->boot_loader;
-  ptr->proxied_device = param->proxied_device;
-  if (param->binding_uid) {
-    uid_to_buf(ptr->binding_uid, param->binding_uid);
-    pdl += 6;
-  }
-  return pdl;
-}
+// size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
+//   size_t pdl = 2;
+//   struct rdm_disc_mute_data_t *const ptr = data;
+//   bzero(data, 2);  // FIXME: make the bit field more efficient?
+//   ptr->managed_proxy = param->managed_proxy;
+//   ptr->sub_device = param->sub_device;
+//   ptr->boot_loader = param->boot_loader;
+//   ptr->proxied_device = param->proxied_device;
+//   if (param->binding_uid) {
+//     uid_to_buf(ptr->binding_uid, param->binding_uid);
+//     pdl += 6;
+//   }
+//   return pdl;
+// }
 
 int rdm_decode_mute(const void *pd, rdm_disc_mute_t *param, int size,
                     size_t pdl) {
@@ -389,12 +385,33 @@ size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
 
 int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
   int decoded = 0;
-  for (int i = 0; decoded < num && i < mdb->pdl; ++decoded, i += 6) {
-    if (decoded < num && data != NULL) {
-      ((rdm_uid_t *)data)[decoded] = buf_to_uid(data + i);
+  if (mdb != NULL && mdb->pd != NULL && data != NULL) {
+    for (int i = 0; decoded < num && i < mdb->pdl; i += 6) {
+        ((rdm_uid_t *)data)[decoded] = buf_to_uid(mdb->pd + i);
+        ++decoded;
     }
   }
   return decoded;
+}
+
+size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb != NULL && mdb->pd != NULL && data != NULL && num == 1) {
+    struct rdm_disc_mute_data_t *pd = mdb->pd;
+    const rdm_disc_mute_t *param = data;
+    bzero(mdb->pd, 2);  // FIXME: make the bit field more efficient?
+    pd->managed_proxy = param->managed_proxy;
+    pd->sub_device = param->sub_device;
+    pd->boot_loader = param->boot_loader;
+    pd->proxied_device = param->proxied_device;
+    if (param->binding_uid != 0) {
+      uid_to_buf(pd->binding_uid, param->binding_uid);
+      encoded += 6;
+    }
+    encoded += 2;
+    mdb->pdl = encoded;
+  }
+  return encoded;
 }
 
 /* TODO
