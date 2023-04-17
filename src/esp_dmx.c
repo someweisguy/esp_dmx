@@ -403,11 +403,10 @@ static void disc_unique_branch_response(dmx_port_t dmx_num,
                                         const rdm_header_t *header,
                                         rdm_mdb_t *mdb, void *context) {
   // Ensure that the parameter data is the expected length
-  // if (mdb->pdl != 12) {
-  //   mdb->response_type = RDM_RESPONSE_TYPE_NONE;
-  //   return;
-  // }
-
+  if (mdb->pdl != 12) {
+    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
+    return;
+  }
   
   // Ignore this message if discovery is muted
   if (dmx_driver[dmx_num]->rdm.discovery_is_muted) {
@@ -422,6 +421,7 @@ static void disc_unique_branch_response(dmx_port_t dmx_num,
   // Respond if the device UID is between the branch bounds
   const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
   if (my_uid >= branch.lower_bound && my_uid <= branch.upper_bound) {
+    mdb->preamble_len = 7;
     mdb->response_type = RDM_RESPONSE_TYPE_ACK;
   } else {
     mdb->response_type = RDM_RESPONSE_TYPE_NONE;
@@ -430,11 +430,11 @@ static void disc_unique_branch_response(dmx_port_t dmx_num,
 
 static void disc_mute_response(dmx_port_t dmx_num, const rdm_header_t *header, 
                                rdm_mdb_t *mdb, void *context) {
-  // Ensure that the parameter data is the expected length;
-  // if (mdb->pdl != 0) {
-  //   mdb->response_type = RDM_RESPONSE_TYPE_NONE;
-  //   return;
-  // }
+  // Ensure that the parameter data is the expected length
+  if (mdb->pdl != 0) {
+    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
+    return;
+  }
 
   // Mute or un-mute the discovery
   dmx_driver[dmx_num]->rdm.discovery_is_muted =
