@@ -399,19 +399,19 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-static int disc_unique_branch_response(dmx_port_t dmx_num,
-                                        const rdm_header_t *header,
-                                        rdm_mdb_t *mdb, void *context) {
+static int rdm_disc_unique_branch(dmx_port_t dmx_num,
+                                  const rdm_header_t *header, rdm_mdb_t *mdb,
+                                  void *context) {
   // Ensure that the parameter data is the expected length
   if (mdb->pdl != 12) {
     return RDM_RESPONSE_TYPE_NONE;
   }
-  
+
   // Ignore this message if discovery is muted
   if (dmx_driver[dmx_num]->rdm.discovery_is_muted) {
     return RDM_RESPONSE_TYPE_NONE;
   }
-  
+
   // Decode the two UIDs
   rdm_disc_unique_branch_t branch;
   rdm_decode_uids(mdb, &branch, 2);
@@ -426,8 +426,8 @@ static int disc_unique_branch_response(dmx_port_t dmx_num,
   }
 }
 
-static int disc_mute_response(dmx_port_t dmx_num, const rdm_header_t *header, 
-                               rdm_mdb_t *mdb, void *context) {
+static int rdm_disc_mute(dmx_port_t dmx_num, const rdm_header_t *header,
+                         rdm_mdb_t *mdb, void *context) {
   // Ensure that the parameter data is the expected length
   if (mdb->pdl != 0) {
     return RDM_RESPONSE_TYPE_NONE;
@@ -439,12 +439,68 @@ static int disc_mute_response(dmx_port_t dmx_num, const rdm_header_t *header,
 
   // Encode the response
   const rdm_disc_mute_t mute = {
-    // TODO: get mute params
+      // TODO: get mute params
   };
   rdm_encode_mute(mdb, &mute, 1);
 
   // Return an ACK
   return RDM_RESPONSE_TYPE_ACK;
+}
+
+static int rdm_device_info(dmx_port_t dmx_num, const rdm_header_t *header,
+                           rdm_mdb_t *mdb, void *context) {
+  // Ensure that the parameter data is the expected length
+  if (mdb->pdl != 0) {
+    rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  // Encode the response
+  rdm_encode_device_info(mdb, &dmx_driver[dmx_num]->rdm.device_info, 1);
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+static int rdm_software_version_label(dmx_port_t dmx_num,
+                                      const rdm_header_t *header,
+                                      rdm_mdb_t *mdb, void *context) {
+  // Ensure that the parameter data is the expected length
+  if (mdb->pdl != 0) {
+    rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  // Encode the response
+  const char *software_version_label = "esp_dmx v3.0.3-beta";  // TODO
+  rdm_encode_string(mdb, software_version_label,
+                    sizeof(software_version_label));
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+static int rdm_identify_device(dmx_port_t dmx_num, const rdm_header_t *header,
+                               rdm_mdb_t *mdb, void *context) {
+  // Ensure that the parameter data is the expected length
+  if (!(header->cc == RDM_CC_GET_COMMAND && mdb->pdl == 0) &&
+      !(header->cc == RDM_CC_SET_COMMAND && mdb->pdl == 1)) {
+    rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  if (header->cc == RDM_CC_GET_COMMAND) {
+    rdm_encode_8bit(mdb, &dmx_driver[dmx_num]->rdm.identify_device, 1);
+    return RDM_RESPONSE_TYPE_ACK;
+  } else if (header->cc == RDM_CC_SET_COMMAND) {
+    uint8_t set;
+    rdm_decode_8bit(mdb, &set, 1);
+
+    dmx_driver[dmx_num]->rdm.identify_device = set;
+
+    // TODO: figure out a way to identify the device
+
+    return RDM_RESPONSE_TYPE_ACK;
+  } else {
+    rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
 }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
@@ -516,9 +572,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->rdm.device_info.start_address = -1;  // Must be -1 if footprint == 0
   driver->rdm.device_info.sub_device_count = 0;
   driver->rdm.device_info.sensor_count = 0;
-
-  // Initialize RDM software version label
-  strncpy(driver->rdm.software_version_label, "esp_dmx v3.0.3-beta", 32);
 
   // Initialize RDM identify device
   driver->rdm.identify_device = false;
@@ -600,10 +653,15 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Add required RDM response callbacks
   rdm_register_callback(dmx_num, RDM_PID_DISC_UNIQUE_BRANCH,
-                        disc_unique_branch_response, NULL);
-  rdm_register_callback(dmx_num, RDM_PID_DISC_MUTE, disc_mute_response, NULL);
-  rdm_register_callback(dmx_num, RDM_PID_DISC_UN_MUTE, disc_mute_response,
+                        rdm_disc_unique_branch, NULL);
+  rdm_register_callback(dmx_num, RDM_PID_DISC_MUTE, rdm_disc_mute, NULL);
+  rdm_register_callback(dmx_num, RDM_PID_DISC_UN_MUTE, rdm_disc_mute,
                         NULL);
+  rdm_register_callback(dmx_num, RDM_PID_DEVICE_INFO, rdm_device_info, NULL);
+  rdm_register_callback(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
+                        rdm_software_version_label, NULL);
+  rdm_register_callback(dmx_num, RDM_PID_IDENTIFY_DEVICE,
+                        rdm_identify_device, NULL);
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(spinlock);
@@ -1566,25 +1624,6 @@ bool rdm_set_device_info(dmx_port_t dmx_num,
 
   taskENTER_CRITICAL(spinlock);
   driver->rdm.device_info = *device_info;
-  taskEXIT_CRITICAL(spinlock);
-
-  return true;
-}
-
-bool rdm_set_software_version_label(dmx_port_t dmx_num,
-                                    char *software_version_label, size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(software_version_label != NULL, false,
-            "software_version_label is null");
-  DMX_CHECK(size > 0 && size < 32, false, "size error");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  taskENTER_CRITICAL(spinlock);
-  memcpy(driver->rdm.software_version_label, software_version_label, size);
-  driver->rdm.software_version_label[size] = '\0';
   taskEXIT_CRITICAL(spinlock);
 
   return true;

@@ -255,51 +255,6 @@ int rdm_decode_16bit(const void *pd, void *data, int size) {
   return decoded;
 }
 
-size_t rdm_encode_8bit(void *pd, const void *data, int size) {
-  size_t pdl = 0;
-  if (data != NULL) {
-    uint8_t *restrict ptr = pd;
-    const uint32_t *restrict params = data;
-    for (int i = 0; i < size; ++i) {
-      ptr[i] = params[i];
-    }
-    pdl = size;
-  }
-  return pdl;
-}
-
-int rdm_decode_8bit(const void *pd, void *data, int size) {
-  int decoded = 0;
-  if (data != NULL) {
-    const uint8_t *restrict ptr = pd;
-    uint32_t *restrict params = data;
-    for (int i = 0; i < size; ++i) {
-      params[i] = ptr[i];
-    }
-    decoded = size;
-  }
-  return decoded;
-}
-
-size_t rdm_encode_string(void *pd, const void *data, int size) {
-  size_t pdl = 0;
-  if (data != NULL) {
-    char *restrict destination = pd;
-    const char *restrict source = data;
-    while (pdl < size) {
-      if (*source) {
-        *destination = *source;
-        ++destination;
-        ++source;
-        ++pdl;
-      } else {
-        break;  // Don't encode null terminators
-      }
-    }
-  }
-  return pdl;
-}
-
 int rdm_decode_string(const void *pd, void *data, int size) {
   int decoded = 0;
   if (data != NULL) {
@@ -309,30 +264,6 @@ int rdm_decode_string(const void *pd, void *data, int size) {
     decoded = size + 1;
   }
   return decoded;
-}
-
-size_t rdm_encode_device_info(void *pd, const void *data, int size) {
-  size_t pdl = 0;
-  if (data != NULL) {
-    rdm_device_info_data_t *const restrict ptr = pd;
-    const rdm_device_info_t *const restrict device_info = data;
-    ptr->major_rdm_version = 1;
-    ptr->minor_rdm_version = 0;
-    ptr->model_id = bswap16(device_info->model_id);
-    ptr->coarse_product_category = device_info->coarse_product_category;
-    ptr->fine_product_category = device_info->fine_product_category;
-    ptr->software_version_id = bswap32(device_info->software_version_id);
-    ptr->footprint = bswap16(device_info->footprint);
-    ptr->current_personality = device_info->current_personality;
-    ptr->personality_count = device_info->personality_count;
-    ptr->start_address = device_info->start_address != -1
-                            ? bswap16(device_info->start_address)
-                            : 0xffff;
-    ptr->sub_device_count = bswap16(device_info->sub_device_count);
-    ptr->sensor_count = device_info->sensor_count;
-    pdl = sizeof(rdm_device_info_data_t);
-  }
-  return pdl;
 }
 
 int rdm_decode_device_info(const void *pd, void *data, int size) {
@@ -396,15 +327,82 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
       encoded += 6;
     }
     encoded += 2;
-    mdb->pdl = encoded;
   }
+  mdb->pdl = encoded;
   return encoded;
 }
 
+size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && mdb->pd && data) {
+    rdm_device_info_data_t *const pd = mdb->pd;
+    const rdm_device_info_t *param = data;
+    pd->major_rdm_version = 1;
+    pd->minor_rdm_version = 0;
+    pd->model_id = bswap16(param->model_id);
+    pd->coarse_product_category = param->coarse_product_category;
+    pd->fine_product_category = param->fine_product_category;
+    pd->software_version_id = bswap32(param->software_version_id);
+    pd->footprint = bswap16(param->footprint);
+    pd->current_personality = param->current_personality;
+    pd->start_address =
+        param->start_address != -1 ? bswap16(param->start_address) : 0xffff;
+    pd->sub_device_count = bswap16(param->sub_device_count);
+    pd->sensor_count = param->sensor_count;
+    encoded = sizeof(rdm_device_info_data_t);
+  }
+  mdb->pdl = encoded;
+  return encoded;
+}
+
+size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && mdb->pd && data) {
+    char *dest = mdb->pd;
+    const char *src = data;
+    while (encoded < num && encoded < 32) {
+      if (*src) {
+        *dest = *src;
+        ++encoded;
+        ++dest;
+        ++src;
+      } else {
+        break;  // Don't encode null terminators
+      }
+    }
+  }
+  mdb->pdl = encoded;
+  return encoded;
+}
+
+size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && mdb->pdl && data) {
+    uint8_t *pd = mdb->pd;
+    const uint8_t *param = data;
+    for (int i = 0; i < num; ++i) {
+      pd[i] = param[i];
+    }
+    encoded = num;
+  }
+  mdb->pdl = encoded;
+  return encoded;
+}
+
+int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  if (mdb && mdb->pdl && data) {
+    const uint8_t *pd = mdb->pd;
+    uint8_t *param = data;
+    for (int i = 0; i < num; ++i) {
+      param[i] = pd[i];
+    }
+    decoded = num;
+  }
+  return decoded;
+}
+
 /* TODO
-
 size_t rdm_encode_whatever(rdm_mdb_t *mdb, const void *data, int num);
-
 int rdm_decode_whatever(const rdm_mdb_t *mdb, void *data, int num);
-
 */

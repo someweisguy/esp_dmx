@@ -408,11 +408,6 @@ bool rdm_is_muted(dmx_port_t dmx_num);
 bool rdm_set_device_info(dmx_port_t dmx_num,
                          const rdm_device_info_t *device_info);
 
-// TODO: docs
-bool rdm_set_software_version_label(dmx_port_t dmx_num,
-                                    char *software_version_label, size_t size);
-
-
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_response_cb_t callback, void *context);
 

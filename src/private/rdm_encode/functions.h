@@ -122,7 +122,7 @@ int rdm_decode_16bit(const void *pd, void *data, int size);
  * @param size The size of the array of values.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_8bit(void *pd, const void *data, int size);
+// size_t rdm_encode_8bit(void *pd, const void *data, int size);
 
 /**
  * @brief Decode an array of 8-bit numbers into the desired array.
@@ -132,7 +132,7 @@ size_t rdm_encode_8bit(void *pd, const void *data, int size);
  * @param size The size of the array to store decoded data.
  * @return The number of of values available to be decoded.
  */
-int rdm_decode_8bit(const void *pd, void *data, int size);
+// int rdm_decode_8bit(const void *pd, void *data, int size);
 
 /**
  * @brief Encode a string into the desired array.
@@ -142,7 +142,7 @@ int rdm_decode_8bit(const void *pd, void *data, int size);
  * @param size The size of the string.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_string(void *pd, const void *data, int size);
+// size_t rdm_encode_string(void *pd, const void *data, int size);
 
 /**
  * @brief Decode a string from a buffer.
@@ -162,7 +162,7 @@ int rdm_decode_string(const void *pd, void *data, int size);
  * @param size The size of the array to store decoded data.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_device_info(void *pd, const void *data, int size);
+// size_t rdm_encode_device_info(void *pd, const void *data, int size);
 
 /**
  * @brief Decodes RDM device info.
@@ -193,6 +193,14 @@ size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason);
 int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num);
 
 size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num);
+
+size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num);
+
+size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num);
+
+size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num);
+
+int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num);
 
 #ifdef __cplusplus
 }
