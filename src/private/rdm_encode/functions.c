@@ -33,19 +33,11 @@ bool rdm_decode_packet(const void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
     }
     mdb->pdl = pdl;
 
-    // Check if packet is a request or response
-    if (rdm_is_request(data)) {
-      header->port_id = rdm->port_id;
-      mdb->response_type = RDM_RESPONSE_TYPE_NONE;
-    } else {
-      mdb->response_type = rdm->response_type;
-      header->port_id = -1;
-    }
-
     // Copy the remaining header data
     header->dest_uid = buf_to_uid(rdm->destination_uid);
     header->src_uid = buf_to_uid(rdm->source_uid);
     header->tn = rdm->tn;
+    header->port_id = rdm->port_id;  // Also copies response_type
     header->message_count = rdm->message_count;
     header->sub_device = bswap16(rdm->sub_device);
     header->cc = rdm->cc;
@@ -65,12 +57,12 @@ bool rdm_decode_packet(const void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
     // Fill out the remaining header and MDB data
     header->dest_uid = 0;
     header->tn = -1;
+    header->response_type = RDM_RESPONSE_TYPE_ACK;
     header->port_id = -1;
     header->message_count = -1;
     header->sub_device = -1;
     header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
     header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-    mdb->response_type = RDM_RESPONSE_TYPE_ACK;
     mdb->pdl = 0;
     mdb->preamble_len = preamble_len;
   }
@@ -134,11 +126,7 @@ size_t rdm_encode_packet(void *data, rdm_header_t *header, rdm_mdb_t *mdb) {
     uid_to_buf(rdm->destination_uid, header->dest_uid);
     uid_to_buf(rdm->source_uid, header->src_uid);
     rdm->tn = header->tn;
-    if ((header->cc & 0x1) == 0) {
-      rdm->port_id = header->port_id;
-    } else {
-      rdm->response_type = mdb->response_type;
-    }
+    rdm->port_id = header->port_id;  // Also copies response_type
     rdm->message_count = header->message_count;
     rdm->sub_device = bswap16(header->sub_device);
     rdm->cc = header->cc;
@@ -377,7 +365,6 @@ bool rdm_is_request(const void *data) {
 }
 
 size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
-  mdb->response_type = RDM_RESPONSE_TYPE_NACK_REASON;
   const size_t encoded = rdm_encode_16bit(mdb->pd, &nack_reason, 1);
   mdb->pdl = encoded;
   return encoded;

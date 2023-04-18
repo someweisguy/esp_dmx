@@ -399,19 +399,17 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-static void disc_unique_branch_response(dmx_port_t dmx_num,
+static int disc_unique_branch_response(dmx_port_t dmx_num,
                                         const rdm_header_t *header,
                                         rdm_mdb_t *mdb, void *context) {
   // Ensure that the parameter data is the expected length
   if (mdb->pdl != 12) {
-    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
-    return;
+    return RDM_RESPONSE_TYPE_NONE;
   }
   
   // Ignore this message if discovery is muted
   if (dmx_driver[dmx_num]->rdm.discovery_is_muted) {
-    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
-    return;
+    return RDM_RESPONSE_TYPE_NONE;
   }
   
   // Decode the two UIDs
@@ -422,32 +420,31 @@ static void disc_unique_branch_response(dmx_port_t dmx_num,
   const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
   if (my_uid >= branch.lower_bound && my_uid <= branch.upper_bound) {
     mdb->preamble_len = 7;
-    mdb->response_type = RDM_RESPONSE_TYPE_ACK;
+    return RDM_RESPONSE_TYPE_ACK;
   } else {
-    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
+    return RDM_RESPONSE_TYPE_NONE;
   }
 }
 
-static void disc_mute_response(dmx_port_t dmx_num, const rdm_header_t *header, 
+static int disc_mute_response(dmx_port_t dmx_num, const rdm_header_t *header, 
                                rdm_mdb_t *mdb, void *context) {
   // Ensure that the parameter data is the expected length
   if (mdb->pdl != 0) {
-    mdb->response_type = RDM_RESPONSE_TYPE_NONE;
-    return;
+    return RDM_RESPONSE_TYPE_NONE;
   }
 
   // Mute or un-mute the discovery
   dmx_driver[dmx_num]->rdm.discovery_is_muted =
       (header->pid == RDM_PID_DISC_MUTE);
 
-  // TODO: Encode the response
+  // Encode the response
   const rdm_disc_mute_t mute = {
     // TODO: get mute params
   };
   rdm_encode_mute(mdb, &mute, 1);
 
   // Return an ACK
-  mdb->response_type = RDM_RESPONSE_TYPE_ACK;
+  return RDM_RESPONSE_TYPE_ACK;
 }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
@@ -1214,13 +1211,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       check if PID supports the CC
       */
 
+      rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
       const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
       if (rdm_uid_is_addressed_to(header.dest_uid, my_uid)) {
         bool cb_found = false;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
           if (driver->rdm.cbs[i].pid == header.pid) {
-            driver->rdm.cbs[i].cb(dmx_num, &header, &mdb,
-                                  driver->rdm.cbs[i].context);
+            response_type = driver->rdm.cbs[i].cb(dmx_num, &header, &mdb,
+                                                  driver->rdm.cbs[i].context);
             cb_found = true;
             break;
           }
@@ -1236,30 +1234,32 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
         // Ensure the response type is correct
         if (header.cc == RDM_CC_DISC_COMMAND_RESPONSE) {
-          if (mdb.response_type != RDM_RESPONSE_TYPE_ACK &&
-              mdb.response_type != RDM_RESPONSE_TYPE_NONE) {
-            mdb.response_type = RDM_RESPONSE_TYPE_NONE;
+          if (response_type != RDM_RESPONSE_TYPE_ACK &&
+              response_type != RDM_RESPONSE_TYPE_NONE) {
+            response_type = RDM_RESPONSE_TYPE_NONE;
             ESP_LOGE(TAG, "invalid response type1");  // TODO: better logging
           }
         } else {
           if (!cb_found) {
             rdm_encode_nack_reason(&mdb, RDM_NR_UNKNOWN_PID);
-          } else if (mdb.response_type != RDM_RESPONSE_TYPE_ACK &&
-                     mdb.response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-                     mdb.response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
-                     mdb.response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+          } else if (response_type != RDM_RESPONSE_TYPE_ACK &&
+                     response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+                     response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+                     response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
             rdm_encode_nack_reason(&mdb, RDM_NR_HARDWARE_FAULT);
+            response_type = RDM_RESPONSE_TYPE_NACK_REASON;
             ESP_LOGW(TAG, "invalid response type2");  // TODO: better logging
           }
         }
 
         // Determine if a response should not be sent
         if (packet_was_broadcast && header.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-          mdb.response_type = RDM_RESPONSE_TYPE_NONE;
+          response_type = RDM_RESPONSE_TYPE_NONE;
         }
 
         // Send a response if it is required
-        if (mdb.response_type != RDM_RESPONSE_TYPE_NONE) {
+        if (response_type != RDM_RESPONSE_TYPE_NONE) {
+          header.response_type = response_type;
           size_t wr = rdm_encode_packet(driver->data.buffer, &header, &mdb);
           dmx_send(dmx_num, wr);
         }
