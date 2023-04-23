@@ -408,8 +408,16 @@ bool rdm_is_muted(dmx_port_t dmx_num);
 bool rdm_set_device_info(dmx_port_t dmx_num,
                          const rdm_device_info_t *device_info);
 
+// TODO: docs
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_response_cb_t callback, void *context);
+
+// TODO: docs
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                const rdm_mdb_t *mdb);
+
+// TODO: docs
+bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
 
 #ifdef __cplusplus
 }

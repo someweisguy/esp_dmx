@@ -196,15 +196,15 @@ typedef enum rdm_pid_t {
 /**
  * @brief Provides information about RDM responses.
  */
-typedef struct rdm_response_t {
-  esp_err_t err;             // Evaluates to true if an error occurred reading DMX data.
+typedef struct rdm_ack_t {  
+  esp_err_t err;  // Evaluates to true if an error occurred reading RDM data.
   rdm_response_type_t type;  // The type of the RDM response received.
   union {
-    TickType_t timer;        // The amount of time in FreeRTOS ticks until the responder device will be ready to respond to the request. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.
-    rdm_nr_t nack_reason;    // The reason that the request was unable to be fulfilled. This field should be read when the response type received is RDM_RESPONSE_TYPE_NACK_REASON.
-    size_t num_params;       // The number of parameters received. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK or RDM_RESPONSE_TYPE_ACK_OVERFLOW.
+    int num;               // The number of parameters received. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK or RDM_RESPONSE_TYPE_ACK_OVERFLOW.
+    TickType_t timer;      // The amount of time in FreeRTOS ticks until the responder device will be ready to respond to the request. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.
+    rdm_nr_t nack_reason;  // The reason that the request was unable to be fulfilled. This field should be read when the response type received is RDM_RESPONSE_TYPE_NACK_REASON.
   };
-} rdm_response_t;
+} rdm_ack_t;
 
 /**
  * @brief Parameters for use in RDM discovery requests. Discovery requests are
@@ -271,6 +271,21 @@ typedef struct rdm_mdb_t {
   };
   void *pd;  // The parameter data (PD) is the data section of the packet. Its length is included in its PDL.
 } rdm_mdb_t;
+
+
+// TODO: docs
+typedef struct rdm_encode_t {
+  size_t (*function)(rdm_mdb_t *, const void *, int);
+  void *params;
+  int num;
+} rdm_encode_t;
+
+// TODO: docs
+typedef struct rdm_decode_t {
+  int (*function)(const rdm_mdb_t *, void *, int);
+  void *params;
+  int num;
+} rdm_decode_t;
 
 #ifdef __cplusplus
 }

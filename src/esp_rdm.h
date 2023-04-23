@@ -133,9 +133,9 @@ FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
  * @return The received UID or 0 if no response received. This function returns
  * a UID value even if a data collision occurred.
  */
-rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
-                                      rdm_disc_unique_branch_t *params,
-                                      rdm_response_t *response);
+// rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
+//                                       rdm_disc_unique_branch_t *params,
+//                                       rdm_response_t *response);
 
 /**
  * @brief Sends an RDM discovery mute request and reads the response, if any.
@@ -148,8 +148,8 @@ rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
  * @return true if a response indicating request success was received.
  * @return false if no response was received or response was invalid.
  */
-bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
-                        rdm_response_t *response, rdm_disc_mute_t *params);
+// bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
+//                         rdm_response_t *response, rdm_disc_mute_t *params);
 
 /**
  * @brief Performs the RDM device discovery algorithm and executes a callback
@@ -201,10 +201,10 @@ size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
  * @return The number of PIDs supported by the responding device, which may be
  * less than the number of PIDs copied to the provided array.
  */
-size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
-                                    rdm_sub_device_t sub_device,
-                                    rdm_response_t *response, rdm_pid_t *pids,
-                                    size_t size);
+// size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
+//                                     rdm_sub_device_t sub_device,
+//                                     rdm_response_t *response, rdm_pid_t *pids,
+//                                     size_t size);
 
 /**
  * @brief Sends an RDM DEVICE_INFO request and reads the response, if any.
@@ -217,10 +217,10 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
  * the responding device.
  * @return 1 if a successful response is received. Otherwise, 0.
  */
-size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
-                           rdm_sub_device_t sub_device,
-                           rdm_response_t *response,
-                           rdm_device_info_t *device_info);
+// size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
+//                            rdm_sub_device_t sub_device,
+//                            rdm_response_t *response,
+//                            rdm_device_info_t *device_info);
 
 /**
  * @brief Sends an RDM SOFTWARE_VERSION_LABEL request and reads the response, if
@@ -236,10 +236,10 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
  * @return The size of the null-terminated string that was sent, which may be
  * smaller than the string that was copied.
  */
-size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
-                                      rdm_sub_device_t sub_device,
-                                      rdm_response_t *response, char *label,
-                                      size_t size);
+// size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
+//                                       rdm_sub_device_t sub_device,
+//                                       rdm_response_t *response, char *label,
+//                                       size_t size);
 
 /**
  * @brief Sends an RDM DMX_START_ADDRESS GET request and reads the response, if
@@ -253,9 +253,9 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
  * address.
  * @return 1 if a successful response is received. Otherwise, 0.
  */
-size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
-                                 rdm_sub_device_t sub_device,
-                                 rdm_response_t *response, int *start_address);
+// size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
+//                                  rdm_sub_device_t sub_device,
+//                                  rdm_response_t *response, int *start_address);
 
 /**
  * @brief Sends an RDM DMX_START_ADDRESS SET request.
@@ -268,9 +268,9 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
  * @return true if the request was successful.
  * @return false if the request was not successful.
  */
-bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
-                               rdm_sub_device_t sub_device,
-                               rdm_response_t *response, int start_address);
+// bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
+//                                rdm_sub_device_t sub_device,
+//                                rdm_response_t *response, int start_address);
 
 /**
  * @brief Sends an RDM IDENTIFY_DEVICE GET request and reads the response, if
@@ -283,9 +283,9 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
  * @param identify A pointer into which to store the response identify state.
  * @return 1 if a successful response is received. Otherwise, 0.
  */
-size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
-                               rdm_sub_device_t sub_device,
-                               rdm_response_t *response, bool *identify);
+// size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
+//                                rdm_sub_device_t sub_device,
+//                                rdm_response_t *response, bool *identify);
 
 /**
  * @brief Sends an RDM IDENTIFY_DEVICE SET request.
@@ -298,9 +298,9 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
  * @return true if the request was successful.
  * @return false if the request was not successful.
  */
-bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
-                             rdm_sub_device_t sub_device,
-                             rdm_response_t *response, bool identify);
+// bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
+//                              rdm_sub_device_t sub_device,
+//                              rdm_response_t *response, bool identify);
 
 #ifdef __cplusplus
 }

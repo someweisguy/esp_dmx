@@ -985,6 +985,8 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
+  // TODO: make thread-safe
+
   // Copy data from the driver buffer to the destination asynchronously
   memcpy(destination, driver->data.buffer, size);
 
@@ -1029,6 +1031,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  // FIXME: fail if size is too large
   // Clamp size to the maximum DMX packet size or fail quickly on invalid size
   if (size > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE;
@@ -1244,17 +1247,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // TODO: make this its own function
     rdm_header_t header;
     uint8_t pd[231];
-    rdm_mdb_t mdb;
+    rdm_mdb_t mdb = {.pd = pd};
     taskENTER_CRITICAL(spinlock);
     is_rdm = rdm_is_valid(driver->data.buffer, packet_size);
     if (is_rdm) {
-      is_rdm = rdm_decode_packet(driver->data.buffer, &header, &mdb);
-      if (is_rdm && mdb.pdl > 0) {
-        memcpy(pd, mdb.pd, mdb.pdl);
-      }
+      is_rdm = rdm_read(dmx_num, &header, &mdb);
     }
     taskEXIT_CRITICAL(spinlock);
-    mdb.pd = pd;
 
     const bool is_request = (header.cc & 0x1) == 0;
     if (is_rdm && is_request) {
@@ -1318,8 +1317,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         // Send a response if it is required
         if (response_type != RDM_RESPONSE_TYPE_NONE) {
           header.response_type = response_type;
-          size_t wr = rdm_encode_packet(driver->data.buffer, &header, &mdb);
-          dmx_send(dmx_num, wr);
+          size_t written = rdm_write(dmx_num, &header, &mdb);
+          dmx_send(dmx_num, written);
         }
       }
     }
@@ -1662,4 +1661,175 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   // TODO: give mutex
 
   return true;
+}
+
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                 const rdm_mdb_t *mdb) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header, 0, "header is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  if (mdb != NULL && !(header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
+                       header->cc == RDM_CC_DISC_COMMAND_RESPONSE)) {
+    if (mdb->pdl > 231) {
+      ESP_LOGE(TAG, "pdl is invalid");
+      return 0;
+    } else if (mdb->pdl > 0 && mdb->pd == NULL) {
+      ESP_LOGE(TAG, "pd is null");
+      return 0;
+    }
+  }
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  uart_dev_t *const restrict uart = driver->uart;
+
+  taskENTER_CRITICAL(spinlock);
+  if (driver->is_sending) {
+    // Do not allow asynchronous writes when sending an any packet
+    taskEXIT_CRITICAL(spinlock);
+    return 0;
+  } else if (dmx_uart_get_rts(uart) == 1) {
+    // Flip the bus to stop writes from being overwritten by incoming data
+    dmx_uart_set_rts(uart, 0);
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  // TODO: make this function and the other `_write_` functions thread-safe
+
+  size_t encoded;
+  if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
+      header->cc == RDM_CC_DISC_COMMAND_RESPONSE) {
+    // Encode the preamble
+    const size_t preamble_len = mdb->preamble_len > 7 ? 7 : mdb->preamble_len;
+    for (int i = 0; i < preamble_len; ++i) {
+      driver->data.buffer[i] = RDM_PREAMBLE;
+    }
+    driver->data.buffer[preamble_len] = RDM_DELIMITER;
+
+    // Encode the EUID and calculate the checksum
+    uint16_t checksum = 0;
+    uint8_t *d = &(driver->data.buffer[mdb->preamble_len + 1]);
+    for (int i = 0, j = 5; i < 12; i += 2, --j) {
+      d[i] = ((uint8_t *)&(header->src_uid))[j] | 0xaa;
+      d[i + 1] = ((uint8_t *)&(header->src_uid))[j] | 0x55;
+      checksum += ((uint8_t *)&(header->src_uid))[j] + 0xaa + 0x55;
+    }
+
+    // Encode the checksum
+    d[12] = (checksum >> 8) | 0xaa;
+    d[13] = (checksum >> 8) | 0x55;
+    d[14] = (checksum & 0xff) | 0xaa;
+    d[15] = (checksum & 0xff) | 0x55;
+
+    encoded = mdb->preamble_len + 1 + 16;
+  } else {
+    rdm_data_t *const rdm = (void *)driver->data.buffer;
+
+    // Encode the parameter data
+    if (mdb != NULL) {
+      if (mdb->pdl > 0) {
+        memcpy(&rdm->pd, mdb->pd, mdb->pdl);
+      }
+      rdm->pdl = mdb->pdl;
+    } else {
+      rdm->pdl = 0;
+    }
+
+    // Encode the packet header
+    const size_t message_len = 24 + mdb->pdl;
+    rdm->sc = RDM_SC;
+    rdm->sub_sc = RDM_SUB_SC;
+    rdm->message_len = message_len;
+    uid_to_buf(rdm->destination_uid, header->dest_uid);
+    uid_to_buf(rdm->source_uid, header->src_uid);
+    rdm->tn = header->tn;
+    rdm->port_id = header->port_id;  // Also copies response_type
+    rdm->message_count = header->message_count;
+    rdm->sub_device = bswap16(header->sub_device);
+    rdm->cc = header->cc;
+    rdm->pid = bswap16(header->pid);
+
+    // Encode the checksum
+    uint16_t checksum = 0;
+    for (int i = 0; i < message_len; ++i) {
+      checksum += driver->data.buffer[i];
+    }
+    *(uint16_t *)&(driver->data.buffer)[message_len] = bswap16(checksum);
+
+    encoded = message_len + 2;
+  }
+
+  taskENTER_CRITICAL(spinlock);
+  driver->data.tx_size = encoded;  // Update driver transmit size
+  taskEXIT_CRITICAL(spinlock);
+
+  return encoded;
+}
+
+bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(header, false, "header is null");
+  DMX_CHECK(mdb, false, "mdb is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // FIXME: make this function thread-safe
+
+  // Verify that the checksum is correct
+  // TODO: remove checksum_is_valid function?
+  bool is_valid = rdm_checksum_is_valid(driver->data.buffer);
+  if (!is_valid) {
+    return is_valid;
+  }
+
+  // Decode the packet
+  const uint8_t sc = driver->data.buffer[0];
+  if (sc == RDM_SC) {
+    const rdm_data_t *const rdm = (void *)driver->data.buffer;
+
+    // Assign or ignore the parameter data
+    const size_t pdl = rdm->pdl;
+    if (pdl > 231) {
+      return false;  // PDL must be <= 231
+    } else if (pdl > 0) {
+      memcpy(mdb->pd, &rdm->pd, pdl);
+    }
+    mdb->pdl = pdl;
+
+    // Copy the remaining header data
+    header->dest_uid = buf_to_uid(rdm->destination_uid);
+    header->src_uid = buf_to_uid(rdm->source_uid);
+    header->tn = rdm->tn;
+    header->port_id = rdm->port_id;  // Also copies response_type
+    header->message_count = rdm->message_count;
+    header->sub_device = bswap16(rdm->sub_device);
+    header->cc = rdm->cc;
+    header->pid = bswap16(rdm->pid);
+
+  } else {
+    // Decode the EUID
+    uint8_t buf[6];
+    const size_t preamble_len = rdm_get_preamble_len(driver->data.buffer);
+    const uint8_t *d = &driver->data.buffer[preamble_len + 1];
+    for (int i = 0, j = 0; i < 6; ++i, j += 2) {
+      buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa); // TODO: & each byte
+    }
+    header->src_uid = buf_to_uid(buf);
+
+    // Fill out the remaining header and MDB data
+    header->dest_uid = 0;
+    header->tn = -1;
+    header->response_type = RDM_RESPONSE_TYPE_ACK;
+    header->port_id = -1;
+    header->message_count = -1;
+    header->sub_device = -1;
+    header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
+    header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
+    mdb->pdl = 0;
+    mdb->preamble_len = preamble_len;
+  }
+
+  return is_valid;
 }

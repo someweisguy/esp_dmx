@@ -30,30 +30,6 @@ extern "C" {
 bool rdm_is_valid(const void *data, size_t size);
 
 /**
- * @brief Decodes an RDM packet from the desired data buffer. The function 
- * `rdm_is_valid()` should be called on the data buffer first to ensure data
- * is safely decoded.
- * 
- * @param[in] data The buffer which stores a valid, encoded RDM packet.
- * @param[out] header A pointer to an RDM header in which data will be copied.
- * @param[out] mdb A pointer to an RDM message data block in which data will be
- * copied.
- * @return true if the data is a valid RDM packet.
- * @return false if the packet is invalid.
- */
-bool rdm_decode_packet(const void *data, rdm_header_t *header, rdm_mdb_t *mdb);
-
-/**
- * @brief Encodes an RDM packet into the desired data buffer.
- * 
- * @param[out] data The buffer in which to encode the packet.
- * @param[in] header A pointer to an RDM header used to encode data.
- * @param[in] mdb A pointer to an RDM message data block to encode data.
- * @return The number of bytes encoded.
- */
-size_t rdm_encode_packet(void *data, rdm_header_t *header, rdm_mdb_t *mdb);
-
-/**
  * @brief Encodes RDM discovery mute parameters into the desired buffer.
  *
  * @param[out] data The buffer in which to encode the data.
@@ -112,7 +88,7 @@ size_t rdm_encode_16bit(void *pd, const void *data, int size);
  * @param size The size of the array to store decoded data.
  * @return The number of of values available to decode.
  */
-int rdm_decode_16bit(const void *pd, void *data, int size);
+// int rdm_decode_16bit(const void *pd, void *data, int size);
 
 /**
  * @brief Encode an array of 8-bit numbers into the desired array.
@@ -201,6 +177,8 @@ size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num);
 size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num);
 
 int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num);
+
+int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num);
 
 #ifdef __cplusplus
 }
