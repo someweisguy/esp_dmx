@@ -61,20 +61,20 @@ bool rdm_checksum_is_valid(const void *data) {
 //   return pdl;
 // }
 
-int rdm_decode_mute(const void *pd, rdm_disc_mute_t *param, int size,
-                    size_t pdl) {
-  int decoded = 0;
-  if (param != NULL) {
-    const struct rdm_disc_mute_data_t *const ptr = pd;
-    param->managed_proxy = ptr->managed_proxy;
-    param->sub_device = ptr->sub_device;
-    param->boot_loader = ptr->boot_loader;
-    param->proxied_device = ptr->proxied_device;
-    param->binding_uid = pdl > 2 ? buf_to_uid(ptr->binding_uid) : 0;
-    decoded = 1;
-  }
-  return decoded;
-}
+// int rdm_decode_mute(const void *pd, rdm_disc_mute_t *param, int size,
+//                     size_t pdl) {
+//   int decoded = 0;
+//   if (param != NULL) {
+//     const struct rdm_disc_mute_data_t *const ptr = pd;
+//     param->managed_proxy = ptr->managed_proxy;
+//     param->sub_device = ptr->sub_device;
+//     param->boot_loader = ptr->boot_loader;
+//     param->proxied_device = ptr->proxied_device;
+//     param->binding_uid = pdl > 2 ? buf_to_uid(ptr->binding_uid) : 0;
+//     decoded = 1;
+//   }
+//   return decoded;
+// }
 
 size_t rdm_encode_uids(void *data, const void *uids, int size) {
   size_t pdl = 0;
@@ -282,7 +282,18 @@ int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num) {
   return decoded;
 }
 
-/* TODO
-size_t rdm_encode_whatever(rdm_mdb_t *mdb, const void *data, int num);
-int rdm_decode_whatever(const rdm_mdb_t *mdb, void *data, int num);
-*/
+int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  if (mdb && mdb->pdl && data) {
+    const struct rdm_disc_mute_data_t *const pd = mdb->pd;
+    rdm_disc_mute_t *param = data;
+    param->managed_proxy = pd->managed_proxy;
+    param->sub_device = pd->sub_device;
+    param->boot_loader = pd->boot_loader;
+    param->proxied_device = pd->proxied_device;
+    param->binding_uid = mdb->pdl > 2 ? buf_to_uid(pd->binding_uid) : 0;
+    decoded = 1;
+  }
+  return decoded;
+}
+

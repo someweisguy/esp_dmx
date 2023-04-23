@@ -47,8 +47,8 @@ bool rdm_is_valid(const void *data, size_t size);
  * @param pdl The length of the parameter data.
  * @return The number of parameters decoded (always 1).
  */
-int rdm_decode_mute(const void *data, rdm_disc_mute_t *param, int size,
-                    size_t pdl);
+// int rdm_decode_mute(const void *data, rdm_disc_mute_t *param, int size,
+//                     size_t pdl);
 
 /**
  * @brief Encodes RDM UIDs into the desired buffer.
@@ -179,6 +179,8 @@ size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num);
 int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num);
 
 int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num);
+
+int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num);
 
 #ifdef __cplusplus
 }
