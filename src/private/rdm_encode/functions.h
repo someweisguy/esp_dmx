@@ -58,7 +58,7 @@ bool rdm_is_valid(const void *data, size_t size);
  * @param size The size of the array of UIDs.
  * @return The number of bytes encoded.
  */
-size_t rdm_encode_uids(void *data, const void *uids, int size);
+// size_t rdm_encode_uids(void *data, const void *uids, int size);
 
 /**
  * @brief Decodes RDM UIDs into the desired array.
@@ -181,6 +181,8 @@ int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num);
 int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num);
 
 int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num);
+
+size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num);
 
 #ifdef __cplusplus
 }

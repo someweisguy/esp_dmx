@@ -129,6 +129,19 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
                 const rdm_encode_t *encode, rdm_decode_t *decode,
                 rdm_ack_t *ack);
 
+// TODO: docs
+size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
+                                   const rdm_disc_unique_branch_t *param,
+                                   rdm_ack_t *ack);
+
+// TODO: docs
+size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
+                          rdm_ack_t *ack, rdm_disc_mute_t *param);
+
+// TODO: docs
+size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
+                             rdm_ack_t *ack, rdm_disc_mute_t *param);
+
 /**
  * @brief Sends an RDM discovery request and reads the response, if any.
  *

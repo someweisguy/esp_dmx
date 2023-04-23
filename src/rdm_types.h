@@ -276,7 +276,7 @@ typedef struct rdm_mdb_t {
 // TODO: docs
 typedef struct rdm_encode_t {
   size_t (*function)(rdm_mdb_t *, const void *, int);
-  void *params;
+  const void *params;
   int num;
 } rdm_encode_t;
 

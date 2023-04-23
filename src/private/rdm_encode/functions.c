@@ -76,13 +76,13 @@ bool rdm_checksum_is_valid(const void *data) {
 //   return decoded;
 // }
 
-size_t rdm_encode_uids(void *data, const void *uids, int size) {
-  size_t pdl = 0;
-  for (int i = 0; i < size; ++i, pdl += 6) {
-    uid_to_buf(data + pdl, ((rdm_uid_t *)uids)[i]);
-  }
-  return pdl;
-}
+// size_t rdm_encode_uids(void *data, const void *uids, int size) {
+//   size_t pdl = 0;
+//   for (int i = 0; i < size; ++i, pdl += 6) {
+//     uid_to_buf(data + pdl, ((rdm_uid_t *)uids)[i]);
+//   }
+//   return pdl;
+// }
 
 // int rdm_decode_uids(const void *data, void *uids, int size) {
 //   int decoded = 0;
@@ -177,7 +177,7 @@ int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
 
 size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
   size_t encoded = 0;
-  if (mdb != NULL && mdb->pd != NULL && data != NULL && num == 1) {
+  if (mdb && data && num) {
     struct rdm_disc_mute_data_t *pd = mdb->pd;
     const rdm_disc_mute_t *param = data;
     bzero(mdb->pd, 2);  // FIXME: make the bit field more efficient?
@@ -197,7 +197,7 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
 
 size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
   size_t encoded = 0;
-  if (mdb && mdb->pd && data) {
+  if (mdb && data) {
     rdm_device_info_data_t *const pd = mdb->pd;
     const rdm_device_info_t *param = data;
     pd->major_rdm_version = 1;
@@ -220,7 +220,7 @@ size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
 
 size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num) {
   size_t encoded = 0;
-  if (mdb && mdb->pd && data) {
+  if (mdb && data) {
     char *dest = mdb->pd;
     const char *src = data;
     while (encoded < num && encoded < 32) {
@@ -240,7 +240,7 @@ size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num) {
 
 size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num) {
   size_t encoded = 0;
-  if (mdb && mdb->pdl && data) {
+  if (mdb && data) {
     uint8_t *pd = mdb->pd;
     const uint8_t *param = data;
     for (int i = 0; i < num; ++i) {
@@ -297,3 +297,13 @@ int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num) {
   return decoded;
 }
 
+size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && data && num) {
+    for (int i = 0; i < num; ++i, encoded += 6) {
+      uid_to_buf(mdb->pd + encoded, ((rdm_uid_t *)data)[i]);
+    }
+  }
+  mdb->pdl = encoded;
+  return encoded;
+}
