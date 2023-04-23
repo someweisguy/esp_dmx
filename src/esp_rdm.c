@@ -69,10 +69,11 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   header->tn = 0;  // TODO
 
   // Encode parameter data
-  uint8_t pd[231];
-  rdm_mdb_t mdb = {.pd = pd};
+  rdm_mdb_t mdb;
   if (encode && encode->function && encode->params && encode->num) {
     encode->function(&mdb, encode->params, encode->num);
+  } else {
+    mdb.pdl = 0;
   }
 
   // Take mutex so driver values may be accessed

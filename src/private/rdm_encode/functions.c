@@ -221,7 +221,7 @@ size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
 size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num) {
   size_t encoded = 0;
   if (mdb && data) {
-    char *dest = mdb->pd;
+    char *dest = (void *)mdb->pd;
     const char *src = data;
     while (encoded < num && encoded < 32) {
       if (*src) {

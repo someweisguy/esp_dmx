@@ -1246,8 +1246,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (packet_size > 0) {
     // TODO: make this its own function
     rdm_header_t header;
-    uint8_t pd[231];
-    rdm_mdb_t mdb = {.pd = pd};
+    rdm_mdb_t mdb;
     taskENTER_CRITICAL(spinlock);
     is_rdm = rdm_is_valid(driver->data.buffer, packet_size);
     if (is_rdm) {
