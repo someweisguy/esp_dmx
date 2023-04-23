@@ -124,6 +124,11 @@ FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
   return buf;
 }
 
+// TODO: docs
+size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
+                const rdm_encode_t *encode, rdm_decode_t *decode,
+                rdm_ack_t *ack);
+
 /**
  * @brief Sends an RDM discovery request and reads the response, if any.
  *
