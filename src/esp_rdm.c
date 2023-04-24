@@ -116,10 +116,12 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
                header->response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
                header->response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
       err = ESP_ERR_INVALID_RESPONSE;  // Response type is invalid
-    } else if (req.cc != (header->cc & 0x1) || req.pid != header->pid ||
-               req.sub_device != header->sub_device || req.tn != header->tn ||
-               req.dest_uid != header->src_uid ||
-               req.src_uid != header->src_uid) {
+    } else if (!(req.cc == RDM_CC_DISC_COMMAND &&
+                 req.pid == RDM_PID_DISC_UNIQUE_BRANCH) &&
+               (req.cc != (header->cc & 0x1) || req.pid != header->pid ||
+                req.sub_device != header->sub_device || req.tn != header->tn ||
+                req.dest_uid != header->src_uid ||
+                req.src_uid != header->src_uid)) {
       err = ESP_ERR_INVALID_RESPONSE;  // Response is invalid
     } else {
       err = ESP_OK;
