@@ -37,7 +37,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
     ESP_LOGE(TAG, "cc is invalid");
     return 0;
   }
-  if (header->pid == 0) {
+  if (header->pid == 0 || header->pid > 0xffff) {
     ESP_LOGE(TAG, "pid is invalid");
     return 0;
   }
@@ -51,13 +51,13 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Validate header values that the user doesn't need to include
-  if (header->src_uid > RDM_MAX_UID) {
+  if (header->src_uid > RDM_MAX_UID || rdm_uid_is_broadcast(header->src_uid)) {
     ESP_LOGE(TAG, "src_uid is invalid");
     return 0;
   } else if (header->src_uid == 0) {
     header->src_uid = rdm_get_uid(dmx_num);
   }
-  if (header->port_id > 255) {
+  if (header->port_id < 0 || header->port_id > 255) {
     ESP_LOGE(TAG, "port_id is invalid");
     return 0;
   } else if (header->port_id == 0) {
