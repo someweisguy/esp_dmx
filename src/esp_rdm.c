@@ -105,7 +105,9 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   if (packet.size > 0) {
     esp_err_t err;
     const rdm_header_t req = *header;
-    if (!packet.is_rdm) {
+    if (packet.err) {
+      err = packet.err;  // Error pass-through
+    } else if (!packet.is_rdm) {
       err = ESP_ERR_INVALID_RESPONSE;  // Packet is not RDM
     } else if (!rdm_read(dmx_num, header, &mdb)) {
       err = ESP_ERR_INVALID_RESPONSE;  // Packet is invalid
@@ -120,12 +122,13 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
                req.src_uid != header->src_uid) {
       err = ESP_ERR_INVALID_RESPONSE;  // Response is invalid
     } else {
-      err = packet.err;
+      err = ESP_OK;
     }
 
     uint32_t decoded = 0;
-    const rdm_response_type_t response_type = header->response_type;
+    rdm_response_type_t response_type;
     if (!err) {
+      response_type = header->response_type;
       if (response_type == RDM_RESPONSE_TYPE_ACK) {
         // Decode the parameter data if requested
         if (mdb.pdl > 0) {
@@ -147,6 +150,8 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
         // Received RDM_RESPONSE_TYPE_ACK_OVERFLOW
         err = ESP_ERR_NOT_SUPPORTED;  // TODO: implement overflow support
       }
+    } else {
+      response_type = RDM_RESPONSE_TYPE_NONE;  // Report no response on errors
     }
 
     // Report the ACK back to the user
