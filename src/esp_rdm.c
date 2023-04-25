@@ -13,18 +13,14 @@
 #include "private/rdm_encode/functions.h"
 #include "private/rdm_encode/types.h"
 
-// Used for argument checking at the beginning of each function.
-#define RDM_CHECK(a, err_code, format, ...) \
-  ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
-
 static const char *TAG = "rdm";  // The log tagline for the file.
 
 size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
                 const rdm_encode_t *encode, rdm_decode_t *decode,
                 rdm_ack_t *ack) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(header != NULL, 0, "header is null");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Validate required header information
   if (header->dest_uid == 0 || (header->dest_uid > RDM_MAX_UID &&
@@ -237,8 +233,8 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
 /*
 size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
                                   void *context) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Allocate the instruction stack. The max binary tree depth is 49
 #ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
@@ -380,8 +376,8 @@ static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
 
 size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
                                    const size_t size) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   struct rdm_disc_default_ctx context = {.size = size, .uids = uids};
   size_t found = rdm_discover_with_callback(dmx_num, &rdm_disc_cb, &context);
@@ -507,10 +503,10 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
                                     rdm_sub_device_t sub_device,
                                     rdm_response_t *response, rdm_pid_t *pids,
                                     size_t size) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  RDM_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
+  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_SUPPORTED_PARAMETERS, NULL, NULL, 0,
@@ -521,10 +517,10 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
                            rdm_sub_device_t sub_device,
                            rdm_response_t *response,
                            rdm_device_info_t *device_info) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  RDM_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
+  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return rdm_send_generic_request(
       dmx_num, uid, sub_device, RDM_CC_GET_COMMAND, RDM_PID_DEVICE_INFO, NULL,
@@ -535,10 +531,10 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
                                       rdm_sub_device_t sub_device,
                                       rdm_response_t *response, char *label,
                                       size_t size) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  RDM_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
+  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_SOFTWARE_VERSION_LABEL, NULL, NULL, 0,
@@ -548,10 +544,10 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                  rdm_sub_device_t sub_device,
                                  rdm_response_t *response, int *start_address) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  RDM_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
+  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
                                   RDM_PID_DMX_START_ADDRESS, NULL, NULL, 0,
@@ -561,10 +557,10 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, int start_address) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(uid <= RDM_MAX_UID || uid == RDM_BROADCAST_ALL_UID, 0, "uid error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(start_address > 0 && start_address < DMX_MAX_PACKET_SIZE, 0,
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(uid <= RDM_MAX_UID || uid == RDM_BROADCAST_ALL_UID, 0, "uid error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(start_address > 0 && start_address < DMX_MAX_PACKET_SIZE, 0,
             "start_address must be >0 and <513");
 
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_SET_COMMAND,
@@ -575,11 +571,11 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                                rdm_sub_device_t sub_device,
                                rdm_response_t *response, bool *identify) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  RDM_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
-  RDM_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0,
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
+  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0,
             "cannot send to all sub-devices");
 
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
@@ -590,9 +586,9 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
 bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
                              rdm_sub_device_t sub_device,
                              rdm_response_t *response, bool identify) {
-  RDM_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  RDM_CHECK(uid <= RDM_MAX_UID || uid == RDM_BROADCAST_ALL_UID, 0, "uid error");
-  RDM_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(uid <= RDM_MAX_UID || uid == RDM_BROADCAST_ALL_UID, 0, "uid error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_SET_COMMAND,
                                   RDM_PID_IDENTIFY_DEVICE, rdm_encode_8bit,
