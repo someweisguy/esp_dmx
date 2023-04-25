@@ -312,12 +312,6 @@ typedef struct dmx_packet_t {
   bool is_rdm;      // True if the received packet is RDM.
 } dmx_packet_t;
 
-/**
- * @brief A function callback for use in RDM identify device requests. These
- * requests typically turn an LED on or off to help technicians identify which 
- * device is receiving a request. 
- */
-typedef void (*rdm_identify_function_t)(dmx_port_t, const bool, void *);
 
 #ifdef __cplusplus
 }
