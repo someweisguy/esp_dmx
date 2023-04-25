@@ -11,27 +11,6 @@
 extern "C" {
 #endif
 
-#if ESP_IDF_VERSION_MAJOR >= 5
-/**
- * @brief The recommended method for representing the UID in text by separating
- * the manufacturer ID and the device ID. For use with printf-like functions.
- */
-#define UIDSTR "%04x:%08lx"
-#else
-/**
- * @brief The recommended method for representing the UID in text by separating
- * the manufacturer ID and the device ID. For use with printf-like functions.
- */
-#define UIDSTR "%04x:%08x"
-#endif
-
-/**
- * @brief Used to generate arguments for the UIDSTR macro for representing the
- * UID in text by separating the manufacturer ID and device ID. For use with
- * printf-like functions.
- */
-#define UID2STR(uid) ((uint16_t)(uid >> 32)), ((uint32_t)(uid))
-
 /**
  * @brief A callback function type for use with rdm_discover_with_callback().
  *
@@ -51,78 +30,6 @@ typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
                                                  const rdm_header_t *header,
                                                  rdm_mdb_t *mdb, void *context);
 
-/**
- * @brief Returns true if the specified UID is a broadcast address.
- * 
- * @param uid The UID to compare.
- * @return true if the UID is a broadcast address.
- * @return false if the UID is not a broadcast address.
- */
-inline bool rdm_uid_is_broadcast(rdm_uid_t uid) {
-  return (uint32_t)uid == 0xffffffff;
-}
-
-/**
- * @brief Returns true if the specified UID is addressed to the desired UID.
- * 
- * @param uid The UID to check against an addressee.
- * @param addressee The addressee UID.
- * @return true if the addressee UID is targeted by the specified UID.
- * @return false if the addressee is not targeted by the specified UID.
- */
-inline bool rdm_uid_is_addressed_to(rdm_uid_t uid, rdm_uid_t addressee) {
-  uid &= 0xffffffffffff;
-  addressee &= 0xffffffffffff;
-  return addressee == uid ||
-         ((uid >> 32 == 0xffff || uid >> 32 == addressee >> 32) &&
-          (uint32_t)uid == 0xffffffff);
-}
-
-/**
- * @brief Helper function that takes an RDM UID from a most-significant-byte
- * first buffer and copies it to least-significant-byte first endianness, which
- * is what ESP32 uses.
- *
- * @note This function is designed to be the quickest way to swap endianness of
- * a 48-bit number on the Xtensa compiler which is important because it will be
- * used in an interrupt handler. It must be inlined in order to prevent cache
- * misses in IRAM interrupts.
- *
- * @param buf A pointer to an RDM buffer.
- * @return The properly formatted RDM UID.
- */
-FORCE_INLINE_ATTR rdm_uid_t buf_to_uid(const void *buf) {
-  rdm_uid_t val;
-  ((uint8_t *)&val)[7] = 0;
-  ((uint8_t *)&val)[6] = 0;
-  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
-  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
-  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
-  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
-  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
-  ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
-  return val;
-}
-
-/**
- * @brief Helper function that converts an RDM UID stored as a 64-bit integer
- * and copies it into a 48-bit buffer. It also converts endianness to compensate
- * for the fact that the ESP32 stores values in least-significant-byte first
- * endianness and RDM requires most-significant-byte first.
- *
- * @param buf A pointer to the destination buffer.
- * @param uid The 64-bit representation of the UID.
- * @return void* A pointer to the destination buffer.
- */
-FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
-  ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
-  ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
-  ((uint8_t *)buf)[2] = ((uint8_t *)&uid)[3];
-  ((uint8_t *)buf)[3] = ((uint8_t *)&uid)[2];
-  ((uint8_t *)buf)[4] = ((uint8_t *)&uid)[1];
-  ((uint8_t *)buf)[5] = ((uint8_t *)&uid)[0];
-  return buf;
-}
 
 // TODO: docs
 size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
@@ -141,33 +48,6 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
 // TODO: docs
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
                              rdm_ack_t *ack, rdm_disc_mute_t *param);
-
-/**
- * @brief Sends an RDM discovery request and reads the response, if any.
- *
- * @param dmx_num The DMX port number.
- * @param[in] params A pointer to the discovery UID bounds to send.
- * @param[out] response A pointer to into which to store RDM response summary.
- * @return The received UID or 0 if no response received. This function returns
- * a UID value even if a data collision occurred.
- */
-// rdm_uid_t rdm_send_disc_unique_branch(dmx_port_t dmx_num,
-//                                       rdm_disc_unique_branch_t *params,
-//                                       rdm_response_t *response);
-
-/**
- * @brief Sends an RDM discovery mute request and reads the response, if any.
- *
- * @param dmx_num The DMX port number.
- * @param uid The UID to which to send the request.
- * @param mute True to send a mute request, false to send an un-mute request.
- * @param[out] response A pointer into which to store the RDM response summary.
- * @param[out] params A pointer to the discovery mute params to receive.
- * @return true if a response indicating request success was received.
- * @return false if no response was received or response was invalid.
- */
-// bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_uid_t uid, bool mute,
-//                         rdm_response_t *response, rdm_disc_mute_t *params);
 
 /**
  * @brief Performs the RDM device discovery algorithm and executes a callback

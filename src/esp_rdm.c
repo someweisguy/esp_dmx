@@ -12,6 +12,7 @@
 #include "private/driver.h"
 #include "private/rdm_encode/functions.h"
 #include "private/rdm_encode/types.h"
+#include "rdm_utils.h"
 
 static const char *TAG = "rdm";  // The log tagline for the file.
 

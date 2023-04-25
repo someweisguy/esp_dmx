@@ -15,6 +15,7 @@
 #include "private/rdm_encode/functions.h"
 #include "private/rdm_encode/types.h"
 #include "rdm_types.h"
+#include "rdm_utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
