@@ -62,8 +62,10 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Set header values that the user cannot set themselves
+  taskENTER_CRITICAL(spinlock);
+  header->tn = driver->rdm.tn;
+  taskEXIT_CRITICAL(spinlock);
   header->message_count = 0;
-  header->tn = 0;  // TODO
 
   // Encode parameter data
   rdm_mdb_t mdb;
