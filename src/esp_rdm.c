@@ -177,7 +177,10 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                                    const rdm_disc_unique_branch_t *param,
                                    rdm_ack_t *ack) {
-  // TODO: check args
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(param != NULL, 0, "param is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   header->dest_uid = RDM_BROADCAST_ALL_UID;
   header->sub_device = RDM_ROOT_DEVICE;
@@ -197,7 +200,9 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
                           rdm_ack_t *ack, rdm_disc_mute_t *param) {
-  // TODO: check args
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_MUTE;
@@ -215,7 +220,9 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
                              rdm_ack_t *ack, rdm_disc_mute_t *param) {
-  // TODO: check args
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UN_MUTE;
@@ -386,213 +393,4 @@ size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
   return found;
 }
 
-static size_t rdm_send_generic_request(
-    dmx_port_t dmx_num, rdm_uid_t uid, rdm_sub_device_t sub_device,
-    const rdm_cc_t cc, const rdm_pid_t pid,
-    size_t (*encode)(void *, const void *, int), void *encode_params,
-    size_t num_encode_params,
-    int (*decode)(const void *, void *, int), void *decode_params,
-    size_t num_decode_params, rdm_response_t *response) {
-  // Take mutex so driver values may be accessed
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-  dmx_wait_sent(dmx_num, portMAX_DELAY);
-
-  // Encode and send the initial RDM request
-  const uint8_t tn = driver->rdm.tn;
-  rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-  size_t written;
-  if (encode && encode_params && num_encode_params) {
-    written = encode(&rdm->pd, encode_params, num_encode_params);
-  } else {
-    written = 0;
-  }
-  rdm_header_t req_header = {.destination_uid = uid,
-                             .source_uid = rdm_get_uid(dmx_num),
-                             .tn = tn,
-                             .port_id = dmx_num + 1,
-                             .message_count = 0,
-                             .sub_device = sub_device,
-                             .cc = cc,
-                             .pid = pid,
-                             .pdl = written};
-  written += rdm_encode_header(rdm, &req_header);
-  dmx_send(dmx_num, written);
-
-  // Receive and decode the RDM response
-  uint32_t return_val = 0;
-  if (!rdm_uid_is_broadcast(uid)) {
-    dmx_packet_t event;
-    const size_t read = dmx_receive(dmx_num, &event, pdMS_TO_TICKS(20));
-    if (!read) {
-      if (response != NULL) {
-        response->err = event.err;
-        response->type = RDM_RESPONSE_TYPE_NONE;
-        response->num_params = 0;
-      }
-    } else {
-      // Parse the response to ensure it is valid
-      esp_err_t err;
-      rdm_header_t resp_header;
-      if (!rdm_decode_header(driver->data.buffer, &resp_header)) {
-        err = ESP_ERR_INVALID_RESPONSE;
-      } else if (!resp_header.checksum_is_valid) {
-        err = ESP_ERR_INVALID_CRC;
-      } else if (resp_header.cc != req_header.cc + 1 ||
-                 resp_header.pid != req_header.pid ||
-                 resp_header.destination_uid != req_header.source_uid ||
-                 resp_header.source_uid != req_header.destination_uid ||
-                 resp_header.sub_device != req_header.sub_device ||
-                 resp_header.tn != req_header.tn) {
-        err = ESP_ERR_INVALID_RESPONSE;
-      } else {
-        err = ESP_OK;
-
-        // Handle the parameter data
-        uint32_t response_val;
-        if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK) {
-          // Decode the parameter data
-          if (decode) {
-            // Return the number of params available when response is received
-            return_val = decode(&rdm->pd, decode_params, num_decode_params);
-            response_val = return_val;
-          } else {
-            // Return true when no response parameters are expected
-            return_val = true;
-            response_val = 0;
-          }
-        } else if (resp_header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-          // Get the estimated response time and convert it to FreeRTOS ticks
-          rdm_decode_16bit(&rdm->pd, &response_val, 1);
-          response_val = pdMS_TO_TICKS(response_val * 10);
-        } else if (resp_header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-          // Report the NACK reason
-          rdm_decode_16bit(&rdm->pd, &response_val, 1);
-        } else if (resp_header.response_type ==
-                   RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-          // TODO: implement overflow support
-          err = ESP_ERR_NOT_SUPPORTED;
-          response_val = 0;
-        } else {
-          // An unknown response type was received
-          err = ESP_ERR_INVALID_RESPONSE;
-          response_val = 0;
-        }
-
-        // Report response back to user
-        if (response != NULL) {
-          response->err = err;
-          response->type = resp_header.response_type;
-          response->num_params = response_val;
-        }
-      }
-    }
-  } else {
-    if (response != NULL) {
-      response->err = ESP_OK;
-      response->type = RDM_RESPONSE_TYPE_NONE;
-      response->num_params = 0;
-    }
-    dmx_wait_sent(dmx_num, pdMS_TO_TICKS(20));
-  }
-
-  xSemaphoreGiveRecursive(driver->mux);
-  return return_val;
-}
-
-size_t rdm_get_supported_parameters(dmx_port_t dmx_num, rdm_uid_t uid,
-                                    rdm_sub_device_t sub_device,
-                                    rdm_response_t *response, rdm_pid_t *pids,
-                                    size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
-                                  RDM_PID_SUPPORTED_PARAMETERS, NULL, NULL, 0,
-                                  rdm_decode_16bit, pids, size, response);
-}
-
-size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_uid_t uid,
-                           rdm_sub_device_t sub_device,
-                           rdm_response_t *response,
-                           rdm_device_info_t *device_info) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  return rdm_send_generic_request(
-      dmx_num, uid, sub_device, RDM_CC_GET_COMMAND, RDM_PID_DEVICE_INFO, NULL,
-      NULL, 0, rdm_decode_device_info, device_info, 1, response);
-}
-
-size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_uid_t uid,
-                                      rdm_sub_device_t sub_device,
-                                      rdm_response_t *response, char *label,
-                                      size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
-                                  RDM_PID_SOFTWARE_VERSION_LABEL, NULL, NULL, 0,
-                                  rdm_decode_string, label, size, response);
-}
-
-size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
-                                 rdm_sub_device_t sub_device,
-                                 rdm_response_t *response, int *start_address) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0, "sub_device error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
-                                  RDM_PID_DMX_START_ADDRESS, NULL, NULL, 0,
-                                  rdm_decode_16bit, start_address, 1, response);
-}
-
-bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_uid_t uid,
-                               rdm_sub_device_t sub_device,
-                               rdm_response_t *response, int start_address) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(uid <= RDM_MAX_UID || uid == RDM_BROADCAST_ALL_UID, 0, "uid error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  DMX_CHECK(start_address > 0 && start_address < DMX_MAX_PACKET_SIZE, 0,
-            "start_address must be >0 and <513");
-
-  return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_SET_COMMAND,
-                                  RDM_PID_DMX_START_ADDRESS, rdm_encode_16bit,
-                                  &start_address, 1, NULL, 0, 0, response);
-}
-
-size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
-                               rdm_sub_device_t sub_device,
-                               rdm_response_t *response, bool *identify) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(uid <= RDM_MAX_UID, 0, "uid error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  DMX_CHECK(!rdm_uid_is_broadcast(uid), 0, "uid cannot be broadcast");
-  DMX_CHECK(sub_device != RDM_ALL_SUB_DEVICES, 0,
-            "cannot send to all sub-devices");
-
-  return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_GET_COMMAND,
-                                  RDM_PID_IDENTIFY_DEVICE, NULL, NULL, 0,
-                                  rdm_decode_8bit, identify, 1, response);
-}
-
-bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_uid_t uid,
-                             rdm_sub_device_t sub_device,
-                             rdm_response_t *response, bool identify) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(uid <= RDM_MAX_UID || uid == RDM_BROADCAST_ALL_UID, 0, "uid error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  return rdm_send_generic_request(dmx_num, uid, sub_device, RDM_CC_SET_COMMAND,
-                                  RDM_PID_IDENTIFY_DEVICE, rdm_encode_8bit,
-                                  &identify, 1, NULL, NULL, 0, response);
-}
 */
