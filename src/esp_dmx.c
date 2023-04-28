@@ -182,12 +182,12 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               driver->data.head < driver->data.buffer[2] + 2) {
             continue;  // Haven't received RDM packet yet
           }
-          const rdm_uid_t dest_uid = buf_to_uid(&driver->data.buffer[3]);
+          const rdm_uid_t dest_uid = get_uid(&driver->data.buffer[3]);
           const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
           if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
             packet_type = RDM_PACKET_TYPE_DISCOVERY;
           }
-          else if (rdm_uid_is_broadcast(dest_uid)) {
+          else if (uid_is_broadcast(dest_uid)) {
             packet_type = RDM_PACKET_TYPE_BROADCAST;
           }
           else if ((((rdm_data_t *)driver->data.buffer)->cc & 0x1) == 0) {
@@ -195,12 +195,12 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else {
             packet_type = RDM_PACKET_TYPE_RESPONSE;
           }
-          if (rdm_uid_is_addressed_to(dest_uid, rdm_get_uid(driver->dmx_num))) {
+          if (uid_is_recipient(dest_uid, rdm_get_uid(driver->dmx_num))) {
             // TODO: packet is addressed to me
           }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
                     *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
-          const size_t preamble_len = rdm_get_preamble_len(driver->data.buffer);
+          const size_t preamble_len = get_preamble_len(driver->data.buffer);
           if (preamble_len <= 7) {
             if (driver->data.head < preamble_len + 16) {
               continue;  // Haven't received DISC_UNIQUE_BRANCH response yet
@@ -1262,7 +1262,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
       rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
       const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
-      if (rdm_uid_is_addressed_to(header.dest_uid, my_uid)) {
+      if (uid_is_recipient(header.dest_uid, my_uid)) {
         bool cb_found = false;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
           if (driver->rdm.cbs[i].pid == header.pid) {
@@ -1272,7 +1272,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
             break;
           }
         }
-        const bool packet_was_broadcast = rdm_uid_is_broadcast(header.dest_uid);
+        const bool packet_was_broadcast = uid_is_broadcast(header.dest_uid);
 
         // Reformat the header so a response can be sent
         header.dest_uid = header.src_uid;
@@ -1449,7 +1449,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
         rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
       packet_type = RDM_PACKET_TYPE_DISCOVERY;
       ++driver->rdm.tn;
-    } else if (rdm_uid_is_broadcast(buf_to_uid(rdm->destination_uid))) {
+    } else if (uid_is_broadcast(get_uid(rdm->destination_uid))) {
       packet_type = RDM_PACKET_TYPE_BROADCAST;
       ++driver->rdm.tn;
     } else if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND ||
@@ -1733,8 +1733,8 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     rdm->sc = RDM_SC;
     rdm->sub_sc = RDM_SUB_SC;
     rdm->message_len = message_len;
-    uid_to_buf(rdm->destination_uid, header->dest_uid);
-    uid_to_buf(rdm->source_uid, header->src_uid);
+    uidcpy(rdm->destination_uid, header->dest_uid);
+    uidcpy(rdm->source_uid, header->src_uid);
     rdm->tn = header->tn;
     rdm->port_id = header->port_id;  // Also copies response_type
     rdm->message_count = header->message_count;
@@ -1783,7 +1783,7 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     checksum = bswap16(*(uint16_t *)(&driver->data.buffer[message_len]));
   } else {
     // Decode checksum from encoded DISC_UNIQUE_BRANCH response
-    preamble_len = rdm_get_preamble_len(driver->data.buffer);
+    preamble_len = get_preamble_len(driver->data.buffer);
     // FIXME: rdm is invalid if preamble_len is >7
     const uint8_t *d = &driver->data.buffer[preamble_len + 1];
     for (int i = 0; i < 12; ++i) {
@@ -1811,8 +1811,8 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     mdb->pdl = pdl;
 
     // Copy the remaining header data
-    header->dest_uid = buf_to_uid(rdm->destination_uid);
-    header->src_uid = buf_to_uid(rdm->source_uid);
+    header->dest_uid = get_uid(rdm->destination_uid);
+    header->src_uid = get_uid(rdm->source_uid);
     header->tn = rdm->tn;
     header->port_id = rdm->port_id;  // Also copies response_type
     header->message_count = rdm->message_count;
@@ -1827,7 +1827,7 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     for (int i = 0, j = 0; i < 6; ++i, j += 2) {
       buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa); // TODO: & each byte
     }
-    header->src_uid = buf_to_uid(buf);
+    header->src_uid = get_uid(buf);
 
     // Fill out the remaining header and MDB data
     header->dest_uid = 0;

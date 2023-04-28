@@ -25,7 +25,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
 
   // Validate required header information
   if (header->dest_uid == 0 || (header->dest_uid > RDM_MAX_UID &&
-                                !rdm_uid_is_broadcast(header->dest_uid))) {
+                                !uid_is_broadcast(header->dest_uid))) {
     ESP_LOGE(TAG, "dest_uid is invalid");
     return 0;
   }
@@ -48,7 +48,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Validate header values that the user doesn't need to include
-  if (header->src_uid > RDM_MAX_UID || rdm_uid_is_broadcast(header->src_uid)) {
+  if (header->src_uid > RDM_MAX_UID || uid_is_broadcast(header->src_uid)) {
     ESP_LOGE(TAG, "src_uid is invalid");
     return 0;
   } else if (header->src_uid == 0) {
@@ -86,7 +86,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   size_t packet_size = rdm_write(dmx_num, header, &mdb);
   dmx_send(dmx_num, packet_size);
   dmx_packet_t packet = {};
-  if (!rdm_uid_is_broadcast(header->dest_uid) ||
+  if (!uid_is_broadcast(header->dest_uid) ||
       (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
        header->cc == RDM_CC_DISC_COMMAND)) {
     packet_size = dmx_receive(dmx_num, &packet, 2);

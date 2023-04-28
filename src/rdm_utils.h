@@ -40,7 +40,7 @@ extern "C" {
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
-inline bool rdm_uid_is_broadcast(rdm_uid_t uid) {
+inline bool uid_is_broadcast(rdm_uid_t uid) {
   return (uint32_t)uid == 0xffffffff;
 }
 
@@ -52,7 +52,8 @@ inline bool rdm_uid_is_broadcast(rdm_uid_t uid) {
  * @return true if the addressee UID is targeted by the specified UID.
  * @return false if the addressee is not targeted by the specified UID.
  */
-inline bool rdm_uid_is_addressed_to(rdm_uid_t uid, rdm_uid_t addressee) {
+// TODO: rename arguments for clarity
+inline bool uid_is_recipient(rdm_uid_t uid, rdm_uid_t addressee) {
   uid &= 0xffffffffffff;
   addressee &= 0xffffffffffff;
   return addressee == uid ||
@@ -73,8 +74,9 @@ inline bool rdm_uid_is_addressed_to(rdm_uid_t uid, rdm_uid_t addressee) {
  * @param buf A pointer to an RDM buffer.
  * @return The properly formatted RDM UID.
  */
-FORCE_INLINE_ATTR rdm_uid_t buf_to_uid(const void *buf) {
+FORCE_INLINE_ATTR rdm_uid_t get_uid(const void *buf) {
   rdm_uid_t val;
+  // TODO: *(uint16_t *)&((&val)[3]) = 0;
   ((uint8_t *)&val)[7] = 0;
   ((uint8_t *)&val)[6] = 0;
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
@@ -97,7 +99,7 @@ FORCE_INLINE_ATTR rdm_uid_t buf_to_uid(const void *buf) {
  * @return void* A pointer to the destination buffer.
  */
 // TODO: doesn't need to be inlined
-FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
+FORCE_INLINE_ATTR void *uidcpy(void *buf, rdm_uid_t uid) {
   ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
   ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
   ((uint8_t *)buf)[2] = ((uint8_t *)&uid)[3];
@@ -108,7 +110,7 @@ FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
 }
 
 // TODO: docs
-size_t rdm_get_preamble_len(const void *data);
+size_t get_preamble_len(const void *data);
 
 #ifdef __cplusplus
 }
