@@ -17,19 +17,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Checks if a data buffer appears to contain valid RDM data. This
- * function considers a packet valid if it is at least the right size and if the
- * packet begins with the correct start code. This function does not verify
- * packet format nor validate checksums.
- *
- * @param data The buffer which stores a potentially valid RDM packet.
- * @param size The size of the buffer.
- * @return true if the data is a valid RDM packet.
- * @return false if the packet is invalid.
- */
-bool rdm_is_valid(const void *data, size_t size);
-
-/**
  * @brief Encodes RDM discovery mute parameters into the desired buffer.
  *
  * @param[out] data The buffer in which to encode the data.

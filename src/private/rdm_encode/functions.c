@@ -1,12 +1,6 @@
 #include "functions.h"
 #include "rdm_utils.h"
 
-bool rdm_is_valid(const void *data, size_t size) {
-  return (size >= 24 && *(uint16_t *)data == (RDM_SC | (RDM_SUB_SC << 8))) ||
-         (size >= 17 && (*(uint8_t *)data == RDM_PREAMBLE ||
-                         *(uint8_t *)data == RDM_DELIMITER));
-}
-
 size_t rdm_get_preamble_len(const void *data) {
   size_t preamble_len = 0;
   for (const uint8_t *d = data; preamble_len <= 7; ++preamble_len) {

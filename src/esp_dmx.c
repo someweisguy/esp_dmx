@@ -1237,7 +1237,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     rdm_header_t header;
     rdm_mdb_t mdb;
     taskENTER_CRITICAL(spinlock);
-    is_rdm = rdm_is_valid(driver->data.buffer, packet_size);
+    // Verify size, start code, and sub-start code
+    is_rdm = (packet_size >= 24 && *(uint16_t *)driver->data.buffer ==
+                                       (RDM_SC | (RDM_SUB_SC << 8))) ||
+             (packet_size >= 17 && (driver->data.buffer[0] == RDM_PREAMBLE ||
+                                    driver->data.buffer[0] == RDM_DELIMITER));
     if (is_rdm) {
       is_rdm = rdm_read(dmx_num, &header, &mdb);
     }
