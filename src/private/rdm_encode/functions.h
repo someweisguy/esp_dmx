@@ -8,10 +8,6 @@
 #include "private/rdm_encode/types.h"
 #include "rdm_types.h"
 
-#define RDM_PACKET_MAX_PARAMS(type) (255 / sizeof(type))
-
-#define RDM_PDL_MAX_PARAMS(pdl, type) (pdl / sizeof(type))
-
 #ifdef __cplusplus
 extern "C" {
 #endif
