@@ -113,10 +113,6 @@ int rdm_decode_device_info(const void *pd, void *data, int size) {
   return decoded;
 }
 
-bool rdm_is_request(const void *data) {
-  return (((rdm_data_t *)data)->cc & 0x1) == 0;
-}
-
 size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
   const size_t encoded = rdm_encode_16bit(mdb->pd, &nack_reason, 1);
   mdb->pdl = encoded;

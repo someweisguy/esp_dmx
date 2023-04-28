@@ -190,7 +190,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           else if (rdm_uid_is_broadcast(dest_uid)) {
             packet_type = RDM_PACKET_TYPE_BROADCAST;
           }
-          else if (rdm_is_request(driver->data.buffer)) {
+          else if ((((rdm_data_t *)driver->data.buffer)->cc & 0x1) == 0) {
             packet_type = RDM_PACKET_TYPE_REQUEST;
           } else {
             packet_type = RDM_PACKET_TYPE_RESPONSE;
