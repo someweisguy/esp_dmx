@@ -113,10 +113,6 @@ int rdm_decode_device_info(const void *pd, void *data, int size) {
   return decoded;
 }
 
-size_t rdm_get_message_len(const void *data) {
-  return ((rdm_data_t *)data)->message_len;
-}
-
 bool rdm_is_request(const void *data) {
   return (((rdm_data_t *)data)->cc & 0x1) == 0;
 }

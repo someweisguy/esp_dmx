@@ -1776,7 +1776,7 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   const uint8_t sc = driver->data.buffer[0];
   if (sc == RDM_SC) {
     // Calculate sum and decode checksum normally
-    const size_t message_len = rdm_get_message_len(driver->data.buffer);
+    const size_t message_len = ((rdm_data_t *)driver->data.buffer)->message_len;
     for (int i = 0; i < message_len; ++i) {
       sum += driver->data.buffer[i];
     }

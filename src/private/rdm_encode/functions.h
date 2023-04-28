@@ -138,9 +138,6 @@ int rdm_decode_string(const void *pd, void *data, int size);
 int rdm_decode_device_info(const void *pd, void *data, int size);
 
 // TODO: docs
-size_t rdm_get_message_len(const void *data);
-
-// TODO: docs
 size_t rdm_get_preamble_len(const void *data);
 
 // TODO: docs
