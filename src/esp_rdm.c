@@ -61,6 +61,9 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
     header->port_id = dmx_num + 1;
   }
 
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
   // Set header values that the user cannot set themselves
   taskENTER_CRITICAL(spinlock);
   header->tn = driver->rdm.tn;
@@ -76,7 +79,6 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Take mutex so driver values may be accessed
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
