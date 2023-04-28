@@ -96,6 +96,7 @@ FORCE_INLINE_ATTR rdm_uid_t buf_to_uid(const void *buf) {
  * @param uid The 64-bit representation of the UID.
  * @return void* A pointer to the destination buffer.
  */
+// TODO: doesn't need to be inlined
 FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
   ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
   ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
