@@ -106,6 +106,9 @@ FORCE_INLINE_ATTR void *uid_to_buf(void *buf, rdm_uid_t uid) {
   return buf;
 }
 
+// TODO: docs
+size_t rdm_get_preamble_len(const void *data);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,14 +1,6 @@
 #include "functions.h"
 #include "rdm_utils.h"
 
-size_t rdm_get_preamble_len(const void *data) {
-  size_t preamble_len = 0;
-  for (const uint8_t *d = data; preamble_len <= 7; ++preamble_len) {
-    if (d[preamble_len] == RDM_DELIMITER) break;
-  }
-  return preamble_len;
-}
-
 // size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
 //   size_t pdl = 2;
 //   struct rdm_disc_mute_data_t *const ptr = data;
