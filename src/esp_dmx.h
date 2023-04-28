@@ -82,7 +82,7 @@ bool dmx_driver_is_installed(dmx_port_t dmx_num);
  * @retval true if the driver was disabled.
  * @retval false if the driver was not disabled.
  */
-bool dmx_driver_disable(dmx_port_t dmx_num);
+bool dmx_driver_disable(dmx_port_t dmx_num);  // TODO: return esp_err_t
 
 /**
  * @brief Enables the DMX driver. When the DMX driver is not placed in IRAM,
@@ -97,7 +97,7 @@ bool dmx_driver_disable(dmx_port_t dmx_num);
  * @retval true if the driver was enabled.
  * @retval false if the driver was enabled.
  */
-bool dmx_driver_enable(dmx_port_t dmx_num);
+bool dmx_driver_enable(dmx_port_t dmx_num);  // TODO: return esp_err_t
 
 /**
  * @brief Checks if the DMX driver is enabled. When the DMX driver is not placed
