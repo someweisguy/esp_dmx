@@ -9,35 +9,6 @@ size_t rdm_get_preamble_len(const void *data) {
   return preamble_len;
 }
 
-bool rdm_checksum_is_valid(const void *data) {
-  uint16_t sum = 0;
-  uint16_t checksum;
-
-  const uint8_t *d = data;
-  const uint8_t sc = d[0];
-
-  // Get the packet checksum
-  if (sc == RDM_SC) {
-    // Calculate sum and decode checksum normally
-    const size_t message_len = rdm_get_message_len(data);
-    for (int i = 0; i < message_len; ++i) {
-      sum += d[i];
-    }
-    checksum = bswap16(*(uint16_t *)(&d[message_len]));
-  } else {
-    // Decode checksum from encoded DISC_UNIQUE_BRANCH response
-    // FIXME: return false if preamble_len is >7
-    d = &d[rdm_get_preamble_len(data) + 1];
-    for (int i = 0; i < 12; ++i) {
-      sum += d[i];
-    }
-    checksum = (d[14] & 0x55) | (d[15] & 0xaa);
-    checksum |= ((d[12] & 0x55) | (d[13] & 0xaa)) << 8;
-  }
-
-  return (sum == checksum);
-}
-
 // size_t rdm_encode_mute(void *data, const rdm_disc_mute_t *param) {
 //   size_t pdl = 2;
 //   struct rdm_disc_mute_data_t *const ptr = data;

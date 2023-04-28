@@ -1770,14 +1770,34 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   // FIXME: make this function thread-safe
 
   // Verify that the checksum is correct
-  // TODO: remove checksum_is_valid function?
-  bool is_valid = rdm_checksum_is_valid(driver->data.buffer);
-  if (!is_valid) {
-    return is_valid;
+  uint16_t sum = 0;
+  uint16_t checksum;
+  size_t preamble_len;
+  const uint8_t sc = driver->data.buffer[0];
+  if (sc == RDM_SC) {
+    // Calculate sum and decode checksum normally
+    const size_t message_len = rdm_get_message_len(driver->data.buffer);
+    for (int i = 0; i < message_len; ++i) {
+      sum += driver->data.buffer[i];
+    }
+    checksum = bswap16(*(uint16_t *)(&driver->data.buffer[message_len]));
+  } else {
+    // Decode checksum from encoded DISC_UNIQUE_BRANCH response
+    preamble_len = rdm_get_preamble_len(driver->data.buffer);
+    // FIXME: rdm is invalid if preamble_len is >7
+    const uint8_t *d = &driver->data.buffer[preamble_len + 1];
+    for (int i = 0; i < 12; ++i) {
+      sum += d[i];
+    }
+    checksum = (d[14] & 0x55) | (d[15] & 0xaa);
+    checksum |= ((d[12] & 0x55) | (d[13] & 0xaa)) << 8;
+  }
+  bool checksum_is_valid = (sum == checksum);
+  if (!checksum_is_valid) {
+    return checksum_is_valid;
   }
 
   // Decode the packet
-  const uint8_t sc = driver->data.buffer[0];
   if (sc == RDM_SC) {
     const rdm_data_t *const rdm = (void *)driver->data.buffer;
 
@@ -1803,7 +1823,6 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   } else {
     // Decode the EUID
     uint8_t buf[6];
-    const size_t preamble_len = rdm_get_preamble_len(driver->data.buffer);
     const uint8_t *d = &driver->data.buffer[preamble_len + 1];
     for (int i = 0, j = 0; i < 6; ++i, j += 2) {
       buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa); // TODO: & each byte
@@ -1823,5 +1842,5 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     mdb->preamble_len = preamble_len;
   }
 
-  return is_valid;
+  return checksum_is_valid;
 }

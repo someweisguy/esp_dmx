@@ -144,9 +144,6 @@ size_t rdm_get_message_len(const void *data);
 size_t rdm_get_preamble_len(const void *data);
 
 // TODO: docs
-bool rdm_checksum_is_valid(const void *data);
-
-// TODO: docs
 bool rdm_is_request(const void *data);
 
 // TODO: docs
