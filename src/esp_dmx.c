@@ -190,15 +190,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               driver->data.head < driver->data.buffer[2] + 2) {
             continue;  // Haven't received RDM packet yet
           }
-          const rdm_uid_t dest_uid = bswap48(&driver->data.buffer[3]);
           const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
+          const rdm_uid_t dest_uid = bswap48(&driver->data.buffer[3]);
+          const rdm_cc_t cc = driver->data.buffer[20];
           if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
             packet_type = RDM_PACKET_TYPE_DISCOVERY;
-          }
-          else if (uid_is_broadcast(dest_uid)) {
+          } else if (uid_is_broadcast(dest_uid)) {
             packet_type = RDM_PACKET_TYPE_BROADCAST;
-          }
-          else if ((((rdm_data_t *)driver->data.buffer)->cc & 0x1) == 0) {
+          } else if ((cc & 0x1) == 0) {
             packet_type = RDM_PACKET_TYPE_REQUEST;
           } else {
             packet_type = RDM_PACKET_TYPE_RESPONSE;
@@ -1365,11 +1364,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Determine if it is too late to send a response packet
   int64_t elapsed = 0;
   taskENTER_CRITICAL(spinlock);
-  rdm_data_t *const rdm = (rdm_data_t *)driver->data.buffer;
-  if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC &&
-      (rdm->cc == RDM_CC_DISC_COMMAND_RESPONSE ||
-       rdm->cc == RDM_CC_GET_COMMAND_RESPONSE ||
-       rdm->cc == RDM_CC_SET_COMMAND_RESPONSE)) {
+  const rdm_cc_t cc = driver->data.buffer[20];
+  if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8)) &&
+      (cc == RDM_CC_DISC_COMMAND_RESPONSE ||
+       cc == RDM_CC_GET_COMMAND_RESPONSE ||
+       cc == RDM_CC_SET_COMMAND_RESPONSE)) {
     elapsed = esp_timer_get_time() - driver->data.timestamp;
   }
   taskEXIT_CRITICAL(spinlock);
@@ -1451,23 +1450,26 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
 
   // Record the outgoing packet type
+  const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
+  const rdm_uid_t dest_uid = bswap48(&driver->data.buffer[3]);
   int packet_type = RDM_PACKET_TYPE_NON_RDM;
-  if (rdm->sc == RDM_SC && rdm->sub_sc == RDM_SUB_SC) {
-    if (rdm->cc == RDM_CC_DISC_COMMAND &&
-        rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
+  if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
+    if (cc == RDM_CC_DISC_COMMAND &&
+        pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       packet_type = RDM_PACKET_TYPE_DISCOVERY;
       ++driver->rdm.tn;
-    } else if (uid_is_broadcast(bswap48(rdm->destination_uid))) {
+    } else if (uid_is_broadcast(dest_uid)) {
       packet_type = RDM_PACKET_TYPE_BROADCAST;
       ++driver->rdm.tn;
-    } else if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND ||
-               rdm->cc == RDM_CC_DISC_COMMAND) {
+    } else if (cc == RDM_CC_GET_COMMAND || cc == RDM_CC_SET_COMMAND ||
+               cc == RDM_CC_DISC_COMMAND) {
       packet_type = RDM_PACKET_TYPE_REQUEST;
       ++driver->rdm.tn;
     } else {
       packet_type = RDM_PACKET_TYPE_RESPONSE;
     }
-  } else if (rdm->sc == RDM_PREAMBLE || rdm->sc == RDM_DELIMITER) {
+  } else if (driver->data.buffer[0] == RDM_PREAMBLE ||
+             driver->data.buffer[0] == RDM_DELIMITER) {
     packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
   }
   driver->data.type = packet_type;
