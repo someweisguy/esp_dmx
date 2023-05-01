@@ -1,7 +1,7 @@
 #include "parameters.h"
 
-#include "endian.h"
 #include "dmx/driver.h"
+#include "endian.h"
 
 static const char *TAG = "rdm_parameters";
 

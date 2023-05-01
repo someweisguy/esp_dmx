@@ -2,14 +2,14 @@
 
 #include <string.h>
 
+#include "dmx/driver.h"
+#include "dmx/hal.h"
 #include "dmx/types.h"
 #include "endian.h"
 #include "esp_log.h"
-#include "dmx/hal.h"
-#include "dmx/driver.h"
-#include "read_write.h"
-#include "parameters.h"
-#include "utils.h"
+#include "rdm/parameters.h"
+#include "rdm/read_write.h"
+#include "rdm/utils.h"
 
 static const char *TAG = "rdm_controller";
 

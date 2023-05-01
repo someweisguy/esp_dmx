@@ -3,15 +3,15 @@
 #include <stdint.h>
 
 #include "dmx/types.h"
+#include "esp_check.h"
 #include "esp_err.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "hal/uart_hal.h"
-#include "esp_check.h"
-#include "rdm/types.h"
 #include "rdm/responder.h"
+#include "rdm/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"

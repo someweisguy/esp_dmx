@@ -1,7 +1,7 @@
 #pragma once
 
 #include "esp_dmx.h"
-#include "types.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {

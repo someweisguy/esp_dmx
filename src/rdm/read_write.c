@@ -2,10 +2,10 @@
 
 #include <stdint.h>
 
-#include "rdm/utils.h"
 #include "dmx/driver.h"
-#include "esp_dmx.h"
 #include "dmx/hal.h"
+#include "esp_dmx.h"
+#include "rdm/utils.h"
 
 static const char *TAG = "rdm_read_write";
 

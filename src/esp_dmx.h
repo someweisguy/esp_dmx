@@ -13,10 +13,10 @@
 #include "dmx/types.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
-#include "rdm/types.h"
 #include "rdm/controller.h"
-#include "rdm/responder.h"
 #include "rdm/parameters.h"
+#include "rdm/responder.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "dmx/driver.h"
+#include "dmx/hal.h"
 #include "dmx/types.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
@@ -9,18 +11,16 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
-#include "dmx/hal.h"
-#include "dmx/driver.h"
+#include "rdm/controller.h"
+#include "rdm/parameters.h"
 #include "rdm/read_write.h"
 #include "rdm/types.h"
 #include "rdm/utils.h"
-#include "rdm/controller.h"
-#include "rdm/parameters.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
-#include "esp_private/periph_ctrl.h"
 #include "esp_mac.h"
+#include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
 #else
 #include "driver/periph_ctrl.h"
