@@ -25,7 +25,7 @@
 //     param->sub_device = ptr->sub_device;
 //     param->boot_loader = ptr->boot_loader;
 //     param->proxied_device = ptr->proxied_device;
-//     param->binding_uid = pdl > 2 ? get_uid(ptr->binding_uid) : 0;
+//     param->binding_uid = pdl > 2 ? bswap48(ptr->binding_uid) : 0;
 //     decoded = 1;
 //   }
 //   return decoded;
@@ -42,7 +42,7 @@
 // int rdm_decode_uids(const void *data, void *uids, int size) {
 //   int decoded = 0;
 //   for (int i = 0; decoded < size; ++decoded, i += 6) {
-//     ((rdm_uid_t *)uids)[decoded] = get_uid(data + i);
+//     ((rdm_uid_t *)uids)[decoded] = bswap48(data + i);
 //   }
 //   return decoded;
 // }
@@ -115,7 +115,7 @@ int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
   int decoded = 0;
   if (mdb != NULL && mdb->pd != NULL && data != NULL) {
     for (int i = 0; decoded < num && i < mdb->pdl; i += 6) {
-        ((rdm_uid_t *)data)[decoded] = get_uid(mdb->pd + i);
+        ((rdm_uid_t *)data)[decoded] = bswap48(mdb->pd + i);
         ++decoded;
     }
   }
@@ -133,7 +133,7 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
     pd->boot_loader = param->boot_loader;
     pd->proxied_device = param->proxied_device;
     if (param->binding_uid != 0) {
-      uidcpy(pd->binding_uid, param->binding_uid);
+      uidcpy(pd->binding_uid, &(param->binding_uid));
       encoded += 6;
     }
     encoded += 2;
@@ -238,7 +238,7 @@ int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num) {
     param->sub_device = pd->sub_device;
     param->boot_loader = pd->boot_loader;
     param->proxied_device = pd->proxied_device;
-    param->binding_uid = mdb->pdl > 2 ? get_uid(pd->binding_uid) : 0;
+    param->binding_uid = mdb->pdl > 2 ? bswap48(pd->binding_uid) : 0;
     decoded = 1;
   }
   return decoded;
@@ -248,7 +248,7 @@ size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num) {
   size_t encoded = 0;
   if (mdb && data && num) {
     for (int i = 0; i < num; ++i, encoded += 6) {
-      uidcpy(mdb->pd + encoded, ((rdm_uid_t *)data)[i]);
+      uidcpy(mdb->pd + encoded, &(((rdm_uid_t *)data)[i]));
     }
   }
   mdb->pdl = encoded;

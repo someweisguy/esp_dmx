@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "dmx_types.h"
 #include "rdm_types.h"
@@ -74,40 +75,31 @@ inline bool uid_is_recipient(rdm_uid_t uid, rdm_uid_t addressee) {
  * @param buf A pointer to an RDM buffer.
  * @return The properly formatted RDM UID.
  */
-FORCE_INLINE_ATTR rdm_uid_t get_uid(const void *buf) {
+static inline rdm_uid_t bswap48(const void *buf) {
   rdm_uid_t val;
-  // TODO: *(uint16_t *)&((&val)[3]) = 0;
-  ((uint8_t *)&val)[7] = 0;
-  ((uint8_t *)&val)[6] = 0;
-  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
-  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
-  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
-  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
-  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
   ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
+  ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
+  ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
+  ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
+  ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
+  ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
+  ((uint8_t *)&val)[6] = 0;
+  ((uint8_t *)&val)[7] = 0;
+  // TODO: *(uint16_t *)&((&val)[3]) = 0;
   return val;
 }
 
 /**
  * @brief Helper function that converts an RDM UID stored as a 64-bit integer
- * and copies it into a 48-bit buffer. It also converts endianness to compensate
- * for the fact that the ESP32 stores values in least-significant-byte first
- * endianness and RDM requires most-significant-byte first.
+ * and copies it into a 48-bit buffer. It also converts endianness because the
+ * ESP32 stores values in least-significant-byte first endianness and RDM
+ * requires most-significant-byte first.
  *
- * @param buf A pointer to the destination buffer.
- * @param uid The 64-bit representation of the UID.
- * @return void* A pointer to the destination buffer.
+ * @param[out] dest A pointer to the destination buffer.
+ * @param[in] uid The 64-bit representation of the UID.
+ * @return A pointer to the destination buffer.
  */
-// TODO: doesn't need to be inlined
-FORCE_INLINE_ATTR void *uidcpy(void *buf, rdm_uid_t uid) {
-  ((uint8_t *)buf)[0] = ((uint8_t *)&uid)[5];
-  ((uint8_t *)buf)[1] = ((uint8_t *)&uid)[4];
-  ((uint8_t *)buf)[2] = ((uint8_t *)&uid)[3];
-  ((uint8_t *)buf)[3] = ((uint8_t *)&uid)[2];
-  ((uint8_t *)buf)[4] = ((uint8_t *)&uid)[1];
-  ((uint8_t *)buf)[5] = ((uint8_t *)&uid)[0];
-  return buf;
-}
+void *uidcpy(void *dest, const rdm_uid_t *uid);
 
 // TODO: docs
 size_t get_preamble_len(const void *data);

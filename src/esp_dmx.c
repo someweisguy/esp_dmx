@@ -182,7 +182,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               driver->data.head < driver->data.buffer[2] + 2) {
             continue;  // Haven't received RDM packet yet
           }
-          const rdm_uid_t dest_uid = get_uid(&driver->data.buffer[3]);
+          const rdm_uid_t dest_uid = bswap48(&driver->data.buffer[3]);
           const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
           if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
             packet_type = RDM_PACKET_TYPE_DISCOVERY;
@@ -1449,7 +1449,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
         rdm->pid == bswap16(RDM_PID_DISC_UNIQUE_BRANCH)) {
       packet_type = RDM_PACKET_TYPE_DISCOVERY;
       ++driver->rdm.tn;
-    } else if (uid_is_broadcast(get_uid(rdm->destination_uid))) {
+    } else if (uid_is_broadcast(bswap48(rdm->destination_uid))) {
       packet_type = RDM_PACKET_TYPE_BROADCAST;
       ++driver->rdm.tn;
     } else if (rdm->cc == RDM_CC_GET_COMMAND || rdm->cc == RDM_CC_SET_COMMAND ||
@@ -1733,8 +1733,8 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     rdm->sc = RDM_SC;
     rdm->sub_sc = RDM_SUB_SC;
     rdm->message_len = message_len;
-    uidcpy(rdm->destination_uid, header->dest_uid);
-    uidcpy(rdm->source_uid, header->src_uid);
+    uidcpy(rdm->destination_uid, &(header->dest_uid));
+    uidcpy(rdm->source_uid, &(header->src_uid));
     rdm->tn = header->tn;
     rdm->port_id = header->port_id;  // Also copies response_type
     rdm->message_count = header->message_count;
@@ -1811,8 +1811,8 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     mdb->pdl = pdl;
 
     // Copy the remaining header data
-    header->dest_uid = get_uid(rdm->destination_uid);
-    header->src_uid = get_uid(rdm->source_uid);
+    header->dest_uid = bswap48(rdm->destination_uid);
+    header->src_uid = bswap48(rdm->source_uid);
     header->tn = rdm->tn;
     header->port_id = rdm->port_id;  // Also copies response_type
     header->message_count = rdm->message_count;
@@ -1827,7 +1827,7 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     for (int i = 0, j = 0; i < 6; ++i, j += 2) {
       buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa); // TODO: & each byte
     }
-    header->src_uid = get_uid(buf);
+    header->src_uid = bswap48(buf);
 
     // Fill out the remaining header and MDB data
     header->dest_uid = 0;
