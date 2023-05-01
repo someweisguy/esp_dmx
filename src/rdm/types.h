@@ -32,6 +32,28 @@ typedef uint16_t rdm_sub_device_t;
  */
 #define RDM_DEFAULT_MAN_ID (0x05e0)
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+/**
+ * @brief The recommended method for representing the UID in text by separating
+ * the manufacturer ID and the device ID. For use with printf-like functions.
+ */
+#define UIDSTR "%04x:%08lx"
+#else
+// TODO: can we remove this one?
+/**
+ * @brief The recommended method for representing the UID in text by separating
+ * the manufacturer ID and the device ID. For use with printf-like functions.
+ */
+#define UIDSTR "%04x:%08x"
+#endif
+
+/**
+ * @brief Used to generate arguments for the UIDSTR macro for representing the
+ * UID in text by separating the manufacturer ID and device ID. For use with
+ * printf-like functions.
+ */
+#define UID2STR(uid) ((uint16_t)(uid >> 32)), ((uint32_t)(uid))
+
 /**
  * @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast

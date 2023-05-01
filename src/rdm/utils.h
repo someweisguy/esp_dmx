@@ -12,28 +12,6 @@
 extern "C" {
 #endif
 
-#if ESP_IDF_VERSION_MAJOR >= 5
-/**
- * @brief The recommended method for representing the UID in text by separating
- * the manufacturer ID and the device ID. For use with printf-like functions.
- */
-#define UIDSTR "%04x:%08lx"
-#else
-// TODO: can we remove this one?
-/**
- * @brief The recommended method for representing the UID in text by separating
- * the manufacturer ID and the device ID. For use with printf-like functions.
- */
-#define UIDSTR "%04x:%08x"
-#endif
-
-/**
- * @brief Used to generate arguments for the UIDSTR macro for representing the
- * UID in text by separating the manufacturer ID and device ID. For use with
- * printf-like functions.
- */
-#define UID2STR(uid) ((uint16_t)(uid >> 32)), ((uint32_t)(uid))
-
 /**
  * @brief Returns true if the specified UID is a broadcast address. This
  * function only checks the device ID of the UID. It will return true when the 
