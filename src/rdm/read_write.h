@@ -1,6 +1,11 @@
 #pragma once
 
 #include <stdint.h>
+#include <string.h>
+
+#include "endian.h"
+#include "esp_dmx.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,43 +37,72 @@ typedef struct __attribute__((__packed__)) rdm_data_t {
   } pd;                        // The parameter data (PD) is of variable length. The content format is PID dependent.
 } rdm_data_t;
 
-/**
- * @brief A packed struct which can be used to help process RDM discovery mute
- * parameters. RDM sends data in most-significant byte first, so endianness must
- * be swapped when using values larger than 8 bits.
- */
-typedef struct __attribute__((__packed__)) rdm_disc_mute_data_t {
-  union {
-    struct {
-      uint8_t managed_proxy : 1;
-      uint8_t sub_device : 1;
-      uint8_t boot_loader : 1;
-      uint8_t proxied_device : 1;
-    };
-    uint16_t control_field;
-  };
-  uint8_t binding_uid[6];
-} rdm_disc_mute_data_t;
+// TODO: docs
+bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
+
+// TODO: docs
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                 const rdm_mdb_t *mdb);
 
 /**
- * @brief A packed struct which can be used to help process RDM device info
- * parameters. RDM sends data in most-significant byte first, so endianness must
- * be swapped when using values larger than 8 bits.
+ * @brief Encode an array of 16-bit numbers into the desired array.
+ *
+ * @param[out] pd The buffer in which to encode the data.
+ * @param[in] data A pointer to an array of values to encode.
+ * @param size The size of the array of values.
+ * @return The number of bytes encoded.
  */
-typedef struct __attribute__((__packed__)) rdm_device_info_data_t {
-  uint8_t major_rdm_version;
-  uint8_t minor_rdm_version;
-  uint16_t model_id;
-  uint8_t coarse_product_category;
-  uint8_t fine_product_category;
-  uint32_t software_version_id;
-  uint16_t footprint;
-  uint8_t current_personality;
-  uint8_t personality_count;
-  uint16_t start_address;
-  uint16_t sub_device_count;
-  uint8_t sensor_count;
-} rdm_device_info_data_t;
+size_t rdm_encode_16bit(void *pd, const void *data, int size);
+
+/**
+ * @brief Decode a string from a buffer.
+ *
+ * @param pd A buffer in which the to decode is stored.
+ * @param data A pointer into which to store the decoded data.
+ * @param size The size of the buffer to store the decoded data.
+ * @return The number of characters that was decoded.
+ */
+int rdm_decode_string(const void *pd, void *data, int size);
+
+/**
+ * @brief Decodes RDM device info.
+ *
+ * @param[in] pd The buffer in which the data to decode is stored.
+ * @param[out] data A pointer to a device info parameter to store decoded data.
+ * @param size The size of the array to store decoded data.
+ * @return The number of parameters decoded (always 1).
+ */
+int rdm_decode_device_info(const void *pd, void *data, int size);
+
+// TODO: docs
+size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason);
+
+// TODO: docs
+int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num);
+
+// TODO: docs
+size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num);
+
+// TODO: docs
+size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num);
+
+// TODO: docs
+size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num);
+
+// TODO: docs
+size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num);
+
+// TODO: docs
+int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num);
+
+// TODO: docs
+int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num);
+
+// TODO: docs
+int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num);
+
+// TODO: docs
+size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num);
 
 #ifdef __cplusplus
 }

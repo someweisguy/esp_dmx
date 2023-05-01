@@ -2,13 +2,16 @@
 
 #include <stdint.h>
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "esp_err.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "hal/uart_hal.h"
+#include "esp_check.h"
+#include "rdm/types.h"
+#include "rdm/responder.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -92,14 +95,6 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
 } dmx_driver_t;
-
-DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
-DRAM_ATTR spinlock_t dmx_spinlock[DMX_NUM_MAX] = {portMUX_INITIALIZER_UNLOCKED,
-                                                  portMUX_INITIALIZER_UNLOCKED,
-#if DMX_NUM_MAX > 2
-                                                  portMUX_INITIALIZER_UNLOCKED
-#endif
-};
 
 #ifdef __cplusplus
 }

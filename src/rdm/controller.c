@@ -1,20 +1,20 @@
-#include "esp_rdm.h"
+#include "controller.h"
 
-#include <stdint.h>
 #include <string.h>
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "endian.h"
-#include "esp_check.h"
-#include "esp_dmx.h"
 #include "esp_log.h"
-#include "esp_system.h"
-#include "private/driver.h"
-#include "private/rdm_encode/functions.h"
-#include "private/rdm_encode/types.h"
-#include "rdm_utils.h"
+#include "dmx/hal.h"
+#include "dmx/driver.h"
+#include "read_write.h"
+#include "parameters.h"
+#include "utils.h"
 
-static const char *TAG = "rdm";  // The log tagline for the file.
+static const char *TAG = "rdm_controller";
+
+extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
+extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
                 const rdm_encode_t *encode, rdm_decode_t *decode,
@@ -24,8 +24,8 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Validate required header information
-  if (header->dest_uid == 0 || (header->dest_uid > RDM_MAX_UID &&
-                                !uid_is_broadcast(header->dest_uid))) {
+  if (header->dest_uid == 0 ||
+      (header->dest_uid > RDM_MAX_UID && !uid_is_broadcast(header->dest_uid))) {
     ESP_LOGE(TAG, "dest_uid is invalid");
     return 0;
   }
@@ -135,8 +135,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
       if (response_type == RDM_RESPONSE_TYPE_ACK) {
         // Decode the parameter data if requested
         if (mdb.pdl > 0) {
-          if (decode && decode->function && decode->params &&
-              decode->num) {
+          if (decode && decode->function && decode->params && decode->num) {
             decoded = decode->function(&mdb, decode->params, decode->num);
           } else {
             ESP_LOGW(TAG, "received parameter data but decoder is null");
@@ -241,160 +240,3 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   
   return rdm_send(dmx_num, header, NULL, &decode, ack);
 }
-
-/*
-size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
-                                  void *context) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // Allocate the instruction stack. The max binary tree depth is 49
-#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
-  rdm_disc_unique_branch_t *stack;
-  stack = malloc(sizeof(rdm_disc_unique_branch_t) * 49);
-  if (stack == NULL) {
-    ESP_LOGE(TAG, "Discovery malloc error");
-    return 0;
-  }
-#else
-  rdm_disc_unique_branch_t stack[49];  // 784B - use with caution!
-#endif
-
-  dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
-  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
-
-  // Un-mute all devices
-  rdm_send_disc_mute(dmx_num, RDM_BROADCAST_ALL_UID, false, NULL, NULL);
-
-  // Initialize the stack with the initial branch instruction
-  size_t stack_size = 1;
-  stack[0].lower_bound = 0;
-  stack[0].upper_bound = RDM_MAX_UID;
-
-  rdm_disc_mute_t mute;     // Mute parameters returned from devices.
-  rdm_response_t response;  // Request response information.
-  bool dev_muted;           // Is true if the responding device was muted.
-  rdm_uid_t uid;            // The UID of the responding device.
-
-  size_t num_found = 0;
-  while (stack_size > 0) {
-    rdm_disc_unique_branch_t *branch = &stack[--stack_size];
-    size_t attempts = 0;
-
-    if (branch->lower_bound == branch->upper_bound) {
-      // Can't branch further so attempt to mute the device
-      uid = branch->lower_bound;
-      do {
-        dev_muted = rdm_send_disc_mute(dmx_num, uid, true, &response, &mute);
-      } while (!dev_muted && ++attempts < 3);
-
-      // Attempt to fix possible error where responder is flipping its own UID
-      if (!dev_muted) {
-        uid = bswap64(uid) >> 16;  // Flip UID
-        dev_muted = rdm_send_disc_mute(dmx_num, uid, true, NULL, &mute);
-      }
-
-      // Call the callback function and report a device has been found
-      if (dev_muted && !response.err) {
-        cb(dmx_num, uid, num_found, &mute, context);
-        ++num_found;
-      }
-    } else {
-      // Search the current branch in the RDM address space
-      do {
-        uid = rdm_send_disc_unique_branch(dmx_num, branch, &response);
-      } while (uid == 0 && ++attempts < 3);
-      if (uid != 0) {
-        bool devices_remaining = true;
-
-#ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
-        
-        Stop the RDM controller from branching all the way down to the
-        individual address if it is not necessary. When debugging, this code
-        should not be called as it can hide bugs in the discovery algorithm.
-        Users can use the sdkconfig to enable or disable discovery debugging.
-        
-        if (!response.err) {
-          for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
-            // Attempt to mute the device
-            attempts = 0;
-            do {
-              dev_muted = rdm_send_disc_mute(dmx_num, uid, true, NULL, &mute);
-            } while (!dev_muted && ++attempts < 3);
-
-            // Call the callback function and report a device has been found
-            if (dev_muted) {
-              cb(dmx_num, uid, num_found, &mute, context);
-              ++num_found;
-            }
-
-            // Check if there are more devices in this branch
-            attempts = 0;
-            do {
-              uid = rdm_send_disc_unique_branch(dmx_num, branch, &response);
-            } while (uid == 0 && ++attempts < 3);
-            if (uid != 0 && response.err) {
-              // There are more devices in this branch - branch further
-              devices_remaining = true;
-              break;
-            } else {
-              // There are no more devices in this branch
-              devices_remaining = false;
-              break;
-            }
-          }
-        }
-#endif
-
-        // Recursively search the next two RDM address spaces
-        if (devices_remaining) {
-          const rdm_uid_t lower_bound = branch->lower_bound;
-          const rdm_uid_t mid = (lower_bound + branch->upper_bound) / 2;
-
-          // Add the upper branch so that it gets handled second
-          stack[stack_size].lower_bound = mid + 1;
-          ++stack_size;
-
-          // Add the lower branch so it gets handled first
-          stack[stack_size].lower_bound = lower_bound;
-          stack[stack_size].upper_bound = mid;
-          ++stack_size;
-        }
-      }
-    }
-  }
-
-  xSemaphoreGiveRecursive(driver->mux);
-
-#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
-  free(stack);
-#endif
-
-  return num_found;
-}
-
-struct rdm_disc_default_ctx {
-  size_t size;
-  rdm_uid_t *uids;
-};
-
-static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
-                        rdm_disc_mute_t *mute, void *context) {
-  struct rdm_disc_default_ctx *c = (struct rdm_disc_default_ctx *)context;
-  if (num_found < c->size && c->uids != NULL) {
-    c->uids[num_found] = uid;
-  }
-}
-
-size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
-                                   const size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  struct rdm_disc_default_ctx context = {.size = size, .uids = uids};
-  size_t found = rdm_discover_with_callback(dmx_num, &rdm_disc_cb, &context);
-
-  return found;
-}
-
-*/

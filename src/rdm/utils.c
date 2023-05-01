@@ -1,6 +1,6 @@
-#include "rdm_utils.h"
+#include "utils.h"
 
-#include "rdm_types.h"
+#include "rdm/types.h"
 
 void *uidcpy(void *dest, const rdm_uid_t *uid) {
   ((uint8_t *)dest)[0] = ((uint8_t *)uid)[5];

@@ -10,11 +10,13 @@
  */
 #pragma once
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "driver/gpio.h"
-#include "esp_rdm.h"
 #include "freertos/FreeRTOS.h"
-#include "rdm_types.h"
+#include "rdm/types.h"
+#include "rdm/controller.h"
+#include "rdm/responder.h"
+#include "rdm/parameters.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -376,48 +378,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size);
  * @retval false if the function timed out.
  */
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks);
-
-/**
- * @brief Returns the 48 bit unique ID of this device.
- *
- * @param dmx_num The DMX port number.
- * @return The UID of the DMX port.
- */
-rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
-
-/**
- * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
- * the UID to its default value.
- *
- * @param dmx_num The DMX port number.
- * @param uid The custom value to which to set the device UID. Must be less than
- * or equal to RDM_MAX_UID.
- */
-void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
-
-/**
- * @brief Returns true if RDM discovery responses are be muted on this device.
- *
- * @param dmx_num The DMX port number.
- * @return true if RDM discovery is muted.
- * @return false if RDM discovery is not muted.
- */
-bool rdm_is_muted(dmx_port_t dmx_num);
-
-// TODO: docs
-bool rdm_set_device_info(dmx_port_t dmx_num,
-                         const rdm_device_info_t *device_info);
-
-// TODO: docs
-bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                           rdm_response_cb_t callback, void *context);
-
-// TODO: docs
-size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
-                const rdm_mdb_t *mdb);
-
-// TODO: docs
-bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
 
 #ifdef __cplusplus
 }
