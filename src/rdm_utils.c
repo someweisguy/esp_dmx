@@ -12,6 +12,19 @@ void *uidcpy(void *dest, const rdm_uid_t *uid) {
   return dest;
 }
 
+bool uid_is_broadcast(rdm_uid_t uid) {
+  return (uint32_t)uid == 0xffffffff;
+}
+
+bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid) {
+  compare_uid &= 0xffffffffffff;
+  recipient_uid &= 0xffffffffffff;
+  return recipient_uid == compare_uid ||
+         ((compare_uid >> 32 == 0xffff ||
+           compare_uid >> 32 == recipient_uid >> 32) &&
+          (uint32_t)compare_uid == 0xffffffff);
+}
+
 size_t get_preamble_len(const void *data) {
   size_t preamble_len = 0;
   for (const uint8_t *d = data; preamble_len <= 7; ++preamble_len) {

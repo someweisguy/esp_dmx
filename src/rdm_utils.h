@@ -35,32 +35,25 @@ extern "C" {
 #define UID2STR(uid) ((uint16_t)(uid >> 32)), ((uint32_t)(uid))
 
 /**
- * @brief Returns true if the specified UID is a broadcast address.
+ * @brief Returns true if the specified UID is a broadcast address. This
+ * function only checks the device ID of the UID. It will return true when the 
+ * device ID is broadcast including when the UID is invalid.
  * 
  * @param uid The UID to compare.
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
-inline bool uid_is_broadcast(rdm_uid_t uid) {
-  return (uint32_t)uid == 0xffffffff;
-}
+bool uid_is_broadcast(rdm_uid_t uid);
 
 /**
  * @brief Returns true if the specified UID is addressed to the desired UID.
  * 
- * @param uid The UID to check against an addressee.
- * @param addressee The addressee UID.
- * @return true if the addressee UID is targeted by the specified UID.
- * @return false if the addressee is not targeted by the specified UID.
+ * @param compare_uid The UID to check against a recipient UID.
+ * @param recipient_uid The recipient UID.
+ * @return true if the recipient UID is targeted by the comparison UID.
+ * @return false if the recipient UID is not targeted by the comparison UID.
  */
-// TODO: rename arguments for clarity
-inline bool uid_is_recipient(rdm_uid_t uid, rdm_uid_t addressee) {
-  uid &= 0xffffffffffff;
-  addressee &= 0xffffffffffff;
-  return addressee == uid ||
-         ((uid >> 32 == 0xffff || uid >> 32 == addressee >> 32) &&
-          (uint32_t)uid == 0xffffffff);
-}
+bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid);
 
 /**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
