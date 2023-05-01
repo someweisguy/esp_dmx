@@ -334,7 +334,7 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
   if (mdb && data && num) {
     struct rdm_disc_mute_data_t *pd = (void *)mdb->pd;
     const rdm_disc_mute_t *param = data;
-    bzero(mdb->pd, 2);  // FIXME: make the bit field more efficient?
+    pd->control_field = 0;  // TODO: Make the bit field more efficient?
     pd->managed_proxy = param->managed_proxy;
     pd->sub_device = param->sub_device;
     pd->boot_loader = param->boot_loader;
