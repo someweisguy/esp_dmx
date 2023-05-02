@@ -3,6 +3,10 @@
 #include "dmx/driver.h"
 #include "endian.h"
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "esp_mac.h"
+#endif
+
 static const char *TAG = "rdm_parameters";
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
