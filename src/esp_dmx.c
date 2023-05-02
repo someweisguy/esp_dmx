@@ -209,7 +209,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                     *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
           const size_t preamble_len = get_preamble_len(driver->data.buffer);
           if (preamble_len <= 7) {
-            if (driver->data.head < preamble_len + 16) {
+            if (driver->data.head < preamble_len + 17) {
               continue;  // Haven't received DISC_UNIQUE_BRANCH response yet
             }
             packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
