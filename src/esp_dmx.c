@@ -1250,7 +1250,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
              (packet_size >= 17 && (driver->data.buffer[0] == RDM_PREAMBLE ||
                                     driver->data.buffer[0] == RDM_DELIMITER));
     if (is_rdm) {
-      //is_rdm = rdm_read(dmx_num, &header, &mdb); // FIXME
+      // FIXME: don't need to call rdm_read() until we are certain that this is a 
+      // request
+      is_rdm = rdm_read(dmx_num, &header, &mdb);
     }
     taskEXIT_CRITICAL(spinlock);
 
