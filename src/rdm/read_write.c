@@ -106,8 +106,8 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     for (int i = 0; i < 12; ++i) {
       sum += d[i];
     }
-    checksum = (d[14] & 0x55) | (d[15] & 0xaa);
-    checksum |= ((d[12] & 0x55) | (d[13] & 0xaa)) << 8;
+    checksum = (d[12] & d[13]) << 8;
+    checksum += (d[14] & d[15]);
   }
   bool checksum_is_valid = (sum == checksum);
   if (!checksum_is_valid) {
@@ -142,15 +142,14 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     uint8_t buf[6];
     const uint8_t *d = &driver->data.buffer[preamble_len + 1];
     for (int i = 0, j = 0; i < 6; ++i, j += 2) {
-      buf[i] = (d[j] & 0x55) | (d[j + 1] & 0xaa);  // TODO: & each byte
+      buf[i] = d[j] & d[j + 1];
     }
     header->src_uid = bswap48(buf);
 
     // Fill out the remaining header and MDB data
     header->dest_uid = 0;
     header->tn = -1;
-    header->response_type = RDM_RESPONSE_TYPE_ACK;
-    header->port_id = -1;
+    header->response_type = RDM_RESPONSE_TYPE_ACK;  // Also copies port_id
     header->message_count = -1;
     header->sub_device = -1;
     header->cc = RDM_CC_DISC_COMMAND_RESPONSE;

@@ -1250,7 +1250,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
              (packet_size >= 17 && (driver->data.buffer[0] == RDM_PREAMBLE ||
                                     driver->data.buffer[0] == RDM_DELIMITER));
     if (is_rdm) {
-      is_rdm = rdm_read(dmx_num, &header, &mdb);
+      //is_rdm = rdm_read(dmx_num, &header, &mdb); // FIXME
     }
     taskEXIT_CRITICAL(spinlock);
 
@@ -1327,7 +1327,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
     packet->err = driver->data.err;
-    packet_size = driver->data.head;
     if (packet_size > 0) {
       packet->sc = driver->data.buffer[0];
     }
