@@ -83,13 +83,13 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Send the request and await the response
-  size_t packet_size = rdm_write(dmx_num, header, &mdb);
-  dmx_send(dmx_num, packet_size);
+  size_t write_size = rdm_write(dmx_num, header, &mdb);
+  dmx_send(dmx_num, write_size);
   dmx_packet_t packet = {};
   if (!uid_is_broadcast(header->dest_uid) ||
       (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
        header->cc == RDM_CC_DISC_COMMAND)) {
-    packet_size = dmx_receive(dmx_num, &packet, 2);
+    dmx_receive(dmx_num, &packet, 2);
   }
 
   // Process the response data
@@ -161,7 +161,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-  return packet_size;
+  return packet.size;
 }
 
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
@@ -266,7 +266,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
   while (stack_size > 0) {
     // Pop a DISC_UNIQUE_BRANCH instruction parameter from the stack
-    rdm_disc_unique_branch_t *branch = &stack[--stack_size];
+    const rdm_disc_unique_branch_t *branch = &stack[--stack_size];
 
     size_t attempts = 0;
     if (branch->lower_bound == branch->upper_bound) {
@@ -310,7 +310,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
         */
         if (!ack.err) {
           const rdm_uid_t uid = header.src_uid;
-          for (int quick_finds = 0; quick_finds < 3; ++quick_finds) {
+          do {
             // Attempt to mute the device
             attempts = 0;
             do {
@@ -332,20 +332,12 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
               header.dest_uid = RDM_BROADCAST_ALL_UID;
               rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
             } while (ack.err == ESP_ERR_TIMEOUT && ++attempts < 3);
-            if (ack.err && ack.err != ESP_ERR_TIMEOUT) {
-              // There are more devices in this branch - branch further
-              devices_remaining = true;  // FIXME
-              break;
-            } else {
-              // There are no more devices in this branch
-              devices_remaining = false;  // FIXME
-              break;
-            }
-          }
+          } while (!ack.err && ack.type != RDM_RESPONSE_TYPE_NONE);
+          devices_remaining = (ack.err && ack.err != ESP_ERR_TIMEOUT);
         }
 #endif
 
-        // Recursively search the next two RDM address spaces
+        // Iteratively search the next two RDM address spaces
         if (devices_remaining) {
           const rdm_uid_t lower_bound = branch->lower_bound;
           const rdm_uid_t mid = (lower_bound + branch->upper_bound) / 2;
