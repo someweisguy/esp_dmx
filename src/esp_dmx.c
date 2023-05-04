@@ -727,16 +727,18 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 bool dmx_driver_is_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
-bool dmx_driver_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(dmx_driver_is_enabled(dmx_num), false,
+
+esp_err_t dmx_driver_disable(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
+            "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already disabled");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  bool success = false;
+  esp_err_t ret = ESP_ERR_NOT_FINISHED;
 
   // Disable receive interrupts
   taskENTER_CRITICAL(spinlock);
@@ -744,17 +746,18 @@ bool dmx_driver_disable(dmx_port_t dmx_num) {
     dmx_uart_disable_interrupt(driver->uart, DMX_INTR_RX_ALL);
     dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
     driver->is_enabled = false;
-    success = true;
+    ret = ESP_OK;
   }
   taskEXIT_CRITICAL(spinlock);
 
-  return success;
+  return ret;
 }
 
-bool dmx_driver_enable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(!dmx_driver_is_enabled(dmx_num), false,
+esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
+            "driver is not installed");
+  DMX_CHECK(!dmx_driver_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already enabled");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -773,7 +776,7 @@ bool dmx_driver_enable(dmx_port_t dmx_num) {
   driver->is_enabled = true;
   taskEXIT_CRITICAL(spinlock);
 
-  return true;
+  return ESP_OK;
 }
 
 bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
