@@ -13,27 +13,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Returns true if the specified UID is a broadcast address. This
- * function only checks the device ID of the UID. It will return true when the 
- * device ID is broadcast including when the UID is invalid.
- * 
- * @param uid The UID to compare.
- * @return true if the UID is a broadcast address.
- * @return false if the UID is not a broadcast address.
- */
-bool uid_is_broadcast(rdm_uid_t uid);
-
-/**
- * @brief Returns true if the specified UID is addressed to the desired UID.
- * 
- * @param compare_uid The UID to check against a recipient UID.
- * @param recipient_uid The recipient UID.
- * @return true if the recipient UID is targeted by the comparison UID.
- * @return false if the recipient UID is not targeted by the comparison UID.
- */
-bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid);
-
-/**
  * @brief Helper function that takes an RDM UID from a most-significant-byte
  * first buffer and copies it to least-significant-byte first endianness, which
  * is what ESP32 uses.
@@ -54,11 +33,30 @@ static inline rdm_uid_t bswap48(const void *buf) {
   ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
-  ((uint8_t *)&val)[6] = 0;
-  ((uint8_t *)&val)[7] = 0;
-  // TODO: *(uint16_t *)&((&val)[3]) = 0;
+  *(uint16_t *)&((&val)[3]) = 0;
   return val;
 }
+
+/**
+ * @brief Returns true if the specified UID is a broadcast address. This
+ * function only checks the device ID of the UID. It will return true when the 
+ * device ID is broadcast including when the UID is invalid.
+ * 
+ * @param uid The UID to compare.
+ * @return true if the UID is a broadcast address.
+ * @return false if the UID is not a broadcast address.
+ */
+bool uid_is_broadcast(rdm_uid_t uid);
+
+/**
+ * @brief Returns true if the specified UID is addressed to the desired UID.
+ * 
+ * @param compare_uid The UID to check against a recipient UID.
+ * @param recipient_uid The recipient UID.
+ * @return true if the recipient UID is targeted by the comparison UID.
+ * @return false if the recipient UID is not targeted by the comparison UID.
+ */
+bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid);
 
 /**
  * @brief Helper function that converts an RDM UID stored as a 64-bit integer
