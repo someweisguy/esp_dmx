@@ -285,11 +285,11 @@ typedef struct rdm_header_t {
 
 // TODO: docs
 typedef struct rdm_mdb_t {
-  union {
     size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
+  union {
     size_t preamble_len;  // The preamble length is the number of preamble bytes (excluding the delimiter) in a DISC_UNIQUE_BRANCH response packet.
+    uint8_t pd[231];  // The parameter data (PD) is the data section of the packet. Its length is included in its PDL.
   };
-  uint8_t pd[231];  // The parameter data (PD) is the data section of the packet. Its length is included in its PDL.
 } rdm_mdb_t;
 
 

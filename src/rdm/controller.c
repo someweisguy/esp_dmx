@@ -122,9 +122,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
         if (mdb.pdl > 0) {
           if (decode && decode->function && decode->params && decode->num) {
             decoded = decode->function(&mdb, decode->params, decode->num);
-          } else if (req.cc != RDM_CC_DISC_COMMAND &&
-                     req.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-            // TODO: preamble_len should not be union'd with PDL
+          } else {
             ESP_LOGW(TAG, "received parameter data but decoder is null");
           }
         }
