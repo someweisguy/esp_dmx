@@ -25,7 +25,7 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   }
 
   // Check if there is space for callbacks
-  if (i >= 16) {  // TODO: replace 16 with macro configurable in menuconfig
+  if (i >= CONFIG_RDM_RESPONDER_MAX_PARAMETERS) {
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }

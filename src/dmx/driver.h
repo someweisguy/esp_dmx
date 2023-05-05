@@ -23,6 +23,10 @@
 extern "C" {
 #endif
 
+#ifndef CONFIG_RDM_RESPONDER_MAX_PARAMETERS
+#define CONFIG_RDM_RESPONDER_MAX_PARAMETERS 16
+#endif
+
 // Used for argument checking at the beginning of each function.
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
@@ -82,7 +86,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
       rdm_pid_t pid;
       rdm_response_cb_t cb;
       void *context;
-    } cbs[16];
+    } cbs[CONFIG_RDM_RESPONDER_MAX_PARAMETERS];
   } rdm;
 
   struct dmx_sniffer_t {

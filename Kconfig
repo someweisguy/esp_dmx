@@ -31,4 +31,12 @@ menu "DMX/RDM Configuration"
             significantly longer. This options should remain disabled unless
             changes are being made to the RDM API.
 
+    config RDM_RESPONDER_MAX_PARAMETERS
+        int "The maximum number of parameters that the RDM responder can support"
+        default 16
+        help
+            This is the maximum number of RDM parameters that the RDM driver
+            supports. Increasing this number increases the size of the RDM
+            driver.
+
 endmenu
