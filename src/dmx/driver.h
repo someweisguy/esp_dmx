@@ -10,7 +10,6 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "hal/uart_hal.h"
-#include "rdm/responder.h"
 #include "rdm/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5

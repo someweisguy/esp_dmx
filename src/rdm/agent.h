@@ -1,0 +1,90 @@
+#pragma once
+
+#include "esp_dmx.h"
+#include "rdm/types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Returns the 48 bit unique ID of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The UID of the DMX port.
+ */
+rdm_uid_t rdm_get_uid(dmx_port_t dmx_num);
+
+/**
+ * @brief Set the device UID to a custom value. Setting the UID to 0 will reset
+ * the UID to its default value.
+ *
+ * @param dmx_num The DMX port number.
+ * @param uid The custom value to which to set the device UID. Must be less than
+ * or equal to RDM_MAX_UID.
+ */
+void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
+
+/**
+ * @brief Returns true if RDM discovery responses are be muted on this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @return true if RDM discovery is muted.
+ * @return false if RDM discovery is not muted.
+ */
+bool rdm_is_muted(dmx_port_t dmx_num);
+
+// TODO: docs
+bool rdm_set_device_info(dmx_port_t dmx_num,
+                         const rdm_device_info_t *device_info);
+
+// TODO: docs
+bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                           rdm_response_cb_t callback, void *context);
+
+// TODO: docs
+bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
+
+// TODO: docs
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                 const rdm_mdb_t *mdb);
+
+/**
+ * @brief Sends an RDM controller request and processes the response. It is
+ * important for users to check the value of the ack argument to verify if a
+ * valid RDM response was received.
+ * - ack.err will evaluate to true if an error occurred during the sending or
+ * receiving of raw DMX data. RDM data will not be processed if an error
+ * occurred. If a response was expected but none was received, ack.err will
+ * evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be set
+ * to ESP_OK.
+ * - ack.type will evaluate to RDM_RESPONSE_TYPE_INVALID if an invalid response
+ * is received but does not necessarily indicate a DMX error occurred. If no
+ * response is received ack.type will be set to RDM_RESPONSE_TYPE_NONE whether
+ * or not a response was expected. Otherwise, ack.type will be set to the ack
+ * type received in the RDM response.
+ * The final parameter of ack is a union of num, nack_reason, and timer. If the
+ * received response type is RDM_RESPONSE_TYPE_ACK or
+ * RDM_RESPONSE_TYPE_ACK_OVERFLOW, ack.num should be read. If the response type
+ * is RDM_RESPONSE_TYPE_NACK_REASON, nack_reason should be read. If the response
+ * type is RDM_RESPONSE_TYPE_TIMER, timer should be read.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer to an rdm_header_t with information on where
+ * to address the RDM request. Upon receiving a response, this information is
+ * overwritten with information about the received RDM response.
+ * @param[in] encode A pointer to an rdm_encode_t which contains information
+ * about how to encode the MDB of the RDM request.
+ * @param[out] decode A pointer to an rdm_decode_t which contains information
+ * about how to decode the MDB of the RDM response.
+ * @param[out] ack A pointer to an rdm_ack_t which contains information about
+ * the received RDM response.
+ * @return The size of the received RDM packet or 0 if no packet was received.
+ */
+size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
+                const rdm_encode_t *encode, rdm_decode_t *decode,
+                rdm_ack_t *ack);
+
+#ifdef __cplusplus
+}
+#endif

@@ -1,4 +1,4 @@
-#include "read_write.h"
+#include "mdb.h"
 
 #include <stdint.h>
 
@@ -6,11 +6,6 @@
 #include "dmx/hal.h"
 #include "esp_dmx.h"
 #include "rdm/utils.h"
-
-static const char *TAG = "rdm_read_write";
-
-extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 /**
  * @brief A packed struct which can be used to help process RDM discovery mute
@@ -124,16 +119,25 @@ int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
 }
 
 size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num) {
+  // FIXME: this code doesn't work
+  // size_t encoded = 0;
+  // if (mdb && data) {
+  //   struct __attribute__((__packed__)) {
+  //     uint16_t manufacturer;
+  //     uint64_t device;
+  //   } *pd = (void *)mdb->pd;
+  //   const rdm_uid_t *param = data;
+  //   for (int i = 0; i < num && encoded < sizeof(mdb->pd); ++i) {
+  //     uidcpy(&(pd[i]), &(param[i]));
+  //     encoded += 6;  // Size of UID in bytes
+  //   }
+  // }
+  // mdb->pdl = encoded;
+  // return encoded;
   size_t encoded = 0;
-  if (mdb && data) {
-    struct __attribute__((__packed__)) {
-      uint16_t manufacturer;
-      uint64_t device;
-    } *pd = (void *)mdb->pd;
-    const rdm_uid_t *param = data;
-    for (int i = 0; i < num && encoded < sizeof(mdb->pd); ++i) {
-      uidcpy(&(pd[i]), &(param[i]));
-      encoded += 6;  // Size of UID in bytes
+  if (mdb && data && num) {
+    for (int i = 0; i < num; ++i, encoded += 6) {
+      uidcpy(mdb->pd + encoded, &(((rdm_uid_t *)data)[i]));
     }
   }
   mdb->pdl = encoded;

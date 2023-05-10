@@ -11,10 +11,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
-#include "rdm/controller.h"
-#include "rdm/parameters.h"
-#include "rdm/read_write.h"
-#include "rdm/types.h"
+#include "rdm/mdb.h"
 #include "rdm/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5

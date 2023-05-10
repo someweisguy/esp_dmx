@@ -308,6 +308,11 @@ typedef struct rdm_decode_t {
   int num;
 } rdm_decode_t;
 
+// TODO: docs
+typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
+                                                 const rdm_header_t *header,
+                                                 rdm_mdb_t *mdb, void *context);
+
 #ifdef __cplusplus
 }
 #endif
