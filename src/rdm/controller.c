@@ -138,7 +138,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
         err = ESP_ERR_NOT_SUPPORTED;  // TODO: implement overflow support
       }
     } else {
-      response_type = RDM_RESPONSE_TYPE_NONE;  // Report no response on errors
+      response_type = RDM_RESPONSE_TYPE_INVALID;
     }
 
     // Report the ACK back to the user

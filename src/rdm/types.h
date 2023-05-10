@@ -100,6 +100,7 @@ typedef enum rdm_cc_t {
  */
 typedef enum rdm_response_type_t {
   RDM_RESPONSE_TYPE_NONE = -1,           // Indicates that a response was not received.
+  RDM_RESPONSE_TYPE_INVALID = -2,        // Indicates that a response was received, but it was invalid.
 
   RDM_RESPONSE_TYPE_ACK = 0x00,          // Indicates that the responder has correctly received the controller message and is acting upon the message.
   RDM_RESPONSE_TYPE_ACK_TIMER = 0x01,    // Indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time.
