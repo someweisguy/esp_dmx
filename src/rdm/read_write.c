@@ -19,23 +19,47 @@ extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
  * bits.
  */
 typedef struct __attribute__((__packed__)) rdm_data_t {
-  uint8_t sc;                  // This field shall contain the defined RDM start code. Controllers and responders shall always send RDM_SC in this slot.
-  uint8_t sub_sc;              // This field shall contain the sub-start code within RDM that defines this packet structure. Unless specified in future version, the sub-start code shall be equal to RDM_SUB_SC.
-  uint8_t message_len;         // The message length value is defined as the number of slots int he RDM packet including the start code and excluding the checksum.
+  uint8_t
+      sc;  // This field shall contain the defined RDM start code. Controllers
+           // and responders shall always send RDM_SC in this slot.
+  uint8_t
+      sub_sc;  // This field shall contain the sub-start code within RDM that
+               // defines this packet structure. Unless specified in future
+               // version, the sub-start code shall be equal to RDM_SUB_SC.
+  uint8_t message_len;  // The message length value is defined as the number of
+                        // slots int he RDM packet including the start code and
+                        // excluding the checksum.
   uint8_t destination_uid[6];  // The UID of the target device(s).
   uint8_t source_uid[6];       // The UID of the device originating this packet.
-  uint8_t tn;                  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
+  uint8_t tn;  // The RDM transaction number. Controllers increment this field
+               // every time an RDM packet is transmitted. Responders set their
+               // transaction number to the transaction number of the packet to
+               // which they are responding.
   union {
-    uint8_t port_id;           // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
-    uint8_t response_type;     // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
+    uint8_t port_id;  // The port ID field shall be set in the range 1-255
+                      // identifying the controller port being used, such that
+                      // the combination of source UID and port ID will uniquely
+                      // identify the controller and port where the message
+                      // originated.
+    uint8_t response_type;  // The response type field is used in messages from
+                            // responders to indicate the acknowledgement type
+                            // of the response.
   };
-  uint8_t message_count;       // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
-  uint16_t sub_device;         // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
-  uint8_t cc;                  // The command class (CC) specifies the action of the message. 
-  uint16_t pid;                // The parameter ID (PID) identifies a specific type of parameter data.
-  uint8_t pdl;                 // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
+  uint8_t message_count;  // The message count field is used by a responder to
+                          // indicate that additional data is now available for
+                          // collection by a controller. The message count shall
+                          // be set to 0 in all controller generated requests.
+  uint16_t sub_device;    // Sub-devices should be used in devices containing a
+                          // repetitive number of similar modules, such as a
+                          // dimmer rack.
+  uint8_t cc;    // The command class (CC) specifies the action of the message.
+  uint16_t pid;  // The parameter ID (PID) identifies a specific type of
+                 // parameter data.
+  uint8_t pdl;   // The parameter data length (PDL) is the number of slots
+                 // included in the parameter data area that it precedes.
   struct {
-  } pd;                        // The parameter data (PD) is of variable length. The content format is PID dependent.
+  } pd;  // The parameter data (PD) is of variable length. The content format is
+         // PID dependent.
 } rdm_data_t;
 
 /**
@@ -160,7 +184,6 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   return checksum_is_valid;
 }
 
-
 size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
                  const rdm_mdb_t *mdb) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -265,64 +288,148 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
   return encoded;
 }
 
-size_t rdm_encode_16bit(void *pd, const void *data, int size) {
-  size_t pdl = 0;
-  if (data != NULL) {
-    uint16_t *const restrict ptr = pd;
-    const uint32_t *const restrict params = data;
-    for (int i = 0; i < size; ++i) {
-      ptr[i] = bswap16(params[i]);
+int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  if (mdb && mdb->pdl && data) {
+    const uint8_t *pd = (void *)mdb->pd;
+    uint8_t *param = data;
+    for (int i = 0; i < num && decoded * sizeof(uint8_t) < mdb->pdl; ++i) {
+      param[i] = pd[i];
+      ++decoded;
     }
-    pdl = size * sizeof(uint16_t);
-  }
-  return pdl;
-}
-
-int rdm_decode_string(const void *pd, void *data, int size) {
-  int decoded = 0;
-  if (data != NULL) {
-    char *restrict string = data;
-    memcpy(string, pd, size);
-    string[size] = 0;
-    decoded = size + 1;
   }
   return decoded;
 }
 
-int rdm_decode_device_info(const void *pd, void *data, int size) {
-  int decoded = 0;
-  if (data != NULL) {
-    const rdm_device_info_data_t *restrict ptr = pd;
-    rdm_device_info_t *const restrict device_info = data;
-    device_info->model_id = bswap16(ptr->model_id);
-    device_info->coarse_product_category = ptr->coarse_product_category;
-    device_info->fine_product_category = ptr->fine_product_category;
-    device_info->software_version_id = bswap32(ptr->software_version_id);
-    device_info->footprint = bswap16(ptr->footprint);
-    device_info->current_personality = ptr->current_personality;
-    device_info->personality_count = ptr->personality_count;
-    device_info->start_address =
-        ptr->start_address != 0xffff ? bswap16(ptr->start_address) : -1;
-    device_info->sub_device_count = bswap16(ptr->sub_device_count);
-    device_info->sensor_count = ptr->sensor_count;
-    decoded = 1;
+size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && data) {
+    uint8_t *pd = mdb->pd;
+    const uint8_t *param = data;
+    for (int i = 0; i < num && encoded < sizeof(mdb->pd); ++i) {
+      pd[i] = param[i];
+      encoded += sizeof(uint8_t);
+    }
   }
-  return decoded;
-}
-
-size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
-  const size_t encoded = rdm_encode_16bit(mdb->pd, &nack_reason, 1);
   mdb->pdl = encoded;
   return encoded;
 }
 
+int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  if (mdb && mdb->pdl && data) {
+    const uint16_t *pd = (void *)mdb->pd;
+    uint16_t *param = data;
+    for (int i = 0; i < num && decoded * sizeof(uint16_t) < mdb->pdl; ++i) {
+      param[i] = bswap16(pd[i]);
+    }
+  }
+  return decoded;
+}
+
+size_t rdm_encode_16bit(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && data) {
+    uint16_t *const pd = (void *)mdb->pd;
+    const uint16_t *const param = data;
+    for (int i = 0; i < num && encoded < sizeof(mdb->pd); ++i) {
+      pd[i] = bswap16(param[i]);
+      encoded += sizeof(uint16_t);
+    }
+  }
+  mdb->pdl = encoded;
+  return encoded;
+}
+
+// TODO: rdm_decode_32bit()
+
+// TODO: rdm_encode_32bit()
+
 int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
   int decoded = 0;
-  if (mdb != NULL && mdb->pd != NULL && data != NULL) {
-    for (int i = 0; decoded < num && i < mdb->pdl; i += 6) {
-        ((rdm_uid_t *)data)[decoded] = bswap48(mdb->pd + i);
-        ++decoded;
+  if (mdb && mdb->pdl && data) {
+    const struct __attribute__((__packed__)) {
+      uint16_t manufacturer;
+      uint64_t device;
+    } *pd = (void *)mdb->pd;
+    rdm_uid_t *param = data;
+    for (int i = 0; i < num && decoded * 6 < mdb->pdl; ++i) {
+      param[i] = bswap48(&pd[i]);
+      ++decoded;
     }
+  }
+  return decoded;
+}
+
+size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && data) {
+    struct __attribute__((__packed__)) {
+      uint16_t manufacturer;
+      uint64_t device;
+    } *pd = (void *)mdb->pd;
+    const rdm_uid_t *param = data;
+    for (int i = 0; i < num && encoded < sizeof(mdb->pd); ++i) {
+      uidcpy(&(pd[i]), &(param[i]));
+      encoded += 6;  // Size of UID in bytes
+    }
+  }
+  mdb->pdl = encoded;
+  return encoded;
+}
+
+// TODO: rdm_decode_64bit()
+
+// TODO: rdm_encode_64bit()
+
+int rdm_decode_string(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  if (mdb != NULL && data != NULL) {
+    char *restrict string = data;
+    memcpy(data, mdb->pd, num);
+    string[num] = 0;
+    decoded = num + 1;
+  }
+  return decoded;
+}
+
+size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num) {
+  size_t encoded = 0;
+  if (mdb && data) {
+    char *dest = (void *)mdb->pd;
+    const char *src = data;
+    while (encoded < num && encoded < 32) {
+      if (*src) {
+        *dest = *src;
+        ++encoded;
+        ++dest;
+        ++src;
+      } else {
+        break;  // Don't encode null terminators
+      }
+    }
+  }
+  mdb->pdl = encoded;
+  return encoded;
+}
+
+// TODO: rdm_decode_nack_reason()
+
+size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
+  return rdm_encode_16bit(mdb, &nack_reason, 1);
+}
+
+int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  if (mdb && mdb->pdl && data) {
+    const struct rdm_disc_mute_data_t *const pd = (void *)mdb->pd;
+    rdm_disc_mute_t *param = data;
+    param->managed_proxy = pd->managed_proxy;
+    param->sub_device = pd->sub_device;
+    param->boot_loader = pd->boot_loader;
+    param->proxied_device = pd->proxied_device;
+    param->binding_uid = mdb->pdl > 2 ? bswap48(pd->binding_uid) : 0;
+    decoded = 1;
   }
   return decoded;
 }
@@ -347,6 +454,27 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
   return encoded;
 }
 
+int rdm_decode_device_info(const rdm_mdb_t *mdb, void *data, int num) {
+  int decoded = 0;
+  if (mdb != NULL && data != NULL) {
+    const rdm_device_info_data_t *pd = (void *)mdb->pd;
+    rdm_device_info_t *const restrict param = data;
+    param->model_id = bswap16(pd->model_id);
+    param->coarse_product_category = pd->coarse_product_category;
+    param->fine_product_category = pd->fine_product_category;
+    param->software_version_id = bswap32(pd->software_version_id);
+    param->footprint = bswap16(pd->footprint);
+    param->current_personality = pd->current_personality;
+    param->personality_count = pd->personality_count;
+    param->start_address =
+        pd->start_address != 0xffff ? bswap16(pd->start_address) : -1;
+    param->sub_device_count = bswap16(pd->sub_device_count);
+    param->sensor_count = pd->sensor_count;
+    decoded = 1;
+  }
+  return decoded;
+}
+
 size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
   size_t encoded = 0;
   if (mdb && data) {
@@ -365,96 +493,6 @@ size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
     pd->sub_device_count = bswap16(param->sub_device_count);
     pd->sensor_count = param->sensor_count;
     encoded = sizeof(rdm_device_info_data_t);
-  }
-  mdb->pdl = encoded;
-  return encoded;
-}
-
-size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num) {
-  size_t encoded = 0;
-  if (mdb && data) {
-    char *dest = (void *)mdb->pd;
-    const char *src = data;
-    while (encoded < num && encoded < 32) {
-      if (*src) {
-        *dest = *src;
-        ++encoded;
-        ++dest;
-        ++src;
-      } else {
-        break;  // Don't encode null terminators
-      }
-    }
-  }
-  mdb->pdl = encoded;
-  return encoded;
-}
-
-size_t rdm_encode_8bit(rdm_mdb_t *mdb, const void *data, int num) {
-  size_t encoded = 0;
-  if (mdb && data) {
-    uint8_t *pd = mdb->pd;
-    const uint8_t *param = data;
-    for (int i = 0; i < num; ++i) {
-      // FIXME: ensure that the number of encoded bytes never exceeds 231
-      pd[i] = param[i];
-    }
-    encoded = num;
-  }
-  mdb->pdl = encoded;
-  return encoded;
-}
-
-int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num) {
-  int decoded = 0;
-  if (mdb && mdb->pdl && data) {
-    const uint8_t *pd = mdb->pd;
-    uint8_t *param = data;
-    for (int i = 0; i < num; ++i) {
-      param[i] = pd[i];
-    }
-    decoded = num;
-  }
-  return decoded;
-}
-
-int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num) {
-  int decoded = 0;
-  if (mdb && mdb->pdl && data) {
-    const uint16_t *pd = (void *)mdb->pd;
-    uint16_t *params = data;
-    if (num > 231 / sizeof(uint16_t)) {
-      num = 231 / sizeof(uint16_t);
-    }
-    for (int i = 0, j = 0; i < num && j < mdb->pdl;
-         ++i, j += sizeof(uint16_t)) {
-      params[i] = bswap16(pd[i]);
-    }
-  }
-  return decoded;
-}
-
-int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num) {
-  int decoded = 0;
-  if (mdb && mdb->pdl && data) {
-    const struct rdm_disc_mute_data_t *const pd = (void *)mdb->pd;
-    rdm_disc_mute_t *param = data;
-    param->managed_proxy = pd->managed_proxy;
-    param->sub_device = pd->sub_device;
-    param->boot_loader = pd->boot_loader;
-    param->proxied_device = pd->proxied_device;
-    param->binding_uid = mdb->pdl > 2 ? bswap48(pd->binding_uid) : 0;
-    decoded = 1;
-  }
-  return decoded;
-}
-
-size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num) {
-  size_t encoded = 0;
-  if (mdb && data && num) {
-    for (int i = 0; i < num; ++i, encoded += 6) {
-      uidcpy(mdb->pd + encoded, &(((rdm_uid_t *)data)[i]));
-    }
   }
   mdb->pdl = encoded;
   return encoded;
