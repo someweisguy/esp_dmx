@@ -404,7 +404,7 @@ static int rdm_disc_unique_branch(dmx_port_t dmx_num,
   }
 
   // Ignore this message if discovery is muted
-  if (dmx_driver[dmx_num]->rdm.discovery_is_muted) {
+  if (rdm_is_muted(dmx_num)) {
     return RDM_RESPONSE_TYPE_NONE;
   }
 
