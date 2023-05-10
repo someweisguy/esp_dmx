@@ -119,25 +119,12 @@ int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
 }
 
 size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num) {
-  // FIXME: this code doesn't work
-  // size_t encoded = 0;
-  // if (mdb && data) {
-  //   struct __attribute__((__packed__)) {
-  //     uint16_t manufacturer;
-  //     uint64_t device;
-  //   } *pd = (void *)mdb->pd;
-  //   const rdm_uid_t *param = data;
-  //   for (int i = 0; i < num && encoded < sizeof(mdb->pd); ++i) {
-  //     uidcpy(&(pd[i]), &(param[i]));
-  //     encoded += 6;  // Size of UID in bytes
-  //   }
-  // }
-  // mdb->pdl = encoded;
-  // return encoded;
   size_t encoded = 0;
-  if (mdb && data && num) {
-    for (int i = 0; i < num; ++i, encoded += 6) {
-      uidcpy(mdb->pd + encoded, &(((rdm_uid_t *)data)[i]));
+  if (mdb && data) {
+    const rdm_uid_t *param = data;
+    for (int i = 0; i < num && encoded < sizeof(mdb->pd); ++i) {
+      uidcpy(&(mdb->pd[encoded]), &(param[i]));
+      encoded += 6;  // Size of UID in bytes
     }
   }
   mdb->pdl = encoded;
