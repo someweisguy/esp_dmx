@@ -21,6 +21,13 @@ typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
                                  size_t device_num,
                                  rdm_disc_mute_t *mute_params, void *context);
 
+// TODO: docs
+bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
+
+// TODO: docs
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                 const rdm_mdb_t *mdb);
+
 /**
  * @brief Sends an RDM controller request and processes the response. It is
  * important for users to check the value of the ack argument to verify if a

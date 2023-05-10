@@ -12,13 +12,6 @@ extern "C" {
 #endif
 
 // TODO: docs
-bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
-
-// TODO: docs
-size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
-                 const rdm_mdb_t *mdb);
-
-// TODO: docs
 int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num);
 
 // TODO: docs
