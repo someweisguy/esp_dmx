@@ -1,3 +1,11 @@
+/**
+ * @file utils.h
+ * @author Mitch Weisbrod
+ * @brief This file contains some functions that can be helpful when performing
+ * advanced operations on RDM packets. It is used throughout this library, but
+ * is not included by default in esp_dmx.h. It may be manually included by the 
+ * user when it is needed.
+ */
 #pragma once
 
 #include <stdbool.h>
