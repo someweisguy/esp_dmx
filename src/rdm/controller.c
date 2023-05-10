@@ -83,9 +83,9 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   dmx_wait_sent(dmx_num, portMAX_DELAY);
 
   // Send the request and await the response
-  size_t write_size = rdm_write(dmx_num, header, &mdb);
+  const size_t write_size = rdm_write(dmx_num, header, &mdb);
   dmx_send(dmx_num, write_size);
-  dmx_packet_t packet = {};
+  dmx_packet_t packet = {};  // Initialize values to 0
   if (!uid_is_broadcast(header->dest_uid) ||
       (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
        header->cc == RDM_CC_DISC_COMMAND)) {
@@ -94,31 +94,28 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
 
   // Process the response data
   if (packet.size > 0) {
-    esp_err_t err;
-    const rdm_header_t req = *header;
-    if (!rdm_read(dmx_num, header, &mdb)) {
-      err = ESP_ERR_INVALID_RESPONSE;  // Checksum is invalid
-    } else if (header->response_type != RDM_RESPONSE_TYPE_ACK &&
-               header->response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-               header->response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
-               header->response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-      err = ESP_ERR_INVALID_RESPONSE;  // Response type is invalid
-    } else if (!(req.cc == RDM_CC_DISC_COMMAND &&
-                 req.pid == RDM_PID_DISC_UNIQUE_BRANCH) &&
-               (req.cc != (header->cc - 1) || req.pid != header->pid ||
-                req.tn != header->tn || req.src_uid != header->dest_uid ||
-                req.dest_uid != header->src_uid)) {
-      err = ESP_ERR_INVALID_RESPONSE;
-    } else {
-      err = ESP_OK;
-    }
-
     uint32_t decoded = 0;
+    const rdm_header_t req = *header;
     rdm_response_type_t response_type;
-    if (!err) {
+    if (packet.err || !rdm_read(dmx_num, header, &mdb)) {
+      response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
+    } else {
+      // Decode the response type
       response_type = header->response_type;
+      if (response_type < RDM_RESPONSE_TYPE_ACK ||
+          response_type > RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+        response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response type
+      } else if (!(req.cc == RDM_CC_DISC_COMMAND &&
+                   req.pid == RDM_PID_DISC_UNIQUE_BRANCH) &&
+                 (req.cc != (header->cc - 1) || req.pid != header->pid ||
+                  req.tn != header->tn || req.src_uid != header->dest_uid ||
+                  req.dest_uid != header->src_uid)) {
+        response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid packet format
+      }
+
+      // Handle the response based on the response type
       if (response_type == RDM_RESPONSE_TYPE_ACK) {
-        // Decode the parameter data if requested
+        // Decode the MDB if there is parameter data
         if (mdb.pdl > 0) {
           if (decode && decode->function && decode->params && decode->num) {
             decoded = decode->function(&mdb, decode->params, decode->num);
@@ -133,25 +130,22 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
       } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
         // Get the reported NACK reason
         rdm_decode_16bit(&mdb, &decoded, 1);
-      } else {
+      } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
         // Received RDM_RESPONSE_TYPE_ACK_OVERFLOW
-        err = ESP_ERR_NOT_SUPPORTED;  // TODO: implement overflow support
+        packet.err = ESP_ERR_NOT_SUPPORTED;  // TODO: implement overflow support
       }
-    } else {
-      response_type = RDM_RESPONSE_TYPE_INVALID;
     }
 
     // Report the ACK back to the user
     if (ack != NULL) {
-      ack->err = err;
+      ack->err = packet.err;
       ack->type = response_type;
       ack->num = decoded;
     }
-
   } else {
     // Wait for request to finish sending if no response is expected
     if (ack != NULL) {
-      ack->err = ESP_OK;
+      ack->err = packet.err;
       ack->type = RDM_RESPONSE_TYPE_NONE;
       ack->num = 0;
     }
