@@ -101,7 +101,6 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   } else {
     // Decode checksum from encoded DISC_UNIQUE_BRANCH response
     preamble_len = get_preamble_len(driver->data.buffer);
-    // FIXME: rdm is invalid if preamble_len is >7
     const uint8_t *d = &driver->data.buffer[preamble_len + 1];
     for (int i = 0; i < 12; ++i) {
       sum += d[i];
@@ -333,7 +332,7 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
   if (mdb && data && num) {
     struct rdm_disc_mute_data_t *pd = (void *)mdb->pd;
     const rdm_disc_mute_t *param = data;
-    pd->control_field = 0;  // TODO: Make the bit field more efficient?
+    pd->control_field = 0;  // Zero out bits 4 through 15
     pd->managed_proxy = param->managed_proxy;
     pd->sub_device = param->sub_device;
     pd->boot_loader = param->boot_loader;
