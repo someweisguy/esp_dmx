@@ -5,8 +5,8 @@
  * needed for installing the DMX driver and sending or receiving DMX data. It is
  * possible to implement RDM using the functions found in this header file
  * alone. However, RDM can be complex to users who aren't familiar with the
- * standard. Functions found in esp_rdm.h can be used to simplify basic RDM
- * tasks.
+ * standard. Functions found in rdm/agent.h and rdm/requests.h can be used to
+ * simplify basic RDM tasks.
  */
 #pragma once
 

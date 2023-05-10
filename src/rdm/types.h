@@ -1,5 +1,5 @@
 /**
- * @file rdm_constants.h
+ * @file types.h
  * @author Mitch Weisbrod
  * @brief This file contains constants used in RDM.
  */

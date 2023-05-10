@@ -1,3 +1,9 @@
+/**
+ * @file requests.h
+ * @author Mitch Weisbrod
+ * @brief This file contains functions needed to send requests to RDM
+ * responders.
+ */
 #pragma once
 
 #include <stdint.h>

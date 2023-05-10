@@ -1,5 +1,5 @@
 /**
- * @file dmx_hal.h
+ * @file hal.h
  * @author Mitch Weisbrod
  * @brief This file is the Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the ESP32 UART

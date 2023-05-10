@@ -1,5 +1,5 @@
 /**
- * @file dmx_constants.h
+ * @file types.h
  * @author Mitch Weisbrod
  * @brief This file contains constants used in DMX and RDM. It also contains
  * macros for checking DMX and RDM timing constraints.

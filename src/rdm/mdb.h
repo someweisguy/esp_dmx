@@ -1,3 +1,9 @@
+/**
+ * @file mdb.h
+ * @author Mitch Weisbrod
+ * @brief This file contains functions used for encoded and decoding symbols in
+ * an RDM packet's message data block (MDB).
+ */
 #pragma once
 
 #include <stdint.h>

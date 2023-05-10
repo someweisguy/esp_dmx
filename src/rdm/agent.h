@@ -1,3 +1,10 @@
+/**
+ * @file agent.h
+ * @author Mitch Weisbrod
+ * @brief This file contains functions needed to perform necessary RDM
+ * operations, such as reading, writing, sending, and registering responder
+ * callbacks.
+ */
 #pragma once
 
 #include "esp_dmx.h"
