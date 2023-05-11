@@ -42,8 +42,8 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
 bool rdm_is_muted(dmx_port_t dmx_num);
 
 // TODO: docs
-bool rdm_set_device_info(dmx_port_t dmx_num,
-                         const rdm_device_info_t *device_info);
+bool rdm_update_device_info(dmx_port_t dmx_num,
+                            const rdm_device_info_t *device_info);
 
 // TODO: docs
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,

@@ -96,8 +96,8 @@ bool rdm_is_muted(dmx_port_t dmx_num) {
   return is_muted;
 }
 
-bool rdm_set_device_info(dmx_port_t dmx_num,
-                         const rdm_device_info_t *device_info) {
+bool rdm_update_device_info(dmx_port_t dmx_num,
+                            const rdm_device_info_t *device_info) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   DMX_CHECK(device_info != NULL, false, "device_info is null");
