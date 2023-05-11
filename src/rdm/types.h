@@ -30,7 +30,7 @@ typedef uint16_t rdm_sub_device_t;
  * long as it is used responsibly) or may choose to register their own
  * manufacturer ID.
  */
-#define RDM_DEFAULT_MAN_ID (0x05e0)
+#define RDM_MAN_ID_DEFAULT (0x05e0)
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 /**
@@ -59,24 +59,24 @@ typedef uint16_t rdm_sub_device_t;
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
  * messages.
  */
-static const rdm_uid_t RDM_BROADCAST_ALL_UID = 0xffffffffffff;
+static const rdm_uid_t RDM_UID_BROADCAST_ALL = 0xffffffffffff;
 
 /**
  * @brief The maximum RDM UID possible. Any UID above this value (except
  * RDM_BROADCAST_ALL_UID) is considered invalid.
  */
-static const rdm_uid_t RDM_MAX_UID = 0xfffffffffffe;
+static const rdm_uid_t RDM_UID_MAX = 0xfffffffffffe;
 
 /**
  * @brief Sub-device which respresents the root of a RDM device.
  */
-static const rdm_sub_device_t RDM_ROOT_DEVICE = 0;
+static const rdm_sub_device_t RDM_SUB_DEVICE_ROOT = 0;
 
 /**
  * @brief The RDM sub-device number which can be used to address all sub-devices
  * of an RDM device in a request.
  */
-static const rdm_sub_device_t RDM_ALL_SUB_DEVICES = 0xffff;
+static const rdm_sub_device_t RDM_SUB_DEVICE_ALL = 0xffff;
 
 /**
  * @brief The RDM command class (CC) type. The command class specifies the
@@ -286,7 +286,7 @@ typedef struct rdm_header_t {
 
 // TODO: docs
 typedef struct rdm_mdb_t {
-    size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
+  size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
   union {
     size_t preamble_len;  // The preamble length is the number of preamble bytes (excluding the delimiter) in a DISC_UNIQUE_BRANCH response packet.
     uint8_t pd[231];  // The parameter data (PD) is the data section of the packet. Its length is included in its PDL.

@@ -1287,7 +1287,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         header.dest_uid = header.src_uid;
         header.src_uid = my_uid;
         header.cc |= 0x1;
-        header.sub_device = RDM_ROOT_DEVICE;
+        header.sub_device = RDM_SUB_DEVICE_ROOT;
         header.message_count = 0;  // TODO: update message_count
 
         // Ensure the response type is correct

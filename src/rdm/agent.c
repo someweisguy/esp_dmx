@@ -60,7 +60,7 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
     } mac;
     esp_efuse_mac_get_default((void *)&mac);
     driver->rdm.uid = (bswap32(mac.device) + dmx_num) & 0xffffffff;
-    driver->rdm.uid |= (rdm_uid_t)RDM_DEFAULT_MAN_ID << 32;
+    driver->rdm.uid |= (rdm_uid_t)RDM_MAN_ID_DEFAULT << 32;
   }
   rdm_uid_t uid = driver->rdm.uid;
   taskEXIT_CRITICAL(spinlock);
@@ -71,7 +71,7 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
 void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  DMX_CHECK(uid <= RDM_MAX_UID, , "uid error");
+  DMX_CHECK(uid <= RDM_UID_MAX, , "uid error");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -344,7 +344,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
 
   // Validate required header information
   if (header->dest_uid == 0 ||
-      (header->dest_uid > RDM_MAX_UID && !uid_is_broadcast(header->dest_uid))) {
+      (header->dest_uid > RDM_UID_MAX && !uid_is_broadcast(header->dest_uid))) {
     ESP_LOGE(TAG, "dest_uid is invalid");
     return 0;
   }
@@ -357,17 +357,17 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
     ESP_LOGE(TAG, "pid is invalid");
     return 0;
   }
-  if (header->sub_device > 512 && header->sub_device != RDM_ALL_SUB_DEVICES) {
+  if (header->sub_device > 512 && header->sub_device != RDM_SUB_DEVICE_ALL) {
     ESP_LOGE(TAG, "sub_device is invalid");
     return 0;
-  } else if (header->sub_device == RDM_ALL_SUB_DEVICES &&
+  } else if (header->sub_device == RDM_SUB_DEVICE_ALL &&
              header->cc == RDM_CC_GET_COMMAND) {
-    ESP_LOGE(TAG, "cannot send RDM_CC_GET_COMMAND to RDM_ALL_SUB_DEVICES");
+    ESP_LOGE(TAG, "cannot send RDM_CC_GET_COMMAND to RDM_SUB_DEVICE_ALL");
     return 0;
   }
 
   // Validate header values that the user doesn't need to include
-  if (header->src_uid > RDM_MAX_UID || uid_is_broadcast(header->src_uid)) {
+  if (header->src_uid > RDM_UID_MAX || uid_is_broadcast(header->src_uid)) {
     ESP_LOGE(TAG, "src_uid is invalid");
     return 0;
   } else if (header->src_uid == 0) {

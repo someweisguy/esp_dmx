@@ -17,8 +17,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(param != NULL, 0, "param is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  header->dest_uid = RDM_BROADCAST_ALL_UID;
-  header->sub_device = RDM_ROOT_DEVICE;
+  header->dest_uid = RDM_UID_BROADCAST_ALL;
+  header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
   header->src_uid = rdm_get_uid(dmx_num);
@@ -91,7 +91,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   // Initialize the stack with the initial branch instruction
   size_t stack_size = 1;
   stack[0].lower_bound = 0;
-  stack[0].upper_bound = RDM_MAX_UID;
+  stack[0].upper_bound = RDM_UID_MAX;
 
   rdm_header_t header;   // Send and receive header information.
   rdm_disc_mute_t mute;  // Mute parameters returned from devices.
@@ -102,7 +102,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Un-mute all devices
-  header.dest_uid = RDM_BROADCAST_ALL_UID;
+  header.dest_uid = RDM_UID_BROADCAST_ALL;
   header.sub_device = 0;
   rdm_send_disc_un_mute(dmx_num, &header, NULL, NULL);
 
@@ -171,7 +171,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
             // Check if there are more devices in this branch
             attempts = 0;
             do {
-              header.dest_uid = RDM_BROADCAST_ALL_UID;
+              header.dest_uid = RDM_UID_BROADCAST_ALL;
               rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
           } while (ack.type == RDM_RESPONSE_TYPE_ACK);
