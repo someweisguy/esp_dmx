@@ -79,6 +79,31 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
                                    const size_t size);
 
+// TODO: docs
+size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
+                           rdm_ack_t *ack, rdm_device_info_t *param);
+
+// TODO: docs
+size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
+                                      rdm_ack_t *ack, char *sw_version_label,
+                                      size_t size);
+
+// TODO: docs
+size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                               rdm_ack_t *ack, bool *identify);
+
+// TODO: docs
+size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                               bool identify, rdm_ack_t *ack);
+
+// TODO: docs
+size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                 rdm_ack_t *ack, int *start_address);
+
+// TODO: docs
+size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                 int start_address, rdm_ack_t *ack);
+
 #ifdef __cplusplus
 }
 #endif
