@@ -1027,7 +1027,6 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // FIXME: fail if size is too large
   // Clamp size to the maximum DMX packet size or fail quickly on invalid size
   if (size > DMX_MAX_PACKET_SIZE) {
     size = DMX_MAX_PACKET_SIZE;
@@ -1249,14 +1248,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                                        (RDM_SC | (RDM_SUB_SC << 8))) ||
              (packet_size >= 17 && (driver->data.buffer[0] == RDM_PREAMBLE ||
                                     driver->data.buffer[0] == RDM_DELIMITER));
-    if (is_rdm) {
-      // FIXME: don't need to call rdm_read() until we are certain that this is a 
-      // request
+    const bool is_request = (driver->data.buffer[20] & 1) == 0;
+    if (is_rdm && is_request) {
       is_rdm = rdm_read(dmx_num, &header, &mdb);
     }
     taskEXIT_CRITICAL(spinlock);
 
-    const bool is_request = (header.cc & 0x1) == 0;
     if (is_rdm && is_request) {
 
       /* TODO: packet format check?
