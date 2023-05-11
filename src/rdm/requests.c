@@ -313,3 +313,46 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   return rdm_send(dmx_num, header, &encode, NULL, ack);
 }
+
+size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                 rdm_ack_t *ack, int *start_address) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(start_address != NULL, 0, "start_address is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  header->cc = RDM_CC_GET_COMMAND;
+  header->pid = RDM_PID_DMX_START_ADDRESS;
+  header->src_uid = rdm_get_uid(dmx_num);
+  header->port_id = dmx_num + 1;
+
+  rdm_decode_t decode = {
+      .function = rdm_decode_16bit,
+      .params = start_address,
+      .num = 1,
+  };
+
+  return rdm_send(dmx_num, header, NULL, &decode, ack);
+}
+
+size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                 int start_address, rdm_ack_t *ack) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(start_address > 0 && start_address < 513, 0,
+            "start_address is invalid");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  header->cc = RDM_CC_SET_COMMAND;
+  header->pid = RDM_PID_DMX_START_ADDRESS;
+  header->src_uid = rdm_get_uid(dmx_num);
+  header->port_id = dmx_num + 1;
+
+  rdm_encode_t encode = {
+      .function = rdm_encode_16bit,
+      .params = &start_address,
+      .num = 1,
+  };
+
+  return rdm_send(dmx_num, header, &encode, NULL, ack);
+}

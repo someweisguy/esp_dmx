@@ -79,6 +79,7 @@ int rdm_decode_16bit(const rdm_mdb_t *mdb, void *data, int num) {
     uint16_t *param = data;
     for (int i = 0; i < num && decoded * sizeof(uint16_t) < mdb->pdl; ++i) {
       param[i] = bswap16(pd[i]);
+      ++decoded;
     }
   }
   return decoded;
