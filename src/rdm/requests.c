@@ -23,14 +23,10 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
   header->src_uid = rdm_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
-  
-  
+
   const rdm_encode_t encode = {
-    .function = rdm_encode_uids,
-    .params = param,
-    .num = 2
-  };
-  
+      .function = rdm_encode_uids, .params = param, .num = 2};
+
   return rdm_send(dmx_num, header, &encode, NULL, ack);
 }
 
@@ -44,13 +40,13 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DISC_MUTE;
   header->src_uid = rdm_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
-  
+
   rdm_decode_t decode = {
-    .function = rdm_decode_mute,
-    .params = param,
-    .num = 1,
+      .function = rdm_decode_mute,
+      .params = param,
+      .num = 1,
   };
-  
+
   return rdm_send(dmx_num, header, NULL, &decode, ack);
 }
 
@@ -64,18 +60,18 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DISC_UN_MUTE;
   header->src_uid = rdm_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
-  
+
   rdm_decode_t decode = {
-    .function = rdm_decode_mute,
-    .params = param,
-    .num = 1,
+      .function = rdm_decode_mute,
+      .params = param,
+      .num = 1,
   };
-  
+
   return rdm_send(dmx_num, header, NULL, &decode, ack);
 }
 
-size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
-                                  void *context) {
+int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
+                               void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(cb != NULL, 0, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -100,7 +96,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   rdm_header_t header;   // Send and receive header information.
   rdm_disc_mute_t mute;  // Mute parameters returned from devices.
   rdm_ack_t ack;         // Request response information.
-  size_t num_found = 0;
+  int num_found = 0;
 
   dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
@@ -123,7 +119,7 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
         header.dest_uid = branch->lower_bound;
         rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
       } while (ack.type != RDM_RESPONSE_TYPE_ACK && ++attempts < 3);
-      
+
       // TODO: remove this workaround?
       // Attempt to fix possible error where responder is flipping its own UID
       if (ack.type != RDM_RESPONSE_TYPE_ACK) {
@@ -148,9 +144,9 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 #ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
         /*
         Stop the RDM controller from branching all the way down to the
-        individual address if it is not necessary. When debugging, this code 
-        should not be called as it can hide bugs in the discovery algorithm. 
-        Users can use the sdkconfig to enable or disable discovery debugging if 
+        individual address if it is not necessary. When debugging, this code
+        should not be called as it can hide bugs in the discovery algorithm.
+        Users can use the sdkconfig to enable or disable discovery debugging if
         it is desired, but it isn't necessary unless the user makes changes to
         this function.
         */
@@ -223,13 +219,13 @@ static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
   }
 }
 
-size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
-                                   const size_t size) {
+int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
+                                const size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   struct rdm_disc_default_ctx context = {.size = size, .uids = uids};
-  size_t found = rdm_discover_with_callback(dmx_num, &rdm_disc_cb, &context);
+  int found = rdm_discover_with_callback(dmx_num, &rdm_disc_cb, &context);
 
   return found;
 }

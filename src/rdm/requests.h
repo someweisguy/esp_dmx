@@ -58,7 +58,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
  * new device is found.
  * @return The number of devices found.
  */
-size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
+int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
                                   void *context);
 
 /**
@@ -74,9 +74,9 @@ size_t rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
  * @param dmx_num The DMX port number.
  * @param[out] uids An array of UIDs used to store found device UIDs.
  * @param size The size of the provided UID array.
- * @return The number of devices found. // TODO: return int, not size_t
+ * @return The number of devices found.
  */
-size_t rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
+int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
                                    const size_t size);
 
 // TODO: docs
