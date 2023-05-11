@@ -59,7 +59,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
  * @return The number of devices found.
  */
 int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
-                                  void *context);
+                               void *context);
 
 /**
  * @brief Performes the RDM device discovery algorithm with a default callback
@@ -77,7 +77,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
  * @return The number of devices found.
  */
 int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
-                                   const size_t size);
+                                const size_t size);
 
 // TODO: docs
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
