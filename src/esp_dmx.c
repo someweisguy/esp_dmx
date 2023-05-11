@@ -1239,7 +1239,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Handle RDM responses
   bool is_rdm = false;
   if (packet_size > 0) {
-    // TODO: make this its own function
     rdm_header_t header;
     rdm_mdb_t mdb;
     taskENTER_CRITICAL(spinlock);
@@ -1285,25 +1284,25 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         header.src_uid = my_uid;
         header.cc |= 0x1;
         header.sub_device = RDM_SUB_DEVICE_ROOT;
-        header.message_count = 0;  // TODO: update message_count
+        // TODO: update message_count (when ACK_OVERFLOW is supported)
+        header.message_count = 0;
 
         // Ensure the response type is correct
         if (header.cc == RDM_CC_DISC_COMMAND_RESPONSE) {
           if (response_type != RDM_RESPONSE_TYPE_ACK &&
               response_type != RDM_RESPONSE_TYPE_NONE) {
             response_type = RDM_RESPONSE_TYPE_NONE;
-            ESP_LOGE(TAG, "invalid response type1");  // TODO: better logging
+            // Do not send a NACK
+            ESP_LOGE(TAG, "invalid response type");
           }
         } else {
           if (!cb_found) {
             rdm_encode_nack_reason(&mdb, RDM_NR_UNKNOWN_PID);
-          } else if (response_type != RDM_RESPONSE_TYPE_ACK &&
-                     response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-                     response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
-                     response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+          } else if (response_type < RDM_RESPONSE_TYPE_ACK ||
+                     response_type > RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
             rdm_encode_nack_reason(&mdb, RDM_NR_HARDWARE_FAULT);
             response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-            ESP_LOGW(TAG, "invalid response type2");  // TODO: better logging
+            ESP_LOGW(TAG, "invalid response type");
           }
         }
 
