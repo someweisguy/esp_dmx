@@ -62,8 +62,8 @@ typedef uint16_t rdm_sub_device_t;
 static const rdm_uid_t RDM_UID_BROADCAST_ALL = 0xffffffffffff;
 
 /**
- * @brief The maximum RDM UID possible. Any UID above this value (except
- * RDM_BROADCAST_ALL_UID) is considered invalid.
+ * @brief The maximum RDM UID possible. Any UID above this value (except for a 
+ * broadcast UID) is considered invalid.
  */
 static const rdm_uid_t RDM_UID_MAX = 0xfffffffffffe;
 
