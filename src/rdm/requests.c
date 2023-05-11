@@ -234,6 +234,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
                            rdm_ack_t *ack, rdm_device_info_t *param) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(param != NULL, 0, "param is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   header->cc = RDM_CC_GET_COMMAND;
@@ -245,6 +246,28 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
       .function = rdm_decode_device_info,
       .params = param,
       .num = 1,
+  };
+
+  return rdm_send(dmx_num, header, NULL, &decode, ack);
+}
+
+size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
+                                      rdm_ack_t *ack, char *param,
+                                      size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(param != NULL, 0, "param is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  header->cc = RDM_CC_GET_COMMAND;
+  header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
+  header->src_uid = rdm_get_uid(dmx_num);
+  header->port_id = dmx_num + 1;
+
+  rdm_decode_t decode = {
+      .function = rdm_decode_string,
+      .params = param,
+      .num = size
   };
 
   return rdm_send(dmx_num, header, NULL, &decode, ack);

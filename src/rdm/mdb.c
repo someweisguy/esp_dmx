@@ -140,18 +140,18 @@ int rdm_decode_string(const rdm_mdb_t *mdb, void *data, int num) {
   if (mdb && mdb->pdl && data) {
     const char *src = (void *)mdb->pd;
     char *dest = data;
-    while (decoded < num && decoded < sizeof(mdb->pd)) {
+    while (decoded < num && decoded < mdb->pdl) {
       if (*src) {
         *dest = *src;
         ++decoded;
         ++dest;
         ++src;
       } else {
-        *dest = 0;  // Encode null terminator
-        ++decoded;
         break;
       }
     }
+    *dest = 0;  // Encode null terminator
+    ++decoded;
   }
   return decoded;
 }
