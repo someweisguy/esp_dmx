@@ -78,7 +78,14 @@ bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid);
  */
 void *uidcpy(void *dest, const rdm_uid_t *uid);
 
-// TODO: docs
+/**
+ * @brief Get the preamble length of a DISC_UNIQUE_BRANCH response. A
+ * DISC_UNIQUE_BRANCH response contains a preamble of between 0 and 7
+ * (inclusive) preamble bytes and one delimiter byte.
+ *
+ * @param data A pointer to a buffer containing a DISC_UNIQUE_BRANCH response.
+ * @return The number of preamble bytes in the buffer.
+ */
 size_t get_preamble_len(const void *data);
 
 #ifdef __cplusplus
