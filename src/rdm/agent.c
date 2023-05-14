@@ -44,7 +44,7 @@ typedef struct __attribute__((__packed__)) rdm_raw_t {
   } pd;  // The RDM parameter data. It can be variable length.
 } rdm_raw_t;
 
-rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
+rdm_uid_t rdm_driver_get_uid(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -68,7 +68,7 @@ rdm_uid_t rdm_get_uid(dmx_port_t dmx_num) {
   return uid;
 }
 
-void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
+void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
   DMX_CHECK(uid <= RDM_UID_MAX, , "uid error");
@@ -81,7 +81,7 @@ void rdm_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   taskEXIT_CRITICAL(spinlock);
 }
 
-bool rdm_is_muted(dmx_port_t dmx_num) {
+bool rdm_driver_is_muted(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -371,7 +371,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
     ESP_LOGE(TAG, "src_uid is invalid");
     return 0;
   } else if (header->src_uid == 0) {
-    header->src_uid = rdm_get_uid(dmx_num);
+    header->src_uid = rdm_driver_get_uid(dmx_num);
   }
   if (header->port_id < 0 || header->port_id > 255) {
     ESP_LOGE(TAG, "port_id is invalid");

@@ -21,7 +21,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   const rdm_encode_t encode = {
@@ -38,7 +38,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_MUTE;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -58,7 +58,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UN_MUTE;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -239,7 +239,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_DEVICE_INFO;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -261,7 +261,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -282,7 +282,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_IDENTIFY_DEVICE;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -302,7 +302,7 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_IDENTIFY_DEVICE;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_encode_t encode = {
@@ -323,7 +323,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_DMX_START_ADDRESS;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -345,7 +345,7 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_DMX_START_ADDRESS;
-  header->src_uid = rdm_get_uid(dmx_num);
+  header->src_uid = rdm_driver_get_uid(dmx_num);
   header->port_id = dmx_num + 1;
 
   rdm_encode_t encode = {

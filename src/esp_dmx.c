@@ -199,7 +199,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else {
             packet_type = RDM_PACKET_TYPE_RESPONSE;
           }
-          if (uid_is_recipient(dest_uid, rdm_get_uid(driver->dmx_num))) {
+          if (uid_is_recipient(dest_uid, rdm_driver_get_uid(driver->dmx_num))) {
             // TODO: packet is addressed to me
           }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
@@ -401,7 +401,7 @@ static int rdm_disc_unique_branch(dmx_port_t dmx_num,
   }
 
   // Ignore this message if discovery is muted
-  if (rdm_is_muted(dmx_num)) {
+  if (rdm_driver_is_muted(dmx_num)) {
     return RDM_RESPONSE_TYPE_NONE;
   }
 
@@ -410,7 +410,7 @@ static int rdm_disc_unique_branch(dmx_port_t dmx_num,
   rdm_decode_uids(mdb, &branch, 2);
 
   // Respond if the device UID is between the branch bounds
-  const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
+  const rdm_uid_t my_uid = rdm_driver_get_uid(dmx_num);
   if (my_uid >= branch.lower_bound && my_uid <= branch.upper_bound) {
     mdb->preamble_len = 7;
     return RDM_RESPONSE_TYPE_ACK;
@@ -1266,7 +1266,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       */
 
       rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
-      const rdm_uid_t my_uid = rdm_get_uid(dmx_num);
+      const rdm_uid_t my_uid = rdm_driver_get_uid(dmx_num);
       if (uid_is_recipient(header.dest_uid, my_uid)) {
         bool cb_found = false;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
