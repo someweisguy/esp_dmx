@@ -55,10 +55,28 @@ bool rdm_driver_set_start_address(dmx_port_t dmx_num, int start_address);
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_response_cb_t callback, void *context);
 
-// TODO: docs
+/**
+ * @brief Reads and formats a received RDM message from the DMX driver buffer.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] header A pointer which stores RDM header information.
+ * @param[out] mdb A pointer which stores RDM message data block information.
+ * This is typically further decoded using functions defined in `rdm/mdb.h`.
+ * @return The number of bytes in the RDM packet or zero if the packet is
+ * invalid.
+ */
 size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
 
-// TODO: docs
+/**
+ * @brief Writes and formats an RDM message into the DMX driver buffer.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] header A pointer which stores RDM header information.
+ * @param[in] mdb A pointer which stores RDM message data block information.
+ * This is typically already encoded using functions defined in `rdm/mdb.h`.
+ * @return The number of bytes written to the DMX driver buffer or zero on
+ * error.
+ */
 size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
                  const rdm_mdb_t *mdb);
 
