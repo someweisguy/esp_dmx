@@ -120,7 +120,7 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // TODO: take mutex
+  taskENTER_CRITICAL(spinlock);
 
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;
@@ -130,20 +130,18 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
 
   // Check if there is space for callbacks
   if (i >= CONFIG_RDM_RESPONDER_MAX_PARAMETERS) {
+    taskEXIT_CRITICAL(spinlock);
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
   
   // Add the requested callback to the callback list
-  taskENTER_CRITICAL(spinlock);
   driver->rdm.cbs[i].pid = pid;
   driver->rdm.cbs[i].cb = callback;
   driver->rdm.cbs[i].context = context;
   ++driver->rdm.num_callbacks;
+
   taskEXIT_CRITICAL(spinlock);
-
-  // TODO: give mutex
-
   return true;
 }
 
@@ -153,7 +151,10 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   DMX_CHECK(mdb, false, "mdb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  taskENTER_CRITICAL(spinlock);
 
   // FIXME: make this function thread-safe
 
@@ -183,6 +184,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     bytes_read = preamble_len + 12;
   }
   if (sum != checksum) {
+    taskEXIT_CRITICAL(spinlock);
     return 0;
   }
 
@@ -234,6 +236,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     }
   }
 
+  taskEXIT_CRITICAL(spinlock);
   return bytes_read;
 }
 
@@ -267,9 +270,6 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     // Flip the bus to stop writes from being overwritten by incoming data
     dmx_uart_set_rts(uart, 0);
   }
-  taskEXIT_CRITICAL(spinlock);
-
-  // TODO: make this function and the other `_write_` functions thread-safe
 
   size_t encoded;
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
@@ -334,10 +334,9 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     encoded = message_len + 2;
   }
 
-  taskENTER_CRITICAL(spinlock);
   driver->data.tx_size = encoded;  // Update driver transmit size
+  
   taskEXIT_CRITICAL(spinlock);
-
   return encoded;
 }
 
