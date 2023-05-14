@@ -147,7 +147,7 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   return true;
 }
 
-bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(header, false, "header is null");
   DMX_CHECK(mdb, false, "mdb is null");
@@ -161,6 +161,7 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
   uint16_t sum = 0;
   uint16_t checksum;
   size_t preamble_len;
+  size_t bytes_read;
   const uint8_t sc = driver->data.buffer[0];
   if (sc == RDM_SC) {
     // Calculate sum and decode checksum normally
@@ -169,6 +170,7 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
       sum += driver->data.buffer[i];
     }
     checksum = bswap16(*(uint16_t *)(&driver->data.buffer[message_len]));
+    bytes_read = message_len + 2;
   } else {
     // Decode checksum from encoded DISC_UNIQUE_BRANCH response
     preamble_len = get_preamble_len(driver->data.buffer);
@@ -178,10 +180,10 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     }
     checksum = (d[12] & d[13]) << 8;
     checksum += (d[14] & d[15]);
+    bytes_read = preamble_len + 12;
   }
-  bool checksum_is_valid = (sum == checksum);
-  if (!checksum_is_valid) {
-    return checksum_is_valid;
+  if (sum != checksum) {
+    return 0;
   }
 
   // Decode the packet
@@ -192,10 +194,12 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     const size_t pdl = rdm->pdl;
     if (pdl > 231) {
       return false;  // PDL must be <= 231
-    } else if (pdl > 0) {
+    } else if (pdl > 0 && mdb) {
       memcpy(mdb->pd, &rdm->pd, pdl);
     }
-    mdb->pdl = pdl;
+    if (mdb) {
+      mdb->pdl = pdl;
+    }
 
     // Copy the remaining header data
     header->dest_uid = bswap48(rdm->dest_uid);
@@ -224,11 +228,13 @@ bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     header->sub_device = -1;
     header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
     header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-    mdb->pdl = 0;
-    mdb->preamble_len = preamble_len;
+    if (mdb) {
+      mdb->pdl = 0;
+      mdb->preamble_len = preamble_len;
+    }
   }
 
-  return checksum_is_valid;
+  return bytes_read;
 }
 
 size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,

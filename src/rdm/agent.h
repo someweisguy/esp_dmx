@@ -56,7 +56,7 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_response_cb_t callback, void *context);
 
 // TODO: docs
-bool rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb);
 
 // TODO: docs
 size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
