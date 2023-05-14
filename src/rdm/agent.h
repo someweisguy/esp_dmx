@@ -46,6 +46,12 @@ bool rdm_driver_get_device_info(dmx_port_t dmx_num,
                                 const rdm_device_info_t *device_info);
 
 // TODO: docs
+int rdm_driver_get_start_address(dmx_port_t dmx_num);
+
+// TODO: docs
+bool rdm_driver_set_start_address(dmx_port_t dmx_num, int start_address);
+
+// TODO: docs
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_response_cb_t callback, void *context);
 
