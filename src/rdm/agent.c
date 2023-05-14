@@ -156,8 +156,6 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
 
   taskENTER_CRITICAL(spinlock);
 
-  // FIXME: make this function thread-safe
-
   // Verify that the checksum is correct
   uint16_t sum = 0;
   uint16_t checksum;
