@@ -258,8 +258,7 @@ typedef struct rdm_disc_mute_t {
  */
 typedef struct rdm_device_info_t {
   int model_id;                  // This field identifies the device model ID of the root device or sub-device. The manufacturer shall not use the same ID to represent more than one unique model type.
-  int coarse_product_category;   // Devices shall report a product category based on the product's primary function.
-  int fine_product_category;     // Devices shall report a product category based on the product's primary function. The fine product category is optional.
+  int product_category;          // Devices shall report a product category based on the product's primary function.
   uint32_t software_version_id;  // This field indicates the software version ID for the device. The software version ID is a 32-bit value determined by the manufacturer.
   size_t footprint;              // This field species the DMX footprint - the number of consecutive DMX slots required.
   int current_personality;       // The current selected DMX personality of the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.

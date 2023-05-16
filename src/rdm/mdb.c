@@ -15,14 +15,14 @@
 typedef struct __attribute__((__packed__)) rdm_disc_mute_data_t {
   union {
     struct {
-      uint8_t managed_proxy : 1;
-      uint8_t sub_device : 1;
-      uint8_t boot_loader : 1;
-      uint8_t proxied_device : 1;
+      uint8_t managed_proxy : 1;  // True when responder is a proxy device.
+      uint8_t sub_device : 1;     // True when responder supports sub-devices.
+      uint8_t boot_loader : 1;    // True when responder need a firmware update.
+      uint8_t proxied_device : 1;  // True when a proxy is responding.
     };
-    uint16_t control_field;
+    uint16_t control_field;  // Bits 4-15 are reserved.
   };
-  uint8_t binding_uid[6];
+  uint8_t binding_uid[6];  // Only included when responder has multiple ports.
 } rdm_disc_mute_data_t;
 
 /**
@@ -31,18 +31,17 @@ typedef struct __attribute__((__packed__)) rdm_disc_mute_data_t {
  * be swapped when using values larger than 8 bits.
  */
 typedef struct __attribute__((__packed__)) rdm_device_info_data_t {
-  uint8_t major_rdm_version;
-  uint8_t minor_rdm_version;
-  uint16_t model_id;
-  uint8_t coarse_product_category;
-  uint8_t fine_product_category;
-  uint32_t software_version_id;
-  uint16_t footprint;
-  uint8_t current_personality;
-  uint8_t personality_count;
-  uint16_t start_address;
-  uint16_t sub_device_count;
-  uint8_t sensor_count;
+  uint8_t major_rdm_version;  // The major RDM version. Is always 1.
+  uint8_t minor_rdm_version;  // The minor RDM version. Is always 0.
+  uint16_t model_id;          // The model ID of the sub-device or root device.
+  uint16_t product_category;  // The device's primary function.
+  uint32_t software_version_id;  // The software version ID of the device.
+  uint16_t footprint;            // The number of DMX slots the device uses.
+  uint8_t current_personality;   // The index of the device's DMX personality.
+  uint8_t personality_count;     // The number of DMX personalities supported.
+  uint16_t start_address;        // The DMX start address of the device.
+  uint16_t sub_device_count;     // The number of sub-devices supported.
+  uint8_t sensor_count;          // The number of sensors supported.
 } rdm_device_info_data_t;
 
 int rdm_decode_8bit(const rdm_mdb_t *mdb, void *data, int num) {
@@ -224,8 +223,7 @@ int rdm_decode_device_info(const rdm_mdb_t *mdb, void *data, int num) {
     const rdm_device_info_data_t *pd = (void *)mdb->pd;
     rdm_device_info_t *const restrict param = data;
     param->model_id = bswap16(pd->model_id);
-    param->coarse_product_category = pd->coarse_product_category;
-    param->fine_product_category = pd->fine_product_category;
+    param->product_category = bswap16(pd->product_category);
     param->software_version_id = bswap32(pd->software_version_id);
     param->footprint = bswap16(pd->footprint);
     param->current_personality = pd->current_personality;
@@ -247,8 +245,7 @@ size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
     pd->major_rdm_version = 1;
     pd->minor_rdm_version = 0;
     pd->model_id = bswap16(param->model_id);
-    pd->coarse_product_category = param->coarse_product_category;
-    pd->fine_product_category = param->fine_product_category;
+    pd->product_category = bswap16(param->product_category);
     pd->software_version_id = bswap32(param->software_version_id);
     pd->footprint = bswap16(param->footprint);
     pd->current_personality = param->current_personality;
