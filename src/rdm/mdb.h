@@ -113,8 +113,6 @@ int rdm_decode_string(const rdm_mdb_t *mdb, void *data, int num);
  */
 size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num);
 
-// TODO: rdm_decode_nack_reason()
-
 /**
  * @brief Encodes a 16-bit NACK reason into an RDM message data block.
  *

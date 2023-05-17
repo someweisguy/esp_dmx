@@ -176,8 +176,6 @@ size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num) {
   return encoded;
 }
 
-// TODO: rdm_decode_nack_reason()
-
 size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
   return rdm_encode_16bit(mdb, &nack_reason, 1);
 }
