@@ -29,16 +29,47 @@ typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
                                  size_t device_num,
                                  rdm_disc_mute_t *mute_params, void *context);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM discovery request and reads the response, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] header A pointer which contains header information from the
+ * received RDM response, if any.
+ * @param[in] param A pointer to the discovery UID bounds to send.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                                    const rdm_disc_unique_branch_t *param,
                                    rdm_ack_t *ack);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM discovery mute request and reads the response, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into the this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param[out] param A pointer into which the discovery mute parameters from the
+ * responder are stored.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
                           rdm_ack_t *ack, rdm_disc_mute_t *param);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM discovery un-mute request and reads the response, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into the this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param[out] param A pointer into which the discovery mute parameters from the
+ * responder are stored.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
                              rdm_ack_t *ack, rdm_disc_mute_t *param);
 
