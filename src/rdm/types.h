@@ -268,7 +268,10 @@ typedef struct rdm_device_info_t {
   int sensor_count;              // This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
 } rdm_device_info_t;
 
-// TODO: docs
+/**
+ * @brief A struct which stores RDM packet header information. Header
+ * information contains metadata about the packet message data block. 
+ */
 typedef struct rdm_header_t {
   rdm_uid_t dest_uid;  // The UID of the target device(s).
   rdm_uid_t src_uid;   // The UID of the device originating this packet.
@@ -283,7 +286,12 @@ typedef struct rdm_header_t {
   rdm_pid_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
 } rdm_header_t;
 
-// TODO: docs
+/**
+ * @brief A struct which stores RDM message data block information. This is the
+ * main payload of an RDM packet. Information in the message data block is
+ * typically encoded and decoded with functions found in `mdb.h`.
+ *
+ */
 typedef struct rdm_mdb_t {
   size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
   union {
@@ -292,22 +300,30 @@ typedef struct rdm_mdb_t {
   };
 } rdm_mdb_t;
 
-
-// TODO: docs
+/**
+ * @brief A struct which contains instructions on encoding data into an RDM 
+ * message data block.
+ */
 typedef struct rdm_encode_t {
-  size_t (*function)(rdm_mdb_t *, const void *, int);
-  const void *params;
-  int num;
+  size_t (*function)(rdm_mdb_t *, const void *, int);  // The encode function.
+  const void *params;  // A pointer to a parameter or parameters to encode.
+  int num;  // The number of parameters to encode.
 } rdm_encode_t;
 
-// TODO: docs
+/**
+ * @brief A struct which contains instructions on decoded data from an RDM
+ * message data block.
+ */
 typedef struct rdm_decode_t {
-  int (*function)(const rdm_mdb_t *, void *, int);
-  void *params;
-  int num;
+  int (*function)(const rdm_mdb_t *, void *, int);  // The decode function.
+  void *params;  // A pointer to a parameter or parameters to decode.
+  int num;  // The number of parameters to decode.
 } rdm_decode_t;
 
-// TODO: docs
+/**
+ * @brief A function type for RDM responder callbacks. This is the type of
+ * function that is called when responding to RDM requests.
+ */
 typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
                                                  const rdm_header_t *header,
                                                  rdm_mdb_t *mdb, void *context);
