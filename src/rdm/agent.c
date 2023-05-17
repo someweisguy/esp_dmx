@@ -98,8 +98,18 @@ bool rdm_driver_is_muted(dmx_port_t dmx_num) {
 
 bool rdm_driver_get_device_info(dmx_port_t dmx_num,
                                 rdm_device_info_t *device_info) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(device_info != NULL, false, "device_info is null");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  taskENTER_CRITICAL(spinlock);
+  *device_info = driver->rdm.device_info;
+  taskEXIT_CRITICAL(spinlock);
   
-  return false;  // FIXME
+  return true;
 }
 
 void rdm_driver_set_device_info(dmx_port_t dmx_num,
@@ -117,14 +127,32 @@ void rdm_driver_set_device_info(dmx_port_t dmx_num,
 }
 
 int rdm_driver_get_dmx_start_address(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return 0; // FIXME
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  taskENTER_CRITICAL(spinlock);
+  int start_address = driver->rdm.device_info.start_address;
+  taskEXIT_CRITICAL(spinlock);
+
+  return start_address;
 }
 
 
 void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
+  DMX_CHECK(start_address >= 1 && start_address <= 512, ,
+            "start_address is invalid");
 
-  // FIXME
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  taskENTER_CRITICAL(spinlock);
+  driver->rdm.device_info.start_address = start_address;
+  taskEXIT_CRITICAL(spinlock);
 }
 
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
