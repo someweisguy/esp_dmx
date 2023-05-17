@@ -49,7 +49,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
  * @param dmx_num The DMX port number.
  * @param[inout] header A pointer which contains header information of the
  * request. Upon receiving a response, header information from the response is
- * copied into the this pointer.
+ * copied into this pointer.
  * @param[out] ack A pointer into which to store the RDM ACK summary.
  * @param[out] param A pointer into which the discovery mute parameters from the
  * responder are stored.
@@ -64,7 +64,7 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
  * @param dmx_num The DMX port number.
  * @param[inout] header A pointer which contains header information of the
  * request. Upon receiving a response, header information from the response is
- * copied into the this pointer.
+ * copied into this pointer.
  * @param[out] ack A pointer into which to store the RDM ACK summary.
  * @param[out] param A pointer into which the discovery mute parameters from the
  * responder are stored.
@@ -110,28 +110,101 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
                                 const size_t size);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM get device info request and reads the response, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param[out] param A pointer into which the device info parameter from the
+ * responder is stored.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
                            rdm_ack_t *ack, rdm_device_info_t *param);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM get software version label request and reads the
+ * response, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param[out] sw_version_label A pointer into which the software version label
+ * parameter from the responder is stored. The string should be 33 chars long,
+ * maximum.
+ * @param size The size of the sw_version_label string.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
                                       rdm_ack_t *ack, char *sw_version_label,
                                       size_t size);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM get identify device request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param[out] identify A pointer into which the identify device parameter from
+ * the responder is stored.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
                                rdm_ack_t *ack, bool *identify);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM set identify device request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param identify The value to which to set the identify device parameter of
+ * the target device(s).
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
                                bool identify, rdm_ack_t *ack);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM get DMX start address request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param[out] start_address A pointer into which the DMX start address
+ * parameter from the responder is stored.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
                                  rdm_ack_t *ack, int *start_address);
 
-// TODO: docs
+/**
+ * @brief Sends an RDM set DMX start address request and reads the response, if
+ * any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer which contains header information of the
+ * request. Upon receiving a response, header information from the response is
+ * copied into this pointer.
+ * @param[out] ack A pointer into which to store the RDM ACK summary.
+ * @param start_address The value to which to set the DMX start address
+ * parameter of the target device(s). Must be between 1 and 512 inclusive.
+ * @return The number of bytes received in response to the request.
+ */
 size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
                                  int start_address, rdm_ack_t *ack);
 
