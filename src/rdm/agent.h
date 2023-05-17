@@ -41,21 +41,62 @@ void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
  */
 bool rdm_driver_is_muted(dmx_port_t dmx_num);
 
-// TODO: docs
+/**
+ * @brief Gets the device info for this device. To get the device info of a
+ * responder device, use `rdm_get_device_info()`.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] device_info A pointer to a struct which stores a copy of this
+ * device's device info.
+ * @return true if the device info was copied.
+ * @return false if the the device info was not copied.
+ */
 bool rdm_driver_get_device_info(dmx_port_t dmx_num,
                                 rdm_device_info_t *device_info);
 
-// TODO: docs
+/**
+ * @brief Sets the device info for this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] device_info A pointer to a struct which stores the device info to
+ * copy to this device.
+ */
 void rdm_driver_set_device_info(dmx_port_t dmx_num,
                                 const rdm_device_info_t *device_info);
 
-// TODO: docs
-int rdm_driver_get_start_address(dmx_port_t dmx_num);
+/**
+ * @brief Gets the DMX start address of this device. To get the DMX start
+ * address of a responder device, use `rdm_get_dmx_start_address()`.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The DMX start address of this device or 0 on failure.
+ */
+int rdm_driver_get_dmx_start_address(dmx_port_t dmx_num);
 
-// TODO: docs
-void rdm_driver_set_start_address(dmx_port_t dmx_num, int start_address);
+/**
+ * @brief Sets the DMX start address of this device. To set the DMX start
+ * address of a responder device, use `rdm_set_dmx_start_address()`.
+ *
+ * @param dmx_num The DMX port number.
+ * @param start_address The DMX start address to which to set this device. Must
+ * be between 1 and 512 (inclusive).
+ */
+void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address);
 
-// TODO: docs
+/**
+ * @brief Registers a callback which is called when a request is received for
+ * this device for a specified PID. Callbacks may be overwritten, but they may
+ * not be deleted.
+ *
+ * @param dmx_num The DMX port number.
+ * @param pid The PID to which the callback function should be attached.
+ * @param callback A pointer to a callback function which will be called when
+ * receiving a request for the specified PID.
+ * @param[inout] context A pointer to a user-specified context for use within
+ * the callback function.
+ * @return true when the callback has been successfully registered.
+ * @return false on failure.
+ */
 bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_response_cb_t callback, void *context);
 
