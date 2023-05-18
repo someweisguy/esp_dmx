@@ -1,6 +1,6 @@
 # esp_dmx
 
-This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and transmitting ANSI-ESTA E1.20 RDM using an Espressif ESP32. It provides control and analysis of the packet configuration and allows the user to read or write synchronously or asynchronously from the DMX bus using whichever hardware UART port that is desired. This library also includes tools for data error-checking to safely process DMX and RDM commands as well as DMX packet metadata extraction to assist with troubleshooting errors.
+This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and ANSI-ESTA E1.20 RDM using an Espressif ESP32. It provides control and analysis of the packet configuration and allows the user to read or write synchronously or asynchronously from the DMX bus using whichever hardware UART port that is desired. This library also includes tools for data error-checking to safely process DMX and RDM commands as well as DMX packet metadata extraction to assist with troubleshooting errors.
 
 ## Contents
 
@@ -42,6 +42,8 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Currently Supported RDM PIDs](#currently-supported-rdm-pids)
   - [Hardware Specifications](#hardware-specifications)
 - [To Do](#to-do)
+- [Appendix](#appendix)
+  - [NACK Reason Codes](#nack-reason-codes)
 
 ## Library Installation
 
@@ -185,7 +187,7 @@ The constants `RDM_SUB_DEVICE_ROOT` and `RDM_SUB_DEVICE_ALL` are provided to imp
 
 ### Parameters
 
-RDM requests must be able to fetch and update parameters. The RDM standard specifies 52 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/) or in [rdm_types.h](src/rdm/types.h).
+RDM requests must be able to fetch and update parameters. The RDM standard specifies 52 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/).
 
 Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device (but not its sub-devices necessarily) must support the following PIDs:
 
@@ -201,7 +203,7 @@ Parameter Name           | GET | SET | Notes
 `SOFTWARE_VERSION_LABEL` |  X  |     |
 `SUPPORTED_PARAMETERS`   |  X  |     | Only required if supporting PIDs beyond the minimum set.
 
-GET requests may not be sent to the `RDM_SUB_DEVICE_ALL` sub-device.
+GET requests may not be sent to all sub-devices of a root devices. It is therefore not permitted to send a GET request to `RDM_SUB_DEVICE_ALL`.
 
 ### Discovery
 
@@ -220,7 +222,7 @@ Responding devices shall respond to requests only if the request was a non-broad
 - `RDM_RESPONSE_TYPE_ACK` indicates that the responder has correctly received the controller message and is acting upon the request.
 - `RDM_RESPONSE_TYPE_ACK_OVERFLOW` indicates that the responder has correctly received the controller message and is acting upon the request, but there is more response data available than will fit in a single response packet. To receive the remaining information, controllers are able to send repeated requests to the same PID until the remaining information can fit in a single message.
 - `RDM_RESPONSE_TYPE_ACK_TIMER` indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time. When sending this response, responding devices include an estimated response time that must elapse before the responder can provide the required information.
-- `RDM_RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response. NACK reason codes are enumerated in the [rdm_types.h](src/rdm/types.h#L101) header.
+- `RDM_RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response. NACK reason codes are enumerated in the [appendix](#nack-reason-codes).
 
 Two additional response types are defined for this library. Responders will not send packets with these response types. These response types are included to assist users with processing RDM data.
 
@@ -574,7 +576,46 @@ if (packet_size > 0) {
 
 ### RDM Responder
 
-// TODO
+An RDM responder must respond to every non-discovery, non-broadcast packet addressed to it. When a responder receives a `DISC_UNIQUE_BRANCH` packet, it must respond to the packet if the responder's UID falls within the request's address space and if the responder is un-muted.
+
+This library provides the ability to add user-defined callbacks to request PIDs. Callbacks may be registered by using `rdm_register_callback()`. Callbacks are defined as the `rdm_response_cb_t`. An example of the GET `SOFTWARE_VERSION_LABEL` response callback can be seen below.
+
+```c
+rdm_response_type_t rdm_software_version_label(dmx_port_t dmx_num,
+                                               const rdm_header_t *header,
+                                               rdm_mdb_t *mdb, void *context) {
+  // Ensure that the parameter data is the expected length
+  if (mdb->pdl != 0) {
+    rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  // Ensure that the CC is correct
+  if (header->cc != RDM_CC_GET_COMMAND) {
+    rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  // Encode the response
+  const char *software_version_label = "esp_dmx";
+  rdm_encode_string(mdb, software_version_label,
+                    sizeof(software_version_label));
+  return RDM_RESPONSE_TYPE_ACK;
+}
+```
+
+The value passed to `dmx_num` is the port number that this callback is responding on. The value in the `header` pointer will contain header information of the request. The `rdm_mdb_t` type contains information about the received Message Data Block. It contains the following two fields:
+
+- `pd` is a 231-byte array containing the Parameter Data.
+- `pdl` is the Parameter Data Length. It is the number of bytes received in the parameter data.
+
+Parameter data in an `rdm_mdb_t` is typically encoded and decoded using functions found in `rdm/mdb.h`. In the example above, to GET `SOFTWARE_VERSION_LABEL` requires that a string is encoded into the mdb using `rdm_encode_string()`. The two if-statements in the function check for error conditions. If an error is found, the message data block is encoded with the appropriate NACK reason using `rdm_encode_nack_reason()`.
+
+The final argument in an `rdm_response_cb_t` is a user defined context. The DMX driver does not maintain a copy of the context. The pointer provided by the user must remain valid throughout the lifetime of the DMX driver.
+
+The return value of `rdm_response_cb_t` determines the type of response that is sent to the requesting device. This value must be either `RDM_RESPONSE_TYPE_ACK`, `RDM_RESPONSE_TYPE_ACK_OVERFLOW`, `RDM_RESPONSE_TYPE_TIMER`, or `RDM_RESPONSE_TYPE_NACK_REASON`. If any other value is returned, the device will disregard the response callback and respond to the request with an `RDM_RESPONSE_NACK_REASON` citing `RDM_NR_HARDWARE_FAULT` as the NACK reason. When responding to a `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, or `DISC_UN_MUTE` request, the return value must be either `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_NONE`. If any other value is returned, the responder will not send a response.
+
+// TODO: RDM get/set driver values and more information on rdm_register_callback()
 
 ## Error Handling
 
@@ -627,15 +668,7 @@ while (true) {
 }
 ```
 
-When an RDM responder receives a non-broadcast packet addressed to it, it must respond with a properly formatted response packet. Packets may become lost or corrupted due to poor bus conditions or due to poorly-made RDM devices. Many devices are advertised as being RDM compliant but may not be. Non-compliant devices are often sold by third-party manufacturers or by knock-off imitation brands. Some RDM commands may work on non-compliant devices, but others may not.
-
-To determine if an RDM error occurred, the error code in `rdm_response_t` can be read.
-
-- `ESP_ERR_INVALID_RESPONSE` occurs when an RDM response was improperly formatted.
-- `ESP_ERR_INVALID_CRC` indicates that the computed checksum does not match the checksum received in the RDM packet.
-- `ESP_ERR_NOT_SUPPORTED` indicates that an RDM `RESPONSE_TYPE_ACK_OVERFLOW` response was received. This response is valid for some RDM commands but is not currently supported by this library.
-
-Receiving any other error code in the `rdm_response_t` indicates an error receiving DMX data. The appropriate error condition can be determined by referencing the DMX error codes listed above.
+When reading RDM packets, the `packet.err` field is copied into the `rdm_ack_t` type. It should be noted that RDM packet errors are not reported as errors. The `err` field only reports errors in the processing of raw DMX data. If an invalid RDM packet is received, it will be reported in the `type` field of `rdm_ack_t`. Invalid RDM packets will be reported as `RDM_RESPONSE_TYPE_INVALID`.
 
 ### Timing Macros
 
@@ -733,3 +766,19 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 ## To Do
 
 For a list of planned features, see the [esp_dmx GitHub Projects](https://github.com/users/someweisguy/projects/5) page.
+
+## Appendix
+
+## NACK Reason Codes
+
+- `RDM_NR_UNKNOWN_PID` The responder cannot comply with the request because the message is not implemented in the responder.
+- `RDM_NR_FORMAT_ERROR` The responder cannot interpret the request as the controller data was not formatted correctly.
+- `RDM_NR_HARDWARE_FAULT` The responder cannot comply due to an internal hardware fault.
+- `RDM_NR_PROXY_REJECT` Proxy is not the RDM line master and cannot comply with the message.
+- `RDM_NR_WRITE_PROTECT` Set command normally allowed but being blocked currently.
+- `RDM_NR_UNSUPPORTED_COMMAND_CLASS` Not valid for command class attempted. May be used where get allowed but set is not supported.
+- `RDM_NR_DATA_OUT_OF_RANGE` Value for given parameter out of allowable range or not supported.
+- `RDM_NR_BUFFER_FULL` Buffer or queue space currently has no free space to store data.
+- `RDM_NR_PACKET_SIZE_UNSUPPORTED` Incoming message exceeds buffer capacity.
+- `RDM_NR_SUB_DEVICE_OUT_OF_RANGE` Sub-device is out of range or unknown.
+- `RDM_NR_PROXY_BUFFER_FULL` The proxy buffer is full and cannot store any more queued message or status message responses.
