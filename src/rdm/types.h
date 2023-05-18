@@ -23,8 +23,11 @@ typedef uint64_t rdm_uid_t;
 
 typedef uint16_t rdm_sub_device_t;
 
-// TODO: docs
-// TODO: RDM_UID_BROADCAST_MAN(man_id)
+/**
+ * @brief Macro for creating a manufacturer broadcast UID based on the desired
+ * manufacturer ID.
+ */
+#define RDM_UID_BROADCAST_MAN(man_id) (((rdm_uid_t)man_id << 32) | 0xffffffff)
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 /**
