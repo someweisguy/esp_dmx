@@ -653,6 +653,8 @@ The DMX driver also has a built-in `rdm_device_info_t` type which stores informa
 - `sub_device_count` This parameter is used to retrieve the number of sub-devices respresented by the root device. The response for this field shall always be the same regardless of whether this message is directed to the root device or a sub-device.
 - `sensor_count` This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
 
+Using the functions `rdm_driver_get_dmx_start_address()` and `rdm_driver_set_dmx_start_address()` will get and set the DMX start address for the device. These functions get and set the `start_address` field in the DMX driver device info.
+
 ## Error Handling
 
 On rare occasions, DMX packets can become corrupted. Errors are typically detected upon initially connecting to an active DMX bus but are resolved on receiving the next packet. Errors can be checked by reading the error code from the `dmx_packet_t` struct. The error types are as follows:
