@@ -500,7 +500,7 @@ Response information from requests is read into a `rdm_ack_t` pointer which is p
 - `err` evaluates to `true` if an error occurred reading DMX data. This field only indicates if an error occurred reading raw DMX data. It does not indicate if an invalid RDM packet was received. More information on error handling can be found in the [Error Handling](#error-handling) section.
 - `type` is the type of the RDM response received. It can be any of the RDM response types enumerated in [Response Types](#response-types).
 
-The remaining field is a union which should be read depending on the value in `type.`
+The remaining field is a union which should be read depending on the value in `type`.
 
 - `num` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_ACK_OVERFLOW`. It returns the number of RDM parameters that was received from the RDM responder.
 - `timer` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_TIMER`. It returns the number of FreeRTOS ticks that must elapse before the RDM responder will be ready to process the request.
