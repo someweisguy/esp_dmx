@@ -588,6 +588,8 @@ if (packet_size > 0) {
 
 An RDM responder must respond to every non-discovery, non-broadcast packet addressed to it. When a responder receives a `DISC_UNIQUE_BRANCH` packet, it must respond to the packet if the responder's UID falls within the request's address space and if the responder is un-muted.
 
+The DMX driver will parse RDM requests and send responses within the `dmx_receive()` function. It is therefore required for RDM requests to be received with `dmx_receive()` to ensure that a response is sent. If `dmx_receive()` is not called, an RDM response will not be sent.
+
 This library provides the ability to attach user-defined callbacks to request PIDs. Callbacks may be registered by using `rdm_register_callback()`. Callbacks are defined as the `rdm_response_cb_t` type. An example of the GET `SOFTWARE_VERSION_LABEL` response callback can be seen below.
 
 ```c
