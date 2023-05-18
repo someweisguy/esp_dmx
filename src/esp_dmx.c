@@ -462,6 +462,12 @@ static int rdm_software_version_label(dmx_port_t dmx_num,
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
+  // Ensure that the CC is correct
+  if (header->cc != RDM_CC_GET_COMMAND) {
+    rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
   // Encode the response
   const char *software_version_label = "esp_dmx v3.0.3-beta";  // TODO
   rdm_encode_string(mdb, software_version_label,
