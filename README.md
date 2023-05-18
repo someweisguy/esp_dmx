@@ -535,7 +535,7 @@ Discovery can take several seconds to complete. Users may want to perform an act
 `DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, the values in the `rdm_header_t` type should be initialized to 0 when this request is sent.
 
 ```c
-rdm_header_t header = {};  // Defining is not necessary for DISC_UNIQUE_BRANCH.
+rdm_header_t header = {};  // Initialize all values to 0.
 rdm_ack_t ack;
 
 // Define the address space within which devices will be discovered.
