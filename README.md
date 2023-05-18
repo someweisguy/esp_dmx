@@ -809,7 +809,7 @@ For a list of planned features, see the [esp_dmx GitHub Projects](https://github
 
 ## Appendix
 
-## NACK Reason Codes
+### NACK Reason Codes
 
 - `RDM_NR_UNKNOWN_PID` The responder cannot comply with the request because the message is not implemented in the responder.
 - `RDM_NR_FORMAT_ERROR` The responder cannot interpret the request as the controller data was not formatted correctly.
