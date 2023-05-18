@@ -532,10 +532,10 @@ printf("Discovery found %i UIDs!\n", num_uids);
 
 Discovery can take several seconds to complete. Users may want to perform an action, such as update a progress bar, whenever a new UID is found. When this is desired, the function `rdm_discover_with_callback()` may be used to specify a callback function which is called when a new UID is discovered.
 
-`DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, it is not necessary to define values in the `rdm_header_t` type when this request is sent.
+`DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, the values in the `rdm_header_t` type should be initialized to 0 when this request is sent.
 
 ```c
-rdm_header_t header;  // Defining is not necessary for DISC_UNIQUE_BRANCH.
+rdm_header_t header = {};  // Defining is not necessary for DISC_UNIQUE_BRANCH.
 rdm_ack_t ack;
 
 // Define the address space within which devices will be discovered.
