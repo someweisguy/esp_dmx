@@ -32,6 +32,9 @@ typedef uint16_t rdm_sub_device_t;
  */
 #define RDM_MAN_ID_DEFAULT (0x05e0)
 
+// TODO: docs
+// TODO: RDM_UID_BROADCAST_MAN(man_id)
+
 #if ESP_IDF_VERSION_MAJOR >= 5
 /**
  * @brief The recommended method for representing the UID in text by separating
