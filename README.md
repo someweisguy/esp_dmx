@@ -506,6 +506,16 @@ The remaining field is a union which should be read depending on the value in `t
 - `timer` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_TIMER`. It returns the number of FreeRTOS ticks that must elapse before the RDM responder will be ready to process the request.
 - `nack_reason` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_NACK_REASON`. It returns the NACK reason code that was received from the RDM responder.
 
+The UID for the DMX driver may be get and set using `rdm_driver_get_uid()` and `rdm_driver_set_uid()` respectively. Setting the driver's UID to 0 will reset the driver UID back to its default value.
+
+```c
+// Get this driver's UID.
+rdm_uid_t uid = rdm_driver_get_uid(DMX_NUM_2);
+
+// Increment this driver's UID by 5.
+rdm_driver_set_uid(DMX_NUM_2, uid + 5);
+```
+
 ### Discovering Devices
 
 This library provides two functions for performing full RDM discovery. The function `rdm_discover_devices_simple()` is provided as a simple implementation of the discovery algorithm which takes a pointer to an array of UIDs to store discovered UIDs and returns the number of UIDs found.
@@ -578,28 +588,27 @@ if (packet_size > 0) {
 
 An RDM responder must respond to every non-discovery, non-broadcast packet addressed to it. When a responder receives a `DISC_UNIQUE_BRANCH` packet, it must respond to the packet if the responder's UID falls within the request's address space and if the responder is un-muted.
 
-This library provides the ability to add user-defined callbacks to request PIDs. Callbacks may be registered by using `rdm_register_callback()`. Callbacks are defined as the `rdm_response_cb_t`. An example of the GET `SOFTWARE_VERSION_LABEL` response callback can be seen below.
+This library provides the ability to attach user-defined callbacks to request PIDs. Callbacks may be registered by using `rdm_register_callback()`. Callbacks are defined as the `rdm_response_cb_t` type. An example of the GET `SOFTWARE_VERSION_LABEL` response callback can be seen below.
 
 ```c
 rdm_response_type_t rdm_software_version_label(dmx_port_t dmx_num,
                                                const rdm_header_t *header,
                                                rdm_mdb_t *mdb, void *context) {
-  // Ensure that the parameter data is the expected length
+  // Ensure that the parameter data is the expected length.
   if (mdb->pdl != 0) {
     rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
-  // Ensure that the CC is correct
+  // Ensure that the CC is correct.
   if (header->cc != RDM_CC_GET_COMMAND) {
     rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
-  // Encode the response
-  const char *software_version_label = "esp_dmx";
-  rdm_encode_string(mdb, software_version_label,
-                    sizeof(software_version_label));
+  // Encode the response.
+  const char *sw_version_label = "esp_dmx";
+  rdm_encode_string(mdb, sw_version_label, sizeof(sw_version_label));
   return RDM_RESPONSE_TYPE_ACK;
 }
 ```
@@ -615,7 +624,34 @@ The final argument in an `rdm_response_cb_t` is a user defined context. The DMX 
 
 The return value of `rdm_response_cb_t` determines the type of response that is sent to the requesting device. This value must be either `RDM_RESPONSE_TYPE_ACK`, `RDM_RESPONSE_TYPE_ACK_OVERFLOW`, `RDM_RESPONSE_TYPE_TIMER`, or `RDM_RESPONSE_TYPE_NACK_REASON`. If any other value is returned, the device will disregard the response callback and respond to the request with an `RDM_RESPONSE_NACK_REASON` citing `RDM_NR_HARDWARE_FAULT` as the NACK reason. When responding to a `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, or `DISC_UN_MUTE` request, the return value must be either `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_NONE`. If any other value is returned, the responder will not send a response.
 
-// TODO: RDM get/set driver values and more information on rdm_register_callback()
+Registering callbacks with `rdm_register_callback()` can be performed by specifying the PID for the callback and the desired callback function. A pointer to a user-defined context may be provided as well.
+
+```c
+// Register a callback for the SOFTWARE_VERSION_LABEL PID.
+// No context is needed for the above callback function so NULL is used.
+rdm_register_callback(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
+                      rdm_software_version_label, NULL);
+```
+
+Callbacks must handle both GET and SET requests in the same function. Some PIDs support GET requests, but not SET. In such cases, it is required for the user to verify the `cc` from the `rdm_header_t` passed in the function. If the `cc` is invalid, the user must call `rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS)` and return `RDM_RESPONSE_TYPE_NACK_REASON`.
+
+Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
+
+This library defines several, required RDM response functions by default. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of these automatically registered functions can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section. The function for `IDENTIFY_DEVICE` should be overwritten to ensure that the callback performs a function to identify the device. Otherwise, responses to `IDENTIFY_DEVICE` will respond with `RDM_RESPONSE_TYPE_ACK` without doing any additional work. When using Arduino, the `IDENTIFY_DEVICE` callback will illuminate the built-in LED on the ESP32 breakout board.
+
+When responding to discovery requests, the function `rdm_driver_is_muted()` is provided to check if the DMX driver has been muted by a `DISC_MUTE` request.
+
+The DMX driver also has a built-in `rdm_device_info_t` type which stores information about itself. This information can be sent to RDM controllers when the driver receives a GET `DEVICE_INFO` request. The `rdm_device_info_t` can be get and set using `rdm_driver_get_device_info()` and `rdm_driver_set_device_info()`. The `rdm_device_info_t` type contains the following fields:
+
+- `model_id` This field identifies the device model ID of the root device or sub-device. The manufacturer shall not use the same ID to represent more than one unique model type.
+- `product_category` Devices shall report a product category based on the product's primary function.
+- `software_version_id` This field indicates the software version ID for the device. The software version ID is a 32-bit value determined by the manufacturer.
+- `footprint` This field species the DMX footprint - the number of consecutive DMX slots required.
+- `current_personality` The current selected DMX personality of the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
+- `personality_count` The number of personalities supported by the device.
+- `start_address` The DMX start address of the device. If the device or sub-device that the request is directed to has a DMX footprint of 0, then this field shall be set to -1.
+- `sub_device_count` This parameter is used to retrieve the number of sub-devices respresented by the root device. The response for this field shall always be the same regardless of whether this message is directed to the root device or a sub-device.
+- `sensor_count` This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
 
 ## Error Handling
 
@@ -746,18 +782,18 @@ Many RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated
 
 ### Currently Supported RDM PIDs
 
-The PIDs currently implemented by this library are listed below.
+The PIDs currently implemented by this library are listed below. An X in the ACK column indicates that the DMX driver has a default RDM response for the associated PID.
 
-Parameter                | GET | SET | Notes
-:------------------------|:---:|:---:|:------
-`DEVICE_INFO`            |  X  |     |
-`DISC_MUTE`              |     |     |
-`DISC_UN_MUTE`           |     |     |
-`DISC_UNIQUE_BRANCH`     |     |     |
-`DMX_START_ADDRESS`      |  X  |  X  |
-`IDENTIFY_DEVICE`        |  X  |  X  |
-`SOFTWARE_VERSION_LABEL` |  X  |     |
-`SUPPORTED_PARAMETERS`   |  X  |     | `RDM_RESPONSE_TYPE_ACK_OVERFLOW` not currently supported.
+Parameter                | GET | SET | ACK | Notes
+:------------------------|:---:|:---:|:---:|:------
+`DEVICE_INFO`            |  X  |     |  X  |
+`DISC_MUTE`              |     |     |  X  |
+`DISC_UN_MUTE`           |     |     |  X  |
+`DISC_UNIQUE_BRANCH`     |     |     |  X  |
+`DMX_START_ADDRESS`      |  X  |  X  |  X  |
+`IDENTIFY_DEVICE`        |  X  |  X  |  X  | Response function must be overwritten if not using Arduino.
+`SOFTWARE_VERSION_LABEL` |  X  |     |  X  |
+`SUPPORTED_PARAMETERS`   |  X  |     |     | `RDM_RESPONSE_TYPE_ACK_OVERFLOW` not currently supported.
 
 ### Hardware Specifications
 
