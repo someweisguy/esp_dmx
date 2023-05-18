@@ -412,7 +412,7 @@ dmx_write_slot(DMX_NUM_2, slot_num, value);
 Using only the functions listed above it is possible to send and receive RDM packets. When an RDM packet is written using `dmx_write()` the DMX driver will respond accordingly and ensure that RDM timing requirements are met. For example, calls to `dmx_send()` typically send a DMX break and mark-after-break when sending a DMX packet with a null start code. When sending an RDM discovery response packet the DMX driver automatically removes the DMX break and mark-after-break which is required per the RDM standard. Sending RDM responses with `dmx_send()` may also fail when the DMX driver has detected that the RDM response timeout has already elapsed. This is done to reduce the number of data collisions on the RDM bus and keeps the RDM bus operating properly.
 
 ```c
-// This is a hard-coded discovery response packet!
+// This is a hard-coded discovery response packet.
 const uint8_t discovery_response[] = {
  0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xaa, 0xaf, 0x55, 0xea, 0xf5, 0xba, 
  0x57, 0xbb, 0xdd, 0xbf, 0x55, 0xba, 0xdf, 0xaa, 0x5d, 0xbb, 0x7d 
@@ -426,7 +426,7 @@ dmx_send(DMX_NUM_2, sizeof(discovery_response));
 Likewise, the function `dmx_receive()` behaves contextually when receiving DMX or RDM packets. When receiving DMX, calls to `dmx_receive()` will timeout according to the timeout value provided, such as `DMX_TIMEOUT_TICK`. When receiving RDM packets, the DMX driver may timeout much more quickly than the provided timeout value as the RDM bus turnaround times are much shorter than DMX.
 
 ```c
-// This is a hard-coded DEVICE_INFO GET request!
+// This is a hard-coded GET DEVICE_INFO request.
 const uint8_t get_device_info[] = {
   0xcc, 0x01, 0x18, 0x3b, 0x10, 0x44, 0xc0, 0x6f, 0xbf, 0x05, 0xe0, 0x12, 0x99,
   0x15, 0x9a, 0x14, 0x03, 0x00, 0x00, 0x00, 0x20, 0x00, 0x60, 0x00, 0x06, 0x38
@@ -442,40 +442,65 @@ dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK);  // Unblocks in 3ms
 
 ### RDM Requests
 
-This library currently supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_`, whether the request is a GET or a SET, and the parameter name. To GET a device's `DEVICE_INFO`, users can call `rdm_get_device_info()`. To SET a device's `DMX_START_ADDRESS`, users can call `rdm_set_dmx_start_address()`. Functions which perform GET requests return the number of parameters it received from the responder. Functions which perform SET requests return `true` if a request was successful.
+This library supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_`, whether the request is a GET or a SET, and the parameter name. To GET a device's `DEVICE_INFO`, users can call `rdm_get_device_info()`. To SET a device's `DMX_START_ADDRESS`, users can call `rdm_set_dmx_start_address()`. All RDM request functions return the number of bytes received in the RDM response or 0 if no response was received.
+
+RDM request functions typically use a `rdm_header_t` pointer to direct the DMX driver where to send its request and also store RDM header information from the received response, if a response is received. The `rdm_header_t` type contains several fields. Some fields must typically be assigned a value, some fields may be assigned values, and some fields should not be assigned values when sending RDM requests.
+
+// TODO
+
+The fields which typically must be assigned are:
+
+- `dest_uid` the destination UID for the RDM packet. This field must be assigned except when sending a `DISC_UNIQUE_BRANCH` packet.
+- `sub_device` the target sub-device for the RDM packet. This field must be assigned except when indicated otherwise. In situations where this field may not be assigned, it must be assigned to 0 or `RDM_SUB_DEVICE_ROOT`.
+
+Fields which may be defined:
+
+- `src_uid` the source UID for the RDM packet. Typically, this field should be assigned as 0. Assigning a different value to this field allows users to spoof RDM UIDs. This can be useful when creating RDM proxy devices.
+- `port_id` the port ID that the packet originated from. When assigned to 0, this field will be set to `dmx_num + 1`. Otherwise, this field may be set between 1 and 255, inclusive.
+
+Fields which must be undefined or initialized to 0:
+
+- `cc` the Command class for the RDM packet. This field will automatically be set to `RDM_CC_GET_COMMAND` or `RDM_CC_SET_COMMAND` depending on the function that is used. When writing packets using `rdm_write()` this field should be set.
+- `pid` the Parameter ID for the RDM packet. This field will be set to the PID specified by the request function. When writing packet using `rdm_write()` this field should be set to the desired PID.
+- `message_count` this field indicates if a responder has additional packets in its queue waiting to be sent. When sending an RDM request, this value is always set to 0.
+- `tn` the Transaction Number field is incremented after sending each RDM packet. The DMX driver automatically tracks this value and assigns it when sending an RDM request. Responses must ensure that the response transaction number matches the request transaction number.
 
 When printing UIDs to the terminal, the macros `UIDSTR` and `UID2STR()` can be used in printf-like functions.
 
 ```c
-rdm_uid_t uid = 0x3b1044c06fbf;  // The destination UID for the request.
-rdm_response_t response;         // Stores response information.
+rdm_header_t header = {
+  .dest_uid = 0x05e044c06fbf  // The destination UID for the request.
+};
+rdm_ack_t ack;  // Stores response information.
 
 rdm_device_info_t device_info;  // Stores the response parameter data.
-int num_params = rdm_get_device_info(DMX_NUM_2, uid, RDM_ROOT_DEVICE, &response,
-                                     &device_info);
-if (num_params > 0) {
-  printf("Successfully received device info!\n");
+
+rdm_get_device_info(DMX_NUM_2, &header, &ack, &device_info);
+if (ack.type == RDM_RESPONSE_TYPE_ACK) {
+  printf("Successfully received device info from " UIDSTR "!\n", 
+         UID2STR(header.src_uid));
 }
 
+// Re-use the RDM header for an additional request.
+header.dest_uid = header.src_uid;
+header.src_uid = 0;  // Sets src_uid to this device's UID.
+
 const int new_address = 123;  // The new DMX_START_ADDRESS to send.
-bool success = rdm_set_dmx_start_address(DMX_NUM_2, uid, RDM_ROOT_DEVICE, 
-                                         &response, new_address);
-if (success) {
+rdm_set_dmx_start_address(DMX_NUM_2, &header, &ack, new_address);
+if (ack.type == RDM_RESPONSE_TYPE_ACK) {
   printf("Device " UIDSTR " has been set to DMX address %i.\n", UID2STR(uid), 
          new_address);
 }
 ```
 
-Response information from requests is read into a `rdm_response_t` pointer which is provided by the user. Users can use this type to ensure that requests were successful and, if they are not successful, handle errors.
+Response information from requests is read into a `rdm_ack_t` pointer which is provided by the user. Users can use this type to ensure that requests were successful and, if they are not successful, handle errors. The `rdm_ack_t` type contains the following fields:
 
-The `response_type_t` type contains the following fields:
-
-- `err` evaluates to `true` if an error occurred reading DMX or RDM data. More information on error handling can be found in the [Error Handling](#error-handling) section.
+- `err` evaluates to `true` if an error occurred reading RDM data. More information on error handling can be found in the [Error Handling](#error-handling) section.
 - `type` is the type of the RDM response received. It can be any of the RDM response types enumerated in [Response Types](#response-types) or `RDM_RESPONSE_TYPE_NONE` if no response was received.
 
-The remaining response field is a union which should be read depending on the value in `type.`
+The remaining field is a union which should be read depending on the value in `type.`
 
-- `num_params` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_ACK_OVERFLOW`. It returns the number of RDM parameters that was received from the RDM responder.
+- `num` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_ACK_OVERFLOW`. It returns the number of RDM parameters that was received from the RDM responder.
 - `timer` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_TIMER`. It returns the number of FreeRTOS ticks that must elapse before the RDM responder will be ready to process the request.
 - `nack_reason` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_NACK_REASON`. It returns the NACK reason code that was received from the RDM responder.
 
@@ -488,60 +513,68 @@ const int array_size = 10;
 rdm_uid_t uids[array_size];
 
 // This function blocks and may take some time to complete!
-size_t num_uids = rdm_discover_devices_simple(DMX_NUM_2, uids, array_size);
+int num_uids = rdm_discover_devices_simple(DMX_NUM_2, uids, array_size);
+
+printf("Discovery found %i UIDs!\n", num_uids);
 ```
 
 Discovery can take several seconds to complete. Users may want to perform an action, such as update a progress bar, whenever a new UID is found. When this is desired, the function `rdm_discover_with_callback()` may be used to specify a callback function which is called when a new UID is discovered.
 
-`DISC_UNIQUE_BRANCH` commands support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_UNIQUE_BRANCH` commands may only be sent to the root device, and may only be addressed to all devices on the RDM network. The `sub_device` and `uid` arguments have therefore been omitted from the function signature. This function is unique amongst the RDM functions provided by this library because it returns the decoded UID received from its response or `0` if no response was received. Due to the possibility of data collisions from this request, it is imperative that `response.err` is checked to verify data integrity.
+`DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, it is not necessary to define values in the `rdm_header_t` type when this request is sent.
 
 ```c
+rdm_header_t header;  // Defining is not necessary for DISC_UNIQUE_BRANCH.
+rdm_ack_t ack;
+
 // Define the address space within which devices will be discovered.
 const rdm_disc_unique_branch_t disc_unique_branch = {
-  .upper_bound = RDM_MAX_UID,
+  .upper_bound = RDM_UID_MAX,
   .lower_bound = 0
 };
-rdm_response_t response;  // Stores response information.
-rdm_uid_t uid = rdm_send_disc_unique_branch(DMX_NUM_2, &disc_unique_branch, 
-                                            &response);
-if (uid != 0) {
-  // Got a DISC_UNIQUE_BRANCH response!
 
-  if (response.err == ESP_OK) {
+size_t packet_size = rdm_send_disc_unique_branch(DMX_NUM_2, &header, 
+                                                 &disc_unique_branch, &ack);
+if (packet_size > 0) {
+  // Got a response!
+  if (ack.type == RDM_RESPONSE_TYPE_ACK) {
     // Only one device was found - print its UID.
-    printf("Found the UID " UIDSTR ".\n", UID2STR(uid));
-  } else if (response.err == ESP_ERR_INVALID_CRC) {
-    // The checksum was invalid so a data collision occurred.
+    printf("Found the UID " UIDSTR ".\n", UID2STR(header.src_uid));
+  } else if (ack.type == RDM_RESPONSE_TYPE_INVALID) {
+    // The checksum was invalid indicating a data collision occurred.
     printf("Multiple devices detected within this address space!\n");
 
     // Branch the address space here...
-  )
+
+  }
 } else {
-  // If no reply was received, no new devices have been found.
+  // No response was received - stop searching this address space.
   printf("No RDM devices were discovered in this address space.\n");
 }
 ```
 
-`DISC_MUTE` and `DISC_UN_MUTE` similarly do not support GET nor SET. These PIDs have been combined into one function, `rdm_send_mute()`. Muting or un-muting may be selected by providing the appropriate function argument, `true` to mute, `false` to un-mute. `DISC_MUTE` and `DISC_UN_MUTE` commands may only be sent to the root device, so the `sub_device` argument has been omitted from `rdm_send_mute()`.
+`DISC_MUTE` and `DISC_UN_MUTE` similarly do not support GET nor SET. Devices may be muted and un-muted by using the functions `rdm_send_disc_mute()` and `rdm_send_disc_un_mute()`. These requests may only be sent to the root device. `DISC_MUTE` and `DISC_UN_MUTE` requests receive the same response data from responders. Therefore `rdm_disc_mute_t` can be used to store parameter data from responder devices for both requests.
 
 ```c
-rdm_uid_t uid = RDM_BROADCAST_ALL_UID;  // Broadcast to all devices.
-rdm_response_t response;                // Stores response information.
+rdm_header_t header = {
+  .dest_uid = RDM_UID_BROADCAST_ALL;  // Broadcast to all devices.
+};
+rdm_ack_t ack;
 
-const bool MUTE = false;    // Send a DISC_UN_MUTE request.
-rdm_disc_mute_t disc_mute;  // Store the response parameter data.
-bool success = rdm_send_disc_mute(DMX_NUM_2, uid, MUTE, &response, &disc_mute);
-if (success) {
+rdm_disc_mute_t disc_mute;  // Stores the response parameter data.
+
+size_t packet_size = rdm_send_disc_un_mute(DMX_NUM_2, &header, &ack, 
+                                           &disc_mute);
+if (packet_size > 0) {
   /* This code will never run because the RDM controller does not receive a 
     response from RDM responders when the destination UID is a broadcast UID. 
     Therefore its return value can be ignored and the function can be passed 
-    NULL instead of an rdm_response_t pointer or an rdm_disc_mute_t pointer. */
+    NULL instead of an rdm_ack_t pointer or an rdm_disc_mute_t pointer. */
 }
 ```
 
 ### RDM Responder
 
-While it is currently possible to use this library as an RDM responder, no such user-friendly API to allow for convenient RDM response is exposed. This feature is currently in progress.
+// TODO
 
 ## Error Handling
 
