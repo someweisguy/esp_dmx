@@ -624,7 +624,7 @@ Parameter data in an `rdm_mdb_t` is typically encoded and decoded using function
 
 The final argument in an `rdm_response_cb_t` is a user defined context. The DMX driver does not maintain a copy of the context. The pointer provided by the user must remain valid throughout the lifetime of the DMX driver.
 
-The return value of `rdm_response_cb_t` determines the type of response that is sent to the requesting device. This value must be either `RDM_RESPONSE_TYPE_ACK`, `RDM_RESPONSE_TYPE_ACK_OVERFLOW`, `RDM_RESPONSE_TYPE_TIMER`, or `RDM_RESPONSE_TYPE_NACK_REASON`. If any other value is returned, the device will disregard the response callback and respond to the request with an `RDM_RESPONSE_NACK_REASON` citing `RDM_NR_HARDWARE_FAULT` as the NACK reason. When responding to a `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, or `DISC_UN_MUTE` request, the return value must be either `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_NONE`. If any other value is returned, the responder will not send a response.
+The return value of `rdm_response_cb_t` determines the type of response that is sent to the requesting device. This value must be either `RDM_RESPONSE_TYPE_ACK`, `RDM_RESPONSE_TYPE_ACK_OVERFLOW`, `RDM_RESPONSE_TYPE_TIMER`, or `RDM_RESPONSE_TYPE_NACK_REASON`. If any other value is returned, the device will disregard the response callback and respond to the request with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_HARDWARE_FAULT` as the NACK reason. When responding to a `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, or `DISC_UN_MUTE` request, the return value must be either `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_NONE`. If any other value is returned, the responder will not send a response.
 
 Registering callbacks with `rdm_register_callback()` can be performed by specifying the PID for the callback and the desired callback function. A pointer to a user-defined context may be provided as well.
 
@@ -637,7 +637,7 @@ rdm_register_callback(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
 
 Callbacks must handle both GET and SET requests in the same function. Some PIDs support GET requests, but not SET. In such cases, it is required for the user to verify the `cc` from the `rdm_header_t` passed in the function. If the `cc` is invalid, the user must call `rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS)` and return `RDM_RESPONSE_TYPE_NACK_REASON`.
 
-Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
+If a request for a PID that does not have a registered callback is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
 
 This library defines several, required RDM response functions by default. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of these automatically registered functions can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section. The function for `IDENTIFY_DEVICE` should be overwritten to ensure that the callback performs a function to identify the device. Otherwise, responses to `IDENTIFY_DEVICE` will respond with `RDM_RESPONSE_TYPE_ACK` without doing any additional work. When using Arduino, the `IDENTIFY_DEVICE` callback will illuminate the built-in LED on the ESP32 breakout board.
 
@@ -810,6 +810,8 @@ For a list of planned features, see the [esp_dmx GitHub Projects](https://github
 ## Appendix
 
 ### NACK Reason Codes
+
+The NACK reason defines the reason that the responder is unable to comply with the request.
 
 - `RDM_NR_UNKNOWN_PID` The responder cannot comply with the request because the message is not implemented in the responder.
 - `RDM_NR_FORMAT_ERROR` The responder cannot interpret the request as the controller data was not formatted correctly.
