@@ -23,15 +23,6 @@ typedef uint64_t rdm_uid_t;
 
 typedef uint16_t rdm_sub_device_t;
 
-/**
- * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
- * with this software. Any device that uses this ID is associated with this
- * library. Users of this library are welcome to use this manufacturer ID (as
- * long as it is used responsibly) or may choose to register their own
- * manufacturer ID.
- */
-#define RDM_MAN_ID_DEFAULT (0x05e0)
-
 // TODO: docs
 // TODO: RDM_UID_BROADCAST_MAN(man_id)
 

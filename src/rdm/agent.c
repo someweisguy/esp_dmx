@@ -14,6 +14,15 @@
 #include "esp_mac.h"
 #endif
 
+/**
+ * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
+ * with this software. Any device that uses this ID is associated with this
+ * library. Users of this library are welcome to use this manufacturer ID (as
+ * long as it is used responsibly) or may choose to register their own
+ * manufacturer ID.
+ */
+#define RDM_MAN_ID_DEFAULT (0x05e0)
+
 static const char *TAG = "rdm_agent";
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
