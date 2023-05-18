@@ -635,7 +635,7 @@ rdm_register_callback(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
                       rdm_software_version_label, NULL);
 ```
 
-Callbacks must handle both GET and SET requests in the same function. Some PIDs support GET requests, but not SET. In such cases, it is required for the user to verify the `cc` from the `rdm_header_t` passed in the function. If the `cc` is invalid, the user must call `rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS)` and return `RDM_RESPONSE_TYPE_NACK_REASON`.
+Callbacks must handle both GET and SET requests in the same function. Some PIDs support GET or SET, but not both. In such cases, it is required for the user to verify the `cc` from the `rdm_header_t` passed in the function. If the `cc` is invalid, the user must call `rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS)` and return `RDM_RESPONSE_TYPE_NACK_REASON`.
 
 If a request for a PID that does not have a registered callback is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
 
