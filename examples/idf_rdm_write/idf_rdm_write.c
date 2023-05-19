@@ -1,12 +1,15 @@
 /*
 
-  ESP-IDF RDM Discovery
+  ESP-IDF RDM Write
 
-  TODO
+  This example uses RDM discovery to find devices on the RDM network. If devices
+  are found, it iterates through each devices and sends a GET DEVICE_INFO
+  request. If a response is received, the device's UID, DMX start address and
+  DMX footprint is printed to the terminal.
 
   Discovery can take several seconds to complete, especially when there are
-  several responder devices on the RDM network. In this example, the amount of
-  time that discovery takes is measured and logged to the terminal.
+  several responder devices on the RDM network. For a more comprehensive
+  explanation of RDM discovery, see the idf_rdm_discovery example.
 
   Note: this example is for use with the ESP-IDF. It will not work on Arduino!
 
