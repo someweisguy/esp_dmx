@@ -85,7 +85,7 @@ void setup() {
       rdm_device_info_t deviceInfo;
 
       /* Now we are ready to send the request! */
-      rdm_get_device_info(dmx_num, &header, &ack, &deviceInfo);
+      rdm_get_device_info(dmxPort, &header, &ack, &deviceInfo);
 
       /* Our request has been sent so now we should check to see if a response
         was successfully received. Each RDM request function returns the number
