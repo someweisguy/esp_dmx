@@ -325,6 +325,38 @@ typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
                                                  const rdm_header_t *header,
                                                  rdm_mdb_t *mdb, void *context);
 
+typedef enum rdm_product_category_t {
+  RDM_PRODUCT_CATEGORY_NOT_DECLARED = 0x0000,  // The product category is not declared.
+
+  RDM_PRODUCT_CATEGORY_FIXTURE = 0x0100,  // The product is a fixture intended to create illumination.
+
+  RDM_PRODUCT_CATEGORY_FIXTURE_ACCESSORY = 0x0200,  // The product is an add-on to a fixture or projector.
+
+  RDM_PRODUCT_CATEGORY_PROJECTOR = 0x0300,  // The product is a light source capable of producing realistic images from another media.
+
+  RDM_PRODUCT_CATEGORY_ATMOSPHERIC = 0x0400,  // The product creates atmospheric effects such as haze, fog, or pyrotechnics.
+
+  RDM_PRODUCT_CATEGORY_DIMMER = 0x0500,  // The product is for intensity control, specifically dimming equipment.
+
+  RDM_PRODUCT_CATEGORY_POWER = 0x0600,  // The product is for power control, other than dimming equipment.
+
+  RDM_PRODUCT_CATEGORY_SCENIC = 0x0700,  // The product is a scenic device unrelated to lighting equipment.
+
+  RDM_PRODUCT_CATEGORY_DATA = 0x0800, // The product is a DMX converter, interface, or otherwise part of DMX infrastructure.
+
+  RDM_PRODUCT_CATEGORY_AV = 0x0900,  // The product is audio-visual equipment.
+
+  RDM_PRODUCT_CATEGORY_MONITOR = 0x0a00,  // The product is monitoring equipment.
+
+  RDM_PRODUCT_CATEGORY_CONTROL = 0x7000,  // The product is a controller or backup device.
+
+  RDM_PRODUCT_CATEGORY_TEST = 0x7100,  // The product is test equipment.
+
+  RDM_PRODUCT_CATEGORY_OTHER = 0x7fff  // The product isn't described by any of the other product categories.
+
+  // Manufacturer Specific Categories: 0x8000-0xdfff
+} rdm_product_category_t;
+
 #ifdef __cplusplus
 }
 #endif
