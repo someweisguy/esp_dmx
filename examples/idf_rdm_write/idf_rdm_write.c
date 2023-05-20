@@ -59,7 +59,12 @@ void app_main() {
                  " has a DMX address of %i and a footprint of size %i.",
                  UID2STR(uids[i]), device_info.start_address,
                  device_info.footprint);
-
+      } else if (ack.type == RDM_RESPONSE_TYPE_NACK_REASON) {
+        ESP_LOGI(TAG,
+                 "Device " UIDSTR " responded with a NACK reason of 0x%04x.\n",
+                 ack.nack_reason);
+        /* The list of NACK reasons is enumerated in the appendix of this
+          library's README. */
       } else {
         ESP_LOGI(TAG, "Unable to get device info for " UIDSTR,
                  UID2STR(uids[i]));
