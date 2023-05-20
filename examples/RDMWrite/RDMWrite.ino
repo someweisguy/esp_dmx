@@ -55,9 +55,6 @@ void setup() {
     interrupt to its default settings.*/
   dmx_driver_install(dmxPort, DMX_DEFAULT_INTR_FLAGS);
 
-  /* RDM Discovery can take several seconds to complete. With just 1 RDM capable
-    device in the RDM network, discovery should take around 30ms. */
-
   /* Call the default discovery implementation. This implementation searches for
     RDM devices on the network. When a device is found, its UID is added to an
     array of UIDs. This function will never overflow the UID array as long as

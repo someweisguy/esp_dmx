@@ -81,7 +81,7 @@ void app_main() {
 
   /* Care should be taken to ensure that sw_version_label (the user context)
     never goes out of scope. Allowing this to happen can lead to undesired
-    behavior. User contexts are not copied onto the driver. */
+    behavior. User contexts are not copied into the driver. */
 
   ESP_LOGI(TAG, "Waiting for RDM packets...");
 
