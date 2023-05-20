@@ -469,7 +469,7 @@ static int rdm_software_version_label(dmx_port_t dmx_num,
   }
 
   // Encode the response
-  const char *software_version_label = "esp_dmx v3.0.3-beta";  // TODO
+  const char *software_version_label = "esp_dmx";  // TODO major/minor version
   rdm_encode_string(mdb, software_version_label,
                     sizeof(software_version_label));
   return RDM_RESPONSE_TYPE_ACK;
