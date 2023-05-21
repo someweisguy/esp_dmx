@@ -123,6 +123,18 @@ size_t rdm_encode_string(rdm_mdb_t *mdb, const void *data, int num);
 size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason);
 
 /**
+ * @brief A special encoding type which encodes a null value into an RDM message
+ * data block.
+ * 
+ * @param[out] mdb A pointer to a message data block.
+ * @param[in] data A pointer to an array which stores the values to encode. This
+ * value is ignored and may be set to NULL.
+ * @param num The number of elements in the array to encode.
+ * @return Always returns 0.
+ */
+size_t rdm_encode_null(rdm_mdb_t *mdb, const void *data, int num);
+
+/**
  * @brief Decodes an RDM mute parameter from a message data block.
  *
  * @param[in] mdb A pointer to a message data block.

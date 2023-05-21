@@ -180,6 +180,11 @@ size_t rdm_encode_nack_reason(rdm_mdb_t *mdb, rdm_nr_t nack_reason) {
   return rdm_encode_16bit(mdb, &nack_reason, 1);
 }
 
+size_t rdm_encode_null(rdm_mdb_t *mdb, const void *data, int num) {
+  mdb->pdl = 0;
+  return 0;
+}
+
 int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num) {
   int decoded = 0;
   if (mdb && mdb->pdl && data) {
