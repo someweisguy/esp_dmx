@@ -76,6 +76,14 @@ static const rdm_sub_device_t RDM_SUB_DEVICE_ROOT = 0;
 static const rdm_sub_device_t RDM_SUB_DEVICE_ALL = 0xffff;
 
 /**
+ * @brief RDM controllers may send GET and SET requests for the
+ * RDM_PID_DMX_START_ADDRESS of this device. When an RDM responder has a DMX
+ * footprint of 0, the DMX start address of this device must be set to this
+ * value.
+ */
+static const uint16_t DMX_START_ADDRESS_NONE = 0xffff;
+
+/**
  * @brief The RDM command class (CC) type. The command class specifies the
  * action of the message. Responders shall always generate a response to
  * GET_COMMAND and SET_COMMAND messages except when the destination UID of the
