@@ -20,40 +20,16 @@
 extern "C" {
 #endif
 
+// TODO: docs
 #define uid_is_equal(a, b) (a.man_id == b.man_id && a.dev_id == b.dev_id)
 
-#define uid_is_gt(a, b) (a.man_id > b.man_id || (a.man_id == b.man_id && a.dev_id > b.dev_id))
+// TODO: docs
+#define uid_is_gt(a, b) \
+  (a.man_id > b.man_id || (a.man_id == b.man_id && a.dev_id > b.dev_id))
 
-#define uid_is_lt(a, b) (a.man_id < b.man_id || (a.man_id == b.man_id && a.dev_id < b.dev_id))
-
-#define uid_is_broadcast(uid) (uid.dev_id == 0xffffffff)
-
-#define uid_is_valid(uid) (uid.man_id <= 0xffff && uid.dev_id <= 0xfffffffe)
-
-/**
- * @brief Helper function that takes an RDM UID from a most-significant-byte
- * first buffer and copies it to least-significant-byte first endianness, which
- * is what ESP32 uses.
- *
- * @note This function is designed to be the quickest way to swap endianness of
- * a 48-bit number on the Xtensa compiler which is important because it will be
- * used in an interrupt handler. It must be inlined in order to prevent cache
- * misses in IRAM interrupts.
- *
- * @param buf A pointer to an RDM buffer.
- * @return The properly formatted RDM UID.
- */
-// static inline rdm_uid_t bswap48(const void *buf) {
-//   rdm_uid_t val;
-//   ((uint8_t *)&val)[0] = ((uint8_t *)buf)[5];
-//   ((uint8_t *)&val)[1] = ((uint8_t *)buf)[4];
-//   ((uint8_t *)&val)[2] = ((uint8_t *)buf)[3];
-//   ((uint8_t *)&val)[3] = ((uint8_t *)buf)[2];
-//   ((uint8_t *)&val)[4] = ((uint8_t *)buf)[1];
-//   ((uint8_t *)&val)[5] = ((uint8_t *)buf)[0];
-//   *(uint16_t *)&((&val)[3]) = 0;
-//   return val;
-// }
+// TODO: docs
+#define uid_is_lt(a, b) \
+  (a.man_id < b.man_id || (a.man_id == b.man_id && a.dev_id < b.dev_id))
 
 /**
  * @brief Returns true if the specified UID is a broadcast address. This
@@ -64,7 +40,10 @@ extern "C" {
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
-//bool uid_is_broadcast(rdm_uid_t uid);
+#define uid_is_broadcast(uid) (uid.dev_id == 0xffffffff)
+
+// TODO: docs
+#define uid_is_valid(uid) (uid.man_id <= 0xffff && uid.dev_id <= 0xfffffffe)
 
 /**
  * @brief Returns true if the specified UID is addressed to the desired UID.
@@ -77,15 +56,15 @@ extern "C" {
 bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid);
 
 /**
- * @brief Helper function that converts an RDM UID stored as a 64-bit integer
- * and copies it into a 48-bit buffer. It also converts endianness because the
- * ESP32 stores values in least-significant-byte first endianness and RDM
- * requires most-significant-byte first.
+ * @brief Copies RDM UID from a source buffer directly into a destination
+ * buffer. Either the source or the destination should point to an rdm_uid_t
+ * type.
  * 
- * // TODO
+ * To avoid overflows, the size of the arrays pointed to by both the destination
+ * and source parameters shall be at least six bytes and should not overlap.
  *
- * @param[out] dest A pointer to the destination buffer.
- * @param[in] uid The 64-bit representation of the UID.
+ * @param[out] destination A pointer to the destination buffer.
+ * @param[in] source A pointer to the source buffer of the UID.
  * @return A pointer to the destination buffer.
  */
 void *uidcpy(void *restrict destination, const void *restrict source);
