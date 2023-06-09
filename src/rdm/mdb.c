@@ -111,7 +111,7 @@ int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num) {
     } *pd = (void *)mdb->pd;
     rdm_uid_t *param = data;
     for (int i = 0; i < num && decoded * 6 < mdb->pdl; ++i) {
-      param[i] = bswap48(&pd[i]);
+      uidcpy(&param[i], &pd[i]);
       ++decoded;
     }
   }
@@ -194,7 +194,8 @@ int rdm_decode_mute(const rdm_mdb_t *mdb, void *data, int num) {
     param->sub_device = pd->sub_device;
     param->boot_loader = pd->boot_loader;
     param->proxied_device = pd->proxied_device;
-    param->binding_uid = mdb->pdl > 2 ? bswap48(pd->binding_uid) : 0;
+    param->binding_uid = RDM_UID_NULL;  // FIXME
+    // param->binding_uid = mdb->pdl > 2 ? bswap48(pd->binding_uid) : 0;
     decoded = 1;
   }
   return decoded;
@@ -210,7 +211,7 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
     pd->sub_device = param->sub_device;
     pd->boot_loader = param->boot_loader;
     pd->proxied_device = param->proxied_device;
-    if (param->binding_uid != 0) {
+    if (!uid_is_equal(param->binding_uid, RDM_UID_NULL)) {      
       uidcpy(pd->binding_uid, &(param->binding_uid));
       encoded += 6;
     }

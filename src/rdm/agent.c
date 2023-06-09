@@ -53,40 +53,39 @@ typedef struct __attribute__((__packed__)) rdm_raw_t {
   } pd;  // The RDM parameter data. It can be variable length.
 } rdm_raw_t;
 
-rdm_uid_t rdm_driver_get_uid(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Initialize the RDM UID
   taskENTER_CRITICAL(spinlock);
-  if (driver->rdm.uid == 0) {
+  if (uid_is_equal((*driver->rdm.uid), RDM_UID_NULL)) {
     struct __attribute__((__packed__)) {
       uint16_t manufacturer;
       uint64_t device;
     } mac;
     esp_efuse_mac_get_default((void *)&mac);
-    driver->rdm.uid = (bswap32(mac.device) + dmx_num) & 0xffffffff;
-    driver->rdm.uid |= (rdm_uid_t)RDM_MAN_ID_DEFAULT << 32;
+    driver->rdm.uid->dev_id = bswap32(mac.device) + dmx_num;
+    driver->rdm.uid->man_id = RDM_MAN_ID_DEFAULT;
   }
-  rdm_uid_t uid = driver->rdm.uid;
+  *uid = *driver->rdm.uid;
   taskEXIT_CRITICAL(spinlock);
-
-  return uid;
 }
+
 
 void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  DMX_CHECK(uid <= RDM_UID_MAX, , "uid error");
+  DMX_CHECK(uid_is_valid(uid), , "uid error");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   taskENTER_CRITICAL(spinlock);
-  driver->rdm.uid = uid;
+  *driver->rdm.uid = uid;
   taskEXIT_CRITICAL(spinlock);
 }
 
@@ -254,8 +253,8 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     }
 
     // Copy the remaining header data
-    header->dest_uid = bswap48(rdm->dest_uid);
-    header->src_uid = bswap48(rdm->src_uid);
+    uidcpy(&header->dest_uid, &rdm->dest_uid);
+    uidcpy(&header->src_uid, &rdm->src_uid);
     header->tn = rdm->tn;
     header->port_id = rdm->port_id;  // Also copies response_type
     header->message_count = rdm->message_count;
@@ -270,10 +269,10 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
     for (int i = 0, j = 0; i < 6; ++i, j += 2) {
       buf[i] = d[j] & d[j + 1];
     }
-    header->src_uid = bswap48(buf);
+    uidcpy(&header->src_uid, buf);
 
     // Fill out the remaining header and MDB data
-    header->dest_uid = 0;
+    header->dest_uid = RDM_UID_NULL;
     header->tn = -1;
     header->response_type = RDM_RESPONSE_TYPE_ACK;  // Also copies port_id
     header->message_count = -1;
@@ -365,8 +364,8 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     rdm->sc = RDM_SC;
     rdm->sub_sc = RDM_SUB_SC;
     rdm->message_len = message_len;
-    uidcpy(rdm->dest_uid, &(header->dest_uid));
-    uidcpy(rdm->src_uid, &(header->src_uid));
+    uidcpy(rdm->dest_uid, &header->dest_uid);
+    uidcpy(rdm->src_uid, &header->src_uid);
     rdm->tn = header->tn;
     rdm->port_id = header->port_id;  // Also copies response_type
     rdm->message_count = header->message_count;
@@ -398,8 +397,8 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Validate required header information
-  if (header->dest_uid == 0 ||
-      (header->dest_uid > RDM_UID_MAX && !uid_is_broadcast(header->dest_uid))) {
+  if (uid_is_equal(header->dest_uid, RDM_UID_NULL) ||
+      (!uid_is_valid(header->dest_uid) && !uid_is_broadcast(header->dest_uid))) {
     ESP_LOGE(TAG, "dest_uid is invalid");
     return 0;
   }
@@ -422,11 +421,11 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Validate header values that the user doesn't need to include
-  if (header->src_uid > RDM_UID_MAX || uid_is_broadcast(header->src_uid)) {
+  if (!uid_is_valid(header->src_uid) || uid_is_broadcast(header->src_uid)) {
     ESP_LOGE(TAG, "src_uid is invalid");
     return 0;
-  } else if (header->src_uid == 0) {
-    header->src_uid = rdm_driver_get_uid(dmx_num);
+  } else if (uid_is_equal(header->src_uid, RDM_UID_NULL)) {
+    rdm_driver_get_uid(dmx_num, &header->src_uid);
   }
   if (header->port_id < 0 || header->port_id > 255) {
     ESP_LOGE(TAG, "port_id is invalid");
@@ -482,8 +481,9 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
       } else if (!(req.cc == RDM_CC_DISC_COMMAND &&
                    req.pid == RDM_PID_DISC_UNIQUE_BRANCH) &&
                  (req.cc != (header->cc - 1) || req.pid != header->pid ||
-                  req.tn != header->tn || req.src_uid != header->dest_uid ||
-                  req.dest_uid != header->src_uid)) {
+                  req.tn != header->tn ||
+                  !uid_is_equal(req.src_uid, header->dest_uid) ||
+                  !uid_is_equal(req.dest_uid, header->src_uid))) {
         response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid packet format
       }
 

@@ -1,28 +1,19 @@
 #include "utils.h"
 
 #include "rdm/types.h"
+#include "endian.h"
 
-void *uidcpy(void *dest, const rdm_uid_t *uid) {
-  ((uint8_t *)dest)[0] = ((uint8_t *)uid)[5];
-  ((uint8_t *)dest)[1] = ((uint8_t *)uid)[4];
-  ((uint8_t *)dest)[2] = ((uint8_t *)uid)[3];
-  ((uint8_t *)dest)[3] = ((uint8_t *)uid)[2];
-  ((uint8_t *)dest)[4] = ((uint8_t *)uid)[1];
-  ((uint8_t *)dest)[5] = ((uint8_t *)uid)[0];
-  return dest;
-}
-
-bool uid_is_broadcast(rdm_uid_t uid) {
-  return (uint32_t)uid == 0xffffffff;
+void *uidcpy(void *restrict destination, const void *restrict source) {
+  *(uint16_t *)destination = bswap16(*(uint16_t *)source);
+  *(uint32_t *)(destination + 2) = bswap32(*(uint32_t *)(source + 2));
+  return destination;
 }
 
 bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid) {
-  compare_uid &= 0xffffffffffff;
-  recipient_uid &= 0xffffffffffff;
-  return recipient_uid == compare_uid ||
-         ((compare_uid >> 32 == 0xffff ||
-           compare_uid >> 32 == recipient_uid >> 32) &&
-          (uint32_t)compare_uid == 0xffffffff);
+  return uid_is_equal(recipient_uid, compare_uid) ||
+         ((compare_uid.man_id == 0xff ||
+           compare_uid.man_id == recipient_uid.man_id) &&
+          compare_uid.dev_id == 0xffffffff);
 }
 
 size_t get_preamble_len(const void *data) {

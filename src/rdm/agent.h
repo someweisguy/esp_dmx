@@ -18,9 +18,10 @@ extern "C" {
  * @brief Returns the 48-bit unique ID of this device.
  *
  * @param dmx_num The DMX port number.
+ * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
  * @return The UID of the DMX port.
  */
-rdm_uid_t rdm_driver_get_uid(dmx_port_t dmx_num);
+void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid);
 
 /**
  * @brief Set the device UID to a custom value. Setting the UID to 0 will reset

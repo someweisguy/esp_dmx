@@ -188,7 +188,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             continue;  // Haven't received RDM packet yet
           }
           const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
-          const rdm_uid_t dest_uid = bswap48(&driver->data.buffer[3]);
+          rdm_uid_t dest_uid;
+          uidcpy(&dest_uid, &driver->data.buffer[3]);
           const rdm_cc_t cc = driver->data.buffer[20];
           if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
             packet_type = RDM_PACKET_TYPE_DISCOVERY;
@@ -199,7 +200,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else {
             packet_type = RDM_PACKET_TYPE_RESPONSE;
           }
-          if (uid_is_recipient(dest_uid, rdm_driver_get_uid(driver->dmx_num))) {
+          rdm_uid_t my_uid;
+          rdm_driver_get_uid(driver->dmx_num, &my_uid);
+          if (uid_is_recipient(dest_uid, my_uid)) {
             // TODO: packet is addressed to me
           }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
@@ -410,8 +413,10 @@ static int rdm_disc_unique_branch(dmx_port_t dmx_num,
   rdm_decode_uids(mdb, &branch, 2);
 
   // Respond if the device UID is between the branch bounds
-  const rdm_uid_t my_uid = rdm_driver_get_uid(dmx_num);
-  if (my_uid >= branch.lower_bound && my_uid <= branch.upper_bound) {
+  rdm_uid_t my_uid;
+  rdm_driver_get_uid(dmx_num, &my_uid);
+  if (!uid_is_lt(my_uid, branch.lower_bound) &&
+      !uid_is_gt(my_uid, branch.upper_bound)) {
     mdb->preamble_len = 7;
     return RDM_RESPONSE_TYPE_ACK;
   } else {
@@ -595,7 +600,14 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->is_enabled = true;
 
   // Initialize RDM settings
-  driver->rdm.uid = 0;
+  driver->rdm.uid = heap_caps_malloc(sizeof(rdm_uid_t), MALLOC_CAP_8BIT);
+  if (driver->rdm.uid == NULL) {
+    ESP_LOGE(TAG, "RDM UID malloc error");
+    dmx_driver_delete(dmx_num);
+    return ESP_ERR_NO_MEM;
+  }
+  driver->rdm.uid->man_id = 0;
+  driver->rdm.uid->dev_id = 0;
   driver->rdm.tn = 0;
   driver->rdm.discovery_is_muted = false;
   driver->rdm.num_callbacks = 0;
@@ -743,6 +755,11 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // Free driver data buffer
   if (driver->data.buffer != NULL) {
     heap_caps_free(driver->data.buffer);
+  }
+
+  // Free driver UID
+  if (driver->rdm.uid != NULL) {
+    heap_caps_free(driver->rdm.uid);
   }
 
   // Free hardware timer ISR
@@ -1313,7 +1330,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       */
 
       rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
-      const rdm_uid_t my_uid = rdm_driver_get_uid(dmx_num);
+      rdm_uid_t my_uid;
+      rdm_driver_get_uid(dmx_num, &my_uid);
       if (uid_is_recipient(header.dest_uid, my_uid)) {
         bool cb_found = false;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
@@ -1495,7 +1513,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Record the outgoing packet type
   const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
-  const rdm_uid_t dest_uid = bswap48(&driver->data.buffer[3]);
+  rdm_uid_t dest_uid;
+  uidcpy(&dest_uid, &driver->data.buffer[3]);
   int packet_type = RDM_PACKET_TYPE_NON_RDM;
   if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
     if (cc == RDM_CC_DISC_COMMAND &&

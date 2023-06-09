@@ -19,7 +19,10 @@ extern "C" {
 /**
  * @brief RDM unique ID type.
  */
-typedef uint64_t rdm_uid_t;
+typedef struct __attribute__((__packed__)) rdm_uid_t {
+  uint16_t man_id;
+  uint32_t dev_id;
+} rdm_uid_t;
 
 typedef uint16_t rdm_sub_device_t;
 
@@ -27,7 +30,7 @@ typedef uint16_t rdm_sub_device_t;
  * @brief Macro for creating a manufacturer broadcast UID based on the desired
  * manufacturer ID.
  */
-#define RDM_UID_BROADCAST_MAN(man_id) (((rdm_uid_t)man_id << 32) | 0xffffffff)
+#define RDM_UID_BROADCAST_MAN(man_id) ((rdm_uid_t){man_id, 0xffffffff})
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 /**
@@ -49,20 +52,26 @@ typedef uint16_t rdm_sub_device_t;
  * UID in text by separating the manufacturer ID and device ID. For use with
  * printf-like functions.
  */
-#define UID2STR(uid) ((uint16_t)(uid >> 32)), ((uint32_t)(uid))
+#define UID2STR(uid) uid.man_id, uid.dev_id
 
 /**
  * @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
  * messages.
  */
-static const rdm_uid_t RDM_UID_BROADCAST_ALL = 0xffffffffffff;
+static const rdm_uid_t RDM_UID_BROADCAST_ALL = {0xffff, 0xffffffff};
 
 /**
  * @brief The maximum RDM UID possible. Any UID above this value (except for a 
  * broadcast UID) is considered invalid.
  */
-static const rdm_uid_t RDM_UID_MAX = 0xfffffffffffe;
+static const rdm_uid_t RDM_UID_MAX = {0xffff, 0xfffffffe};
+
+/**
+ * @brief The minimum RDM UID possible.
+ * 
+ */
+static const rdm_uid_t RDM_UID_NULL = {0, 0};
 
 /**
  * @brief Sub-device which respresents the root of a RDM device.

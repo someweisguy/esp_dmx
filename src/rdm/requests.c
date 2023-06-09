@@ -3,6 +3,7 @@
 #include "dmx/driver.h"
 #include "rdm/agent.h"
 #include "rdm/mdb.h"
+#include "rdm/utils.h"
 
 static const char *TAG = "rdm_requests";
 
@@ -21,7 +22,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   const rdm_encode_t encode = {
@@ -36,9 +37,10 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_MUTE;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -56,9 +58,10 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UN_MUTE;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -90,7 +93,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
   // Initialize the stack with the initial branch instruction
   size_t stack_size = 1;
-  stack[0].lower_bound = 0;
+  stack[0].lower_bound = RDM_UID_NULL;
   stack[0].upper_bound = RDM_UID_MAX;
 
   rdm_header_t header;   // Send and receive header information.
@@ -111,11 +114,10 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
     const rdm_disc_unique_branch_t *branch = &stack[--stack_size];
 
     size_t attempts = 0;
-    if (branch->lower_bound == branch->upper_bound) {
+    if (uid_is_equal(branch->lower_bound, branch->upper_bound)) {
       // Can't branch further so attempt to mute the device
       do {
-        header.src_uid = 0;
-        header.sub_device = 0;
+        header.src_uid = RDM_UID_NULL;
         header.dest_uid = branch->lower_bound;
         rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
       } while (ack.type != RDM_RESPONSE_TYPE_ACK && ++attempts < 3);
@@ -123,8 +125,8 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
       // TODO: remove this workaround?
       // Attempt to fix possible error where responder is flipping its own UID
       if (ack.type != RDM_RESPONSE_TYPE_ACK) {
-        header.dest_uid = bswap64(branch->lower_bound) >> 16;  // Flip UID
-        rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
+        //header.dest_uid = bswap64(branch->lower_bound) >> 16;  // Flip UID
+        //rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
       }
 
       // Call the callback function and report a device has been found
@@ -135,7 +137,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
     } else {
       // Search the current branch in the RDM address space
       do {
-        header.src_uid = 0;
+        header.src_uid = RDM_UID_NULL;
         rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
       } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
       if (ack.type != RDM_RESPONSE_TYPE_NONE) {
@@ -156,8 +158,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
             // Attempt to mute the device
             attempts = 0;
             do {
-              header.src_uid = 0;
-              header.sub_device = 0;
+              header.src_uid = RDM_UID_NULL;
               header.dest_uid = uid;
               rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
@@ -181,16 +182,18 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
         // Iteratively search the next two RDM address spaces
         if (devices_remaining) {
-          const rdm_uid_t lower_bound = branch->lower_bound;
-          const rdm_uid_t mid = (lower_bound + branch->upper_bound) / 2;
+          const rdm_uid_t uid = branch->lower_bound;
+          const uint64_t mid = (((uint64_t)uid.man_id << 32) | uid.dev_id) / 2;
 
           // Add the upper branch so that it gets handled second
-          stack[stack_size].lower_bound = mid + 1;
+          stack[stack_size].lower_bound.man_id = (mid + 1);
+          stack[stack_size].lower_bound.dev_id = (mid + 1) >> 32;
           ++stack_size;
 
           // Add the lower branch so it gets handled first
-          stack[stack_size].lower_bound = lower_bound;
-          stack[stack_size].upper_bound = mid;
+          stack[stack_size].lower_bound = uid;
+          stack[stack_size].upper_bound.man_id = mid;
+          stack[stack_size].upper_bound.dev_id = mid >> 32;
           ++stack_size;
         }
       }
@@ -239,7 +242,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_DEVICE_INFO;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -261,7 +264,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -282,7 +285,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_IDENTIFY_DEVICE;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -302,7 +305,7 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_IDENTIFY_DEVICE;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_encode_t encode = {
@@ -323,7 +326,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_DMX_START_ADDRESS;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_decode_t decode = {
@@ -345,7 +348,7 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_DMX_START_ADDRESS;
-  header->src_uid = rdm_driver_get_uid(dmx_num);
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
   rdm_encode_t encode = {
