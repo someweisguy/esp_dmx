@@ -62,16 +62,16 @@ void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
 
   // Initialize the RDM UID
   taskENTER_CRITICAL(spinlock);
-  if (uid_is_equal((*driver->rdm.uid), RDM_UID_NULL)) {
+  if (uid_is_equal(driver->rdm.uid, RDM_UID_NULL)) {
     struct __attribute__((__packed__)) {
       uint16_t manufacturer;
       uint64_t device;
     } mac;
     esp_efuse_mac_get_default((void *)&mac);
-    driver->rdm.uid->dev_id = bswap32(mac.device) + dmx_num;
-    driver->rdm.uid->man_id = RDM_MAN_ID_DEFAULT;
+    driver->rdm.uid.dev_id = bswap32(mac.device) + dmx_num;
+    driver->rdm.uid.man_id = RDM_MAN_ID_DEFAULT;
   }
-  *uid = *driver->rdm.uid;
+  *uid = driver->rdm.uid;
   taskEXIT_CRITICAL(spinlock);
 }
 
@@ -85,7 +85,7 @@ void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   taskENTER_CRITICAL(spinlock);
-  *driver->rdm.uid = uid;
+  driver->rdm.uid = uid;
   taskEXIT_CRITICAL(spinlock);
 }
 

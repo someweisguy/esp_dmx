@@ -600,14 +600,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->is_enabled = true;
 
   // Initialize RDM settings
-  driver->rdm.uid = heap_caps_malloc(sizeof(rdm_uid_t), MALLOC_CAP_8BIT);
-  if (driver->rdm.uid == NULL) {
-    ESP_LOGE(TAG, "RDM UID malloc error");
-    dmx_driver_delete(dmx_num);
-    return ESP_ERR_NO_MEM;
-  }
-  driver->rdm.uid->man_id = 0;
-  driver->rdm.uid->dev_id = 0;
+  driver->rdm.uid = RDM_UID_NULL;
   driver->rdm.tn = 0;
   driver->rdm.discovery_is_muted = false;
   driver->rdm.num_callbacks = 0;
@@ -755,11 +748,6 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // Free driver data buffer
   if (driver->data.buffer != NULL) {
     heap_caps_free(driver->data.buffer);
-  }
-
-  // Free driver UID
-  if (driver->rdm.uid != NULL) {
-    heap_caps_free(driver->rdm.uid);
   }
 
   // Free hardware timer ISR

@@ -42,7 +42,7 @@ extern "C" {
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.
  */
-typedef __attribute__((aligned(4))) struct dmx_driver_t {
+typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
   uart_dev_t *uart;               // A pointer to the UART port.
@@ -81,7 +81,7 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
   struct rdm_info_t {
-    rdm_uid_t *uid;          // The assigned RDM UID of this port. Must be allocated on the heap to allow for unaligned memory access.
+    rdm_uid_t uid;          // The assigned RDM UID of this port. Must be allocated on the heap to allow for unaligned memory access.
     uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
     int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
     int identify_device;     // True if RDM identify is active.
