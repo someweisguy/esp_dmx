@@ -125,6 +125,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
       // TODO: remove this workaround?
       // Attempt to fix possible error where responder is flipping its own UID
       if (ack.type != RDM_RESPONSE_TYPE_ACK) {
+        // FIXME: add back in for now
         //header.dest_uid = bswap64(branch->lower_bound) >> 16;  // Flip UID
         //rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
       }
@@ -159,6 +160,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
             attempts = 0;
             do {
               header.src_uid = RDM_UID_NULL;
+              header.sub_device = RDM_SUB_DEVICE_ROOT;
               header.dest_uid = uid;
               rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
@@ -182,18 +184,23 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
         // Iteratively search the next two RDM address spaces
         if (devices_remaining) {
-          const rdm_uid_t uid = branch->lower_bound;
-          const uint64_t mid = (((uint64_t)uid.man_id << 32) | uid.dev_id) / 2;
+          const rdm_uid_t upper_lbound = branch->lower_bound;
+          uint64_t mid = ((((uint64_t)branch->lower_bound.man_id << 32) |
+                           branch->lower_bound.dev_id) +
+                          (((uint64_t)branch->upper_bound.man_id << 32) |
+                           branch->upper_bound.dev_id)) / 2;
 
           // Add the upper branch so that it gets handled second
-          stack[stack_size].lower_bound.man_id = (mid + 1);
-          stack[stack_size].lower_bound.dev_id = (mid + 1) >> 32;
+          stack[stack_size].lower_bound.man_id = (mid + 1) >> 32;
+          stack[stack_size].lower_bound.dev_id = mid + 1;
+          // Reuse the lower_ubound that is currently on the stack
           ++stack_size;
 
           // Add the lower branch so it gets handled first
-          stack[stack_size].lower_bound = uid;
-          stack[stack_size].upper_bound.man_id = mid;
-          stack[stack_size].upper_bound.dev_id = mid >> 32;
+          stack[stack_size].lower_bound = upper_lbound;
+          stack[stack_size].upper_bound.man_id = mid >> 32;
+          stack[stack_size].upper_bound.dev_id = mid;
+
           ++stack_size;
         }
       }
