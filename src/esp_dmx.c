@@ -564,7 +564,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   dmx_driver_t *restrict driver;
 
   // Allocate the DMX driver dynamically
-  driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_32BIT);
+  driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
   if (driver == NULL) {
     ESP_LOGE(TAG, "DMX driver malloc error");
     return ESP_ERR_NO_MEM;
