@@ -125,9 +125,11 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
       // TODO: remove this workaround?
       // Attempt to fix possible error where responder is flipping its own UID
       if (ack.type != RDM_RESPONSE_TYPE_ACK) {
-        // FIXME: add back in for now
-        //header.dest_uid = bswap64(branch->lower_bound) >> 16;  // Flip UID
-        //rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
+        uint64_t uid = bswap64(((uint64_t)header.dest_uid.man_id << 32) |
+                             header.dest_uid.dev_id) >> 16;
+        header.dest_uid.man_id = uid >> 32;
+        header.dest_uid.dev_id = uid;
+        rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
       }
 
       // Call the callback function and report a device has been found
