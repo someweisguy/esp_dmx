@@ -97,8 +97,12 @@ void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address);
  * the callback function.
  * @return true when the callback has been successfully registered.
  * @return false on failure.
+ * // TODO update docs
  */
-bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+bool rdm_register_callback(dmx_port_t dmx_num,
+                           const rdm_pid_description_t *desc,
+                           const rdm_encode_decode_t *get,
+                           const rdm_encode_decode_t *set,
                            rdm_response_cb_t callback, void *context);
 
 /**
@@ -161,6 +165,12 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
 size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
                 const rdm_encode_t *encode, rdm_decode_t *decode,
                 rdm_ack_t *ack);
+
+bool rdm_register_disc_unique_branch(dmx_port_t dmx_num);
+
+bool rdm_register_disc_mute(dmx_port_t dmx_num);
+
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
 }

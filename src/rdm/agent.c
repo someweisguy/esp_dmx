@@ -163,11 +163,14 @@ void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
   taskEXIT_CRITICAL(spinlock);
 }
 
-bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+bool rdm_register_callback(dmx_port_t dmx_num,
+                           const rdm_pid_description_t *desc,
+                           const rdm_encode_decode_t *get,
+                           const rdm_encode_decode_t *set,
                            rdm_response_cb_t callback, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
+  
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -176,7 +179,7 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;
   for (; i < driver->rdm.num_callbacks; ++i) {
-    if (driver->rdm.cbs[i].pid == pid) break;
+    if (driver->rdm.cbs[i].desc.pid == desc->pid) break;
   }
 
   // Check if there is space for callbacks
@@ -187,7 +190,9 @@ bool rdm_register_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   }
   
   // Add the requested callback to the callback list
-  driver->rdm.cbs[i].pid = pid;
+  driver->rdm.cbs[i].desc = *desc;
+  driver->rdm.cbs[i].get = *get;
+  driver->rdm.cbs[i].set = *set;
   driver->rdm.cbs[i].cb = callback;
   driver->rdm.cbs[i].context = context;
   ++driver->rdm.num_callbacks;
@@ -529,3 +534,87 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   xSemaphoreGiveRecursive(driver->mux);
   return packet.size;
 }
+
+static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
+                                     const rdm_header_t *header,
+                                     rdm_encode_decode_t *functions,
+                                     rdm_mdb_t *mdb, void *context) {
+  // Ignore this message if discovery is muted
+  if (rdm_driver_is_muted(dmx_num)) {
+    return RDM_RESPONSE_TYPE_NONE;
+  }
+
+  // Decode the two UIDs
+  // TODO: decode directly into the mdb array and return a pointer to the
+  // decoded MDB
+  rdm_disc_unique_branch_t branch;
+  functions->decode(mdb, &branch, 2);
+
+  // Respond if the device UID is between the branch bounds
+  rdm_uid_t my_uid;
+  rdm_driver_get_uid(dmx_num, &my_uid);
+  if (!uid_is_lt(my_uid, branch.lower_bound) &&
+      !uid_is_gt(my_uid, branch.upper_bound)) {
+    mdb->preamble_len = 7;
+    return RDM_RESPONSE_TYPE_ACK;
+  } else {
+    return RDM_RESPONSE_TYPE_NONE;
+  }
+}
+
+bool rdm_register_disc_unique_branch(dmx_port_t dmx_num) {
+  // TODO: arg check
+
+  const rdm_pid_description_t desc = {
+      .pid = RDM_PID_DISC_UNIQUE_BRANCH, .pdl_size = 12, .pid_cc = RDM_CC_DISC};
+  const rdm_encode_decode_t disc = {.decode = rdm_decode_uids};
+
+  return rdm_register_callback(dmx_num, &desc, &disc, NULL,
+                               rdm_disc_unique_branch_cb, NULL);
+}
+
+static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
+                            rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
+                            void *context) {
+  // Ignore this message if discovery is muted
+  if (rdm_driver_is_muted(dmx_num)) {
+    return RDM_RESPONSE_TYPE_NONE;
+  }
+
+  // Mute or un-mute the discovery
+  dmx_driver[dmx_num]->rdm.discovery_is_muted =
+      (header->pid == RDM_PID_DISC_MUTE);
+
+  // Encode the response
+  const rdm_disc_mute_t mute = {
+      // TODO: get control field
+      // TODO: get binding UID
+  };
+  functions->encode(mdb, &mute, 1);
+
+  // Return an ACK
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+bool rdm_register_disc_mute(dmx_port_t dmx_num) {
+  // TODO: arg check
+
+  const rdm_pid_description_t desc = {
+      .pid = RDM_PID_DISC_MUTE, .pdl_size = 12, .pid_cc = RDM_CC_DISC};
+  const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
+
+  return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
+                               NULL);
+}
+
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
+  // TODO: arg check
+
+  const rdm_pid_description_t desc = {
+      .pid = RDM_PID_DISC_MUTE, .pdl_size = 12, .pid_cc = RDM_CC_DISC};
+  const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
+
+  return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
+                               NULL);
+}
+

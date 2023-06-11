@@ -334,12 +334,20 @@ typedef struct rdm_decode_t {
   int num;  // The number of parameters to decode.
 } rdm_decode_t;
 
+
+typedef struct rdm_encode_decode_t {
+  size_t (*encode)(rdm_mdb_t *, const void *, int);
+  int (*decode)(const rdm_mdb_t *, void *, int);
+} rdm_encode_decode_t;
+
+
 /**
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
  */
 typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
                                                  const rdm_header_t *header,
+                                                 rdm_encode_decode_t *functions,
                                                  rdm_mdb_t *mdb, void *context);
 
 typedef enum rdm_product_category_t {
@@ -373,6 +381,27 @@ typedef enum rdm_product_category_t {
 
   // Manufacturer Specific Categories: 0x8000-0xdfff
 } rdm_product_category_t;
+
+typedef enum rdm_pid_cc_t {
+  RDM_CC_DISC = 0x00,
+  RDM_CC_GET = 0x01,
+  RDM_CC_SET = 0x02,
+  RDM_CC_GET_SET = 0x03
+} rdm_pid_cc_t;
+
+typedef struct rdm_pid_description_t {
+  rdm_pid_t pid;
+  size_t pdl_size;
+  int data_type; // enum
+  rdm_pid_cc_t pid_cc;
+  //uint8_t type;  // must always be 0
+  int unit; // enum
+  int prefix; // enum
+  int32_t min_value;
+  int32_t max_value;
+  int32_t default_value;
+  char description[33];
+} rdm_pid_description_t;
 
 #ifdef __cplusplus
 }

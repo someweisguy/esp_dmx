@@ -84,10 +84,6 @@ int rdm_decode_uids(const rdm_mdb_t *mdb, void *data, int num);
  */
 size_t rdm_encode_uids(rdm_mdb_t *mdb, const void *data, int num);
 
-// TODO: rdm_decode_64bit()
-
-// TODO: rdm_encode_64bit()
-
 /**
  * @brief Decodes a string from an RDM message data block. Strings may be up to
  * 32 characters long.

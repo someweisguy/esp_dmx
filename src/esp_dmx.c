@@ -395,55 +395,6 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-static int rdm_disc_unique_branch(dmx_port_t dmx_num,
-                                  const rdm_header_t *header, rdm_mdb_t *mdb,
-                                  void *context) {
-  // Ensure that the parameter data is the expected length
-  if (mdb->pdl != 12) {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-
-  // Ignore this message if discovery is muted
-  if (rdm_driver_is_muted(dmx_num)) {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-
-  // Decode the two UIDs
-  rdm_disc_unique_branch_t branch;
-  rdm_decode_uids(mdb, &branch, 2);
-
-  // Respond if the device UID is between the branch bounds
-  rdm_uid_t my_uid;
-  rdm_driver_get_uid(dmx_num, &my_uid);
-  if (!uid_is_lt(my_uid, branch.lower_bound) &&
-      !uid_is_gt(my_uid, branch.upper_bound)) {
-    mdb->preamble_len = 7;
-    return RDM_RESPONSE_TYPE_ACK;
-  } else {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-}
-
-static int rdm_disc_mute(dmx_port_t dmx_num, const rdm_header_t *header,
-                         rdm_mdb_t *mdb, void *context) {
-  // Ensure that the parameter data is the expected length
-  if (mdb->pdl != 0) {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-
-  // Mute or un-mute the discovery
-  dmx_driver[dmx_num]->rdm.discovery_is_muted =
-      (header->pid == RDM_PID_DISC_MUTE);
-
-  // Encode the response
-  const rdm_disc_mute_t mute = {
-      // TODO: get mute params
-  };
-  rdm_encode_mute(mdb, &mute, 1);
-
-  // Return an ACK
-  return RDM_RESPONSE_TYPE_ACK;
-}
 
 static int rdm_device_info(dmx_port_t dmx_num, const rdm_header_t *header,
                            rdm_mdb_t *mdb, void *context) {
@@ -695,18 +646,18 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 #endif
 
   // Add required RDM response callbacks
-  rdm_register_callback(dmx_num, RDM_PID_DISC_UNIQUE_BRANCH,
-                        rdm_disc_unique_branch, NULL);
-  rdm_register_callback(dmx_num, RDM_PID_DISC_MUTE, rdm_disc_mute, NULL);
-  rdm_register_callback(dmx_num, RDM_PID_DISC_UN_MUTE, rdm_disc_mute,
-                        NULL);
-  rdm_register_callback(dmx_num, RDM_PID_DEVICE_INFO, rdm_device_info, NULL);
-  rdm_register_callback(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
-                        rdm_software_version_label, NULL);
-  rdm_register_callback(dmx_num, RDM_PID_IDENTIFY_DEVICE,
-                        rdm_identify_device, NULL);
-  rdm_register_callback(dmx_num, RDM_PID_DMX_START_ADDRESS,
-                        rdm_dmx_start_address, NULL);
+  rdm_register_disc_unique_branch(dmx_num);
+  rdm_register_disc_un_mute(dmx_num);
+  rdm_register_disc_mute(dmx_num);
+  
+  // TODO
+  // rdm_register_device_info()
+  // rdm_register_software_version_label()
+  // rdm_register_identify_device()
+  // rdm_register_dmx_start_address();
+  
+  // TODO: rdm_register_supported_parameters()
+
 
   // Enable UART read interrupt and set RTS low
   taskENTER_CRITICAL(spinlock);
@@ -1323,8 +1274,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       if (uid_is_recipient(header.dest_uid, my_uid)) {
         bool cb_found = false;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
-          if (driver->rdm.cbs[i].pid == header.pid) {
-            response_type = driver->rdm.cbs[i].cb(dmx_num, &header, &mdb,
+          if (driver->rdm.cbs[i].desc.pid == header.pid) {
+            rdm_encode_decode_t func = header.cc == RDM_CC_SET_COMMAND
+                                           ? driver->rdm.cbs[i].set
+                                           : driver->rdm.cbs[i].get;
+            response_type = driver->rdm.cbs[i].cb(dmx_num, &header, &func, &mdb,
                                                   driver->rdm.cbs[i].context);
             cb_found = true;
             break;
