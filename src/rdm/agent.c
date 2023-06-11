@@ -552,6 +552,7 @@ static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
                                      rdm_mdb_t *mdb, void *context) {
   // Ignore this message if discovery is muted
   if (rdm_driver_is_muted(dmx_num)) {
+    ESP_LOGW(TAG, "Dev cannot respond");
     return RDM_RESPONSE_TYPE_NONE;
   }
 
@@ -587,11 +588,6 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num) {
 static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
                             rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
                             void *context) {
-  // Ignore this message if discovery is muted
-  if (rdm_driver_is_muted(dmx_num)) {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-
   // Mute or un-mute the discovery
   dmx_driver[dmx_num]->rdm.discovery_is_muted =
       (header->pid == RDM_PID_DISC_MUTE);
@@ -611,7 +607,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_MUTE, .pdl_size = 12, .pid_cc = RDM_CC_DISC};
+      .pid = RDM_PID_DISC_MUTE, .pdl_size = 0, .pid_cc = RDM_CC_DISC};
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
@@ -622,7 +618,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_MUTE, .pdl_size = 12, .pid_cc = RDM_CC_DISC};
+      .pid = RDM_PID_DISC_UN_MUTE, .pdl_size = 0, .pid_cc = RDM_CC_DISC};
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
