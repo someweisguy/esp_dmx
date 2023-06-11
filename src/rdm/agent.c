@@ -585,7 +585,7 @@ static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
   }
 }
 
-bool rdm_register_disc_unique_branch(dmx_port_t dmx_num) {
+bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
@@ -593,7 +593,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num) {
   const rdm_encode_decode_t disc = {.decode = rdm_decode_uids};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL,
-                               rdm_disc_unique_branch_cb, NULL);
+                               rdm_disc_unique_branch_cb, context);
 }
 
 static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
@@ -614,7 +614,7 @@ static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
   return RDM_RESPONSE_TYPE_ACK;
 }
 
-bool rdm_register_disc_mute(dmx_port_t dmx_num) {
+bool rdm_register_disc_mute(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
@@ -622,10 +622,10 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num) {
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-                               NULL);
+                               context);
 }
 
-bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
@@ -633,6 +633,83 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-                               NULL);
+                               context);
 }
 
+static int rdm_device_info_cb(dmx_port_t dmx_num, const rdm_header_t *header,
+                              rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
+                              void *context) {
+  // Encode the response
+  functions->encode(mdb, context, 1);
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+bool rdm_register_device_info(dmx_port_t dmx_num,
+                              rdm_device_info_t *device_info) {
+  // TODO: arg check
+
+  const rdm_pid_description_t desc = {
+      .pid = RDM_PID_DEVICE_INFO, .pdl_size = 0, .pid_cc = RDM_CC_GET};
+  const rdm_encode_decode_t get = {.encode = rdm_encode_device_info};
+
+  return rdm_register_callback(dmx_num, &desc, &get, NULL, rdm_device_info_cb,
+                               device_info);
+}
+
+static int rdm_sw_version_label_cb(dmx_port_t dmx_num,
+                                   const rdm_header_t *header,
+                                   rdm_encode_decode_t *functions,
+                                   rdm_mdb_t *mdb, void *context) {
+  functions->encode(mdb, context, 32);
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+bool rdm_register_software_version_label(dmx_port_t dmx_num,
+                                         const char *software_version_label) {
+  // TODO: arg check
+
+  const rdm_pid_description_t desc = {.pid = RDM_PID_SOFTWARE_VERSION_LABEL,
+                                      .pdl_size = 0,
+                                      .pid_cc = RDM_CC_GET};
+  const rdm_encode_decode_t get = {.encode = rdm_encode_string};
+
+  return rdm_register_callback(dmx_num, &desc, &get, NULL,
+                               rdm_sw_version_label_cb,
+                               (void *)software_version_label);
+}
+
+bool rdm_register_identify_device(dmx_port_t dmx_num) {
+  // TODO
+
+  return false;
+}
+
+static int rdm_dmx_start_address_cb(dmx_port_t dmx_num,
+                                   const rdm_header_t *header,
+                                   rdm_encode_decode_t *functions,
+                                   rdm_mdb_t *mdb, void *context) {
+  if (functions->decode != NULL) {
+    functions->decode(mdb, context, 1);
+  }
+  if (functions->encode != NULL) {
+    functions->encode(mdb, context, 1);
+  }
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
+                                    uint16_t *dmx_start_address) {
+  // TODO: arg check
+
+  const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
+                                      .pdl_size = 2,
+                                      .pid_cc = RDM_CC_GET_SET,
+                                      .max_value = 512,
+                                      .min_value = 1};
+  const rdm_encode_decode_t get = {.encode = rdm_encode_16bit};
+  const rdm_encode_decode_t set = {.decode = rdm_decode_16bit,
+                                   .encode = rdm_encode_null};
+
+  return rdm_register_callback(dmx_num, &desc, &get, &set,
+                               rdm_dmx_start_address_cb, dmx_start_address);
+}
