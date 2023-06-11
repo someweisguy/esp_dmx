@@ -170,6 +170,7 @@ bool rdm_register_callback(dmx_port_t dmx_num,
                            rdm_response_cb_t callback, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  // TODO: desc and callback is required
   
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -190,9 +191,19 @@ bool rdm_register_callback(dmx_port_t dmx_num,
   }
   
   // Add the requested callback to the callback list
+  if (get == NULL) {
+    driver->rdm.cbs[i].get.encode = NULL;
+    driver->rdm.cbs[i].get.decode = NULL;
+  } else {
+    driver->rdm.cbs[i].get = *get;
+  }
+  if (set == NULL) {
+    driver->rdm.cbs[i].set.encode = NULL;
+    driver->rdm.cbs[i].set.decode = NULL;
+  } else {
+    driver->rdm.cbs[i].set = *set;
+  }
   driver->rdm.cbs[i].desc = *desc;
-  driver->rdm.cbs[i].get = *get;
-  driver->rdm.cbs[i].set = *set;
   driver->rdm.cbs[i].cb = callback;
   driver->rdm.cbs[i].context = context;
   ++driver->rdm.num_callbacks;
