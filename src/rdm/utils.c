@@ -11,7 +11,7 @@ void *uidcpy(void *restrict destination, const void *restrict source) {
 
 bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid) {
   return uid_is_equal(recipient_uid, compare_uid) ||
-         ((compare_uid.man_id == 0xff ||
+         ((compare_uid.man_id == 0xffff ||
            compare_uid.man_id == recipient_uid.man_id) &&
           compare_uid.dev_id == 0xffffffff);
 }
