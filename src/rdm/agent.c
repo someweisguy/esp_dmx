@@ -167,7 +167,9 @@ bool rdm_register_callback(dmx_port_t dmx_num,
                            const rdm_pid_description_t *desc,
                            const rdm_encode_decode_t *get,
                            const rdm_encode_decode_t *set,
-                           rdm_response_cb_t callback, void *context) {
+                           rdm_response_cb_t callback, 
+                           void *param, const int num,
+                           void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   // TODO: desc and callback is required
@@ -205,6 +207,8 @@ bool rdm_register_callback(dmx_port_t dmx_num,
   }
   driver->rdm.cbs[i].desc = *desc;
   driver->rdm.cbs[i].cb = callback;
+  driver->rdm.cbs[i].param = param;
+  driver->rdm.cbs[i].num = num;
   driver->rdm.cbs[i].context = context;
   ++driver->rdm.num_callbacks;
 
@@ -561,7 +565,8 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
 static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
                                      const rdm_header_t *header,
                                      rdm_encode_decode_t *functions,
-                                     rdm_mdb_t *mdb, void *context) {
+                                     rdm_mdb_t *mdb, void *param, int num,
+                                     void *context) {
   // Ignore this message if discovery is muted
   if (rdm_driver_is_muted(dmx_num)) {
     return RDM_RESPONSE_TYPE_NONE;
@@ -593,12 +598,12 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, void *context) {
   const rdm_encode_decode_t disc = {.decode = rdm_decode_uids};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL,
-                               rdm_disc_unique_branch_cb, context);
+                               rdm_disc_unique_branch_cb, NULL, 0, context);
 }
 
 static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
                             rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
-                            void *context) {
+                            void *param, int num, void *context) {
   // Mute or un-mute the discovery
   dmx_driver[dmx_num]->rdm.discovery_is_muted =
       (header->pid == RDM_PID_DISC_MUTE);
@@ -622,7 +627,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, void *context) {
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-                               context);
+                               NULL, 0, context);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context) {
@@ -633,14 +638,14 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context) {
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-                               context);
+                               NULL, 0, context);
 }
 
 static int rdm_device_info_cb(dmx_port_t dmx_num, const rdm_header_t *header,
                               rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
-                              void *context) {
+                              void *param, int num, void *context) {
   // Encode the response
-  functions->encode(mdb, context, 1);
+  functions->encode(mdb, param, num);
   return RDM_RESPONSE_TYPE_ACK;
 }
 
@@ -653,14 +658,15 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   const rdm_encode_decode_t get = {.encode = rdm_encode_device_info};
 
   return rdm_register_callback(dmx_num, &desc, &get, NULL, rdm_device_info_cb,
-                               device_info);
+                               device_info, 1, NULL);
 }
 
 static int rdm_sw_version_label_cb(dmx_port_t dmx_num,
                                    const rdm_header_t *header,
                                    rdm_encode_decode_t *functions,
-                                   rdm_mdb_t *mdb, void *context) {
-  functions->encode(mdb, context, 32);
+                                   rdm_mdb_t *mdb, void *param, int num,
+                                   void *context) {
+  functions->encode(mdb, param, num);
   return RDM_RESPONSE_TYPE_ACK;
 }
 
@@ -673,9 +679,14 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                       .pid_cc = RDM_CC_GET};
   const rdm_encode_decode_t get = {.encode = rdm_encode_string};
 
+  size_t len = strlen(software_version_label);
+  if (len > 32) {
+    len = 32;
+  }
+
   return rdm_register_callback(dmx_num, &desc, &get, NULL,
                                rdm_sw_version_label_cb,
-                               (void *)software_version_label);
+                               (void *)software_version_label, len, NULL);
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num) {
@@ -685,14 +696,15 @@ bool rdm_register_identify_device(dmx_port_t dmx_num) {
 }
 
 static int rdm_dmx_start_address_cb(dmx_port_t dmx_num,
-                                   const rdm_header_t *header,
-                                   rdm_encode_decode_t *functions,
-                                   rdm_mdb_t *mdb, void *context) {
+                                    const rdm_header_t *header,
+                                    rdm_encode_decode_t *functions,
+                                    rdm_mdb_t *mdb, void *param, int num,
+                                    void *context) {
   if (functions->decode != NULL) {
-    functions->decode(mdb, context, 1);
+    functions->decode(mdb, param, num);
   }
   if (functions->encode != NULL) {
-    functions->encode(mdb, context, 1);
+    functions->encode(mdb, param, num);
   }
   return RDM_RESPONSE_TYPE_ACK;
 }
@@ -711,5 +723,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                    .encode = rdm_encode_null};
 
   return rdm_register_callback(dmx_num, &desc, &get, &set,
-                               rdm_dmx_start_address_cb, dmx_start_address);
+                               rdm_dmx_start_address_cb, dmx_start_address, 1,
+                               NULL);
 }

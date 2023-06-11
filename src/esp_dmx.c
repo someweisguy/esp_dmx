@@ -1201,8 +1201,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
             rdm_encode_decode_t func = header.cc == RDM_CC_SET_COMMAND
                                            ? driver->rdm.cbs[i].set
                                            : driver->rdm.cbs[i].get;
-            response_type = driver->rdm.cbs[i].cb(dmx_num, &header, &func, &mdb,
-                                                  driver->rdm.cbs[i].context);
+            response_type = driver->rdm.cbs[i].cb(
+                dmx_num, &header, &func, &mdb, driver->rdm.cbs[i].param,
+                driver->rdm.cbs[i].num, driver->rdm.cbs[i].context);
             cb_found = true;
             break;
           }

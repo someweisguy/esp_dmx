@@ -103,7 +103,9 @@ bool rdm_register_callback(dmx_port_t dmx_num,
                            const rdm_pid_description_t *desc,
                            const rdm_encode_decode_t *get,
                            const rdm_encode_decode_t *set,
-                           rdm_response_cb_t callback, void *context);
+                           rdm_response_cb_t callback, 
+                           void *param, const int num,
+                           void *context);
 
 /**
  * @brief Reads and formats a received RDM message from the DMX driver buffer.

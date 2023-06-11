@@ -93,6 +93,8 @@ typedef struct dmx_driver_t {
       rdm_encode_decode_t get;
       rdm_encode_decode_t set;
       rdm_response_cb_t cb;
+      void *param;
+      int num;
       void *context;
     } cbs[CONFIG_RDM_RESPONDER_MAX_PARAMETERS];
   } rdm;
