@@ -347,12 +347,23 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     driver->data.buffer[preamble_len] = RDM_DELIMITER;
 
     // Encode the EUID and calculate the checksum
-    uint16_t checksum = 0;
     uint8_t *d = &(driver->data.buffer[mdb->preamble_len + 1]);
-    for (int i = 0, j = 5; i < 12; i += 2, --j) {
-      d[i] = ((uint8_t *)&(header->src_uid))[j] | 0xaa;
-      d[i + 1] = ((uint8_t *)&(header->src_uid))[j] | 0x55;
-      checksum += ((uint8_t *)&(header->src_uid))[j] + 0xaa + 0x55;
+    d[0] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0xaa;
+    d[1] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0x55;
+    d[2] = ((uint8_t *)&(header->src_uid.man_id))[0] | 0xaa;
+    d[3] = ((uint8_t *)&(header->src_uid.man_id))[0] | 0x55;
+    d[4] = ((uint8_t *)&(header->src_uid.dev_id))[3] | 0xaa;
+    d[5] = ((uint8_t *)&(header->src_uid.dev_id))[3] | 0x55;
+    d[6] = ((uint8_t *)&(header->src_uid.dev_id))[2] | 0xaa;
+    d[7] = ((uint8_t *)&(header->src_uid.dev_id))[2] | 0x55;
+    d[8] = ((uint8_t *)&(header->src_uid.dev_id))[1] | 0xaa;
+    d[9] = ((uint8_t *)&(header->src_uid.dev_id))[1] | 0x55;
+    d[10] = ((uint8_t *)&(header->src_uid.dev_id))[0] | 0xaa;
+    d[11] = ((uint8_t *)&(header->src_uid.dev_id))[0] | 0x55;
+    
+    uint16_t checksum = 0;
+    for (int i = 0; i < 12; ++i) {
+      checksum += d[i];
     }
 
     // Encode the checksum
@@ -552,7 +563,6 @@ static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
                                      rdm_mdb_t *mdb, void *context) {
   // Ignore this message if discovery is muted
   if (rdm_driver_is_muted(dmx_num)) {
-    ESP_LOGW(TAG, "Dev cannot respond");
     return RDM_RESPONSE_TYPE_NONE;
   }
 
@@ -560,7 +570,9 @@ static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
   // TODO: decode directly into the mdb array and return a pointer to the
   // decoded MDB
   rdm_disc_unique_branch_t branch;
-  functions->decode(mdb, &branch, 2);
+  // functions->decode(mdb, &branch, 2);  // FIXME: doesn't work
+  uidcpy(&branch.lower_bound, mdb->pd);
+  uidcpy(&branch.upper_bound, &mdb->pd[6]);
 
   // Respond if the device UID is between the branch bounds
   rdm_uid_t my_uid;

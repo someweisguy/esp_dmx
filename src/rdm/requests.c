@@ -186,7 +186,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
         // Iteratively search the next two RDM address spaces
         if (devices_remaining) {
-          const rdm_uid_t upper_lbound = branch->lower_bound;
+          const rdm_uid_t first_lbound = branch->lower_bound;
           uint64_t mid = ((((uint64_t)branch->lower_bound.man_id << 32) |
                            branch->lower_bound.dev_id) +
                           (((uint64_t)branch->upper_bound.man_id << 32) |
@@ -195,11 +195,11 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
           // Add the upper branch so that it gets handled second
           stack[stack_size].lower_bound.man_id = (mid + 1) >> 32;
           stack[stack_size].lower_bound.dev_id = mid + 1;
-          // Reuse the lower_ubound that is currently on the stack
+          // Reuse the upper_bound that is currently on the stack
           ++stack_size;
 
           // Add the lower branch so it gets handled first
-          stack[stack_size].lower_bound = upper_lbound;
+          stack[stack_size].lower_bound = first_lbound;
           stack[stack_size].upper_bound.man_id = mid >> 32;
           stack[stack_size].upper_bound.dev_id = mid;
 
