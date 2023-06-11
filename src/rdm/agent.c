@@ -347,6 +347,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     driver->data.buffer[preamble_len] = RDM_DELIMITER;
 
     // Encode the EUID and calculate the checksum
+    // FIXME: loop?
     uint8_t *d = &(driver->data.buffer[mdb->preamble_len + 1]);
     d[0] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0xaa;
     d[1] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0x55;
@@ -570,9 +571,7 @@ static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
   // TODO: decode directly into the mdb array and return a pointer to the
   // decoded MDB
   rdm_disc_unique_branch_t branch;
-  // functions->decode(mdb, &branch, 2);  // FIXME: doesn't work
-  uidcpy(&branch.lower_bound, mdb->pd);
-  uidcpy(&branch.upper_bound, &mdb->pd[6]);
+  functions->decode(mdb, &branch, 2);
 
   // Respond if the device UID is between the branch bounds
   rdm_uid_t my_uid;
