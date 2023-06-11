@@ -641,11 +641,15 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context) {
                                NULL, 0, context);
 }
 
-static int rdm_device_info_cb(dmx_port_t dmx_num, const rdm_header_t *header,
-                              rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
-                              void *param, int num, void *context) {
-  // Encode the response
-  functions->encode(mdb, param, num);
+static int rdm_simple_param_cb(dmx_port_t dmx_num, const rdm_header_t *header,
+                               rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
+                               void *param, int num, void *context) {
+  if (functions->decode != NULL) {
+    functions->decode(mdb, param, num);
+  }
+  if (functions->encode != NULL) {
+    functions->encode(mdb, param, num);
+  }
   return RDM_RESPONSE_TYPE_ACK;
 }
 
@@ -657,17 +661,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
       .pid = RDM_PID_DEVICE_INFO, .pdl_size = 0, .pid_cc = RDM_CC_GET};
   const rdm_encode_decode_t get = {.encode = rdm_encode_device_info};
 
-  return rdm_register_callback(dmx_num, &desc, &get, NULL, rdm_device_info_cb,
+  return rdm_register_callback(dmx_num, &desc, &get, NULL, rdm_simple_param_cb,
                                device_info, 1, NULL);
-}
-
-static int rdm_sw_version_label_cb(dmx_port_t dmx_num,
-                                   const rdm_header_t *header,
-                                   rdm_encode_decode_t *functions,
-                                   rdm_mdb_t *mdb, void *param, int num,
-                                   void *context) {
-  functions->encode(mdb, param, num);
-  return RDM_RESPONSE_TYPE_ACK;
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
@@ -685,7 +680,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   }
 
   return rdm_register_callback(dmx_num, &desc, &get, NULL,
-                               rdm_sw_version_label_cb,
+                               rdm_simple_param_cb,
                                (void *)software_version_label, len, NULL);
 }
 
@@ -693,20 +688,6 @@ bool rdm_register_identify_device(dmx_port_t dmx_num) {
   // TODO
 
   return false;
-}
-
-static int rdm_dmx_start_address_cb(dmx_port_t dmx_num,
-                                    const rdm_header_t *header,
-                                    rdm_encode_decode_t *functions,
-                                    rdm_mdb_t *mdb, void *param, int num,
-                                    void *context) {
-  if (functions->decode != NULL) {
-    functions->decode(mdb, param, num);
-  }
-  if (functions->encode != NULL) {
-    functions->encode(mdb, param, num);
-  }
-  return RDM_RESPONSE_TYPE_ACK;
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
@@ -723,6 +704,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                    .encode = rdm_encode_null};
 
   return rdm_register_callback(dmx_num, &desc, &get, &set,
-                               rdm_dmx_start_address_cb, dmx_start_address, 1,
+                               rdm_simple_param_cb, dmx_start_address, 1,
                                NULL);
 }
