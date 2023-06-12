@@ -62,7 +62,7 @@ void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
 
   // Initialize the RDM UID
   taskENTER_CRITICAL(spinlock);
-  if (uid_is_eq(&driver->rdm.uid, &RDM_UID_NULL)) {
+  if (uid_is_null(&driver->rdm.uid)) {
     struct __attribute__((__packed__)) {
       uint16_t manufacturer;
       uint64_t device;
@@ -429,7 +429,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Validate required header information
-  if (uid_is_eq(&header->dest_uid, &RDM_UID_NULL)) {
+  if (uid_is_null(&header->dest_uid)) {
     ESP_LOGE(TAG, "dest_uid is invalid");
     return 0;
   }
@@ -455,7 +455,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   if (uid_is_broadcast(&header->src_uid)) {
     ESP_LOGE(TAG, "src_uid is invalid");
     return 0;
-  } else if (uid_is_eq(&header->src_uid, &RDM_UID_NULL)) {
+  } else if (uid_is_null(&header->src_uid)) {
     rdm_driver_get_uid(dmx_num, &header->src_uid);
   }
   if (header->port_id < 0 || header->port_id > 255) {
