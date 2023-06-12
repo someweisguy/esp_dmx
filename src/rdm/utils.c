@@ -81,8 +81,7 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
     } else if (*f == 'a') {
       char *end_ptr;
       const bool str_has_fixed_len = isdigit((int)f[1]);
-      param_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10)
-                                     : (231 - format_size);
+      param_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10) : 32;
       if (!str_has_fixed_len && f[1] != '\0') {
         // TODO: syntax error - variable length string not at end of parameter
       } else if (str_has_fixed_len) {
