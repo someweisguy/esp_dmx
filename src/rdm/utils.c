@@ -64,17 +64,17 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
   size_t format_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
     size_t param_size;
-    if (*f == 'b')
+    if (*f == 'b') {
       param_size = sizeof(uint8_t);
-    else if (*f == 'w')
+    } else if (*f == 'w') {
       param_size = sizeof(uint16_t);
-    else if (*f == 'd')
+    } else if (*f == 'd') {
       param_size = sizeof(uint32_t);
-    else if (*f == 'u')
+    } else if (*f == 'u') {
       param_size = sizeof(rdm_uid_t);
-    else if (*f == 'v') {
+    } else if (*f == 'v') {
       if (f[1] != '\0') {
-        // TODO: syntax error - optional UID must be at end of pd
+        // TODO: syntax error - optional UID not at end of parameter
         return 0;
       }
       param_size = sizeof(rdm_uid_t);
