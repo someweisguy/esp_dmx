@@ -43,6 +43,10 @@ inline bool uid_is_broadcast(const rdm_uid_t *uid) {
   return uid->dev_id == 0xffffffff;
 }
 
+bool uid_is_null(const rdm_uid_t *uid) {
+  return uid->man_id == 0 && uid->dev_id == 0;
+}
+
 inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
   return ((alias->man_id == 0xffff || alias->man_id == uid->man_id) &&
           alias->dev_id == 0xffffffff) ||

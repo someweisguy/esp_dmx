@@ -116,6 +116,15 @@ bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b);
 bool uid_is_broadcast(const rdm_uid_t *uid);
 
 /**
+ * @brief Returns true if the specified UID is null.
+ * 
+ * @param uid A pointer to the unary UID operand.
+ * @return true if the UID is null.
+ * @return false if the UID is not null.
+ */
+bool uid_is_null(const rdm_uid_t *uid);
+
+/**
  * @brief Returns true if the first UID is targeted by the second UID. A common
  * usage of this function would be `uid_is_target(&my_uid, &destination_uid)`.
  * 
