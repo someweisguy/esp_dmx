@@ -383,11 +383,25 @@ typedef enum rdm_product_category_t {
   // Manufacturer Specific Categories: 0x8000-0xdfff
 } rdm_product_category_t;
 
+typedef enum rdm_data_type_t {
+  RDM_DS_NOT_DEFINED = 0x00,     // Data type is not defined.
+  RDM_DS_BIT_FIELD = 0x01,       // Data is bit packed.
+  RDM_DS_ASCII = 0x02,           // Data is a string.
+  RDM_DS_UNSIGNED_BYTE = 0x03,   // Data is an array of unsigned bytes.
+  RDM_DS_SIGNED_BYTE = 0x04,     // Data is an array of signed bytes.
+  RDM_DS_UNSIGNED_WORD = 0x05,   // Data is an array of unsigned 16-bit words.
+  RDM_DS_SIGNED_WORD = 0x06,     // Data is an array of signed 16-bit words.
+  RDM_DS_UNSIGNED_DWORD = 0x07,  // Data is an array of unsigned 32-bit words.
+  RDM_DS_SIGNED_DWORD = 0x08,    // Data is an array of signed 32-bit words.
+
+  // Manufacturer Specific Data Types: 0x80-0xdf
+} rdm_data_type_t;
+
 typedef enum rdm_pid_cc_t {
-  RDM_CC_DISC = 0x00,
-  RDM_CC_GET = 0x01,
-  RDM_CC_SET = 0x02,
-  RDM_CC_GET_SET = 0x03
+  RDM_CC_DISC = 0x00,    // PID supports DISC only.
+  RDM_CC_GET = 0x01,     // PID supports GET only.
+  RDM_CC_SET = 0x02,     // PID supports SET only.
+  RDM_CC_GET_SET = 0x03  // PID supports GET and SET.
 } rdm_pid_cc_t;
 
 typedef struct rdm_pid_description_t {
