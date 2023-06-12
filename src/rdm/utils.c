@@ -1,6 +1,7 @@
 #include "utils.h"
 
 #include <string.h>
+#include <ctype.h>
 
 #include "rdm/types.h"
 #include "endian.h"
@@ -60,11 +61,63 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
   size_t written = 0;
   size_t pd_index = 0;
 
-  // TODO: syntax check - literals: #[0-9a-zA-Z]h
-  // TODO: syntax check - 'v' may only be at end of format
-  // TODO: syntax check - 'a' may only be at end of format
+  size_t format_size = 0;
+  for (const char *f = format; *f != '\0'; ++f) {
+    size_t param_size;
+    if (*f == 'b')
+      param_size = sizeof(uint8_t);
+    else if (*f == 'w')
+      param_size = sizeof(uint16_t);
+    else if (*f == 'd')
+      param_size = sizeof(uint32_t);
+    else if (*f == 'u')
+      param_size = sizeof(rdm_uid_t);
+    else if (*f == 'v') {
+      if (f[1] != '\0') {
+        // TODO: syntax error - optional UID must be at end of pd
+        return 0;
+      }
+      param_size = sizeof(rdm_uid_t);
+    } else if (*f == 'a') {
+      char *end_ptr;
+      const bool str_has_fixed_len = isdigit((int)f[1]);
+      param_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10)
+                                     : (231 - format_size);
+      if (!str_has_fixed_len && f[1] != '\0') {
+        // TODO: syntax error - variable length string not at end of parameter
+      } else if (str_has_fixed_len) {
+        if (param_size == 0) {
+          // TODO: syntax error - fixed length string has no size
+        } else if (param_size > (231 - format_size)) {
+          // TODO: syntax error - fixed length string is too big
+        }
+      }
+      f = end_ptr;  // FIXME: verify this works
+    } else if (*f == '#') {
+      char *end_ptr;
+      strtol(f, &end_ptr, 16);
+      param_size = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
+      if (param_size > 8) {
+        // TODO: syntax error - integer literal is too big
+        return 0;
+      } else if (*end_ptr != 'h') {
+        // TODO: syntax error - improperly terminated integer literal
+        return 0;
+      }
+      f = end_ptr + 1;  // FIXME: verify this works
+    } else {
+      // TODO: syntax error - unknown symbol
+      return 0;
+    }
 
-  while (pd_index < pdl) {
+    if (format_size + param_size > 231) {
+      // TODO: syntax error - format string too big
+      return 0;
+    }
+    format_size += param_size;
+  }
+
+  while (pd_index < pdl && written < 231) {
     for (const char *f = format; *f != '\0' && pd_index < pdl; ++f) {
       if (*f == '#') {
         // Integer literal
