@@ -114,7 +114,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
     const rdm_disc_unique_branch_t *branch = &stack[--stack_size];
 
     size_t attempts = 0;
-    if (uid_is_equal(branch->lower_bound, branch->upper_bound)) {
+    if (uid_is_eq(&branch->lower_bound, &branch->upper_bound)) {
       // Can't branch further so attempt to mute the device
       do {
         header.src_uid = RDM_UID_NULL;

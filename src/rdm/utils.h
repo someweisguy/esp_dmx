@@ -20,46 +20,12 @@
 extern "C" {
 #endif
 
-// TODO: docs
-#define uid_is_equal(a, b) (a.man_id == b.man_id && a.dev_id == b.dev_id)
-
-// TODO: docs
-#define uid_is_gt(a, b) \
-  (a.man_id > b.man_id || (a.man_id == b.man_id && a.dev_id > b.dev_id))
-
-// TODO: docs
-#define uid_is_lt(a, b) \
-  (a.man_id < b.man_id || (a.man_id == b.man_id && a.dev_id < b.dev_id))
-
-/**
- * @brief Returns true if the specified UID is a broadcast address. This
- * function only checks the device ID of the UID. It will return true when the 
- * device ID is broadcast including when the UID is invalid.
- * 
- * @param uid The UID to compare.
- * @return true if the UID is a broadcast address.
- * @return false if the UID is not a broadcast address.
- */
-#define uid_is_broadcast(uid) (uid.dev_id == 0xffffffff)
-
-// TODO: docs
-#define uid_is_valid(uid) (uid.man_id <= 0xffff && uid.dev_id <= 0xfffffffe)
-
-/**
- * @brief Returns true if the specified UID is addressed to the desired UID.
- * 
- * @param compare_uid The UID to check against a recipient UID.
- * @param recipient_uid The recipient UID.
- * @return true if the recipient UID is targeted by the comparison UID.
- * @return false if the recipient UID is not targeted by the comparison UID.
- */
-bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid);
-
 /**
  * @brief Copies RDM UID from a source buffer directly into a destination
- * buffer. Either the source or the destination should point to an rdm_uid_t
- * type.
- * 
+ * buffer. This function swaps endianness, allowing for UIDs to be copied from
+ * RDM packet buffers into ESP32 memory. Either the source or the destination
+ * should point to an rdm_uid_t type.
+ *
  * To avoid overflows, the size of the arrays pointed to by both the destination
  * and source parameters shall be at least six bytes and should not overlap.
  *
@@ -68,6 +34,97 @@ bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid);
  * @return A pointer to the destination buffer.
  */
 void *uidcpy(void *restrict destination, const void *restrict source);
+
+/**
+ * @brief Copies RDM UID from a source buffer into a destination buffer. Copying
+ * takes place as if an intermediate buffer were used, allowing the destination
+ * and source to overlap. This function swaps endianness, allowing for UIDs to
+ * be copied from RDM packet buffers into ESP32 memory. Either the source or the
+ * destination should point to an rdm_uid_t type.
+ *
+ * To avoid overflows, the size of the arrays pointed to by both the destination
+ * and source parameters shall be at least six bytes.
+ *
+ * @param[out] destination A pointer to the destination buffer.
+ * @param[in] source A pointer to the source buffer of the UID.
+ * @return A pointer to the destination buffer.
+ */
+void *uidmove(void *destination, const void *source);
+
+/**
+ * @brief Returns true if the UIDs are equal to each other. Is equivalent to
+ * a == b.
+ * 
+ * @param a A pointer to the first operand.
+ * @param b A pointer to the second operand.
+ * @return true if the UIDs are equal.
+ * @return false if the UIDs are not equal.
+ */
+bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b);
+
+/**
+ * @brief Returns true if the first UID is less than the second UID. Is
+ * equivalent to a < b.
+ *
+ * @param a A pointer to the first operand.
+ * @param b A pointer to the second operand.
+ * @return true if a is less than b.
+ * @return false if a is not less than b.
+ */
+bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b);
+
+/**
+ * @brief Returns true if the first UID is greater than the second UID. Is
+ * equivalent to a > b.
+ * 
+ * @param a A pointer to the first operand.
+ * @param b A pointer to the second operand.
+ * @return true if a is greater than b.
+ * @return false if a is not greater than b.
+ */
+bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b);
+
+/**
+ * @brief Returns true if the first UID is less than or equal to the second
+ * UID. Is equivalent to a <= b.
+ * 
+ * @param a A pointer to the first operand.
+ * @param b A pointer to the second operand.
+ * @return true if a is less than or equal to b.
+ * @return false if a is not less than or equal to b.
+ */
+bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b);
+
+/**
+ * @brief Returns true if the first UID is greater than or equal to the second
+ * UID. Is equivalent to a >= b.
+ * 
+ * @param a A pointer to the first operand.
+ * @param b A pointer to the second operand.
+ * @return true if a is greater than or equal to b.
+ * @return false if a is not greater than or equal to b.
+ */
+bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b);
+
+/**
+ * @brief Returns true if the specified UID is a broadcast address.
+ * 
+ * @param uid A pointer to the unary UID operand.
+ * @return true if the UID is a broadcast address.
+ * @return false if the UID is not a broadcast address.
+ */
+bool uid_is_broadcast(const rdm_uid_t *uid);
+
+/**
+ * @brief Returns true if the first UID is targeted by the second UID. A common
+ * usage of this function would be `uid_is_target(&my_uid, &destination_uid)`.
+ * 
+ * @param uid A pointer to a UID which to check is targeted.
+ * @param alias A pointer to a UID which may alias the first UID.
+ * @return true if the UID is targeted by the alias UID.
+ * @return false if the UID is not targeted by the alias UID.
+ */
+bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias);
 
 /**
  * @brief Get the preamble length of a DISC_UNIQUE_BRANCH response. A

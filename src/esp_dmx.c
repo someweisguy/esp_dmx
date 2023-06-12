@@ -193,7 +193,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           const rdm_cc_t cc = driver->data.buffer[20];
           if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
             packet_type = RDM_PACKET_TYPE_DISCOVERY;
-          } else if (uid_is_broadcast(dest_uid)) {
+          } else if (uid_is_broadcast(&dest_uid)) {
             packet_type = RDM_PACKET_TYPE_BROADCAST;
           } else if ((cc & 0x1) == 0) {
             packet_type = RDM_PACKET_TYPE_REQUEST;
@@ -202,7 +202,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
           rdm_uid_t my_uid;
           rdm_driver_get_uid(driver->dmx_num, &my_uid);
-          if (uid_is_recipient(dest_uid, my_uid)) {
+          if (uid_is_target(&my_uid, &dest_uid)) {
             // TODO: packet is addressed to me
           }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
@@ -1194,21 +1194,27 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
       rdm_uid_t my_uid;
       rdm_driver_get_uid(dmx_num, &my_uid);
-      if (uid_is_recipient(header.dest_uid, my_uid)) {
-        bool cb_found = false;
+      if (uid_is_target(&my_uid, &header.dest_uid)) {
+        rdm_pid_description_t *desc = NULL;
+        rdm_encode_decode_t *func = NULL;
+        rdm_response_cb_t cb = NULL;
         for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
           if (driver->rdm.cbs[i].desc.pid == header.pid) {
-            rdm_encode_decode_t func = header.cc == RDM_CC_SET_COMMAND
-                                           ? driver->rdm.cbs[i].set
-                                           : driver->rdm.cbs[i].get;
-            response_type = driver->rdm.cbs[i].cb(
-                dmx_num, &header, &func, &mdb, driver->rdm.cbs[i].param,
-                driver->rdm.cbs[i].num, driver->rdm.cbs[i].context);
-            cb_found = true;
+            cb = driver->rdm.cbs[i].cb;
+            func = (header.cc == RDM_CC_SET_COMMAND) ? &driver->rdm.cbs[i].set
+                                                     : &driver->rdm.cbs[i].get;
+            desc = &driver->rdm.cbs[i].desc;
             break;
           }
         }
-        const bool packet_was_broadcast = uid_is_broadcast(header.dest_uid);
+
+        if (cb != NULL) {
+          // response_type =
+          //     cb(dmx_num, &header, &func, &mdb, driver->rdm.cbs[i].param,
+          //        driver->rdm.cbs[i].num, driver->rdm.cbs[i].context);
+        }
+
+        const bool packet_was_broadcast = uid_is_broadcast(&header.dest_uid);
 
         // Reformat the header so a response can be sent
         header.dest_uid = header.src_uid;
@@ -1227,7 +1233,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
             ESP_LOGE(TAG, "invalid response type");
           }
         } else {
-          if (!cb_found) {
+          if (cb == NULL) {
             rdm_encode_nack_reason(&mdb, RDM_NR_UNKNOWN_PID);
           } else if (response_type < RDM_RESPONSE_TYPE_ACK ||
                      response_type > RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
@@ -1387,7 +1393,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
         pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       packet_type = RDM_PACKET_TYPE_DISCOVERY;
       ++driver->rdm.tn;
-    } else if (uid_is_broadcast(dest_uid)) {
+    } else if (uid_is_broadcast(&dest_uid)) {
       packet_type = RDM_PACKET_TYPE_BROADCAST;
       ++driver->rdm.tn;
     } else if (cc == RDM_CC_GET_COMMAND || cc == RDM_CC_SET_COMMAND ||

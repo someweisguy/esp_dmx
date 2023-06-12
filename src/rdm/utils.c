@@ -9,11 +9,44 @@ void *uidcpy(void *restrict destination, const void *restrict source) {
   return destination;
 }
 
-bool uid_is_recipient(rdm_uid_t compare_uid, rdm_uid_t recipient_uid) {
-  return uid_is_equal(recipient_uid, compare_uid) ||
-         ((compare_uid.man_id == 0xffff ||
-           compare_uid.man_id == recipient_uid.man_id) &&
-          compare_uid.dev_id == 0xffffffff);
+void *uidmove(void *destination, const void *source) {
+  const rdm_uid_t temp = {
+    .man_id = ((rdm_uid_t *)source)->man_id,
+    .dev_id = ((rdm_uid_t *)source)->dev_id
+  };
+  return uidcpy(destination, &temp);
+}
+
+inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return a->man_id == b->man_id && a->dev_id == b->dev_id;
+}
+
+inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return a->man_id < b->man_id ||
+         (a->man_id == b->man_id && a->dev_id < b->dev_id);
+}
+
+inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return a->man_id > b->man_id ||
+         (a->man_id == b->man_id && a->dev_id > b->dev_id);
+}
+
+inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !uid_is_gt(a, b);
+}
+
+inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !uid_is_lt(a, b);
+}
+
+inline bool uid_is_broadcast(const rdm_uid_t *uid) {
+  return uid->dev_id == 0xffffffff;
+}
+
+inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
+  return ((alias->man_id == 0xffff || alias->man_id == uid->man_id) &&
+          alias->dev_id == 0xffffffff) ||
+         uid_is_eq(uid, alias);
 }
 
 size_t get_preamble_len(const void *data) {

@@ -62,7 +62,7 @@ void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
 
   // Initialize the RDM UID
   taskENTER_CRITICAL(spinlock);
-  if (uid_is_equal(driver->rdm.uid, RDM_UID_NULL)) {
+  if (uid_is_eq(&driver->rdm.uid, &RDM_UID_NULL)) {
     struct __attribute__((__packed__)) {
       uint16_t manufacturer;
       uint64_t device;
@@ -79,7 +79,7 @@ void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
 void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  DMX_CHECK(uid_is_valid(uid), , "uid error");
+  DMX_CHECK(uid_is_broadcast(&uid), , "uid error");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -429,8 +429,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Validate required header information
-  if (uid_is_equal(header->dest_uid, RDM_UID_NULL) ||
-      (!uid_is_valid(header->dest_uid) && !uid_is_broadcast(header->dest_uid))) {
+  if (uid_is_eq(&header->dest_uid, &RDM_UID_NULL)) {
     ESP_LOGE(TAG, "dest_uid is invalid");
     return 0;
   }
@@ -453,10 +452,10 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Validate header values that the user doesn't need to include
-  if (!uid_is_valid(header->src_uid) || uid_is_broadcast(header->src_uid)) {
+  if (uid_is_broadcast(&header->src_uid)) {
     ESP_LOGE(TAG, "src_uid is invalid");
     return 0;
-  } else if (uid_is_equal(header->src_uid, RDM_UID_NULL)) {
+  } else if (uid_is_eq(&header->src_uid, &RDM_UID_NULL)) {
     rdm_driver_get_uid(dmx_num, &header->src_uid);
   }
   if (header->port_id < 0 || header->port_id > 255) {
@@ -491,7 +490,7 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
   const size_t write_size = rdm_write(dmx_num, header, &mdb);
   dmx_send(dmx_num, write_size);
   dmx_packet_t packet = {};  // Initialize values to 0
-  if (!uid_is_broadcast(header->dest_uid) ||
+  if (!uid_is_broadcast(&header->dest_uid) ||
       (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
        header->cc == RDM_CC_DISC_COMMAND)) {
     dmx_receive(dmx_num, &packet, 2);
@@ -514,8 +513,8 @@ size_t rdm_send(dmx_port_t dmx_num, rdm_header_t *header,
                    req.pid == RDM_PID_DISC_UNIQUE_BRANCH) &&
                  (req.cc != (header->cc - 1) || req.pid != header->pid ||
                   req.tn != header->tn ||
-                  !uid_is_equal(req.src_uid, header->dest_uid) ||
-                  !uid_is_equal(req.dest_uid, header->src_uid))) {
+                  !uid_is_eq(&req.src_uid, &header->dest_uid) ||
+                  !uid_is_eq(&req.dest_uid, &header->src_uid))) {
         response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid packet format
       }
 
@@ -581,8 +580,8 @@ static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
   // Respond if the device UID is between the branch bounds
   rdm_uid_t my_uid;
   rdm_driver_get_uid(dmx_num, &my_uid);
-  if (!uid_is_lt(my_uid, branch.lower_bound) &&
-      !uid_is_gt(my_uid, branch.upper_bound)) {
+  if (uid_is_ge(&my_uid, &branch.lower_bound) &&
+      uid_is_le(&my_uid, &branch.upper_bound)) {
     mdb->preamble_len = 7;
     return RDM_RESPONSE_TYPE_ACK;
   } else {

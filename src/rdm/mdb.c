@@ -211,7 +211,7 @@ size_t rdm_encode_mute(rdm_mdb_t *mdb, const void *data, int num) {
     pd->sub_device = param->sub_device;
     pd->boot_loader = param->boot_loader;
     pd->proxied_device = param->proxied_device;
-    if (!uid_is_equal(param->binding_uid, RDM_UID_NULL)) {      
+    if (!uid_is_eq(&param->binding_uid, &RDM_UID_NULL)) {      
       uidcpy(pd->binding_uid, &(param->binding_uid));
       encoded += 6;
     }
