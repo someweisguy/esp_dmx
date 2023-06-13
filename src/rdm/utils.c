@@ -129,8 +129,6 @@ static int rdm_check_param_syntax(const char *format) {
 
 size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
                   size_t pdl) {
-  size_t written = 0;
-  size_t pd_index = 0;
 
   // Ensure that the format string syntax is correct
   if (strlen(format) == 0) return 0;
@@ -145,31 +143,26 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
     num_params_to_encode = pdl / param_size;
   }
 
-  while (pd_index < pdl && written < 231) {
+  // Encode the parameter data into the MDB.
+  size_t written = 0;
+  size_t pd_index = 0;
+  while (num_params_to_encode > 0) {
     for (const char *f = format; *f != '\0' && pd_index < pdl; ++f) {
-      if (*f == '#') {
-        // Integer literal
-        char *end_ptr;
-        uint64_t literal = strtol(f, &end_ptr, 16);
-        const int num_bytes = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
-        for (int i = 0; i < num_bytes; ++i) {
-          *(uint8_t *)(&mdb->pd[written + i]) = *((&literal) - (num_bytes - i));
-        }
-        f = end_ptr;
-        written += num_bytes;
-      } else if (*f == 'b') {
+      if (*f == 'b') {
         // 8-bit
         *(uint8_t *)(&mdb->pd[written]) = *(uint8_t *)(pd + pd_index);
         written += sizeof(uint8_t);
         pd_index += sizeof(uint8_t);
       } else if (*f == 'w') {
         // 16-bit
-        *(uint16_t *)(&mdb->pd[written]) = bswap16(*(uint16_t *)(pd + pd_index));
+        *(uint16_t *)(&mdb->pd[written]) =
+            bswap16(*(uint16_t *)(pd + pd_index));
         written += sizeof(uint16_t);
         pd_index += sizeof(uint16_t);
       } else if (*f == 'd') {
         // 32-bit
-        *(uint32_t *)(&mdb->pd[written]) = bswap32(*(uint32_t *)(pd + pd_index));
+        *(uint32_t *)(&mdb->pd[written]) =
+            bswap32(*(uint32_t *)(pd + pd_index));
         written += sizeof(uint32_t);
         pd_index += sizeof(uint32_t);
       } else if (*f == 'u' || *f == 'v') {
@@ -187,8 +180,19 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
         memmove(&mdb->pd[written], pd + pd_index, len);  // Strip terminator
         written += len;
         pd_index += len;
-      } // TODO: encode literals
+      } else if (*f == '#') {
+        // Integer literal
+        char *end_ptr;
+        uint64_t literal = strtol(f, &end_ptr, 16);
+        const int num_bytes = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
+        for (int i = 0; i < num_bytes; ++i) {
+          *(uint8_t *)(&mdb->pd[written + i]) = *((&literal) - (num_bytes - i));
+        }
+        f = end_ptr;
+        written += num_bytes;
+      }
     }
+    --num_params_to_encode;
   }
   mdb->pdl = written;
   return written;
