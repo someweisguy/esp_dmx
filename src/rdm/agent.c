@@ -593,7 +593,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_UNIQUE_BRANCH, .pdl_size = 12, .pid_cc = RDM_CC_DISC};
+      .pid = RDM_PID_DISC_UNIQUE_BRANCH, .pdl_size = 12, .cc = RDM_CC_DISC};
   const rdm_encode_decode_t disc = {.decode = rdm_decode_uids};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL,
@@ -622,7 +622,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_MUTE, .pdl_size = 0, .pid_cc = RDM_CC_DISC};
+      .pid = RDM_PID_DISC_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
@@ -633,7 +633,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_UN_MUTE, .pdl_size = 0, .pid_cc = RDM_CC_DISC};
+      .pid = RDM_PID_DISC_UN_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
   const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
 
   return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
@@ -657,7 +657,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   // TODO: arg check
 
   const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DEVICE_INFO, .pdl_size = 0, .pid_cc = RDM_CC_GET};
+      .pid = RDM_PID_DEVICE_INFO, .pdl_size = 0, .cc = RDM_CC_GET};
   const rdm_encode_decode_t get = {.encode = rdm_encode_device_info};
 
   return rdm_register_callback(dmx_num, &desc, &get, NULL, rdm_simple_param_cb,
@@ -670,7 +670,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_SOFTWARE_VERSION_LABEL,
                                       .pdl_size = 0,
-                                      .pid_cc = RDM_CC_GET};
+                                      .cc = RDM_CC_GET};
   const rdm_encode_decode_t get = {.encode = rdm_encode_string};
 
   size_t len = strlen(software_version_label);
@@ -695,7 +695,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
                                       .pdl_size = 2,
-                                      .pid_cc = RDM_CC_GET_SET,
+                                      .cc = RDM_CC_GET_SET,
                                       .max_value = 512,
                                       .min_value = 1};
   const rdm_encode_decode_t get = {.encode = rdm_encode_16bit};

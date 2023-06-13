@@ -402,6 +402,16 @@ typedef enum rdm_data_type_t {
   // Manufacturer Specific Data Types: 0x80-0xdf
 } rdm_data_type_t;
 
+typedef enum rdm_units_t {
+  RDM_UNITS_NONE = 0x00
+  // TODO
+} rdm_units_t;
+
+typedef enum rdm_prefix_t {
+  RDM_PREFIX_NONE = 0x00
+  // TODO
+} rdm_prefix_t;
+
 typedef enum rdm_pid_cc_t {
   RDM_CC_DISC = 0x00,    // PID supports DISC only.
   RDM_CC_GET = 0x01,     // PID supports GET only.
@@ -409,18 +419,23 @@ typedef enum rdm_pid_cc_t {
   RDM_CC_GET_SET = 0x03  // PID supports GET and SET.
 } rdm_pid_cc_t;
 
-typedef struct rdm_pid_description_t {
-  rdm_pid_t pid;
-  size_t pdl_size;
-  int data_type; // enum
-  rdm_pid_cc_t pid_cc;
-  //uint8_t type;  // must always be 0
-  int unit; // enum
-  int prefix; // enum
-  int32_t min_value;
-  int32_t max_value;
-  int32_t default_value;
-  char description[33];
+/**
+ * @brief The purpose of this parameter is to allow a controller to retrieve
+ * enough information about the manufacturerspecific PID to generate GET and SET
+ * commands.
+ */
+typedef struct __attribute__((packed)) rdm_pid_description_t {
+  uint16_t pid;  // The manufacturer specific PID requested by the controller. Range 0x8000 to 0xffdf.
+  uint8_t pdl_size;  // PDL Size defines the number used for the PDL field in all GET_RESPONSE and SET messages associated with this PID. In the case of the value of RDM_DS_ASCII, the PDL Size represents the maximum length of a variable sized ASCII string.
+  uint8_t data_type; // Data Type defines the size of the data entries in the PD of the message for this PID. For example: unsigned 8-bit character versus signed 16-bit word.
+  uint8_t cc;  // Command Class defines whether GET and or SET messages are implemented for the specified PID.
+  uint8_t : 8; // This field no longer has any meaning and should be filled with 0x00 in the response. Controllers should ignore the contents of this field.
+  uint8_t unit; // Unit is an unsigned 8-bit value enumerated by rdm_units_t. It defines the SI (International System of units) unit of the specified PID data.
+  uint8_t prefix;  // Prefix is an unsigned 8-bit value enumerated by rdm_prefix_t. It defines the SI Prefix and multiplication factor of the units. 
+  uint32_t min_value;  // This is a 32-bit field that represents the lowest value that data can reach. The format of the number is defined by DATA TYPE. This field has no meaning for a Data Type of RDM_DS_BIT_FIELD or RDM_DS_ASCII. For Data Types less than 32-bits, the Most Significant Bytes shall be padded with 0x00 out to 32-bits. For example, an 8-bit data value of 0x12 shall be represented in the field as: 0x00000012.
+  uint32_t max_value;  // This is a 32-bit field that represents the highest value that data can reach. The format of the number is defined by DATA TYPE. This field has no meaning for a Data Type of RDM_DS_BIT_FIELD or RDM_DS_ASCII. For Data Types less than 32-bits, the Most Significant Bytes shall be padded with 0x00 out to 32-bits. For example, an 8-bit data value of 0x12 shall be represented in the field as: 0x00000012.
+  uint32_t default_value;  // This is a 32-bit field that represents the default value of that data. This field has no meaning for a Data Type of RDM_DS_BIT_FIELD or RDM_DS_ASCII. The default value shall be within the minimum and maximum range. For Data Types less than 32-bits, the Most Significant Bytes shall be padded with 0x00 out to 32-bits. For example, an 8-bit data value of 0x12 shall be represented in the field as: 0x00000012.
+  char description[33];  // The Description field is used to describe the function of the specified PID. This text field shall be variable up to 32 characters in length.
 } rdm_pid_description_t;
 
 #ifdef __cplusplus
