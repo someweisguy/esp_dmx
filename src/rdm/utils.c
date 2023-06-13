@@ -5,6 +5,9 @@
 
 #include "rdm/types.h"
 #include "endian.h"
+#include "esp_log.h"
+
+static const char *TAG = "rdm/utils";
 
 void *uidcpy(void *restrict destination, const void *restrict source) {
   *(uint16_t *)destination = bswap16(*(uint16_t *)source);
@@ -61,8 +64,10 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
   size_t written = 0;
   size_t pd_index = 0;
 
+  // Ensure that the format string syntax is correct
   size_t format_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
+    
     size_t param_size;
     if (*f == 'b') {
       param_size = sizeof(uint8_t);
@@ -74,7 +79,7 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
       param_size = sizeof(rdm_uid_t);
     } else if (*f == 'v') {
       if (f[1] != '\0') {
-        // TODO: syntax error - optional UID not at end of parameter
+        ESP_LOGE(TAG, "Optional UID not at end of parameter.");
         return 0;
       }
       param_size = sizeof(rdm_uid_t);
@@ -83,35 +88,45 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
       const bool str_has_fixed_len = isdigit((int)f[1]);
       param_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10) : 32;
       if (!str_has_fixed_len && f[1] != '\0') {
-        // TODO: syntax error - variable length string not at end of parameter
+        ESP_LOGE(TAG, "Variable-length string not at end of parameter.");
+        return written;
       } else if (str_has_fixed_len) {
         if (param_size == 0) {
-          // TODO: syntax error - fixed length string has no size
+          ESP_LOGE(TAG, "Fixed-length string has no size.");
+          return written;
         } else if (param_size > (231 - format_size)) {
-          // TODO: syntax error - fixed length string is too big
+          ESP_LOGE(TAG, "Fixed-length string is too big.");
+          return written;
         }
       }
-      f = end_ptr;  // FIXME: verify this works
-    } else if (*f == '#') {
-      char *end_ptr;
-      strtol(f, &end_ptr, 16);
-      param_size = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
-      if (param_size > 8) {
-        // TODO: syntax error - integer literal is too big
-        return 0;
-      } else if (*end_ptr != 'h') {
-        // TODO: syntax error - improperly terminated integer literal
-        return 0;
+      if (str_has_fixed_len) {
+        f = end_ptr;
       }
-      f = end_ptr + 1;  // FIXME: verify this works
+    } else if (*f == '#') {
+      ++f;  // Ignore '#' character.
+      int num_chars = 0;
+      for (; num_chars <= 16; ++num_chars) {
+        if (!isxdigit((int)f[num_chars])) break;
+      }
+      if (num_chars > 16) {
+        ESP_LOGE(TAG, "Integer literal is too big");
+        return written;
+      }
+      param_size = (num_chars / 2) + (num_chars % 2);
+      f += num_chars;
+      if (*f != 'h') {
+        ESP_LOGE(TAG, "Improperly terminated integer literal.");
+        return written;
+      }
+      ++f;  // Ignore 'h' character.
     } else {
-      // TODO: syntax error - unknown symbol
-      return 0;
+      ESP_LOGE(TAG, "Unknown symbol '%c' in encode string.", *f);
+      return written;
     }
 
     if (format_size + param_size > 231) {
-      // TODO: syntax error - format string too big
-      return 0;
+      ESP_LOGE(TAG, "Encode string too big.");
+      return written;
     }
     format_size += param_size;
   }
