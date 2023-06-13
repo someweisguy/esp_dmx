@@ -147,7 +147,7 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
   size_t written = 0;
   size_t pd_index = 0;
   while (num_params_to_encode > 0) {
-    for (const char *f = format; *f != '\0' && pd_index < pdl; ++f) {
+    for (const char *f = format; *f != '\0'; ++f) {
       if (*f == 'b') {
         // 8-bit
         *(uint8_t *)(&mdb->pd[written]) = *(uint8_t *)(pd + pd_index);
