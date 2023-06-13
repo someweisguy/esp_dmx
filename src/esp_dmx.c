@@ -578,8 +578,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->rdm.device_info);
   rdm_register_software_version_label(dmx_num, "esp_dmx");
   // TODO: rdm_register_identify_device(dmx_num);
-  rdm_register_dmx_start_address(
-      dmx_num, (uint16_t *)((&dmx_driver[dmx_num]->rdm.device_info) + 13)); 
+  void *start_address = &dmx_driver[dmx_num]->rdm.device_info.start_address;
+  rdm_register_dmx_start_address(dmx_num, start_address);
   // TODO: rdm_register_supported_parameters()
 
   // Enable UART read interrupt and set RTS low
