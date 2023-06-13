@@ -396,33 +396,33 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 static const char *TAG = "dmx";  // The log tagline for the file.
 
 
+// FIXME
+// static int rdm_identify_device(dmx_port_t dmx_num, const rdm_header_t *header,
+//                                rdm_mdb_t *mdb, void *context) {
+//   // Ensure that the parameter data is the expected length
+//   if (!(header->cc == RDM_CC_GET_COMMAND && mdb->pdl == 0) &&
+//       !(header->cc == RDM_CC_SET_COMMAND && mdb->pdl == 1)) {
+//     rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
+//     return RDM_RESPONSE_TYPE_NACK_REASON;
+//   }
 
-static int rdm_identify_device(dmx_port_t dmx_num, const rdm_header_t *header,
-                               rdm_mdb_t *mdb, void *context) {
-  // Ensure that the parameter data is the expected length
-  if (!(header->cc == RDM_CC_GET_COMMAND && mdb->pdl == 0) &&
-      !(header->cc == RDM_CC_SET_COMMAND && mdb->pdl == 1)) {
-    rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+//   if (header->cc == RDM_CC_GET_COMMAND) {
+//     rdm_encode_8bit(mdb, &dmx_driver[dmx_num]->rdm.identify_device, 1);
+//     return RDM_RESPONSE_TYPE_ACK;
+//   } else if (header->cc == RDM_CC_SET_COMMAND) {
+//     uint8_t set;
+//     rdm_decode_8bit(mdb, &set, 1);
 
-  if (header->cc == RDM_CC_GET_COMMAND) {
-    rdm_encode_8bit(mdb, &dmx_driver[dmx_num]->rdm.identify_device, 1);
-    return RDM_RESPONSE_TYPE_ACK;
-  } else if (header->cc == RDM_CC_SET_COMMAND) {
-    uint8_t set;
-    rdm_decode_8bit(mdb, &set, 1);
+//     dmx_driver[dmx_num]->rdm.identify_device = set;
 
-    dmx_driver[dmx_num]->rdm.identify_device = set;
+//     // TODO: figure out a way to identify the device
 
-    // TODO: figure out a way to identify the device
-
-    return RDM_RESPONSE_TYPE_ACK;
-  } else {
-    rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
-}
+//     return RDM_RESPONSE_TYPE_ACK;
+//   } else {
+//     rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+//     return RDM_RESPONSE_TYPE_NACK_REASON;
+//   }
+// }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
@@ -579,7 +579,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   rdm_register_software_version_label(dmx_num, "esp_dmx");
   // TODO: rdm_register_identify_device(dmx_num);
   rdm_register_dmx_start_address(
-      dmx_num, &dmx_driver[dmx_num]->rdm.device_info.start_address); 
+      dmx_num, (uint16_t *)((&dmx_driver[dmx_num]->rdm.device_info) + 13)); 
   // TODO: rdm_register_supported_parameters()
 
   // Enable UART read interrupt and set RTS low
@@ -1195,23 +1195,24 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       rdm_uid_t my_uid;
       rdm_driver_get_uid(dmx_num, &my_uid);
       if (uid_is_target(&my_uid, &header.dest_uid)) {
-        rdm_pid_description_t *desc = NULL;
+        // rdm_pid_description_t *desc = NULL;
         rdm_encode_decode_t *func = NULL;
         rdm_response_cb_t cb = NULL;
-        for (int i = 0; i < driver->rdm.num_callbacks; ++i) {
+        int i = 0;
+        for (; i < driver->rdm.num_callbacks; ++i) {
           if (driver->rdm.cbs[i].desc.pid == header.pid) {
             cb = driver->rdm.cbs[i].cb;
             func = (header.cc == RDM_CC_SET_COMMAND) ? &driver->rdm.cbs[i].set
                                                      : &driver->rdm.cbs[i].get;
-            desc = &driver->rdm.cbs[i].desc;
+            // desc = &driver->rdm.cbs[i].desc;
             break;
           }
         }
 
         if (cb != NULL) {
-          // response_type =
-          //     cb(dmx_num, &header, &func, &mdb, driver->rdm.cbs[i].param,
-          //        driver->rdm.cbs[i].num, driver->rdm.cbs[i].context);
+          response_type =
+              cb(dmx_num, &header, func, &mdb, driver->rdm.cbs[i].param,
+                 driver->rdm.cbs[i].num, driver->rdm.cbs[i].context);
         }
 
         const bool packet_was_broadcast = uid_is_broadcast(&header.dest_uid);

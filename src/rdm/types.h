@@ -24,6 +24,9 @@ typedef struct __attribute__((__packed__)) rdm_uid_t {
   uint32_t dev_id;
 } rdm_uid_t;
 
+/**
+ * @brief RDM sub-device type.
+ */
 typedef uint16_t rdm_sub_device_t;
 
 /**
@@ -270,16 +273,18 @@ typedef struct rdm_disc_mute_t {
 /**
  * @brief Parameter for use with RDM device info requests.
  */
-typedef struct rdm_device_info_t {
-  int model_id;                  // This field identifies the device model ID of the root device or sub-device. The manufacturer shall not use the same ID to represent more than one unique model type.
-  int product_category;          // Devices shall report a product category based on the product's primary function.
+typedef struct  __attribute__((packed)) rdm_device_info_t {
+  uint8_t : 8;
+  uint8_t : 8;
+  uint16_t model_id;             // This field identifies the device model ID of the root device or sub-device. The manufacturer shall not use the same ID to represent more than one unique model type.
+  uint16_t product_category;     // Devices shall report a product category based on the product's primary function.
   uint32_t software_version_id;  // This field indicates the software version ID for the device. The software version ID is a 32-bit value determined by the manufacturer.
-  size_t footprint;              // This field species the DMX footprint - the number of consecutive DMX slots required.
-  int current_personality;       // The current selected DMX personality of the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
-  int personality_count;         // The number of personalities supported by the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
-  int start_address;             // The DMX start address of the device. If the device or sub-device that the request is directed to has a DMX footprint of 0, then this field shall be set to -1.
-  int sub_device_count;          // This parameter is used to retrieve the number of sub-devices respresented by the root device. The response for this field shall always be the same regardless of whether this message is directed to the root device or a sub-device.
-  int sensor_count;              // This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
+  uint16_t footprint;            // This field species the DMX footprint - the number of consecutive DMX slots required.
+  uint8_t current_personality;   // The current selected DMX personality of the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
+  uint8_t personality_count;     // The number of personalities supported by the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
+  uint16_t start_address;        // The DMX start address of the device. If the device or sub-device that the request is directed to has a DMX footprint of 0, then this field shall be set to -1.
+  uint16_t sub_device_count;     // This parameter is used to retrieve the number of sub-devices respresented by the root device. The response for this field shall always be the same regardless of whether this message is directed to the root device or a sub-device.
+  uint8_t sensor_count;          // This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
 } rdm_device_info_t;
 
 /**
