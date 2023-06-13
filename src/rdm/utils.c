@@ -7,8 +7,6 @@
 #include "endian.h"
 #include "esp_log.h"
 
-static const char *TAG = "rdm/utils";
-
 void *uidcpy(void *restrict destination, const void *restrict source) {
   *(uint16_t *)destination = bswap16(*(uint16_t *)source);
   *(uint32_t *)(destination + 2) = bswap32(*(uint32_t *)(source + 2));
@@ -59,24 +57,19 @@ inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
          uid_is_eq(uid, alias);
 }
 
-size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
-                  size_t pdl) {
-  size_t written = 0;
-  size_t pd_index = 0;
-
-  // Ensure that the format string syntax is correct
-  size_t format_size = 0;
+static int rdm_check_param_syntax(const char *format) {
+  const char *TAG = "RDM Parameter Error";
+  int format_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
-    
     size_t param_size;
     if (*f == 'b') {
-      param_size = sizeof(uint8_t);
+      param_size = sizeof(uint8_t);  // Handle 8-bit byte.
     } else if (*f == 'w') {
-      param_size = sizeof(uint16_t);
+      param_size = sizeof(uint16_t);  // Handle 16-bit word.
     } else if (*f == 'd') {
-      param_size = sizeof(uint32_t);
+      param_size = sizeof(uint32_t);  // Handle 32-bit dword.
     } else if (*f == 'u') {
-      param_size = sizeof(rdm_uid_t);
+      param_size = sizeof(rdm_uid_t);  // Handle 48-bit UID.
     } else if (*f == 'v') {
       if (f[1] != '\0') {
         ESP_LOGE(TAG, "Optional UID not at end of parameter.");
@@ -89,14 +82,14 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
       param_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10) : 32;
       if (!str_has_fixed_len && f[1] != '\0') {
         ESP_LOGE(TAG, "Variable-length string not at end of parameter.");
-        return written;
+        return 0;
       } else if (str_has_fixed_len) {
         if (param_size == 0) {
           ESP_LOGE(TAG, "Fixed-length string has no size.");
-          return written;
+          return 0;
         } else if (param_size > (231 - format_size)) {
           ESP_LOGE(TAG, "Fixed-length string is too big.");
-          return written;
+          return 0;
         }
       }
       if (str_has_fixed_len) {
@@ -110,25 +103,46 @@ size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
       }
       if (num_chars > 16) {
         ESP_LOGE(TAG, "Integer literal is too big");
-        return written;
+        return 0;
       }
       param_size = (num_chars / 2) + (num_chars % 2);
       f += num_chars;
       if (*f != 'h') {
         ESP_LOGE(TAG, "Improperly terminated integer literal.");
-        return written;
+        return 0;
       }
       ++f;  // Ignore 'h' character.
     } else {
-      ESP_LOGE(TAG, "Unknown symbol '%c' in encode string.", *f);
-      return written;
+      ESP_LOGE(TAG, "Unknown symbol '%c' in param string.", *f);
+      return 0;
     }
 
+    // Ensure format size doesn't exceed MDB size.
     if (format_size + param_size > 231) {
-      ESP_LOGE(TAG, "Encode string too big.");
-      return written;
+      ESP_LOGE(TAG, "Param string too big.");
+      return 0;
     }
     format_size += param_size;
+  }
+  return format_size;
+}
+
+size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
+                  size_t pdl) {
+  size_t written = 0;
+  size_t pd_index = 0;
+
+  // Ensure that the format string syntax is correct
+  if (strlen(format) == 0) return 0;
+  int param_size = rdm_check_param_syntax(format);
+  if (param_size == 0) return 0;
+
+  // Get the number of parameters that can be encoded
+  int num_params_to_encode;
+  if (format[strlen(format) - 1] == 'v' || format[strlen(format) - 1] == 'a') {
+    num_params_to_encode = 1;
+  } else {
+    num_params_to_encode = pdl / param_size;
   }
 
   while (pd_index < pdl && written < 231) {
