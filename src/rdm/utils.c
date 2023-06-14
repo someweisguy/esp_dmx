@@ -153,7 +153,6 @@ size_t rdmcpy(void *destination, const char *format, const void *source,
   size_t n = 0;
   for (int i = 0; i < num_params_to_copy; ++i) {
     for (const char *f = format; *f != '\0'; ++f) {
-      ESP_LOGW("test", "found %c", *f);
       if (*f == 'b' || *f == 'B') {
         *(uint8_t *)(destination + n) = *(uint8_t *)(source + n);
         n += sizeof(uint8_t);
