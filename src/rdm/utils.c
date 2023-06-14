@@ -138,12 +138,12 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   return param_size;
 }
 
-size_t rdm_encode(void *restrict destination, const char *format,
-                  const void *restrict source, size_t size,
+size_t rdm_encode(void *destination, size_t dest_size, const char *format,
+                  const void *source, size_t src_size,
                   const bool encode_nulls) {
   // Clamp the size to the maximum MDB length
-  if (size > 231) {
-    size = 231;
+  if (src_size > 231) {
+    src_size = 231;
   }
 
   // Ensure that the format string syntax is correct
@@ -154,7 +154,9 @@ size_t rdm_encode(void *restrict destination, const char *format,
   }
 
   // Get the number of parameters that can be encoded
+  const size_t size = dest_size < src_size ? dest_size : src_size;
   const int num_params_to_copy = param_is_singleton ? 1 : size / param_size;
+
 
   // Encode the fields into the destination
   size_t n = 0;
@@ -172,22 +174,22 @@ size_t rdm_encode(void *restrict destination, const char *format,
       } else if (*f == 'u' || *f == 'U' || *f == 'v' || *f == 'V') {
         if ((*f == 'v' || *f == 'V') && !encode_nulls &&
             uid_is_null(source + n)) {
-          break;  // Optional UIDs must be at end of parameter string
+          break;  // Optional UIDs will be at end of parameter string
         }
-        uidcpy(destination + n, source + n);
+        uidmove(destination + n, source + n);
         n += sizeof(rdm_uid_t);
       } else if (*f == 'a' || *f == 'A') {
         size_t len = atoi(f + 1);
         if (len == 0) {
           // Field is a variable-length string
-          const size_t max_len = (size - n) < 32 ? (size - n) : 32;
+          const size_t str_size = size - (encode_nulls ? 1 : 0);
+          const size_t max_len = (str_size - n) < 32 ? (str_size - n) : 32;
           len = strnlen(source + n, max_len);
         }
+        memmove(destination + n, source + n, len);
         if (encode_nulls) {
-          strncpy(destination + n, source + n, len);
+          *((uint8_t *)destination + len) = '\0';
           ++n;  // Null terminator was encoded
-        } else {
-          memcpy(destination + n, source + n, len);
         }
         n += len;
       } else if (*f == '#') {
