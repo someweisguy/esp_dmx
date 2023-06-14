@@ -253,6 +253,7 @@ size_t rdm_encode_device_info(rdm_mdb_t *mdb, const void *data, int num) {
     pd->software_version_id = bswap32(param->software_version_id);
     pd->footprint = bswap16(param->footprint);
     pd->current_personality = param->current_personality;
+    pd->personality_count = param->personality_count;
     pd->start_address = bswap16(param->start_address);
     pd->sub_device_count = bswap16(param->sub_device_count);
     pd->sensor_count = param->sensor_count;
