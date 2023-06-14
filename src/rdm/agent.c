@@ -79,7 +79,7 @@ void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
 void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  DMX_CHECK(uid_is_broadcast(&uid), , "uid error");
+  DMX_CHECK(!uid_is_broadcast(&uid), , "uid error");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
