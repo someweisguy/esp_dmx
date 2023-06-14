@@ -208,6 +208,52 @@ size_t rdm_encode(void *destination, size_t dest_size, const char *format,
   return n;
 }
 
+size_t encode_uid(void *destination, const rdm_uid_t *uid, size_t preamble_len) {
+  size_t n = 0;
+
+  // Encode the preamble and delimiter
+  if (preamble_len > 7) {
+    preamble_len = 7;
+  }
+  for (int i = 0; i < preamble_len; ++i) {
+    *((uint8_t *)(destination + i)) = RDM_PREAMBLE;
+  }
+  *((uint8_t *)(destination + i)) = RDM_DELIMITER;
+  n += preamble_len + 1;
+
+  // Encode the EUID
+      // Encode the EUID and calculate the checksum
+    // FIXME: loop?
+    uint8_t *d = &(driver->data.buffer[mdb->preamble_len + 1]);
+    d[0] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0xaa;
+    d[1] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0x55;
+    d[2] = ((uint8_t *)&(header->src_uid.man_id))[0] | 0xaa;
+    d[3] = ((uint8_t *)&(header->src_uid.man_id))[0] | 0x55;
+    d[4] = ((uint8_t *)&(header->src_uid.dev_id))[3] | 0xaa;
+    d[5] = ((uint8_t *)&(header->src_uid.dev_id))[3] | 0x55;
+    d[6] = ((uint8_t *)&(header->src_uid.dev_id))[2] | 0xaa;
+    d[7] = ((uint8_t *)&(header->src_uid.dev_id))[2] | 0x55;
+    d[8] = ((uint8_t *)&(header->src_uid.dev_id))[1] | 0xaa;
+    d[9] = ((uint8_t *)&(header->src_uid.dev_id))[1] | 0x55;
+    d[10] = ((uint8_t *)&(header->src_uid.dev_id))[0] | 0xaa;
+    d[11] = ((uint8_t *)&(header->src_uid.dev_id))[0] | 0x55;
+    
+    uint16_t checksum = 0;
+    for (int i = 0; i < 12; ++i) {
+      checksum += d[i];
+    }
+
+    // Encode the checksum
+    d[12] = (checksum >> 8) | 0xaa;
+    d[13] = (checksum >> 8) | 0x55;
+    d[14] = (checksum & 0xff) | 0xaa;
+    d[15] = (checksum & 0xff) | 0x55;
+
+  // Calculate and encode the checksum
+
+  return n;
+}
+
 size_t get_preamble_len(const void *data) {
   size_t preamble_len = 0;
   for (const uint8_t *d = data; preamble_len <= 7; ++preamble_len) {
