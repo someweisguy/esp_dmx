@@ -57,20 +57,20 @@ inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
          uid_is_eq(uid, alias);
 }
 
-static int rdm_param_parse(const char *format, bool *is_singleton) {
+static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   const char *TAG = "RDM Parameter Error";
   *is_singleton = (*format == '\0');
   int param_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
     size_t field_size = 0;
     if (*f == 'b' || *f == 'B') {
-      field_size = sizeof(uint8_t);  // Handle 8-bit byte.
+      field_size = sizeof(uint8_t);  // Handle 8-bit byte
     } else if (*f == 'w' || *f == 'W') {
-      field_size = sizeof(uint16_t);  // Handle 16-bit word.
+      field_size = sizeof(uint16_t);  // Handle 16-bit word
     } else if (*f == 'd' || *f == 'D') {
-      field_size = sizeof(uint32_t);  // Handle 32-bit dword.
+      field_size = sizeof(uint32_t);  // Handle 32-bit dword
     } else if (*f == 'u' || *f == 'U') {
-      field_size = sizeof(rdm_uid_t);  // Handle 48-bit UID.
+      field_size = sizeof(rdm_uid_t);  // Handle 48-bit UID
     } else if (*f == 'v' || *f == 'V') {
       if (f[1] != '\0' && f[1] != '$') {
         ESP_LOGE(TAG, "Optional UID not at end of parameter.");
@@ -79,6 +79,7 @@ static int rdm_param_parse(const char *format, bool *is_singleton) {
       *is_singleton = true;  // Can't declare parameter array with optional UID
       field_size = sizeof(rdm_uid_t);
     } else if (*f == 'a' || *f == 'A') {
+      // Handle ASCII string
       char *end_ptr;
       const bool str_has_fixed_len = isdigit((int)f[1]);
       field_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10) : 32;
@@ -100,6 +101,7 @@ static int rdm_param_parse(const char *format, bool *is_singleton) {
         *is_singleton = true;
       }
     } else if (*f == '#') {
+      // Handle integer literal
       ++f;  // Ignore '#' character
       int num_chars = 0;
       for (; num_chars <= 16; ++num_chars) {
@@ -117,19 +119,18 @@ static int rdm_param_parse(const char *format, bool *is_singleton) {
       }
     } else if (*f == '$') {
       if (f[1] != '\0') {
-        ESP_LOGE(TAG, "Improperly placed end-of-string anchor.");
+        ESP_LOGE(TAG, "Improperly placed end-of-parameter anchor.");
         return 0;
       }
       *is_singleton = true;
     } else {
-      ESP_LOGE(TAG, "Unknown symbol '%c' in parameter string at index %i.", *f,
-               f - format);
+      ESP_LOGE(TAG, "Unknown symbol '%c' found at index %i.", *f, f - format);
       return 0;
     }
 
     // Ensure format size doesn't exceed MDB size.
     if (param_size + field_size > 231) {
-      ESP_LOGE(TAG, "Parameter string is too big.");
+      ESP_LOGE(TAG, "Parameter is too big.");
       return 0;
     }
     param_size += field_size;
@@ -137,14 +138,19 @@ static int rdm_param_parse(const char *format, bool *is_singleton) {
   return param_size;
 }
 
-size_t rdmcpy(void *destination, const char *format, const void *source,
-              size_t size, const bool copy_nulls) {
-  // TODO: arg check
+size_t rdm_encode(void *destination, const char *format, const void *source,
+                  size_t size, const bool encode_nulls) {
+  // Clamp the size to the maximum MDB length
+  if (size > 231) {
+    size = 231;
+  }
 
   // Ensure that the format string syntax is correct
   bool param_is_singleton;
   const int param_size = rdm_param_parse(format, &param_is_singleton);
-  if (param_size < 1) return 0;
+  if (param_size < 1) {
+    return 0;
+  }
 
   // Get the number of parameters that can be encoded
   const int num_params_to_copy = param_is_singleton ? 1 : size / param_size;
@@ -163,7 +169,7 @@ size_t rdmcpy(void *destination, const char *format, const void *source,
         *(uint32_t *)(destination + n) = bswap32(*(uint32_t *)(source + n));
         n += sizeof(uint32_t);
       } else if (*f == 'u' || *f == 'U' || *f == 'v' || *f == 'V') {
-        if ((*f == 'v' || *f == 'V') && !copy_nulls &&
+        if ((*f == 'v' || *f == 'V') && !encode_nulls &&
             uid_is_null(source + n)) {
           break;  // Optional UIDs must be at end of parameter string
         }
@@ -176,7 +182,7 @@ size_t rdmcpy(void *destination, const char *format, const void *source,
           const size_t max_len = (size - n) < 32 ? (size - n) : 32;
           len = strnlen(source + n, max_len);
         }
-        if (copy_nulls) {
+        if (encode_nulls) {
           strncpy(destination + n, source + n, len);
           ++n;  // Null terminator was encoded
         } else {
