@@ -138,8 +138,9 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   return param_size;
 }
 
-size_t rdm_encode(void *destination, const char *format, const void *source,
-                  size_t size, const bool encode_nulls) {
+size_t rdm_encode(void *restrict destination, const char *format,
+                  const void *restrict source, size_t size,
+                  const bool encode_nulls) {
   // Clamp the size to the maximum MDB length
   if (size > 231) {
     size = 231;
