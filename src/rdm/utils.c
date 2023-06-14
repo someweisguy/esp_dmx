@@ -57,46 +57,50 @@ inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
          uid_is_eq(uid, alias);
 }
 
-static int rdm_check_param_syntax(const char *format) {
+static int rdm_param_parse(const char *format, bool *is_singleton) {
   const char *TAG = "RDM Parameter Error";
-  int format_size = 0;
+  *is_singleton = (*format == '\0');
+  int param_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
-    size_t param_size;
-    if (*f == 'b') {
-      param_size = sizeof(uint8_t);  // Handle 8-bit byte.
-    } else if (*f == 'w') {
-      param_size = sizeof(uint16_t);  // Handle 16-bit word.
-    } else if (*f == 'd') {
-      param_size = sizeof(uint32_t);  // Handle 32-bit dword.
-    } else if (*f == 'u') {
-      param_size = sizeof(rdm_uid_t);  // Handle 48-bit UID.
-    } else if (*f == 'v') {
-      if (f[1] != '\0') {
+    size_t field_size = 0;
+    if (*f == 'b' || *f == 'B') {
+      field_size = sizeof(uint8_t);  // Handle 8-bit byte.
+    } else if (*f == 'w' || *f == 'W') {
+      field_size = sizeof(uint16_t);  // Handle 16-bit word.
+    } else if (*f == 'd' || *f == 'D') {
+      field_size = sizeof(uint32_t);  // Handle 32-bit dword.
+    } else if (*f == 'u' || *f == 'U') {
+      field_size = sizeof(rdm_uid_t);  // Handle 48-bit UID.
+    } else if (*f == 'v' || *f == 'V') {
+      if (f[1] != '\0' && f[1] != '$') {
         ESP_LOGE(TAG, "Optional UID not at end of parameter.");
         return 0;
       }
-      param_size = sizeof(rdm_uid_t);
-    } else if (*f == 'a') {
+      *is_singleton = true;  // Can't declare parameter array with optional UID
+      field_size = sizeof(rdm_uid_t);
+    } else if (*f == 'a' || *f == 'A') {
       char *end_ptr;
       const bool str_has_fixed_len = isdigit((int)f[1]);
-      param_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10) : 32;
-      if (!str_has_fixed_len && f[1] != '\0') {
+      field_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10) : 32;
+      if (!str_has_fixed_len && (f[1] != '\0' && f[1] != '$')) {
         ESP_LOGE(TAG, "Variable-length string not at end of parameter.");
-        return 0;
+        return -1;
       } else if (str_has_fixed_len) {
-        if (param_size == 0) {
+        if (field_size == 0) {
           ESP_LOGE(TAG, "Fixed-length string has no size.");
           return 0;
-        } else if (param_size > (231 - format_size)) {
+        } else if (field_size > (231 - param_size)) {
           ESP_LOGE(TAG, "Fixed-length string is too big.");
           return 0;
         }
       }
       if (str_has_fixed_len) {
         f = end_ptr;
+      } else {
+        *is_singleton = true;
       }
     } else if (*f == '#') {
-      ++f;  // Ignore '#' character.
+      ++f;  // Ignore '#' character
       int num_chars = 0;
       for (; num_chars <= 16; ++num_chars) {
         if (!isxdigit((int)f[num_chars])) break;
@@ -105,105 +109,95 @@ static int rdm_check_param_syntax(const char *format) {
         ESP_LOGE(TAG, "Integer literal is too big");
         return 0;
       }
-      param_size = (num_chars / 2) + (num_chars % 2);
+      field_size = (num_chars / 2) + (num_chars % 2);
       f += num_chars;
-      if (*f != 'h') {
+      if (*f != 'h' && *f != 'H') {
         ESP_LOGE(TAG, "Improperly terminated integer literal.");
         return 0;
       }
-      ++f;  // Ignore 'h' character.
+    } else if (*f == '$') {
+      if (f[1] != '\0') {
+        ESP_LOGE(TAG, "Improperly placed end-of-string anchor.");
+        return 0;
+      }
+      *is_singleton = true;
     } else {
-      ESP_LOGE(TAG, "Unknown symbol '%c' in param string.", *f);
+      ESP_LOGE(TAG, "Unknown symbol '%c' in parameter string at index %i.", *f,
+               f - format);
       return 0;
     }
 
     // Ensure format size doesn't exceed MDB size.
-    if (format_size + param_size > 231) {
-      ESP_LOGE(TAG, "Param string too big.");
+    if (param_size + field_size > 231) {
+      ESP_LOGE(TAG, "Parameter string is too big.");
       return 0;
     }
-    format_size += param_size;
+    param_size += field_size;
   }
-  return format_size;
+  return param_size;
 }
 
-size_t rdm_encode(rdm_mdb_t *mdb, const char *format, const void *pd,
-                  size_t pdl) {
+size_t rdmcpy(void *destination, const char *format, const void *source,
+              size_t size, const bool copy_nulls) {
+  // TODO: arg check
 
   // Ensure that the format string syntax is correct
-  if (strlen(format) == 0) return 0;
-  int param_size = rdm_check_param_syntax(format);
-  if (param_size == 0) return 0;
+  bool param_is_singleton;
+  const int param_size = rdm_param_parse(format, &param_is_singleton);
+  if (param_size < 1) return 0;
 
   // Get the number of parameters that can be encoded
-  int num_params_to_encode;
-  if (format[strlen(format) - 1] == 'v' || format[strlen(format) - 1] == 'a') {
-    num_params_to_encode = 1;
-  } else {
-    num_params_to_encode = pdl / param_size;
-  }
+  const int num_params_to_copy = param_is_singleton ? 1 : size / param_size;
 
-  // Encode the parameter data into the MDB.
-  size_t written = 0;
-  size_t pd_index = 0;
-  while (num_params_to_encode > 0) {
+  // Encode the fields into the destination
+  size_t n = 0;
+  for (int i = 0; i < num_params_to_copy; ++i) {
     for (const char *f = format; *f != '\0'; ++f) {
-      if (*f == 'b') {
-        // 8-bit
-        *(uint8_t *)(&mdb->pd[written]) = *(uint8_t *)(pd + pd_index);
-        written += sizeof(uint8_t);
-        pd_index += sizeof(uint8_t);
-      } else if (*f == 'w') {
-        // 16-bit
-        *(uint16_t *)(&mdb->pd[written]) =
-            bswap16(*(uint16_t *)(pd + pd_index));
-        written += sizeof(uint16_t);
-        pd_index += sizeof(uint16_t);
-      } else if (*f == 'd') {
-        // 32-bit
-        *(uint32_t *)(&mdb->pd[written]) =
-            bswap32(*(uint32_t *)(pd + pd_index));
-        written += sizeof(uint32_t);
-        pd_index += sizeof(uint32_t);
-      } else if (*f == 'u' || *f == 'v') {
-        // 48-bit UID
-        if (*f == 'v' && uid_is_null((rdm_uid_t *)(pd + pd_index))) {
-          pd_index += sizeof(rdm_uid_t);
-          continue;
+      ESP_LOGW("test", "found %c", *f);
+      if (*f == 'b' || *f == 'B') {
+        *(uint8_t *)(destination + n) = *(uint8_t *)(source + n);
+        n += sizeof(uint8_t);
+      } else if (*f == 'w' || *f == 'W') {
+        *(uint16_t *)(destination + n) = bswap16(*(uint16_t *)(source + n));
+        n += sizeof(uint16_t);
+      } else if (*f == 'd' || *f == 'D') {
+        *(uint32_t *)(destination + n) = bswap32(*(uint32_t *)(source + n));
+        n += sizeof(uint32_t);
+      } else if (*f == 'u' || *f == 'U' || *f == 'v' || *f == 'V') {
+        if ((*f == 'v' || *f == 'V') && !copy_nulls &&
+            uid_is_null(source + n)) {
+          break;  // Optional UIDs must be at end of parameter string
         }
-        uidmove((rdm_uid_t *)(&mdb->pd[written]), (rdm_uid_t *)(pd + pd_index));
-        written += sizeof(rdm_uid_t);
-        pd_index += sizeof(rdm_uid_t);
-      } else if (*f == 'a') {
-        const size_t max_len = (pdl - written) < 32 ? (pdl - written) : 32;
-        size_t len = strnlen((char *)(pd + pd_index), max_len);
-        memmove(&mdb->pd[written], pd + pd_index, len);  // Strip terminator
-        written += len;
-        pd_index += len;
+        uidcpy(destination + n, source + n);
+        n += sizeof(rdm_uid_t);
+      } else if (*f == 'a' || *f == 'A') {
+        size_t len = atoi(f + 1);
+        if (len == 0) {
+          // Field is a variable-length string
+          const size_t max_len = (size - n) < 32 ? (size - n) : 32;
+          len = strnlen(source + n, max_len);
+        }
+        if (copy_nulls) {
+          strncpy(destination + n, source + n, len);
+          ++n;  // Null terminator was encoded
+        } else {
+          memcpy(destination + n, source + n, len);
+        }
+        n += len;
       } else if (*f == '#') {
-        // Integer literal
+        ++f;  // Skip '#' character
         char *end_ptr;
-        uint64_t literal = strtol(f, &end_ptr, 16);
-        const int num_bytes = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
-        for (int i = 0; i < num_bytes; ++i) {
-          *(uint8_t *)(&mdb->pd[written + i]) = *((&literal) - (num_bytes - i));
+        const uint64_t literal = strtol(f, &end_ptr, 16);
+        const int literal_len = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
+        for (int j = 0, k = literal_len - 1; j < literal_len; ++j, --k) {
+          ((uint8_t *)destination + n)[j] = ((uint8_t *)&literal)[k];
         }
         f = end_ptr;
-        written += num_bytes;
+        n += literal_len;
       }
     }
-    --num_params_to_encode;
   }
-  mdb->pdl = written;
-  return written;
-}
-
-int rdm_decode(const rdm_mdb_t *mdb, const char *format, void *pd, int num) {
-  int decoded = 0;
-
-
-
-  return decoded;
+  return n;
 }
 
 size_t get_preamble_len(const void *data) {
