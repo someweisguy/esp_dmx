@@ -291,18 +291,18 @@ typedef struct  __attribute__((packed)) rdm_device_info_t {
  * @brief A struct which stores RDM packet header information. Header
  * information contains metadata about the packet message data block. 
  */
-typedef struct rdm_header_t {
+typedef struct __attribute__((packed)) rdm_header_t {
   rdm_uid_t dest_uid;  // The UID of the target device(s).
   rdm_uid_t src_uid;   // The UID of the device originating this packet.
-  int tn;  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
+  uint8_t tn;  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
   union {
-    int port_id;  // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
-    rdm_response_type_t response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
+    uint8_t port_id;  // The port ID field shall be set in the range 1-255 identifying the controller port being used, such that the combination of source UID and port ID will uniquely identify the controller and port where the message originated.
+    uint8_t response_type;  // The response type field is used in messages from responders to indicate the acknowledgement type of the response.
   };
-  int message_count;  // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
-  rdm_sub_device_t sub_device;  // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
-  rdm_cc_t cc;  // The command class (CC) specifies the action of the message.
-  rdm_pid_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
+  uint8_t message_count;  // The message count field is used by a responder to indicate that additional data is now available for collection by a controller. The message count shall be set to 0 in all controller generated requests.
+  uint16_t sub_device;  // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
+  uint8_t cc;  // The command class (CC) specifies the action of the message.
+  uint16_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
 } rdm_header_t;
 
 /**
