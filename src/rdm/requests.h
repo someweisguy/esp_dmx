@@ -29,6 +29,8 @@ typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
                                  size_t device_num,
                                  rdm_disc_mute_t *mute_params, void *context);
 
+// TODO: size_t rdm_send_generic_request()
+
 /**
  * @brief Sends an RDM discovery request and reads the response, if any.
  *

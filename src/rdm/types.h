@@ -292,6 +292,9 @@ typedef struct  __attribute__((packed)) rdm_device_info_t {
  * information contains metadata about the packet message data block. 
  */
 typedef struct __attribute__((packed)) rdm_header_t {
+  uint8_t : 8;
+  uint8_t : 8;
+  uint8_t : 8;
   rdm_uid_t dest_uid;  // The UID of the target device(s).
   rdm_uid_t src_uid;   // The UID of the device originating this packet.
   uint8_t tn;  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.

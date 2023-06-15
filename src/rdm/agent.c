@@ -7,7 +7,6 @@
 #include "dmx/types.h"
 #include "endian.h"
 #include "esp_log.h"
-#include "rdm/mdb.h"
 #include "rdm/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -307,6 +306,72 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, rdm_mdb_t *mdb) {
 
   taskEXIT_CRITICAL(spinlock);
   return bytes_read;
+}
+
+size_t rdm_write2(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
+                 const void *pd) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(pdl <= 231 && !(pd == NULL && pdl > 0), 0, "pdl is invalid");
+  DMX_CHECK((header != NULL) || (pd != NULL && pdl > 0), 0,
+            "header and pd are null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // if (header != NULL) {
+  //   DMX_CHECK(!uid_is_null(&header->dest_uid), 0, "dest_uid is invalid");
+  //   DMX_CHECK(!uid_is_broadcast(&header->src_uid), 0, "src_uid is invalid");
+  //   DMX_CHECK(
+  //       (header->sub_device < 513 || header->sub_device == RDM_SUB_DEVICE_ALL),
+  //       0, "sub_device is invalid");
+  //   DMX_CHECK((header->cc == RDM_CC_DISC_COMMAND ||
+  //              header->cc == RDM_CC_DISC_COMMAND_RESPONSE ||
+  //              header->cc == RDM_CC_GET_COMMAND ||
+  //              header->cc == RDM_CC_GET_COMMAND_RESPONSE ||
+  //              header->cc == RDM_CC_SET_COMMAND ||
+  //              header->cc == RDM_CC_SET_COMMAND_RESPONSE),
+  //             0, "cc is invalid");
+
+  //   // if port_id is 0, set it to this rdm port
+  //   // if src_uid is null, set it to this UID
+  // }
+
+  size_t written = 0;
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  uart_dev_t *const restrict uart = driver->uart;
+
+  // Get pointers to driver data buffer locations and declare checksum
+  uint16_t checksum = 0xcc + 0x01;
+  uint8_t *header_ptr = driver->data.buffer;
+  uint8_t *message_len_ptr = header_ptr + 2;
+  uint8_t *pdl_ptr = header_ptr + 24;
+  void *pd_ptr = header_ptr + 25;
+
+  taskENTER_CRITICAL(spinlock);
+
+  // Ensure driver isn't sending - RDM writes must be synchronous
+  if (driver->is_sending) {
+    taskEXIT_CRITICAL(spinlock);
+    return written;
+  } else if (dmx_uart_get_rts(uart) == 1) {
+    dmx_uart_set_rts(uart, 0);  // Stop writes from being overwritten by DMX
+  }
+
+  // Copy the header, pd, message_len and pdl into the driver
+  pdcpy(header_ptr, 513, "#cc01#18huubbbwbw", header, sizeof(*header), false);
+  memcpy(pd_ptr, pd, pdl);
+  *message_len_ptr += pdl;
+  *pdl_ptr = pdl;
+
+  // Calculate and copy the checksum
+  for (int i = 2; i < *message_len_ptr; ++i) {
+    checksum += header_ptr[i];
+  }
+  *(uint16_t *)(header_ptr + *message_len_ptr) = bswap16(checksum);
+
+  taskEXIT_CRITICAL(spinlock);
+
+  return written;
 }
 
 size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,

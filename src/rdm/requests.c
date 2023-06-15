@@ -2,7 +2,6 @@
 
 #include "dmx/driver.h"
 #include "rdm/agent.h"
-#include "rdm/mdb.h"
 #include "rdm/utils.h"
 
 static const char *TAG = "rdm_requests";

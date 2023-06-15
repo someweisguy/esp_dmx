@@ -147,7 +147,7 @@ size_t uid_encode(void *destination, const rdm_uid_t *uid,
   for (int i = 0; i < preamble_len; ++i) {
     *((uint8_t *)(destination + i)) = RDM_PREAMBLE;
   }
-  *((uint8_t *)(destination + i)) = RDM_DELIMITER;
+  *((uint8_t *)(destination + preamble_len)) = RDM_DELIMITER;
 
   // Encode the EUID  // FIXME: loop?
   uint8_t *d = destination + preamble_len + 1;

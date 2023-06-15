@@ -139,11 +139,11 @@ bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias);
 size_t uid_encode(void *destination, const rdm_uid_t *uid, size_t preamble_len);
 
 // TODO: docs
-int uid_decode(rdm_uid_t *destination, const void *source, size_t size);
+size_t uid_decode(rdm_uid_t *destination, const void *source, size_t size);
 
 // TODO: docs
 size_t pdcpy(void *destination, size_t dest_size, const char *format,
-             const void *source, size_t src_size, const bool encode_nulls);
+              const void *source, size_t src_size, const bool encode_nulls);
 
 /**
  * @brief Get the preamble length of a DISC_UNIQUE_BRANCH response. A
