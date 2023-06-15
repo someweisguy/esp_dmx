@@ -138,9 +138,70 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   return param_size;
 }
 
-size_t rdm_encode(void *destination, size_t dest_size, const char *format,
-                  const void *source, size_t src_size,
-                  const bool encode_nulls) {
+size_t uid_encode(void *destination, const rdm_uid_t *uid,
+                  size_t preamble_len) {
+  // Encode the preamble and delimiter
+  if (preamble_len > 7) {
+    preamble_len = 7;
+  }
+  for (int i = 0; i < preamble_len; ++i) {
+    *((uint8_t *)(destination + i)) = RDM_PREAMBLE;
+  }
+  *((uint8_t *)(destination + i)) = RDM_DELIMITER;
+
+  // Encode the EUID  // FIXME: loop?
+  uint8_t *d = destination + preamble_len + 1;
+  d[0] = ((uint8_t *)&(uid->man_id))[1] | 0xaa;
+  d[1] = ((uint8_t *)&(uid->man_id))[1] | 0x55;
+  d[2] = ((uint8_t *)&(uid->man_id))[0] | 0xaa;
+  d[3] = ((uint8_t *)&(uid->man_id))[0] | 0x55;
+  d[4] = ((uint8_t *)&(uid->dev_id))[3] | 0xaa;
+  d[5] = ((uint8_t *)&(uid->dev_id))[3] | 0x55;
+  d[6] = ((uint8_t *)&(uid->dev_id))[2] | 0xaa;
+  d[7] = ((uint8_t *)&(uid->dev_id))[2] | 0x55;
+  d[8] = ((uint8_t *)&(uid->dev_id))[1] | 0xaa;
+  d[9] = ((uint8_t *)&(uid->dev_id))[1] | 0x55;
+  d[10] = ((uint8_t *)&(uid->dev_id))[0] | 0xaa;
+  d[11] = ((uint8_t *)&(uid->dev_id))[0] | 0x55;
+
+  // Calculate and encode the checksum
+  uint16_t checksum = 0;
+  for (int i = 0; i < 12; ++i) {
+    checksum += d[i];
+  }
+  d[12] = (checksum >> 8) | 0xaa;
+  d[13] = (checksum >> 8) | 0x55;
+  d[14] = (checksum & 0xff) | 0xaa;
+  d[15] = (checksum & 0xff) | 0x55;
+
+  return preamble_len + 1 + 16;
+}
+
+size_t uid_decode(rdm_uid_t *uid, const void *source, size_t size) {
+  // Ensure the source buffer is big enough
+  if (size < 17) {
+    return 0;  // Source buffer must be at least 17 bytes
+  }
+
+  // Get the preamble length
+  const size_t preamble_len = get_preamble_len(source);
+  if (preamble_len > 7 || size < preamble_len + 17) {
+    return 0;  // Preamble is too long or size too small
+  }
+
+  // Decode the EUID
+  uint8_t buf[6];
+  const uint8_t *d = source + preamble_len + 1;
+  for (int i = 0, j = 0; i < 6; ++i, j += 2) {
+    buf[i] = d[j] & d[j + 1];
+  }
+  uidcpy(uid, buf);
+
+  return preamble_len + 1 + 16;
+}
+
+size_t pdcpy(void *destination, size_t dest_size, const char *format,
+             const void *source, size_t src_size, const bool encode_nulls) {
   // Clamp the size to the maximum MDB length
   if (src_size > 231) {
     src_size = 231;
@@ -156,7 +217,6 @@ size_t rdm_encode(void *destination, size_t dest_size, const char *format,
   // Get the number of parameters that can be encoded
   const size_t size = dest_size < src_size ? dest_size : src_size;
   const int num_params_to_copy = param_is_singleton ? 1 : size / param_size;
-
 
   // Encode the fields into the destination
   size_t n = 0;
@@ -208,51 +268,6 @@ size_t rdm_encode(void *destination, size_t dest_size, const char *format,
   return n;
 }
 
-size_t encode_uid(void *destination, const rdm_uid_t *uid, size_t preamble_len) {
-  size_t n = 0;
-
-  // Encode the preamble and delimiter
-  if (preamble_len > 7) {
-    preamble_len = 7;
-  }
-  for (int i = 0; i < preamble_len; ++i) {
-    *((uint8_t *)(destination + i)) = RDM_PREAMBLE;
-  }
-  *((uint8_t *)(destination + i)) = RDM_DELIMITER;
-  n += preamble_len + 1;
-
-  // Encode the EUID
-      // Encode the EUID and calculate the checksum
-    // FIXME: loop?
-    uint8_t *d = &(driver->data.buffer[mdb->preamble_len + 1]);
-    d[0] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0xaa;
-    d[1] = ((uint8_t *)&(header->src_uid.man_id))[1] | 0x55;
-    d[2] = ((uint8_t *)&(header->src_uid.man_id))[0] | 0xaa;
-    d[3] = ((uint8_t *)&(header->src_uid.man_id))[0] | 0x55;
-    d[4] = ((uint8_t *)&(header->src_uid.dev_id))[3] | 0xaa;
-    d[5] = ((uint8_t *)&(header->src_uid.dev_id))[3] | 0x55;
-    d[6] = ((uint8_t *)&(header->src_uid.dev_id))[2] | 0xaa;
-    d[7] = ((uint8_t *)&(header->src_uid.dev_id))[2] | 0x55;
-    d[8] = ((uint8_t *)&(header->src_uid.dev_id))[1] | 0xaa;
-    d[9] = ((uint8_t *)&(header->src_uid.dev_id))[1] | 0x55;
-    d[10] = ((uint8_t *)&(header->src_uid.dev_id))[0] | 0xaa;
-    d[11] = ((uint8_t *)&(header->src_uid.dev_id))[0] | 0x55;
-    
-    uint16_t checksum = 0;
-    for (int i = 0; i < 12; ++i) {
-      checksum += d[i];
-    }
-
-    // Encode the checksum
-    d[12] = (checksum >> 8) | 0xaa;
-    d[13] = (checksum >> 8) | 0x55;
-    d[14] = (checksum & 0xff) | 0xaa;
-    d[15] = (checksum & 0xff) | 0x55;
-
-  // Calculate and encode the checksum
-
-  return n;
-}
 
 size_t get_preamble_len(const void *data) {
   size_t preamble_len = 0;

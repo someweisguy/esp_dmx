@@ -126,8 +126,8 @@ bool uid_is_null(const rdm_uid_t *uid);
 
 /**
  * @brief Returns true if the first UID is targeted by the second UID. A common
- * usage of this function would be `uid_is_target(&my_uid, &destination_uid)`.
- * 
+ * usage of this function is `uid_is_target(&my_uid, &destination_uid)`.
+ *
  * @param uid A pointer to a UID which to check is targeted.
  * @param alias A pointer to a UID which may alias the first UID.
  * @return true if the UID is targeted by the alias UID.
@@ -136,8 +136,14 @@ bool uid_is_null(const rdm_uid_t *uid);
 bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias);
 
 // TODO: docs
-size_t rdm_encode(void *destination, size_t dest_size, const char *format,
-                  const void *source, size_t src_size, const bool encode_nulls);
+size_t uid_encode(void *destination, const rdm_uid_t *uid, size_t preamble_len);
+
+// TODO: docs
+int uid_decode(rdm_uid_t *destination, const void *source, size_t size);
+
+// TODO: docs
+size_t pdcpy(void *destination, size_t dest_size, const char *format,
+             const void *source, size_t src_size, const bool encode_nulls);
 
 /**
  * @brief Get the preamble length of a DISC_UNIQUE_BRANCH response. A
