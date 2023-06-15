@@ -1,6 +1,6 @@
 idf_component_register(
   SRCS "src/esp_dmx.c" "src/dmx/hal.c" "src/rdm/agent.c" "src/rdm/requests.c"
-       "src/rdm/mdb.c" "src/rdm/utils.c"
+       "src/rdm/utils.c"
   INCLUDE_DIRS "src" 
   REQUIRES driver esp_timer esp_common esp_hw_support
 )   
