@@ -187,12 +187,12 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
  * request. Upon receiving a response, header information from the response is
  * copied into this pointer.
  * @param[out] ack A pointer into which to store the RDM ACK summary.
- * @param[out] start_address A pointer into which the DMX start address
+ * @param[out] dmx_start_address A pointer into which the DMX start address
  * parameter from the responder is stored.
  * @return The number of bytes received in response to the request.
  */
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                                 rdm_ack_t *ack, int *start_address);
+                                 rdm_ack_t *ack, uint16_t *dmx_start_address);
 
 /**
  * @brief Sends an RDM set DMX start address request and reads the response, if
@@ -203,12 +203,12 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
  * request. Upon receiving a response, header information from the response is
  * copied into this pointer.
  * @param[out] ack A pointer into which to store the RDM ACK summary.
- * @param start_address The value to which to set the DMX start address
+ * @param dmx_start_address The value to which to set the DMX start address
  * parameter of the target device(s). Must be between 1 and 512 inclusive.
  * @return The number of bytes received in response to the request.
  */
 size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                                 int start_address, rdm_ack_t *ack);
+                                 uint16_t dmx_start_address, rdm_ack_t *ack);
 
 #ifdef __cplusplus
 }

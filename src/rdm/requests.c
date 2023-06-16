@@ -1,6 +1,7 @@
 #include "requests.h"
 
 #include "dmx/driver.h"
+#include "endian.h"
 #include "rdm/agent.h"
 #include "rdm/utils.h"
 
@@ -24,10 +25,11 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  const rdm_encode_t encode = {
-      .function = rdm_encode_uids, .params = param, .num = 2};
+  uint8_t pd_in[sizeof(*param)];
+  pd_emplace(pd_in, sizeof(pd_in), "uu$", param, sizeof(*param), false);
 
-  return rdm_send(dmx_num, header, &encode, NULL, ack);
+  return rdm_send_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL,
+                          ack);
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
@@ -42,13 +44,14 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  rdm_decode_t decode = {
-      .function = rdm_decode_mute,
-      .params = param,
-      .num = 1,
-  };
+  uint8_t pdl_out = sizeof(*param);
+  uint8_t pd_out[sizeof(*param)];
 
-  return rdm_send(dmx_num, header, NULL, &decode, ack);
+  const size_t size =
+      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  pd_emplace(param, sizeof(*param), "wv&", pd_out, pdl_out, true);
+
+  return size;
 }
 
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
@@ -63,13 +66,14 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  rdm_decode_t decode = {
-      .function = rdm_decode_mute,
-      .params = param,
-      .num = 1,
-  };
+  uint8_t pdl_out = sizeof(*param);
+  uint8_t pd_out[sizeof(*param)];
 
-  return rdm_send(dmx_num, header, NULL, &decode, ack);
+  const size_t size =
+      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  pd_emplace(param, sizeof(*param), "wv&", pd_out, pdl_out, true);
+
+  return size;
 }
 
 int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
@@ -125,7 +129,8 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
       // Attempt to fix possible error where responder is flipping its own UID
       if (ack.type != RDM_RESPONSE_TYPE_ACK) {
         uint64_t uid = bswap64(((uint64_t)header.dest_uid.man_id << 32) |
-                             header.dest_uid.dev_id) >> 16;
+                               header.dest_uid.dev_id) >>
+                       16;
         header.dest_uid.man_id = uid >> 32;
         header.dest_uid.dev_id = uid;
         rdm_send_disc_mute(dmx_num, &header, &ack, &mute);
@@ -189,7 +194,8 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
           uint64_t mid = ((((uint64_t)branch->lower_bound.man_id << 32) |
                            branch->lower_bound.dev_id) +
                           (((uint64_t)branch->upper_bound.man_id << 32) |
-                           branch->upper_bound.dev_id)) / 2;
+                           branch->upper_bound.dev_id)) /
+                         2;
 
           // Add the upper branch so that it gets handled second
           stack[stack_size].lower_bound.man_id = (mid + 1) >> 32;
@@ -253,13 +259,14 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  rdm_decode_t decode = {
-      .function = rdm_decode_device_info,
-      .params = param,
-      .num = 1,
-  };
+  uint8_t pdl_out = sizeof(*param);
+  uint8_t pd_out[sizeof(*param)];
 
-  return rdm_send(dmx_num, header, NULL, &decode, ack);
+  const size_t size =
+      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  pd_emplace(param, sizeof(*param), "#0100hwwdwbbwwb$", pd_out, pdl_out, true);
+
+  return size;
 }
 
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
@@ -275,13 +282,14 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  rdm_decode_t decode = {
-      .function = rdm_decode_string,
-      .params = param,
-      .num = size
-  };
+  uint8_t pdl_out = size;
+  uint8_t pd_out[33];
 
-  return rdm_send(dmx_num, header, NULL, &decode, ack);
+  const size_t ret =
+      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  pd_emplace(param, size, "a", pd_out, pdl_out, true);
+
+  return ret;
 }
 
 size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
@@ -296,13 +304,14 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  rdm_decode_t decode = {
-      .function = rdm_decode_8bit,
-      .params = identify,
-      .num = 1,
-  };
+  uint8_t pdl_out = sizeof(*identify);
+  uint8_t pd_out[sizeof(*identify)];
 
-  return rdm_send(dmx_num, header, NULL, &decode, ack);
+  const size_t ret =
+      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  pd_emplace(identify, sizeof(*identify), "b$", pd_out, pdl_out, true);
+
+  return ret;
 }
 
 size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
@@ -316,42 +325,36 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  rdm_encode_t encode = {
-      .function = rdm_encode_8bit,
-      .params = &identify,
-      .num = 1,
-  };
+  uint8_t pd_in[sizeof(identify)];
+  pd_emplace(pd_in, sizeof(pd_in), "b$", &identify, sizeof(identify), false);
 
-  return rdm_send(dmx_num, header, &encode, NULL, ack);
+  return rdm_send_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL,
+                          ack);
 }
 
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                                 rdm_ack_t *ack, int *start_address) {
+                                 rdm_ack_t *ack, uint16_t *dmx_start_address) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(start_address != NULL, 0, "start_address is null");
+  DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  header->cc = RDM_CC_GET_COMMAND;
-  header->pid = RDM_PID_DMX_START_ADDRESS;
-  rdm_driver_get_uid(dmx_num, &header->src_uid);
-  header->port_id = dmx_num + 1;
+  uint8_t pdl_out = sizeof(*dmx_start_address);
+  uint8_t pd_out[sizeof(*dmx_start_address)];
 
-  rdm_decode_t decode = {
-      .function = rdm_decode_16bit,
-      .params = start_address,
-      .num = 1,
-  };
+  const size_t ret =
+      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  pd_emplace(dmx_start_address, sizeof(*dmx_start_address), "w$", pd_out,
+             pdl_out, true);
 
-  return rdm_send(dmx_num, header, NULL, &decode, ack);
+  return ret;
 }
 
 size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                                 int start_address, rdm_ack_t *ack) {
+                                 uint16_t dmx_start_address, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(start_address > 0 && start_address < 513, 0,
-            "start_address is invalid");
+  DMX_CHECK(dmx_start_address < 513, 0, "dmx_start_address is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   header->cc = RDM_CC_SET_COMMAND;
@@ -359,11 +362,10 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
 
-  rdm_encode_t encode = {
-      .function = rdm_encode_16bit,
-      .params = &start_address,
-      .num = 1,
-  };
+  uint8_t pd_in[sizeof(dmx_start_address)];
+  pd_emplace(pd_in, sizeof(pd_in), "w$", &dmx_start_address,
+             sizeof(dmx_start_address), false);
 
-  return rdm_send(dmx_num, header, &encode, NULL, ack);
+  return rdm_send_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL,
+                          ack);
 }
