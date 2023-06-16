@@ -3,7 +3,7 @@
  * @author Mitch Weisbrod
  * @brief This file contains some functions that can be helpful when performing
  * advanced operations on RDM packets. It is used throughout this library, but
- * is not included by default in esp_dmx.h. It may be manually included by the 
+ * is not included by default in esp_dmx.h. It may be manually included by the
  * user when it is needed.
  */
 #pragma once
@@ -54,7 +54,7 @@ void *uidmove(void *destination, const void *source);
 /**
  * @brief Returns true if the UIDs are equal to each other. Is equivalent to
  * a == b.
- * 
+ *
  * @param a A pointer to the first operand.
  * @param b A pointer to the second operand.
  * @return true if the UIDs are equal.
@@ -76,7 +76,7 @@ bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b);
 /**
  * @brief Returns true if the first UID is greater than the second UID. Is
  * equivalent to a > b.
- * 
+ *
  * @param a A pointer to the first operand.
  * @param b A pointer to the second operand.
  * @return true if a is greater than b.
@@ -87,7 +87,7 @@ bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b);
 /**
  * @brief Returns true if the first UID is less than or equal to the second
  * UID. Is equivalent to a <= b.
- * 
+ *
  * @param a A pointer to the first operand.
  * @param b A pointer to the second operand.
  * @return true if a is less than or equal to b.
@@ -98,7 +98,7 @@ bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b);
 /**
  * @brief Returns true if the first UID is greater than or equal to the second
  * UID. Is equivalent to a >= b.
- * 
+ *
  * @param a A pointer to the first operand.
  * @param b A pointer to the second operand.
  * @return true if a is greater than or equal to b.
@@ -108,7 +108,7 @@ bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b);
 
 /**
  * @brief Returns true if the specified UID is a broadcast address.
- * 
+ *
  * @param uid A pointer to the unary UID operand.
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
@@ -117,7 +117,7 @@ bool uid_is_broadcast(const rdm_uid_t *uid);
 
 /**
  * @brief Returns true if the specified UID is null.
- * 
+ *
  * @param uid A pointer to the unary UID operand.
  * @return true if the UID is null.
  * @return false if the UID is not null.
@@ -143,7 +143,7 @@ size_t uid_decode(rdm_uid_t *destination, const void *source, size_t size);
 
 // TODO: docs
 size_t pdcpy(void *destination, size_t dest_size, const char *format,
-              const void *source, size_t src_size, const bool encode_nulls);
+             const void *source, size_t src_size, const bool encode_nulls);
 
 /**
  * @brief Get the preamble length of a DISC_UNIQUE_BRANCH response. A
@@ -154,6 +154,71 @@ size_t pdcpy(void *destination, size_t dest_size, const char *format,
  * @return The number of preamble bytes in the buffer.
  */
 size_t get_preamble_len(const void *data);
+
+/**
+ * @brief Reads and formats a received RDM message from the DMX driver buffer.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] header A pointer which stores RDM header information.
+ * @param[out] mdb A pointer which stores RDM message data block information.
+ * This is typically further decoded using functions defined in `rdm/mdb.h`.
+ * @return The number of bytes in the RDM packet or zero if the packet is
+ * invalid.
+ * // TODO
+ */
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
+                void *pd);
+
+/**
+ * @brief Writes and formats an RDM message into the DMX driver buffer.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] header A pointer which stores RDM header information.
+ * @param[in] mdb A pointer which stores RDM message data block information.
+ * This is typically already encoded using functions defined in `rdm/mdb.h`.
+ * @return The number of bytes written to the DMX driver buffer or zero on
+ * error.
+ * // TODO
+ */
+size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
+                  const void *pd);
+
+/**
+ * @brief Sends an RDM controller request and processes the response. It is
+ * important for users to check the value of the ack argument to verify if a
+ * valid RDM response was received.
+ * - ack.err will evaluate to true if an error occurred during the sending or
+ * receiving of raw DMX data. RDM data will not be processed if an error
+ * occurred. If a response was expected but none was received, ack.err will
+ * evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be set
+ * to ESP_OK.
+ * - ack.type will evaluate to RDM_RESPONSE_TYPE_INVALID if an invalid response
+ * is received but does not necessarily indicate a DMX error occurred. If no
+ * response is received ack.type will be set to RDM_RESPONSE_TYPE_NONE whether
+ * or not a response was expected. Otherwise, ack.type will be set to the ack
+ * type received in the RDM response.
+ * The final parameter of ack is a union of num, nack_reason, and timer. If the
+ * received response type is RDM_RESPONSE_TYPE_ACK or
+ * RDM_RESPONSE_TYPE_ACK_OVERFLOW, ack.num should be read. If the response type
+ * is RDM_RESPONSE_TYPE_NACK_REASON, nack_reason should be read. If the response
+ * type is RDM_RESPONSE_TYPE_TIMER, timer should be read.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[inout] header A pointer to an rdm_header_t with information on where
+ * to address the RDM request. Upon receiving a response, this information is
+ * overwritten with information about the received RDM response.
+ * @param[in] encode A pointer to an rdm_encode_t which contains information
+ * about how to encode the MDB of the RDM request.
+ * @param[out] decode A pointer to an rdm_decode_t which contains information
+ * about how to decode the MDB of the RDM response.
+ * @param[out] ack A pointer to an rdm_ack_t which contains information about
+ * the received RDM response.
+ * @return The size of the received RDM packet or 0 if no packet was received.
+ */
+// TODO: docs
+size_t rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
+                        const uint8_t pdl_in, const void *pd_in,
+                        uint8_t *pdl_out, void *pd_out, rdm_ack_t *ack);
 
 #ifdef __cplusplus
 }
