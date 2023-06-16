@@ -285,7 +285,6 @@ size_t get_preamble_len(const void *data) {
 size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
                 void *pd) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   size_t read = 0;
@@ -318,8 +317,10 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
   }
 
   // Copy the header and pd from the driver
-  pd_emplace(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513,
-             true);
+  if (header != NULL) {
+    pd_emplace(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513,
+              true);
+  }
   const size_t cpy_size = pdl == NULL || *pdl > *pdl_ptr ? *pdl_ptr : *pdl;
   if (pd != NULL) {
     memcpy(pd, pd_ptr, cpy_size);
