@@ -218,7 +218,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   return num_found;
 }
 
-static struct rdm_disc_default_ctx {
+struct rdm_disc_default_ctx {
   size_t size;
   rdm_uid_t *uids;
 };
