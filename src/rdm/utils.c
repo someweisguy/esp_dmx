@@ -393,7 +393,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Get pointers to driver data buffer locations and declare checksum
-  uint16_t checksum = RDM_SC + RDM_SUB_SC;
+  uint16_t checksum = 0;
   uint8_t *header_ptr = driver->data.buffer;
   uint8_t *message_len_ptr = header_ptr + 2;
   uint8_t *pdl_ptr = header_ptr + 24;
@@ -409,21 +409,51 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
     dmx_uart_set_rts(driver->uart, 0);  // Stops writes from being overwritten
   }
 
-  // Copy the header, pd, message_len, and pdl into the driver
-  pd_emplace(header_ptr, 513, "#cc01#18huubbbwbw", header, sizeof(*header),
-             false);
-  memcpy(pd_ptr, pd, pdl);
-  *message_len_ptr += pdl;
-  *pdl_ptr = pdl;
+  if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+    // Copy the header, pd, message_len, and pdl into the driver
+    pd_emplace(header_ptr, 513, "#cc01#18huubbbwbw", header, sizeof(*header),
+              false);
+    memcpy(pd_ptr, pd, pdl);
+    *message_len_ptr += pdl;
+    *pdl_ptr = pdl;
 
-  // Calculate and copy the checksum
-  for (int i = 2; i < *message_len_ptr; ++i) {
-    checksum += header_ptr[i];
+    // Calculate and copy the checksum
+    checksum = RDM_SC + RDM_SUB_SC;
+    for (int i = 2; i < *message_len_ptr; ++i) {
+      checksum += header_ptr[i];
+    }
+    *(uint16_t *)(header_ptr + *message_len_ptr) = bswap16(checksum);
+
+    // Update written size
+    written = *message_len_ptr + 2;
+  } else {
+    // Encode the preamble bytes
+    const size_t preamble_len = 7;
+    for (int i = 0; i < preamble_len; ++i) {
+      header_ptr[i] = RDM_PREAMBLE;
+    }
+    header_ptr[preamble_len] = RDM_DELIMITER;
+    header_ptr += preamble_len + 1;
+
+    // Encode the UID and calculate the checksum
+    for (int i = 0, j = 0; i < sizeof(rdm_uid_t); i += 2, ++j) {
+      header_ptr[i] = ((uint8_t *)pd)[j] | 0xaa;
+      header_ptr[i + 1] = ((uint8_t *)pd)[j] | 0x55;
+      checksum += ((uint8_t *)pd)[j] + (0xaa | 0x55);
+    }
+    header_ptr += sizeof(rdm_uid_t) * 2;
+
+    // Encode the checksum
+    header_ptr[0] = (uint8_t)(checksum >> 8) | 0xaa;
+    header_ptr[1] = (uint8_t)(checksum >> 8) | 0x55;
+    header_ptr[2] = (uint8_t)checksum | 0xaa;
+    header_ptr[3] = (uint8_t)checksum | 0x55;
+
+    // Update written size
+    written = preamble_len + 1 + 16
   }
-  *(uint16_t *)(header_ptr + *message_len_ptr) = bswap16(checksum);
 
-  // Update written size and driver transmit size
-  written = *message_len_ptr + 2;
+  // Update driver transmission size
   driver->data.tx_size = written;
 
   taskEXIT_CRITICAL(spinlock);
