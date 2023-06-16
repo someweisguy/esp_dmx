@@ -294,43 +294,85 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
 
   // Get pointers to driver data buffer locations and declare checksum
   uint16_t checksum = 0;
-  uint8_t *header_ptr = driver->data.buffer;
-  uint8_t *message_len_ptr = header_ptr + 2;
-  uint8_t *pdl_ptr = header_ptr + 24;
-  void *pd_ptr = header_ptr + 25;
+  const uint8_t *header_ptr = driver->data.buffer;
+  const uint8_t *message_len_ptr = header_ptr + 2;
+  const uint8_t *pdl_ptr = header_ptr + 24;
+  const void *pd_ptr = header_ptr + 25;
 
   taskENTER_CRITICAL(spinlock);
 
   // Verify start code and sub-start code are correct
-  if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8))) {
+  size_t preamble_len;
+  if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8)) ||
+      (preamble_len = get_preamble_len(header_ptr)) < 8) {
     taskEXIT_CRITICAL(spinlock);
     return read;
   }
 
-  // Verify checksum is correct
-  for (int i = 0; i < *message_len_ptr; ++i) {
-    checksum += header_ptr[i];
-  }
-  if (checksum != bswap16(*(uint16_t *)(header_ptr + *message_len_ptr))) {
-    taskEXIT_CRITICAL(spinlock);
-    return read;
-  }
+  // Handle packets differently if a DISC_UNIQUE_BRANCH packet was received
+  if (*header_ptr == RDM_SC) {
+    // Verify checksum is correct
+    for (int i = 0; i < *message_len_ptr; ++i) {
+      checksum += header_ptr[i];
+    }
+    if (checksum != bswap16(*(uint16_t *)(header_ptr + *message_len_ptr))) {
+      taskEXIT_CRITICAL(spinlock);
+      return read;
+    }
 
-  // Copy the header and pd from the driver
-  if (header != NULL) {
-    pd_emplace(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513,
-              true);
-  }
-  const size_t cpy_size = pdl == NULL || *pdl > *pdl_ptr ? *pdl_ptr : *pdl;
-  if (pd != NULL) {
-    memcpy(pd, pd_ptr, cpy_size);
-  }
+    // Copy the header and pd from the driver
+    if (header != NULL) {
+      pd_emplace(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513,
+                 true);
+    }
+    const size_t copy_size = pdl == NULL || *pdl > *pdl_ptr ? *pdl_ptr : *pdl;
+    if (pd != NULL) {
+      memcpy(pd, pd_ptr, copy_size);
+    }
 
-  // Update the PDL and the read size
-  if (pdl != NULL) {
-    *pdl = cpy_size;
+    // Update the PDL and the read size
+    if (pdl != NULL) {
+      *pdl = copy_size;
+    }
+    read = *message_len_ptr + 2;
+
+  } else {
+    // Verify the checksum is correct
+    header_ptr += preamble_len + 1;
+    for (int i = 0; i < 12; ++i) {
+      checksum += header_ptr[i];
+    }
+    if (checksum != (((header_ptr[12] & header_ptr[13]) << 8) |
+                     (header_ptr[14] & header_ptr[15]))) {
+      taskEXIT_CRITICAL(spinlock);
+      return read;
+    }
+
+    // Decode the EUID
+    uint8_t buf[6];
+    for (int i = 0, j = 0; i < 6; ++i, j += 2) {
+      buf[i] = header_ptr[j] & header_ptr[j + 1];
+    }
+
+    // Copy the data into the header
+    if (header != NULL) {
+      uidcpy(&header->src_uid, buf);
+      header->dest_uid = RDM_UID_NULL;
+      header->tn = 0;
+      header->response_type = RDM_RESPONSE_TYPE_ACK;
+      header->message_count = 0;
+      header->sub_device = RDM_SUB_DEVICE_ROOT;
+      header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
+      header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
+    }
+
+    // Update the PDL and the read size
+    if (pdl != NULL) {
+      *pdl = 0;
+    }
+    read = preamble_len + 1 + 16;
+
   }
-  read = *message_len_ptr + 2;
 
   taskEXIT_CRITICAL(spinlock);
 
