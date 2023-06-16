@@ -382,9 +382,9 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
 size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
                  const void *pd) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(pdl <= 231 && !(pd == NULL && pdl > 0), 0, "pdl is invalid");
-  DMX_CHECK((header != NULL) || (pd != NULL && pdl > 0), 0,
-            "header and pd are null");
+  DMX_CHECK(pdl <= 231, 0, "pdl is invalid");
+  DMX_CHECK(header != NULL || (pd != NULL && pdl == sizeof(rdm_uid_t)), 0,
+            "header is null and pd does not contain a UID");  
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   size_t written = 0;
@@ -409,10 +409,10 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
     dmx_uart_set_rts(driver->uart, 0);  // Stops writes from being overwritten
   }
 
-  if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+  if (header != NULL && header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
     // Copy the header, pd, message_len, and pdl into the driver
-    pd_emplace(header_ptr, 513, "#cc01#18huubbbwbw", header, sizeof(*header),
-              false);
+    pd_emplace(header_ptr, 513, "#cc01#18huubbbwbw", header,
+               sizeof(rdm_header_t), false);
     memcpy(pd_ptr, pd, pdl);
     *message_len_ptr += pdl;
     *pdl_ptr = pdl;
@@ -436,10 +436,16 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
     header_ptr += preamble_len + 1;
 
     // Encode the UID and calculate the checksum
+    uint8_t uid[6];
+    if (pdl > 0 && pd != NULL) {
+      memcpy(uid, pd, sizeof(uid));
+    } else {
+      uidcpy(uid, &header->src_uid);
+    }
     for (int i = 0, j = 0; i < sizeof(rdm_uid_t); i += 2, ++j) {
-      header_ptr[i] = ((uint8_t *)pd)[j] | 0xaa;
-      header_ptr[i + 1] = ((uint8_t *)pd)[j] | 0x55;
-      checksum += ((uint8_t *)pd)[j] + (0xaa | 0x55);
+      header_ptr[i] = uid[j] | 0xaa;
+      header_ptr[i + 1] = uid[j] | 0x55;
+      checksum += uid[j] + (0xaa | 0x55);
     }
     header_ptr += sizeof(rdm_uid_t) * 2;
 
@@ -450,7 +456,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
     header_ptr[3] = (uint8_t)checksum | 0x55;
 
     // Update written size
-    written = preamble_len + 1 + 16
+    written = preamble_len + 1 + 16;
   }
 
   // Update driver transmission size
