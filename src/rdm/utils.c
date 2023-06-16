@@ -205,8 +205,9 @@ size_t uid_decode(rdm_uid_t *uid, const void *source, size_t size) {
   return preamble_len + 1 + 16;
 }
 
-size_t pdcpy(void *destination, size_t dest_size, const char *format,
-             const void *source, size_t src_size, const bool encode_nulls) {
+size_t pd_emplace(void *destination, size_t dest_size, const char *format,
+                  const void *source, size_t src_size,
+                  const bool encode_nulls) {
   // Clamp the size to the maximum MDB length
   if (src_size > 231) {
     src_size = 231;
@@ -317,7 +318,8 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
   }
 
   // Copy the header and pd from the driver
-  pdcpy(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513, true);
+  pd_emplace(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513,
+             true);
   const size_t cpy_size = pdl == NULL || *pdl > *pdl_ptr ? *pdl_ptr : *pdl;
   if (pd != NULL) {
     memcpy(pd, pd_ptr, cpy_size);
@@ -365,7 +367,8 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   }
 
   // Copy the header, pd, message_len, and pdl into the driver
-  pdcpy(header_ptr, 513, "#cc01#18huubbbwbw", header, sizeof(*header), false);
+  pd_emplace(header_ptr, 513, "#cc01#18huubbbwbw", header, sizeof(*header),
+             false);
   memcpy(pd_ptr, pd, pdl);
   *message_len_ptr += pdl;
   *pdl_ptr = pdl;
