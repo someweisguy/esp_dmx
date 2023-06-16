@@ -263,14 +263,14 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
       pd_emplace(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513,
                  true);
     }
-    const size_t copy_size = pdl == NULL || *pdl > *pdl_ptr ? *pdl_ptr : *pdl;
     if (pd != NULL) {
+      size_t copy_size = pdl == NULL || *pdl > *pdl_ptr ? *pdl_ptr : *pdl;
       memcpy(pd, pd_ptr, copy_size);
     }
 
     // Update the PDL and the read size
     if (pdl != NULL) {
-      *pdl = copy_size;
+      *pdl = *pdl_ptr;
     }
     read = *message_len_ptr + 2;
 
