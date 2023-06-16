@@ -143,68 +143,6 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   return param_size;
 }
 
-size_t uid_encode(void *destination, const rdm_uid_t *uid,
-                  size_t preamble_len) {
-  // Encode the preamble and delimiter
-  if (preamble_len > 7) {
-    preamble_len = 7;
-  }
-  for (int i = 0; i < preamble_len; ++i) {
-    *((uint8_t *)(destination + i)) = RDM_PREAMBLE;
-  }
-  *((uint8_t *)(destination + preamble_len)) = RDM_DELIMITER;
-
-  // Encode the EUID  // FIXME: loop?
-  uint8_t *d = destination + preamble_len + 1;
-  d[0] = ((uint8_t *)&(uid->man_id))[1] | 0xaa;
-  d[1] = ((uint8_t *)&(uid->man_id))[1] | 0x55;
-  d[2] = ((uint8_t *)&(uid->man_id))[0] | 0xaa;
-  d[3] = ((uint8_t *)&(uid->man_id))[0] | 0x55;
-  d[4] = ((uint8_t *)&(uid->dev_id))[3] | 0xaa;
-  d[5] = ((uint8_t *)&(uid->dev_id))[3] | 0x55;
-  d[6] = ((uint8_t *)&(uid->dev_id))[2] | 0xaa;
-  d[7] = ((uint8_t *)&(uid->dev_id))[2] | 0x55;
-  d[8] = ((uint8_t *)&(uid->dev_id))[1] | 0xaa;
-  d[9] = ((uint8_t *)&(uid->dev_id))[1] | 0x55;
-  d[10] = ((uint8_t *)&(uid->dev_id))[0] | 0xaa;
-  d[11] = ((uint8_t *)&(uid->dev_id))[0] | 0x55;
-
-  // Calculate and encode the checksum
-  uint16_t checksum = 0;
-  for (int i = 0; i < 12; ++i) {
-    checksum += d[i];
-  }
-  d[12] = (checksum >> 8) | 0xaa;
-  d[13] = (checksum >> 8) | 0x55;
-  d[14] = (checksum & 0xff) | 0xaa;
-  d[15] = (checksum & 0xff) | 0x55;
-
-  return preamble_len + 1 + 16;
-}
-
-size_t uid_decode(rdm_uid_t *uid, const void *source, size_t size) {
-  // Ensure the source buffer is big enough
-  if (size < 17) {
-    return 0;  // Source buffer must be at least 17 bytes
-  }
-
-  // Get the preamble length
-  const size_t preamble_len = get_preamble_len(source);
-  if (preamble_len > 7 || size < preamble_len + 17) {
-    return 0;  // Preamble is too long or size too small
-  }
-
-  // Decode the EUID
-  uint8_t buf[6];
-  const uint8_t *d = source + preamble_len + 1;
-  for (int i = 0, j = 0; i < 6; ++i, j += 2) {
-    buf[i] = d[j] & d[j + 1];
-  }
-  uidcpy(uid, buf);
-
-  return preamble_len + 1 + 16;
-}
-
 size_t pd_emplace(void *destination, size_t dest_size, const char *format,
                   const void *source, size_t src_size,
                   const bool encode_nulls) {
@@ -535,83 +473,46 @@ size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Handle the RDM response packet
-  if (header->pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-    const rdm_header_t req = *header;
-    rdm_response_type_t response_type;
-    if (!rdm_read(dmx_num, header, pdl_out, pd_out)) {
-      response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
-    } else if (header->response_type != RDM_RESPONSE_TYPE_ACK &&
-               header->response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-               header->response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
-               header->response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-      response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response_type
-    } else if (req.cc != (header->cc - 1) || req.pid != header->pid ||
-               req.tn != header->tn ||
-               !uid_is_target(&header->src_uid, &req.dest_uid) ||
-               !uid_is_eq(&header->dest_uid, &req.src_uid)) {
-      response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
-    } else {
-      response_type = header->response_type;  // Response is ok
-    }
-
-    int decoded;
-    // Handle the response based on the response type
-    if (response_type == RDM_RESPONSE_TYPE_ACK) {
-      // Get the size of the packet
-      decoded = size;
-    } else if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-      // Get and convert the estimated response time to FreeRTOS ticks
-      decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
-    } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-      // Get and report the received NACK reason
-      decoded = bswap16(*(uint16_t *)pd_out);
-    } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-      ESP_LOGW(TAG, "RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");
-      decoded = 0;
-    } else {
-      decoded = 0;  // This code should never run
-    }
-
-    // Report the results back to the caller
-    if (ack != NULL) {
-      ack->type = response_type;
-      ack->num = decoded;
-    }
+  const rdm_header_t req = *header;
+  rdm_response_type_t response_type;
+  if (!rdm_read(dmx_num, header, pdl_out, pd_out)) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
+  } else if (header->response_type != RDM_RESPONSE_TYPE_ACK &&
+             header->response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+             header->response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+             header->response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response_type
+  } else if (req.cc != (header->cc - 1) || req.pid != header->pid ||
+             req.tn != header->tn ||
+             !uid_is_target(&header->src_uid, &req.dest_uid) ||
+             !uid_is_eq(&header->dest_uid, &req.src_uid)) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
   } else {
-    // Clamp the size argument
-    if (size > 24) {
-      size = 24;
-    }
+    response_type = header->response_type;  // Response is ok
+  }
 
-    // Decode the EUID from the discovery response packet
-    rdm_uid_t uid;
-    uint8_t euid[24];
-    dmx_read(dmx_num, euid, size);
-    size_t decode_size = uid_decode(&uid, euid, size);
-    if (decode_size == 0) {
-      if (ack != NULL) {
-        ack->type = RDM_RESPONSE_TYPE_INVALID;
-        ack->num = 0;
-      }
-      return size;
-    }
-    size = decode_size;
+  int decoded;
+  // Handle the response based on the response type
+  if (response_type == RDM_RESPONSE_TYPE_ACK) {
+    // Get the size of the packet
+    decoded = size;
+  } else if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+    // Get and convert the estimated response time to FreeRTOS ticks
+    decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
+  } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+    // Get and report the received NACK reason
+    decoded = bswap16(*(uint16_t *)pd_out);
+  } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+    ESP_LOGW(TAG, "RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");
+    decoded = 0;
+  } else {
+    decoded = 0;  // This code should never run
+  }
 
-    // Copy fake data to the header to generalize function return states
-    header->src_uid = uid;
-    header->dest_uid = RDM_UID_NULL;
-    header->tn = 0;
-    header->response_type = RDM_RESPONSE_TYPE_ACK;
-    header->message_count = 0;
-    header->sub_device = RDM_SUB_DEVICE_ROOT;
-    header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
-    header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-
-    // Report ack back to the caller
-    if (ack != NULL) {
-      ack->type = RDM_RESPONSE_TYPE_ACK;
-      ack->num = 0;
-    }
+  // Report the results back to the caller
+  if (ack != NULL) {
+    ack->type = response_type;
+    ack->num = decoded;
   }
 
   return size;

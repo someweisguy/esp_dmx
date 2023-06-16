@@ -136,12 +136,6 @@ bool uid_is_null(const rdm_uid_t *uid);
 bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias);
 
 // TODO: docs
-size_t uid_encode(void *destination, const rdm_uid_t *uid, size_t preamble_len);
-
-// TODO: docs
-size_t uid_decode(rdm_uid_t *destination, const void *source, size_t size);
-
-// TODO: docs
 size_t pd_emplace(void *destination, size_t dest_size, const char *format,
                   const void *source, size_t src_size, const bool encode_nulls);
 
