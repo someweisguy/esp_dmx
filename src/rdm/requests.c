@@ -28,8 +28,7 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   uint8_t pd_in[sizeof(*param)];
   pd_emplace(pd_in, sizeof(pd_in), "uu$", param, sizeof(*param), false);
 
-  return rdm_send_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL,
-                          ack);
+  return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL, ack);
 }
 
 size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
@@ -46,12 +45,10 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*param);
   uint8_t pd_out[sizeof(*param)];
-
-  const size_t size =
-      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(param, sizeof(*param), "wv&", pd_out, pdl_out, true);
 
-  return size;
+  return ret;
 }
 
 size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
@@ -68,12 +65,10 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*param);
   uint8_t pd_out[sizeof(*param)];
-
-  const size_t size =
-      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(param, sizeof(*param), "wv&", pd_out, pdl_out, true);
 
-  return size;
+  return ret;
 }
 
 int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
@@ -223,7 +218,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
   return num_found;
 }
 
-struct rdm_disc_default_ctx {
+static struct rdm_disc_default_ctx {
   size_t size;
   rdm_uid_t *uids;
 };
@@ -261,12 +256,10 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*param);
   uint8_t pd_out[sizeof(*param)];
-
-  const size_t size =
-      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(param, sizeof(*param), "#0100hwwdwbbwwb$", pd_out, pdl_out, true);
 
-  return size;
+  return ret;
 }
 
 size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
@@ -284,9 +277,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = size;
   uint8_t pd_out[33];
-
-  const size_t ret =
-      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(param, size, "a", pd_out, pdl_out, true);
 
   return ret;
@@ -306,9 +297,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*identify);
   uint8_t pd_out[sizeof(*identify)];
-
-  const size_t ret =
-      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(identify, sizeof(*identify), "b$", pd_out, pdl_out, true);
 
   return ret;
@@ -328,8 +317,7 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   uint8_t pd_in[sizeof(identify)];
   pd_emplace(pd_in, sizeof(pd_in), "b$", &identify, sizeof(identify), false);
 
-  return rdm_send_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL,
-                          ack);
+  return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL, ack);
 }
 
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
@@ -341,9 +329,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*dmx_start_address);
   uint8_t pd_out[sizeof(*dmx_start_address)];
-
-  const size_t ret =
-      rdm_send_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(dmx_start_address, sizeof(*dmx_start_address), "w$", pd_out,
              pdl_out, true);
 
@@ -366,6 +352,5 @@ size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   pd_emplace(pd_in, sizeof(pd_in), "w$", &dmx_start_address,
              sizeof(dmx_start_address), false);
 
-  return rdm_send_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL,
-                          ack);
+  return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL, ack);
 }

@@ -216,9 +216,9 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
  * @return The size of the received RDM packet or 0 if no packet was received.
  */
 // TODO: docs
-size_t rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-                        const uint8_t pdl_in, const void *pd_in,
-                        uint8_t *pdl_out, void *pd_out, rdm_ack_t *ack);
+size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
+                   const uint8_t pdl_in, const void *pd_in, uint8_t *pdl_out,
+                   void *pd_out, rdm_ack_t *ack);
 
 #ifdef __cplusplus
 }
