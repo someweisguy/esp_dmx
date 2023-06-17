@@ -235,8 +235,8 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num) {
                                 .default_value = 0,
                                 .description = "Discovery Unique Branch"};
 
-  return rdm_register_response(dmx_num, &desc, rdm_default_discovery_cb, NULL,
-                               0, NULL);
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
+                               rdm_default_discovery_cb, NULL, 0, NULL);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num) {
@@ -254,8 +254,8 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num) {
                                 .default_value = 0,
                                 .description = "Discovery Mute"};
 
-  return rdm_register_response(dmx_num, &desc, rdm_default_discovery_cb, NULL,
-                               0, NULL);
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
+                               rdm_default_discovery_cb, NULL, 0, NULL);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
@@ -273,8 +273,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
                                 .default_value = 0,
                                 .description = "Discovery Un-Mute"};
 
-  return rdm_register_response(dmx_num, &desc, rdm_default_discovery_cb, NULL,
-                               0, NULL);
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
+                               rdm_default_discovery_cb, NULL, 0, NULL);
 }
 
 // static int rdm_simple_param_cb(dmx_port_t dmx_num, const rdm_header_t *header,

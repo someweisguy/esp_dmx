@@ -468,15 +468,19 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
   return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
 
-bool rdm_register_response(dmx_port_t dmx_num, rdm_pid_description_t *desc,
+bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                           rdm_pid_description_t *desc,
                            rdm_response_cb_t callback, void *param,
                            unsigned int num, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < 513, false, "sub_device error");
   DMX_CHECK(desc != NULL, false, "desc is null");
   DMX_CHECK(callback != NULL, false, "callback is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // TODO: utilize sub_device in response callbacks
 
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;

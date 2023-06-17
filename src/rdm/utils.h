@@ -251,7 +251,8 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
  * // TODO update docs
  */
 // TODO: docs
-bool rdm_register_response(dmx_port_t dmx_num, rdm_pid_description_t *desc,
+bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                           rdm_pid_description_t *desc,
                            rdm_response_cb_t callback, void *param,
                            unsigned int num, void *context);
 
