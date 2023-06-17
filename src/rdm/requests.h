@@ -160,7 +160,7 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
  * @return The number of bytes received in response to the request.
  */
 bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             rdm_ack_t *ack, bool *identify);
+                             rdm_ack_t *ack, uint8_t *identify);
 
 /**
  * @brief Sends an RDM set identify device request and reads the response, if
@@ -176,7 +176,7 @@ bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
  * @return The number of bytes received in response to the request.
  */
 bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             bool identify, rdm_ack_t *ack);
+                             uint8_t identify, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM get DMX start address request and reads the response, if
