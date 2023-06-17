@@ -27,31 +27,6 @@ static const char *TAG = "rdm_agent";
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
-/**
- * @brief A packed struct which can be used to help process raw RDM packets
- * instead of reading slots by index alone. RDM sends data in most-significant
- * byte first - endianness must be swapped when using values larger than 8 bits.
- */
-typedef struct __attribute__((__packed__)) rdm_raw_t {
-  uint8_t sc;           // The RDM start code.
-  uint8_t sub_sc;       // The RDM sub-start code.
-  uint8_t message_len;  // Number of slots in the RDM packet excluding checksum.
-  uint8_t dest_uid[6];  // The UID of the target device(s).
-  uint8_t src_uid[6];   // The UID of the device originating this packet.
-  uint8_t tn;           // The transaction number.
-  union {
-    uint8_t port_id;        // The requesting device's port ID.
-    uint8_t response_type;  // The responding device's response type.
-  };
-  uint8_t message_count;  // The number of packets in the device's packet queue.
-  uint16_t sub_device;    // The destination sub-device.
-  uint8_t cc;             // The command class.
-  uint16_t pid;           // The parameter ID.
-  uint8_t pdl;            // The parameter data length.
-  struct {
-  } pd;  // The RDM parameter data. It can be variable length.
-} rdm_raw_t;
-
 void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
@@ -71,20 +46,6 @@ void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
     driver->rdm.uid.man_id = RDM_MAN_ID_DEFAULT;
   }
   *uid = driver->rdm.uid;
-  taskEXIT_CRITICAL(spinlock);
-}
-
-
-void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  DMX_CHECK(!uid_is_broadcast(&uid), , "uid error");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  taskENTER_CRITICAL(spinlock);
-  driver->rdm.uid = uid;
   taskEXIT_CRITICAL(spinlock);
 }
 
