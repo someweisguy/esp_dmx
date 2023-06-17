@@ -11,7 +11,6 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
-#include "rdm/mdb.h"
 #include "rdm/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -1162,115 +1161,106 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   }
 
-  // Handle RDM responses
-  bool is_rdm = false;
-  if (packet_size > 0) {
-    rdm_header_t header;
-    rdm_mdb_t mdb;
-    taskENTER_CRITICAL(spinlock);
-    // Verify size, start code, and sub-start code
-    is_rdm = (packet_size >= 24 && *(uint16_t *)driver->data.buffer ==
-                                       (RDM_SC | (RDM_SUB_SC << 8))) ||
-             (packet_size >= 17 && (driver->data.buffer[0] == RDM_PREAMBLE ||
-                                    driver->data.buffer[0] == RDM_DELIMITER));
-    const bool is_request = (driver->data.buffer[20] & 1) == 0;
-    if (is_rdm && is_request) {
-      is_rdm = rdm_read(dmx_num, &header, &mdb);
-    }
-    taskEXIT_CRITICAL(spinlock);
-
-    if (is_rdm && is_request) {
-
-      /* TODO: packet format check?
-      message_length must be >=24
-      pdl must be <=231
-      port_id must be >0 (this one may not need to be enforced)
-      sub-device must be between 0 and 512 (inclusive)
-      CC must be one of the enumerated CCs
-      GET commands cannot be sent to RDM_ALL_SUB_DEVICES
-      check if PID supports the CC
-      */
-
-      rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
-      rdm_uid_t my_uid;
-      rdm_driver_get_uid(dmx_num, &my_uid);
-      if (uid_is_target(&my_uid, &header.dest_uid)) {
-        // rdm_pid_description_t *desc = NULL;
-        rdm_encode_decode_t *func = NULL;
-        rdm_response_cb_t cb = NULL;
-        int i = 0;
-        for (; i < driver->rdm.num_callbacks; ++i) {
-          if (driver->rdm.cbs[i].desc.pid == header.pid) {
-            cb = driver->rdm.cbs[i].cb;
-            func = (header.cc == RDM_CC_SET_COMMAND) ? &driver->rdm.cbs[i].set
-                                                     : &driver->rdm.cbs[i].get;
-            // desc = &driver->rdm.cbs[i].desc;
-            break;
-          }
-        }
-
-        if (cb != NULL) {
-          response_type =
-              cb(dmx_num, &header, func, &mdb, driver->rdm.cbs[i].param,
-                 driver->rdm.cbs[i].num, driver->rdm.cbs[i].context);
-        }
-
-        const bool packet_was_broadcast = uid_is_broadcast(&header.dest_uid);
-
-        // Reformat the header so a response can be sent
-        header.dest_uid = header.src_uid;
-        header.src_uid = my_uid;
-        header.cc |= 0x1;
-        header.sub_device = RDM_SUB_DEVICE_ROOT;
-        // TODO: update message_count (when ACK_OVERFLOW is supported)
-        header.message_count = 0;
-
-        // Ensure the response type is correct
-        if (header.cc == RDM_CC_DISC_COMMAND_RESPONSE) {
-          if (response_type != RDM_RESPONSE_TYPE_ACK &&
-              response_type != RDM_RESPONSE_TYPE_NONE) {
-            response_type = RDM_RESPONSE_TYPE_NONE;
-            // Do not send a NACK
-            ESP_LOGE(TAG, "invalid response type");
-          }
-        } else {
-          if (cb == NULL) {
-            rdm_encode_nack_reason(&mdb, RDM_NR_UNKNOWN_PID);
-          } else if (response_type < RDM_RESPONSE_TYPE_ACK ||
-                     response_type > RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-            rdm_encode_nack_reason(&mdb, RDM_NR_HARDWARE_FAULT);
-            response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-            ESP_LOGW(TAG, "invalid response type");
-          }
-        }
-
-        // Determine if a response should not be sent
-        if (packet_was_broadcast && header.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-          response_type = RDM_RESPONSE_TYPE_NONE;
-        }
-
-        // Send a response if it is required
-        if (response_type != RDM_RESPONSE_TYPE_NONE) {
-          header.response_type = response_type;
-          size_t written = rdm_write(dmx_num, &header, &mdb);
-          dmx_send(dmx_num, written);
-        }
-      }
-    }
-  }
-
   // Parse DMX data packet
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
     packet->err = driver->data.err;
-    if (packet_size > 0) {
-      packet->sc = driver->data.buffer[0];
-    }
+    packet->sc = packet_size > 0 ? driver->data.buffer[0] : -1;
     driver->new_packet = false;
     taskEXIT_CRITICAL(spinlock);
     packet->size = packet_size;
-    packet->is_rdm = is_rdm;
+    packet->is_rdm = false;
   }
+
+  // Return early if the no data was received
+  if (packet_size == 0) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
+  }
+
+  // Return early if the packet is neither RDM nor an RDM request
+  uint8_t pdl;
+  rdm_header_t header;
+  const int message_len = rdm_read(dmx_num, &header, &pdl, NULL) - 2;
+  if (message_len > 0 ||
+      (header.cc != RDM_CC_DISC_COMMAND && header.cc != RDM_CC_GET_COMMAND &&
+       header.cc != RDM_CC_SET_COMMAND)) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
+  }
+  if (packet != NULL) {
+    packet->is_rdm = true;
+  }
+
+  // Check that this device is targeted by the RDM packet
+  rdm_uid_t my_uid;
+  rdm_driver_get_uid(dmx_num, &my_uid);
+  if (!uid_is_target(&my_uid, &header.dest_uid)) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
+  }
+
+  // TODO: Verify the packet format is valid
+  /*
+  message_len >= 24 (how to check this?)
+  !uid_is_broadcast(&header->src_uid)
+  port_id > 0 (should this be enforced? Maybe turn on/off in sdkconfig?)
+  sub_device <= 512 || (sub_device == 0xffff && header.cc != RDM_CC_GET_COMMAND)
+  pdl <= 231
+  // Check if PID supports the CC (check this later)
+  */
+
+  // Iterate through the registered RDM callbacks
+  int cb_num = 0;
+  uint8_t pd[231];
+  rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
+  for (; cb_num < driver->rdm.num_callbacks; ++cb_num) {
+    if (driver->rdm.cbs[cb_num].desc.pid == header.pid) {
+      if (pdl > 0) {
+        rdm_read(dmx_num, NULL, &pdl, pd);
+      }
+      int num = driver->rdm.cbs[cb_num].num;
+      void *param = driver->rdm.cbs[cb_num].param;
+      void *const context = driver->rdm.cbs[cb_num].context;
+      response_type = driver->rdm.cbs[cb_num].cb(dmx_num, &header, pd, &pdl,
+                                                 param, num, context);
+      break;
+    }
+  }
+  
+  // Do not send a response if the packet was a non-discovery broadcast request
+  if (uid_is_broadcast(&header.dest_uid) &&
+      !(header.cc == RDM_CC_DISC_COMMAND &&
+        header.pid == RDM_PID_DISC_UNIQUE_BRANCH)) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
+  }
+
+  // Responses must be sent to all non-broadcast, non-discovery requests
+  if (response_type == RDM_RESPONSE_TYPE_NONE &&
+      header.cc == RDM_CC_DISC_COMMAND) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
+  } else if (response_type == RDM_RESPONSE_TYPE_NONE) {
+    ESP_LOGW(TAG, "Non-discovery RDM callback returned RDM_RESPONSE_TYPE_NONE");
+    // TODO: NACK REASON hardware error
+  } else if (cb_num == driver->rdm.num_callbacks &&
+             header.cc != RDM_CC_DISC_COMMAND) {
+    // If a PID callback wasn't found, send a NR_UNKNOWN_PID response
+    // TODO: send PID not supported
+  }
+
+  // Rewrite the header for the response packet
+  header.dest_uid = header.src_uid;
+  header.src_uid = my_uid;
+  header.response_type = response_type;
+  header.message_count = 0;  // TODO: update this if messages are queued
+  header.cc += 1;  // Set to RCM_CC_x_COMMAND_RESPONSE
+  // The following fields should not change: tn, sub_device, and pid
+  
+  // Write the RDM response and send it
+  size_t response_size = rdm_write(dmx_num, &header, pdl, pd);
+  dmx_send(dmx_num, response_size);
 
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
