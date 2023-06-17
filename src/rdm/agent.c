@@ -174,14 +174,14 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
-    pd_emplace(&branch, sizeof(branch), "uu$", pdl, *pdl, true);
+    pd_emplace(&branch, "uu$", pd, sizeof(branch), true);
 
     // Respond if lower_bound <= my_uid <= upper_bound
     rdm_uid_t my_uid;
     rdm_driver_get_uid(dmx_num, &my_uid);
     if (uid_is_ge(&my_uid, &branch.lower_bound) &&
         uid_is_le(&my_uid, &branch.upper_bound)) {
-      *pdl = pd_emplace(pd, 513, "u$", &my_uid, sizeof(my_uid), false);
+      *pdl = pd_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
       response_type = RDM_RESPONSE_TYPE_ACK;
     } else {
       response_type = RDM_RESPONSE_TYPE_NONE;
@@ -212,7 +212,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
       .control_field = 0,  // TODO: get the control_field of the device
       .binding_uid = binding_uid,
     };
-    *pdl = pd_emplace(pdl, 513, "wv$", &mute, 8, false);
+    *pdl = pd_emplace(pdl, "wv$", &mute, sizeof(mute), false);
     response_type = RDM_RESPONSE_TYPE_ACK;
   }
 

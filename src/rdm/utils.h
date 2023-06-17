@@ -146,8 +146,8 @@ bool uid_is_null(const rdm_uid_t *uid);
 bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias);
 
 // TODO: docs
-size_t pd_emplace(void *destination, size_t dest_size, const char *format,
-                  const void *source, size_t src_size, const bool encode_nulls);
+size_t pd_emplace(void *destination, const char *format, const void *source,
+                  size_t num, bool encode_nulls);
 
 /**
  * @brief Get the preamble length of a DISC_UNIQUE_BRANCH response. A

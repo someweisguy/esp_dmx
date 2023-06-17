@@ -143,12 +143,11 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   return param_size;
 }
 
-size_t pd_emplace(void *destination, size_t dest_size, const char *format,
-                  const void *source, size_t src_size,
-                  const bool encode_nulls) {
-  // Clamp the size to the maximum MDB length
-  if (src_size > 231) {
-    src_size = 231;
+size_t pd_emplace(void *destination, const char *format, const void *source,
+                  size_t num, bool encode_nulls) {
+  // Clamp the size to the maximum parameter data length
+  if (num > 231) {
+    num = 231;
   }
 
   // Ensure that the format string syntax is correct
@@ -159,8 +158,7 @@ size_t pd_emplace(void *destination, size_t dest_size, const char *format,
   }
 
   // Get the number of parameters that can be encoded
-  const size_t size = dest_size < src_size ? dest_size : src_size;
-  const int num_params_to_copy = param_is_singleton ? 1 : size / param_size;
+  const int num_params_to_copy = param_is_singleton ? 1 : num / param_size;
 
   // Encode the fields into the destination
   size_t n = 0;
@@ -186,7 +184,7 @@ size_t pd_emplace(void *destination, size_t dest_size, const char *format,
         size_t len = atoi(f + 1);
         if (len == 0) {
           // Field is a variable-length string
-          const size_t str_size = size - (encode_nulls ? 1 : 0);
+          const size_t str_size = num - (encode_nulls ? 1 : 0);
           const size_t max_len = (str_size - n) < 32 ? (str_size - n) : 32;
           len = strnlen(source + n, max_len);
         }
@@ -260,7 +258,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
 
     // Copy the header and pd from the driver
     if (header != NULL) {
-      pd_emplace(header, sizeof(*header), "#cc01#18huubbbwbw", header_ptr, 513,
+      pd_emplace(header, "#cc01#18huubbbwbw", header_ptr, sizeof(*header),
                  true);
     }
     if (pd != NULL) {
@@ -349,8 +347,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
   if (header != NULL && header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
     // Copy the header, pd, message_len, and pdl into the driver
-    pd_emplace(header_ptr, 513, "#cc01#18huubbbwbw", header,
-               sizeof(rdm_header_t), false);
+    pd_emplace(header_ptr, "#cc01#18huubbbwbw", header, sizeof(*header), false);
     memcpy(pd_ptr, pd, pdl);
     *message_len_ptr += pdl;
     *pdl_ptr = pdl;
