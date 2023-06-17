@@ -84,29 +84,6 @@ int rdm_driver_get_dmx_start_address(dmx_port_t dmx_num);
  */
 void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address);
 
-/**
- * @brief Registers a callback which is called when a request is received for
- * this device for a specified PID. Callbacks may be overwritten, but they may
- * not be deleted.
- *
- * @param dmx_num The DMX port number.
- * @param pid The PID to which the callback function should be attached.
- * @param callback A pointer to a callback function which will be called when
- * receiving a request for the specified PID.
- * @param[inout] context A pointer to a user-specified context for use within
- * the callback function.
- * @return true when the callback has been successfully registered.
- * @return false on failure.
- * // TODO update docs
- */
-bool rdm_register_callback(dmx_port_t dmx_num,
-                           const rdm_pid_description_t *desc,
-                           const rdm_encode_decode_t *get,
-                           const rdm_encode_decode_t *set,
-                           rdm_response_cb_t callback, 
-                           void *param, const int num,
-                           void *context);
-
 // TODO: docs
 bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, void *context);
 
