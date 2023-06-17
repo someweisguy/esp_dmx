@@ -26,7 +26,7 @@ extern "C" {
  */
 typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
                                                  const rdm_header_t *header,
-                                                 void *pd, uint8_t *pdl,
+                                                 void *pd, uint8_t *pdl_out,
                                                  void *param, unsigned int num,
                                                  void *context);
 

@@ -163,8 +163,8 @@ void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *pd,
-                                    uint8_t *pdl, void *param, unsigned int num,
-                                    void *context) {
+                                    uint8_t *pdl_out, void *param,
+                                    unsigned int num, void *context) {
   // Ignore this message if discovery is muted
   if (rdm_driver_is_muted(dmx_num)) {
     return RDM_RESPONSE_TYPE_NONE;
@@ -181,7 +181,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
     rdm_driver_get_uid(dmx_num, &my_uid);
     if (uid_is_ge(&my_uid, &branch.lower_bound) &&
         uid_is_le(&my_uid, &branch.upper_bound)) {
-      *pdl = pd_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
+      *pdl_out = pd_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
       response_type = RDM_RESPONSE_TYPE_ACK;
     } else {
       response_type = RDM_RESPONSE_TYPE_NONE;
@@ -212,7 +212,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
       .control_field = 0,  // TODO: get the control_field of the device
       .binding_uid = binding_uid,
     };
-    *pdl = pd_emplace(pdl, "wv$", &mute, sizeof(mute), false);
+    *pdl_out = pd_emplace(pdl, "wv$", &mute, sizeof(mute), false);
     response_type = RDM_RESPONSE_TYPE_ACK;
   }
 

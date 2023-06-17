@@ -1179,10 +1179,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Return early if the packet is neither RDM nor an RDM request
-  uint8_t pdl;
   rdm_header_t header;
-  const int message_len = rdm_read(dmx_num, &header, &pdl, NULL) - 2;
-  if (message_len > 0 ||
+  if (!rdm_read(dmx_num, &header, 0, NULL) || header.message_len > 0 ||
       (header.cc != RDM_CC_DISC_COMMAND && header.cc != RDM_CC_GET_COMMAND &&
        header.cc != RDM_CC_SET_COMMAND)) {
     xSemaphoreGiveRecursive(driver->mux);
@@ -1213,16 +1211,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Iterate through the registered RDM callbacks
   int cb_num = 0;
   uint8_t pd[231];
+  uint8_t pdl_out = 0;
   rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
   for (; cb_num < driver->rdm.num_callbacks; ++cb_num) {
     if (driver->rdm.cbs[cb_num].desc.pid == header.pid) {
-      if (pdl > 0) {
-        rdm_read(dmx_num, NULL, &pdl, pd);
+      if (header.pdl > 0) {
+        rdm_read(dmx_num, NULL, header.pdl, pd);
       }
       int num = driver->rdm.cbs[cb_num].num;
       void *param = driver->rdm.cbs[cb_num].param;
       void *const context = driver->rdm.cbs[cb_num].context;
-      response_type = driver->rdm.cbs[cb_num].cb(dmx_num, &header, pd, &pdl,
+      response_type = driver->rdm.cbs[cb_num].cb(dmx_num, &header, pd, &pdl_out,
                                                  param, num, context);
       break;
     }
@@ -1256,10 +1255,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.response_type = response_type;
   header.message_count = 0;  // TODO: update this if messages are queued
   header.cc += 1;  // Set to RCM_CC_x_COMMAND_RESPONSE
-  // The following fields should not change: tn, sub_device, and pid
+  header.pdl = pdl_out;
+  // These fields should not change: message_len, tn, sub_device, and pid
   
   // Write the RDM response and send it
-  size_t response_size = rdm_write(dmx_num, &header, pdl, pd);
+  size_t response_size = rdm_write(dmx_num, &header, pdl_out, pd);
   dmx_send(dmx_num, response_size);
 
   // Give the mutex back and return
