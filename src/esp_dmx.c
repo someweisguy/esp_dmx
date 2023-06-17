@@ -180,8 +180,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                          ? ESP_FAIL               // Missing stop bits
                          : ESP_ERR_NOT_FINISHED;  // UART overflow
       } else if (intr_flags & DMX_INTR_RX_DATA) {
-        // TODO: if driver->data.head > 16, call rdm_read(dmx_num, &header, 0, NULL)
-        
+        // TODO: if driver->data.head >= 17, call rdm_read(dmx_num, &header, 0, NULL)
+        // TODO: rdm_read() must be declared DMX_ISR_ATTR
+
         // Check if a full packet has been received and process packet data
         if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
           if (driver->data.head < RDM_BASE_PACKET_SIZE ||
