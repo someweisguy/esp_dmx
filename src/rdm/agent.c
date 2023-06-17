@@ -147,7 +147,6 @@ int rdm_driver_get_dmx_start_address(dmx_port_t dmx_num) {
   return start_address;
 }
 
-
 void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
@@ -162,84 +161,104 @@ void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
   taskEXIT_CRITICAL(spinlock);
 }
 
-// static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
-//                                      const rdm_header_t *header,
-//                                      rdm_encode_decode_t *functions,
-//                                      rdm_mdb_t *mdb, void *param, int num,
-//                                      void *context) {
-//   // Ignore this message if discovery is muted
-//   if (rdm_driver_is_muted(dmx_num)) {
-//     return RDM_RESPONSE_TYPE_NONE;
-//   }
+static int rdm_default_discovery_cb(dmx_port_t dmx_num,
+                                    const rdm_header_t *header, void *pd,
+                                    uint8_t *pdl, void *param, unsigned int num,
+                                    void *context) {
+  // Ignore this message if discovery is muted
+  if (rdm_driver_is_muted(dmx_num)) {
+    return RDM_RESPONSE_TYPE_NONE;
+  }
 
-//   // Decode the two UIDs
-//   // TODO: decode directly into the mdb array and return a pointer to the
-//   // decoded MDB
-//   rdm_disc_unique_branch_t branch;
-//   functions->decode(mdb, &branch, 2);
+  rdm_response_type_t response_type;
+  if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+    // Get the discovery branch parameters
+    rdm_disc_unique_branch_t branch;
+    pd_emplace(&branch, sizeof(branch), "uu$", pdl, *pdl, true);
 
-//   // Respond if the device UID is between the branch bounds
-//   rdm_uid_t my_uid;
-//   rdm_driver_get_uid(dmx_num, &my_uid);
-//   if (uid_is_ge(&my_uid, &branch.lower_bound) &&
-//       uid_is_le(&my_uid, &branch.upper_bound)) {
-//     mdb->preamble_len = 7;
-//     return RDM_RESPONSE_TYPE_ACK;
-//   } else {
-//     return RDM_RESPONSE_TYPE_NONE;
-//   }
-// }
+    // Respond if lower_bound <= my_uid <= upper_bound
+    rdm_uid_t my_uid;
+    rdm_driver_get_uid(dmx_num, &my_uid);
+    if (uid_is_ge(&my_uid, &branch.lower_bound) &&
+        uid_is_le(&my_uid, &branch.upper_bound)) {
+      *pdl = pd_emplace(pd, 513, "u$", &my_uid, sizeof(my_uid), false);
+      response_type = RDM_RESPONSE_TYPE_ACK;
+    } else {
+      response_type = RDM_RESPONSE_TYPE_NONE;
+    }
+  } else {
+    // Mute or un-mute the discovery responses
+    dmx_driver[dmx_num]->rdm.discovery_is_muted =
+        (header->pid == RDM_PID_DISC_MUTE);
 
-bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, void *context) {
-  // TODO: arg check
+    // Respond with this device's mute parameters
+    const rdm_disc_mute_t mute = {
+      .control_field = 0,  // TODO: get the control_field of the device
+      .binding_uid = RDM_UID_NULL, // TODO: get the binding UID of the device
+    };
+    *pdl = pd_emplace(pdl, 513, "wv$", &mute, 8, false);
+    response_type = RDM_RESPONSE_TYPE_ACK;
+  }
 
-//   const rdm_pid_description_t desc = {
-//       .pid = RDM_PID_DISC_UNIQUE_BRANCH, .pdl_size = 12, .cc = RDM_CC_DISC};
-// // 
-//   return rdm_register_response(dmx_num, &desc, &disc, NULL,
-//                                rdm_disc_unique_branch_cb, NULL, 0, context);
-  return false;
+
+  return response_type;
 }
 
-// static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
-//                             rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
-//                             void *param, int num, void *context) {
-//   // Mute or un-mute the discovery
-//   dmx_driver[dmx_num]->rdm.discovery_is_muted =
-//       (header->pid == RDM_PID_DISC_MUTE);
+bool rdm_register_disc_unique_branch(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-//   // Encode the response
-//   const rdm_disc_mute_t mute = {
-//       // TODO: get control field
-//       // TODO: get binding UID
-//   };
-//   // functions->encode(mdb, &mute, 1);
+  rdm_pid_description_t desc = {.pid = RDM_PID_DISC_UNIQUE_BRANCH,
+                                .pdl_size = 6,
+                                .data_type = 0,
+                                .cc = RDM_CC_DISC,
+                                .unit = 0,
+                                .prefix = 0,
+                                .min_value = 0,
+                                .max_value = 0,
+                                .default_value = 0,
+                                .description = "Discovery Unique Branch"};
 
-//   // Return an ACK
-//   return RDM_RESPONSE_TYPE_ACK;
-// }
-
-bool rdm_register_disc_mute(dmx_port_t dmx_num, void *context) {
-  // TODO: arg check
-
-  // const rdm_pid_description_t desc = {
-  //     .pid = RDM_PID_DISC_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
-
-  // return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-  //                              NULL, 0, context);
-  return false;
+  return rdm_register_response(dmx_num, &desc, rdm_default_discovery_cb, NULL,
+                               0, NULL);
 }
 
-bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context) {
-  // TODO: arg check
+bool rdm_register_disc_mute(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // const rdm_pid_description_t desc = {
-  //     .pid = RDM_PID_DISC_UN_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
+  rdm_pid_description_t desc = {.pid = RDM_PID_DISC_UNIQUE_BRANCH,
+                                .pdl_size = 8,
+                                .data_type = 0,
+                                .cc = RDM_CC_DISC,
+                                .unit = 0,
+                                .prefix = 0,
+                                .min_value = 0,
+                                .max_value = 0,
+                                .default_value = 0,
+                                .description = "Discovery Mute"};
 
+  return rdm_register_response(dmx_num, &desc, rdm_default_discovery_cb, NULL,
+                               0, NULL);
+}
 
-  // return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-  //                              NULL, 0, context);
-  return false;
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  rdm_pid_description_t desc = {.pid = RDM_PID_DISC_UNIQUE_BRANCH,
+                                .pdl_size = 8,
+                                .data_type = 0,
+                                .cc = RDM_CC_DISC,
+                                .unit = 0,
+                                .prefix = 0,
+                                .min_value = 0,
+                                .max_value = 0,
+                                .default_value = 0,
+                                .description = "Discovery Un-Mute"};
+
+  return rdm_register_response(dmx_num, &desc, rdm_default_discovery_cb, NULL,
+                               0, NULL);
 }
 
 // static int rdm_simple_param_cb(dmx_port_t dmx_num, const rdm_header_t *header,

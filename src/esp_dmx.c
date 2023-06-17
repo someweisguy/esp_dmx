@@ -571,9 +571,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 #endif
 
   // Add required RDM response callbacks
-  rdm_register_disc_unique_branch(dmx_num, NULL);
-  rdm_register_disc_un_mute(dmx_num, NULL);
-  rdm_register_disc_mute(dmx_num, NULL);
+  rdm_register_disc_unique_branch(dmx_num);
+  rdm_register_disc_un_mute(dmx_num);
+  rdm_register_disc_mute(dmx_num);
   rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->rdm.device_info);
   rdm_register_software_version_label(dmx_num, "esp_dmx");
   // TODO: rdm_register_identify_device(dmx_num);

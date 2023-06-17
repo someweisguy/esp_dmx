@@ -85,13 +85,13 @@ int rdm_driver_get_dmx_start_address(dmx_port_t dmx_num);
 void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address);
 
 // TODO: docs
-bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, void *context);
+bool rdm_register_disc_unique_branch(dmx_port_t dmx_num);
 
 // TODO: docs
-bool rdm_register_disc_mute(dmx_port_t dmx_num, void *context);
+bool rdm_register_disc_mute(dmx_port_t dmx_num);
 
 // TODO: docs
-bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context);
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num);
 
 // TODO: docs
 bool rdm_register_device_info(dmx_port_t dmx_num,
