@@ -517,3 +517,36 @@ size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
 
   return size;
 }
+
+bool rdm_register_response(dmx_port_t dmx_num, rdm_pid_description_t *desc,
+                           rdm_response_cb_t callback, void *param,
+                           unsigned int num, void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(desc != NULL, false, "desc is null");
+  DMX_CHECK(callback != NULL, false, "callback is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+ 
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Iterate the callback list to see if a callback with this PID exists
+  int i = 0;
+  for (; i < driver->rdm.num_callbacks; ++i) {
+    if (driver->rdm.cbs[i].desc.pid == desc->pid) break;
+  }
+
+  // Check if there is space for callbacks
+  if (i == CONFIG_RDM_RESPONDER_MAX_PARAMETERS) {
+    ESP_LOGE(TAG, "No more space for RDM callbacks");
+    return false;
+  }
+  
+  // Add the requested callback to the callback list
+  driver->rdm.cbs[i].num = num;
+  driver->rdm.cbs[i].param = param;
+  driver->rdm.cbs[i].context = context;
+  driver->rdm.cbs[i].cb = callback; 
+  driver->rdm.cbs[i].desc = *desc;
+  ++driver->rdm.num_callbacks;
+
+  return true;
+}

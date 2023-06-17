@@ -214,6 +214,26 @@ size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
                    const uint8_t pdl_in, const void *pd_in, uint8_t *pdl_out,
                    void *pd_out, rdm_ack_t *ack);
 
+/**
+ * @brief Registers a callback which is called when a request is received for
+ * this device for a specified PID. Callbacks may be overwritten, but they may
+ * not be deleted.
+ *
+ * @param dmx_num The DMX port number.
+ * @param pid The PID to which the callback function should be attached.
+ * @param callback A pointer to a callback function which will be called when
+ * receiving a request for the specified PID.
+ * @param[inout] context A pointer to a user-specified context for use within
+ * the callback function.
+ * @return true when the callback has been successfully registered.
+ * @return false on failure.
+ * // TODO update docs
+ */
+// TODO: docs
+bool rdm_register_response(dmx_port_t dmx_num, rdm_pid_description_t *desc,
+                           rdm_response_cb_t callback, void *param,
+                           unsigned int num, void *context);
+
 #ifdef __cplusplus
 }
 #endif
