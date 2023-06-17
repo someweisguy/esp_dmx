@@ -314,47 +314,6 @@ typedef struct __attribute__((packed)) rdm_header_t {
 } rdm_header_t;
 
 /**
- * @brief A struct which stores RDM message data block information. This is the
- * main payload of an RDM packet. Information in the message data block is
- * typically encoded and decoded with functions found in `mdb.h`.
- *
- */
-typedef struct rdm_mdb_t {
-  size_t pdl;  // The parameter data length (PDL) is the number of slots included in the parameter data area that it precedes.
-  union {
-    size_t preamble_len;  // The preamble length is the number of preamble bytes (excluding the delimiter) in a DISC_UNIQUE_BRANCH response packet.
-    uint8_t pd[231];  // The parameter data (PD) is the data section of the packet. Its length is included in its PDL.
-  };
-} rdm_mdb_t;
-
-/**
- * @brief A struct which contains instructions on encoding data into an RDM 
- * message data block.
- */
-typedef struct rdm_encode_t {
-  size_t (*function)(rdm_mdb_t *, const void *, int);  // The encode function.
-  const void *params;  // A pointer to a parameter or parameters to encode.
-  int num;  // The number of parameters to encode.
-} rdm_encode_t;
-
-/**
- * @brief A struct which contains instructions on decoded data from an RDM
- * message data block.
- */
-typedef struct rdm_decode_t {
-  int (*function)(const rdm_mdb_t *, void *, int);  // The decode function.
-  void *params;  // A pointer to a parameter or parameters to decode.
-  int num;  // The number of parameters to decode.
-} rdm_decode_t;
-
-
-typedef struct rdm_encode_decode_t {
-  size_t (*encode)(rdm_mdb_t *, const void *, int);
-  int (*decode)(const rdm_mdb_t *, void *, int);
-} rdm_encode_decode_t;
-
-
-/**
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
  */
