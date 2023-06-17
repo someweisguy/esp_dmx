@@ -162,168 +162,128 @@ void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
   taskEXIT_CRITICAL(spinlock);
 }
 
-bool rdm_register_callback(dmx_port_t dmx_num,
-                           const rdm_pid_description_t *desc,
-                           const rdm_encode_decode_t *get,
-                           const rdm_encode_decode_t *set,
-                           rdm_response_cb_t callback, 
-                           void *param, const int num,
-                           void *context) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  // TODO: desc and callback is required
-  
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
+// static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
+//                                      const rdm_header_t *header,
+//                                      rdm_encode_decode_t *functions,
+//                                      rdm_mdb_t *mdb, void *param, int num,
+//                                      void *context) {
+//   // Ignore this message if discovery is muted
+//   if (rdm_driver_is_muted(dmx_num)) {
+//     return RDM_RESPONSE_TYPE_NONE;
+//   }
 
-  taskENTER_CRITICAL(spinlock);
+//   // Decode the two UIDs
+//   // TODO: decode directly into the mdb array and return a pointer to the
+//   // decoded MDB
+//   rdm_disc_unique_branch_t branch;
+//   functions->decode(mdb, &branch, 2);
 
-  // Iterate the callback list to see if a callback with this PID exists
-  int i = 0;
-  for (; i < driver->rdm.num_callbacks; ++i) {
-    if (driver->rdm.cbs[i].desc.pid == desc->pid) break;
-  }
-
-  // Check if there is space for callbacks
-  if (i >= CONFIG_RDM_RESPONDER_MAX_PARAMETERS) {
-    taskEXIT_CRITICAL(spinlock);
-    ESP_LOGE(TAG, "No more space for RDM callbacks");
-    return false;
-  }
-  
-  // Add the requested callback to the callback list
-  driver->rdm.cbs[i].desc = *desc;
-  driver->rdm.cbs[i].cb = callback;
-  driver->rdm.cbs[i].param = param;
-  driver->rdm.cbs[i].num = num;
-  driver->rdm.cbs[i].context = context;
-  ++driver->rdm.num_callbacks;
-
-  taskEXIT_CRITICAL(spinlock);
-  return true;
-}
-
-
-static int rdm_disc_unique_branch_cb(dmx_port_t dmx_num,
-                                     const rdm_header_t *header,
-                                     rdm_encode_decode_t *functions,
-                                     rdm_mdb_t *mdb, void *param, int num,
-                                     void *context) {
-  // Ignore this message if discovery is muted
-  if (rdm_driver_is_muted(dmx_num)) {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-
-  // Decode the two UIDs
-  // TODO: decode directly into the mdb array and return a pointer to the
-  // decoded MDB
-  rdm_disc_unique_branch_t branch;
-  functions->decode(mdb, &branch, 2);
-
-  // Respond if the device UID is between the branch bounds
-  rdm_uid_t my_uid;
-  rdm_driver_get_uid(dmx_num, &my_uid);
-  if (uid_is_ge(&my_uid, &branch.lower_bound) &&
-      uid_is_le(&my_uid, &branch.upper_bound)) {
-    mdb->preamble_len = 7;
-    return RDM_RESPONSE_TYPE_ACK;
-  } else {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-}
+//   // Respond if the device UID is between the branch bounds
+//   rdm_uid_t my_uid;
+//   rdm_driver_get_uid(dmx_num, &my_uid);
+//   if (uid_is_ge(&my_uid, &branch.lower_bound) &&
+//       uid_is_le(&my_uid, &branch.upper_bound)) {
+//     mdb->preamble_len = 7;
+//     return RDM_RESPONSE_TYPE_ACK;
+//   } else {
+//     return RDM_RESPONSE_TYPE_NONE;
+//   }
+// }
 
 bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
-  const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_UNIQUE_BRANCH, .pdl_size = 12, .cc = RDM_CC_DISC};
-  const rdm_encode_decode_t disc = {.decode = rdm_decode_uids};
-
-  return rdm_register_callback(dmx_num, &desc, &disc, NULL,
-                               rdm_disc_unique_branch_cb, NULL, 0, context);
+//   const rdm_pid_description_t desc = {
+//       .pid = RDM_PID_DISC_UNIQUE_BRANCH, .pdl_size = 12, .cc = RDM_CC_DISC};
+// // 
+//   return rdm_register_response(dmx_num, &desc, &disc, NULL,
+//                                rdm_disc_unique_branch_cb, NULL, 0, context);
+  return false;
 }
 
-static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
-                            rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
-                            void *param, int num, void *context) {
-  // Mute or un-mute the discovery
-  dmx_driver[dmx_num]->rdm.discovery_is_muted =
-      (header->pid == RDM_PID_DISC_MUTE);
+// static int rdm_disc_mute_cb(dmx_port_t dmx_num, const rdm_header_t *header,
+//                             rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
+//                             void *param, int num, void *context) {
+//   // Mute or un-mute the discovery
+//   dmx_driver[dmx_num]->rdm.discovery_is_muted =
+//       (header->pid == RDM_PID_DISC_MUTE);
 
-  // Encode the response
-  const rdm_disc_mute_t mute = {
-      // TODO: get control field
-      // TODO: get binding UID
-  };
-  functions->encode(mdb, &mute, 1);
+//   // Encode the response
+//   const rdm_disc_mute_t mute = {
+//       // TODO: get control field
+//       // TODO: get binding UID
+//   };
+//   // functions->encode(mdb, &mute, 1);
 
-  // Return an ACK
-  return RDM_RESPONSE_TYPE_ACK;
-}
+//   // Return an ACK
+//   return RDM_RESPONSE_TYPE_ACK;
+// }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
-  const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
-  const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
+  // const rdm_pid_description_t desc = {
+  //     .pid = RDM_PID_DISC_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
 
-  return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-                               NULL, 0, context);
+  // return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
+  //                              NULL, 0, context);
+  return false;
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, void *context) {
   // TODO: arg check
 
-  const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DISC_UN_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
-  const rdm_encode_decode_t disc = {.encode = rdm_encode_mute};
+  // const rdm_pid_description_t desc = {
+  //     .pid = RDM_PID_DISC_UN_MUTE, .pdl_size = 0, .cc = RDM_CC_DISC};
 
-  return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
-                               NULL, 0, context);
+
+  // return rdm_register_callback(dmx_num, &desc, &disc, NULL, rdm_disc_mute_cb,
+  //                              NULL, 0, context);
+  return false;
 }
 
-static int rdm_simple_param_cb(dmx_port_t dmx_num, const rdm_header_t *header,
-                               rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
-                               void *param, int num, void *context) {
-  if (functions->decode != NULL) {
-    functions->decode(mdb, param, num);
-  }
-  if (functions->encode != NULL) {
-    functions->encode(mdb, param, num);
-  }
-  return RDM_RESPONSE_TYPE_ACK;
-}
+// static int rdm_simple_param_cb(dmx_port_t dmx_num, const rdm_header_t *header,
+//                                rdm_encode_decode_t *functions, rdm_mdb_t *mdb,
+//                                void *param, int num, void *context) {
+//   // if (functions->decode != NULL) {
+//   //   functions->decode(mdb, param, num);
+//   // }
+//   // if (functions->encode != NULL) {
+//   //   functions->encode(mdb, param, num);
+//   // }
+//   return RDM_RESPONSE_TYPE_ACK;
+// }
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info) {
   // TODO: arg check
 
-  const rdm_pid_description_t desc = {
-      .pid = RDM_PID_DEVICE_INFO, .pdl_size = 0, .cc = RDM_CC_GET};
-  const rdm_encode_decode_t get = {.encode = rdm_encode_device_info};
+  // const rdm_pid_description_t desc = {
+  //     .pid = RDM_PID_DEVICE_INFO, .pdl_size = 0, .cc = RDM_CC_GET};
 
-  return rdm_register_callback(dmx_num, &desc, &get, NULL, rdm_simple_param_cb,
-                               device_info, 1, NULL);
+  // return rdm_register_callback(dmx_num, &desc, &get, NULL, rdm_simple_param_cb,
+  //                              device_info, 1, NULL);
+
+  return false;
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          const char *software_version_label) {
   // TODO: arg check
 
-  const rdm_pid_description_t desc = {.pid = RDM_PID_SOFTWARE_VERSION_LABEL,
-                                      .pdl_size = 0,
-                                      .cc = RDM_CC_GET};
-  const rdm_encode_decode_t get = {.encode = rdm_encode_string};
+  // const rdm_pid_description_t desc = {.pid = RDM_PID_SOFTWARE_VERSION_LABEL,
+  //                                     .pdl_size = 0,
+  //                                     .cc = RDM_CC_GET};
 
-  size_t len = strlen(software_version_label);
-  if (len > 32) {
-    len = 32;
-  }
+  // size_t len = strlen(software_version_label);
+  // if (len > 32) {
+  //   len = 32;
+  // }
 
-  return rdm_register_callback(dmx_num, &desc, &get, NULL,
-                               rdm_simple_param_cb,
-                               (void *)software_version_label, len, NULL);
+  // return rdm_register_callback(dmx_num, &desc, &get, NULL,
+  //                              rdm_simple_param_cb,
+  //                              (void *)software_version_label, len, NULL);
+  return false;
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num) {
@@ -336,16 +296,14 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                     uint16_t *dmx_start_address) {
   // TODO: arg check
 
-  const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
-                                      .pdl_size = 2,
-                                      .cc = RDM_CC_GET_SET,
-                                      .max_value = 512,
-                                      .min_value = 1};
-  const rdm_encode_decode_t get = {.encode = rdm_encode_16bit};
-  const rdm_encode_decode_t set = {.decode = rdm_decode_16bit,
-                                   .encode = rdm_encode_null};
+  // const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
+  //                                     .pdl_size = 2,
+  //                                     .cc = RDM_CC_GET_SET,
+  //                                     .max_value = 512,
+  //                                     .min_value = 1};
 
-  return rdm_register_callback(dmx_num, &desc, &get, &set,
-                               rdm_simple_param_cb, dmx_start_address, 1,
-                               NULL);
+  // return rdm_register_callback(dmx_num, &desc, &get, &set,
+  //                              rdm_simple_param_cb, dmx_start_address, 1,
+  //                              NULL);
+  return false;
 }
