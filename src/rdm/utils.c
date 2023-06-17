@@ -27,42 +27,6 @@ void *uidmove(void *destination, const void *source) {
   return uidcpy(destination, &temp);
 }
 
-inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return a->man_id == b->man_id && a->dev_id == b->dev_id;
-}
-
-inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return a->man_id < b->man_id ||
-         (a->man_id == b->man_id && a->dev_id < b->dev_id);
-}
-
-inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return a->man_id > b->man_id ||
-         (a->man_id == b->man_id && a->dev_id > b->dev_id);
-}
-
-inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return !uid_is_gt(a, b);
-}
-
-inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return !uid_is_lt(a, b);
-}
-
-inline bool uid_is_broadcast(const rdm_uid_t *uid) {
-  return uid->dev_id == 0xffffffff;
-}
-
-inline bool uid_is_null(const rdm_uid_t *uid) {
-  return uid->man_id == 0 && uid->dev_id == 0;
-}
-
-inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
-  return ((alias->man_id == 0xffff || alias->man_id == uid->man_id) &&
-          alias->dev_id == 0xffffffff) ||
-         uid_is_eq(uid, alias);
-}
-
 static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   *is_singleton = (*format == '\0');
   int param_size = 0;
@@ -257,8 +221,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
     // Copy the header and pd from the driver
     if (header != NULL) {
-      pd_emplace(header, "#cc01hbuubbbwbwb", header_ptr, sizeof(*header),
-                 true);
+      pd_emplace(header, "#cc01hbuubbbwbwb", header_ptr, sizeof(*header), true);
     }
     if (pd != NULL) {
       memcpy(pd, pd_ptr, pdl);
@@ -300,7 +263,6 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
     // Update the read size
     read = preamble_len + 1 + 16;
-
   }
 
   taskEXIT_CRITICAL(spinlock);
@@ -313,7 +275,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(pdl <= 231, 0, "pdl is invalid");
   DMX_CHECK(header != NULL || (pd != NULL && pdl == sizeof(rdm_uid_t)), 0,
-            "header is null and pd does not contain a UID");  
+            "header is null and pd does not contain a UID");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   size_t written = 0;
@@ -394,13 +356,12 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 }
 
 bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
-                 const void *pd_in, uint8_t *pdl_out, void *pd_out,
+                 const void *pd_in, uint8_t pdl_out, void *pd_out,
                  rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(pd_in != NULL || pdl_in == 0, 0, "pdl_in is invalid");
-  DMX_CHECK(pd_out != NULL || (pdl_out == NULL || *pdl_out == 0), 0,
-            "pdl_out is invalid");
+  DMX_CHECK(pd_out != NULL || pdl_out == 0, 0, "pdl_out is invalid");
   DMX_CHECK(!uid_is_null(&header->dest_uid), 0, "dest_uid is invalid");
   DMX_CHECK(!uid_is_broadcast(&header->src_uid), 0, "src_uid is invalid");
   DMX_CHECK(header->cc == RDM_CC_DISC_COMMAND ||
@@ -482,7 +443,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
   // Handle the response based on the response type
   if (response_type == RDM_RESPONSE_TYPE_ACK) {
     // TODO: what to do here?
-    
+
   } else if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
     // Get and convert the estimated response time to FreeRTOS ticks
     decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
@@ -511,7 +472,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_pid_description_t *desc,
   DMX_CHECK(desc != NULL, false, "desc is null");
   DMX_CHECK(callback != NULL, false, "callback is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
- 
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Iterate the callback list to see if a callback with this PID exists
@@ -525,12 +486,12 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_pid_description_t *desc,
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
-  
+
   // Add the requested callback to the callback list
   driver->rdm.cbs[i].num = num;
   driver->rdm.cbs[i].param = param;
   driver->rdm.cbs[i].context = context;
-  driver->rdm.cbs[i].cb = callback; 
+  driver->rdm.cbs[i].cb = callback;
   driver->rdm.cbs[i].desc = *desc;
   ++driver->rdm.num_callbacks;
 

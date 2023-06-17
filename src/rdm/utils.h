@@ -70,7 +70,9 @@ void *uidmove(void *destination, const void *source);
  * @return true if the UIDs are equal.
  * @return false if the UIDs are not equal.
  */
-bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b);
+static inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return a->man_id == b->man_id && a->dev_id == b->dev_id;
+}
 
 /**
  * @brief Returns true if the first UID is less than the second UID. Is
@@ -81,7 +83,10 @@ bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b);
  * @return true if a is less than b.
  * @return false if a is not less than b.
  */
-bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b);
+static inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return a->man_id < b->man_id ||
+         (a->man_id == b->man_id && a->dev_id < b->dev_id);
+}
 
 /**
  * @brief Returns true if the first UID is greater than the second UID. Is
@@ -92,7 +97,10 @@ bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b);
  * @return true if a is greater than b.
  * @return false if a is not greater than b.
  */
-bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b);
+static inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return a->man_id > b->man_id ||
+         (a->man_id == b->man_id && a->dev_id > b->dev_id);
+}
 
 /**
  * @brief Returns true if the first UID is less than or equal to the second
@@ -103,7 +111,9 @@ bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b);
  * @return true if a is less than or equal to b.
  * @return false if a is not less than or equal to b.
  */
-bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b);
+static inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !uid_is_gt(a, b);
+}
 
 /**
  * @brief Returns true if the first UID is greater than or equal to the second
@@ -114,7 +124,9 @@ bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b);
  * @return true if a is greater than or equal to b.
  * @return false if a is not greater than or equal to b.
  */
-bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b);
+static inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !uid_is_lt(a, b);
+}
 
 /**
  * @brief Returns true if the specified UID is a broadcast address.
@@ -123,7 +135,9 @@ bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b);
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
-bool uid_is_broadcast(const rdm_uid_t *uid);
+static inline bool uid_is_broadcast(const rdm_uid_t *uid) {
+  return uid->dev_id == 0xffffffff;
+}
 
 /**
  * @brief Returns true if the specified UID is null.
@@ -132,18 +146,25 @@ bool uid_is_broadcast(const rdm_uid_t *uid);
  * @return true if the UID is null.
  * @return false if the UID is not null.
  */
-bool uid_is_null(const rdm_uid_t *uid);
+static inline bool uid_is_null(const rdm_uid_t *uid) {
+  return uid->man_id == 0 && uid->dev_id == 0;
+}
 
 /**
- * @brief Returns true if the first UID is targeted by the second UID. A common
- * usage of this function is `uid_is_target(&my_uid, &destination_uid)`.
+ * @brief Returns true if the first UID is targeted by the second UID. A
+ * common usage of this function is `uid_is_target(&my_uid,
+ * &destination_uid)`.
  *
  * @param uid A pointer to a UID which to check is targeted.
  * @param alias A pointer to a UID which may alias the first UID.
  * @return true if the UID is targeted by the alias UID.
  * @return false if the UID is not targeted by the alias UID.
  */
-bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias);
+static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
+  return ((alias->man_id == 0xffff || alias->man_id == uid->man_id) &&
+          alias->dev_id == 0xffffffff) ||
+         uid_is_eq(uid, alias);
+}
 
 // TODO: docs
 size_t pd_emplace(void *destination, const char *format, const void *source,
@@ -185,7 +206,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
  * // TODO
  */
 size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
-                  const void *pd);
+                 const void *pd);
 
 /**
  * @brief Sends an RDM controller request and processes the response. It is
@@ -194,18 +215,18 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
  * - ack.err will evaluate to true if an error occurred during the sending or
  * receiving of raw DMX data. RDM data will not be processed if an error
  * occurred. If a response was expected but none was received, ack.err will
- * evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be set
- * to ESP_OK.
- * - ack.type will evaluate to RDM_RESPONSE_TYPE_INVALID if an invalid response
- * is received but does not necessarily indicate a DMX error occurred. If no
- * response is received ack.type will be set to RDM_RESPONSE_TYPE_NONE whether
- * or not a response was expected. Otherwise, ack.type will be set to the ack
- * type received in the RDM response.
- * The final parameter of ack is a union of num, nack_reason, and timer. If the
+ * evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be
+ * set to ESP_OK.
+ * - ack.type will evaluate to RDM_RESPONSE_TYPE_INVALID if an invalid
+ * response is received but does not necessarily indicate a DMX error
+ * occurred. If no response is received ack.type will be set to
+ * RDM_RESPONSE_TYPE_NONE whether or not a response was expected. Otherwise,
+ * ack.type will be set to the ack type received in the RDM response. The
+ * final parameter of ack is a union of num, nack_reason, and timer. If the
  * received response type is RDM_RESPONSE_TYPE_ACK or
- * RDM_RESPONSE_TYPE_ACK_OVERFLOW, ack.num should be read. If the response type
- * is RDM_RESPONSE_TYPE_NACK_REASON, nack_reason should be read. If the response
- * type is RDM_RESPONSE_TYPE_TIMER, timer should be read.
+ * RDM_RESPONSE_TYPE_ACK_OVERFLOW, ack.num should be read. If the response
+ * type is RDM_RESPONSE_TYPE_NACK_REASON, nack_reason should be read. If the
+ * response type is RDM_RESPONSE_TYPE_TIMER, timer should be read.
  *
  * @param dmx_num The DMX port number.
  * @param[inout] header A pointer to an rdm_header_t with information on where
@@ -221,7 +242,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
  */
 // TODO: docs
 bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
-                 const void *pd_in, uint8_t *pdl_out, void *pd_out,
+                 const void *pd_in, uint8_t pdl_out, void *pd_out,
                  rdm_ack_t *ack);
 
 /**
