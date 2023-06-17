@@ -236,11 +236,12 @@ typedef enum rdm_pid_t {
 /**
  * @brief Provides information about RDM responses.
  */
-typedef struct rdm_ack_t {  
+typedef struct rdm_ack_t {
   esp_err_t err;  // Evaluates to true if an error occurred reading RDM data.
+  size_t size;               // The size of the packet received.
   rdm_response_type_t type;  // The type of the RDM response received.
   union {
-    int num;               // The number of parameters received. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK or RDM_RESPONSE_TYPE_ACK_OVERFLOW.
+    // TODO: The size of the packet received. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK or RDM_RESPONSE_TYPE_ACK_OVERFLOW.
     TickType_t timer;      // The amount of time in FreeRTOS ticks until the responder device will be ready to respond to the request. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.
     rdm_nr_t nack_reason;  // The reason that the request was unable to be fulfilled. This field should be read when the response type received is RDM_RESPONSE_TYPE_NACK_REASON.
   };
@@ -299,7 +300,7 @@ typedef struct  __attribute__((packed)) rdm_device_info_t {
 typedef struct __attribute__((packed)) rdm_header_t {
   uint8_t : 8;
   uint8_t : 8;
-  uint8_t : 8;
+  uint8_t message_len;
   rdm_uid_t dest_uid;  // The UID of the target device(s).
   rdm_uid_t src_uid;   // The UID of the device originating this packet.
   uint8_t tn;  // The RDM transaction number. Controllers increment this field every time an RDM packet is transmitted. Responders set their transaction number to the transaction number of the packet to which they are responding.
@@ -311,6 +312,7 @@ typedef struct __attribute__((packed)) rdm_header_t {
   uint16_t sub_device;  // Sub-devices should be used in devices containing a repetitive number of similar modules, such as a dimmer rack.
   uint8_t cc;  // The command class (CC) specifies the action of the message.
   uint16_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
+  uint8_t pdl;
 } rdm_header_t;
 
 typedef enum rdm_product_category_t {
