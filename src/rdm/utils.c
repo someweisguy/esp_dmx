@@ -417,6 +417,8 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
     }
   } else {
     if (ack != NULL) {
+      ack->err = ESP_OK;
+      ack->size = size;
       ack->type = RDM_RESPONSE_TYPE_NONE;
     }
     dmx_wait_sent(dmx_num, 2);
