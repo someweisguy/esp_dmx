@@ -212,7 +212,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
       .control_field = 0,  // TODO: get the control_field of the device
       .binding_uid = binding_uid,
     };
-    *pdl_out = pd_emplace(pdl, "wv$", &mute, sizeof(mute), false);
+    *pdl_out = pd_emplace(pd, "wv$", &mute, sizeof(mute), false);
     response_type = RDM_RESPONSE_TYPE_ACK;
   }
 
