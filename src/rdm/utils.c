@@ -192,11 +192,22 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   taskENTER_CRITICAL(spinlock);
 
   // Verify start code and sub-start code are correct
-  size_t preamble_len;
-  if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8)) ||
-      (preamble_len = get_preamble_len(header_ptr)) < 8) {
+  if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8)) &&
+      *header_ptr != RDM_PREAMBLE && *header_ptr != RDM_DELIMITER) {
     taskEXIT_CRITICAL(spinlock);
     return read;
+  }
+
+  // Get and verify the preamble_len if packet is a discovery response
+  size_t preamble_len = 0;
+  if (*header_ptr == RDM_PREAMBLE || *header_ptr == RDM_DELIMITER) {
+    for (; preamble_len <= 7; ++preamble_len) {
+      if (header_ptr[preamble_len] == RDM_DELIMITER) break;
+    }
+    if (preamble_len > 7) {
+      taskEXIT_CRITICAL(spinlock);
+      return read;
+    }
   }
 
   // Handle packets differently if a DISC_UNIQUE_BRANCH packet was received
@@ -431,7 +442,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
     response_type = header->response_type;  // Response is ok
   }
 
-  int decoded;
+  int decoded;  // FIXME: set, but not used
   // Handle the response based on the response type
   if (response_type == RDM_RESPONSE_TYPE_ACK) {
     // TODO: what to do here?
