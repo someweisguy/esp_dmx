@@ -191,10 +191,26 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
     dmx_driver[dmx_num]->rdm.discovery_is_muted =
         (header->pid == RDM_PID_DISC_MUTE);
 
+    // Get the binding UID of this device
+    int num_ports = 0;
+    rdm_uid_t binding_uid;
+    for (int i = 0; i < DMX_NUM_MAX; ++i) {
+      if (dmx_driver_is_installed(i)) {
+        if (num_ports == 0) {
+          rdm_driver_get_uid(i, &binding_uid);
+        }
+        ++num_ports;        
+      }
+    }
+    if (num_ports == 1) {
+      // Only report binding UID if there are multiple ports
+      binding_uid = RDM_UID_NULL;
+    }
+
     // Respond with this device's mute parameters
     const rdm_disc_mute_t mute = {
       .control_field = 0,  // TODO: get the control_field of the device
-      .binding_uid = RDM_UID_NULL, // TODO: get the binding UID of the device
+      .binding_uid = binding_uid,
     };
     *pdl = pd_emplace(pdl, 513, "wv$", &mute, 8, false);
     response_type = RDM_RESPONSE_TYPE_ACK;
