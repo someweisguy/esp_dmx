@@ -355,9 +355,9 @@ typedef struct rdm_encode_decode_t {
  */
 typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
                                                  const rdm_header_t *header,
-                                                 rdm_encode_decode_t *functions,
-                                                 rdm_mdb_t *mdb, void *param,
-                                                 int num, void *context);
+                                                 void *pd, uint8_t *pdl,
+                                                 void *param, int num,
+                                                 void *context);
 
 typedef enum rdm_product_category_t {
   RDM_PRODUCT_CATEGORY_NOT_DECLARED = 0x0000,  // The product category is not declared.
