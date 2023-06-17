@@ -218,7 +218,7 @@ size_t get_preamble_len(const void *data) {
   return preamble_len;
 }
 
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
                 void *pd) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -231,8 +231,6 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
   // Get pointers to driver data buffer locations and declare checksum
   uint16_t checksum = 0;
   const uint8_t *header_ptr = driver->data.buffer;
-  const uint8_t *message_len_ptr = header_ptr + 2;
-  const uint8_t *pdl_ptr = header_ptr + 24;
   const void *pd_ptr = header_ptr + 25;
 
   taskENTER_CRITICAL(spinlock);
@@ -248,29 +246,26 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
   // Handle packets differently if a DISC_UNIQUE_BRANCH packet was received
   if (*header_ptr == RDM_SC) {
     // Verify checksum is correct
-    for (int i = 0; i < *message_len_ptr; ++i) {
+    const uint8_t message_len = header_ptr[2];
+    for (int i = 0; i < message_len; ++i) {
       checksum += header_ptr[i];
     }
-    if (checksum != bswap16(*(uint16_t *)(header_ptr + *message_len_ptr))) {
+    if (checksum != bswap16(*(uint16_t *)(header_ptr + message_len))) {
       taskEXIT_CRITICAL(spinlock);
       return read;
     }
 
     // Copy the header and pd from the driver
     if (header != NULL) {
-      pd_emplace(header, "#cc01#18huubbbwbw", header_ptr, sizeof(*header),
+      pd_emplace(header, "#cc01hbuubbbwbwb", header_ptr, sizeof(*header),
                  true);
     }
     if (pd != NULL) {
-      size_t copy_size = pdl == NULL || *pdl > *pdl_ptr ? *pdl_ptr : *pdl;
-      memcpy(pd, pd_ptr, copy_size);
+      memcpy(pd, pd_ptr, pdl);
     }
 
-    // Update the PDL and the read size
-    if (pdl != NULL) {
-      *pdl = *pdl_ptr;
-    }
-    read = *message_len_ptr + 2;
+    // Update the read size
+    read = message_len + 2;
 
   } else {
     // Verify the checksum is correct
@@ -300,12 +295,10 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
       header->sub_device = RDM_SUB_DEVICE_ROOT;
       header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
       header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
+      header->pdl = preamble_len + 1 + 16;
     }
 
-    // Update the PDL and the read size
-    if (pdl != NULL) {
-      *pdl = 0;
-    }
+    // Update the read size
     read = preamble_len + 1 + 16;
 
   }
@@ -331,8 +324,6 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   // Get pointers to driver data buffer locations and declare checksum
   uint16_t checksum = 0;
   uint8_t *header_ptr = driver->data.buffer;
-  uint8_t *message_len_ptr = header_ptr + 2;
-  uint8_t *pdl_ptr = header_ptr + 24;
   void *pd_ptr = header_ptr + 25;
 
   taskENTER_CRITICAL(spinlock);
@@ -347,20 +338,20 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
   if (header != NULL && header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
     // Copy the header, pd, message_len, and pdl into the driver
-    pd_emplace(header_ptr, "#cc01#18huubbbwbw", header, sizeof(*header), false);
+    header->pdl = pdl < 231 ? pdl : 231;
+    header->message_len = pdl + 24;
+    pd_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header), false);
     memcpy(pd_ptr, pd, pdl);
-    *message_len_ptr += pdl;
-    *pdl_ptr = pdl;
 
     // Calculate and copy the checksum
     checksum = RDM_SC + RDM_SUB_SC;
-    for (int i = 2; i < *message_len_ptr; ++i) {
+    for (int i = 2; i < header->message_len; ++i) {
       checksum += header_ptr[i];
     }
-    *(uint16_t *)(header_ptr + *message_len_ptr) = bswap16(checksum);
+    *(uint16_t *)(header_ptr + header->message_len) = bswap16(checksum);
 
     // Update written size
-    written = *message_len_ptr + 2;
+    written = header->message_len + 2;
   } else {
     // Encode the preamble bytes
     const size_t preamble_len = 7;
@@ -452,18 +443,17 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
     size = dmx_receive(dmx_num, &packet, 2);
     if (ack != NULL) {
       ack->err = packet.err;
+      ack->size = size;
     }
     if (packet.err) {
       if (ack != NULL) {
         ack->type = RDM_RESPONSE_TYPE_INVALID;
-        ack->num = 0;
       }
       return false;
     }
   } else {
     if (ack != NULL) {
       ack->type = RDM_RESPONSE_TYPE_NONE;
-      ack->num = 0;
     }
     dmx_wait_sent(dmx_num, 2);
     return false;
@@ -491,8 +481,8 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
   int decoded;
   // Handle the response based on the response type
   if (response_type == RDM_RESPONSE_TYPE_ACK) {
-    // Get the size of the packet
-    decoded = size;
+    // TODO: what to do here?
+    
   } else if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
     // Get and convert the estimated response time to FreeRTOS ticks
     decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
@@ -509,7 +499,6 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
   // Report the results back to the caller
   if (ack != NULL) {
     ack->type = response_type;
-    ack->num = decoded;
   }
 
   return (response_type == RDM_RESPONSE_TYPE_ACK);

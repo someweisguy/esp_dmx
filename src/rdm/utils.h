@@ -170,7 +170,7 @@ size_t get_preamble_len(const void *data);
  * invalid.
  * // TODO
  */
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t *pdl,
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
                 void *pd);
 
 /**
