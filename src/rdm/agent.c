@@ -13,6 +13,8 @@
 #include "esp_mac.h"
 #endif
 
+static rdm_uid_t binding_uid = {};
+
 /**
  * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
  * with this software. Any device that uses this ID is associated with this
@@ -28,25 +30,38 @@ extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Initialize the RDM UID
-  taskENTER_CRITICAL(spinlock);
-  if (uid_is_null(&driver->rdm.uid)) {
-    struct __attribute__((__packed__)) {
-      uint16_t manufacturer;
-      uint64_t device;
-    } mac;
-    esp_efuse_mac_get_default((void *)&mac);
-    driver->rdm.uid.dev_id = bswap32(mac.device) + dmx_num;
-    driver->rdm.uid.man_id = RDM_MAN_ID_DEFAULT;
+  // Initialize the binding UID if it isn't initialized
+  if (uid_is_null(&binding_uid)) {
+    uint16_t man_id;
+    uint32_t dev_id;
+#if CONFIG_RDM_DEVICE_UID_MAN_ID == 0
+    man_id = RDM_MAN_ID_DEFAULT;
+#else
+    man_id = CONFIG_RDM_DEVICE_UID_MAN_ID;
+#endif
+#if CONFIG_RDM_DEVICE_UID_DEV_ID == 0
+    uint8_t mac[8];
+    esp_efuse_mac_get_default(mac);
+    dev_id = bswap32(*(uint32_t *)(mac + 2));
+#else
+    dev_id = CONFIG_RDM_DEVICE_UID_DEV_ID;
+#endif
+    binding_uid.man_id = man_id;
+    binding_uid.dev_id = dev_id;
   }
-  *uid = driver->rdm.uid;
-  taskEXIT_CRITICAL(spinlock);
+
+  // Return early if there is an argument error
+  if (dmx_num >= DMX_NUM_MAX || uid == NULL) {
+    return;
+  }
+
+  // Copy the binding UID and increment the final octet by dmx_num
+  uid->man_id = binding_uid.man_id;
+  uid->dev_id = binding_uid.dev_id;
+  uint8_t last_octet = (uint8_t)binding_uid.dev_id;
+  last_octet += dmx_num;
+  uid->dev_id &= 0x00ffffff;
+  uid->dev_id |= last_octet;
 }
 
 bool rdm_driver_is_muted(dmx_port_t dmx_num) {
