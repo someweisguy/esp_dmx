@@ -18,6 +18,7 @@
 #include "freertos/task.h"
 #include "hal/uart_hal.h"
 #include "rdm/types.h"
+#include "rdm/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -92,7 +93,7 @@ typedef struct dmx_driver_t {
       rdm_pid_description_t desc;
       rdm_response_cb_t cb;
       void *param;
-      int num;
+      unsigned int num;
       void *context;
     } cbs[CONFIG_RDM_RESPONDER_MAX_PARAMETERS];
   } rdm;
