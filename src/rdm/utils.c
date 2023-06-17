@@ -402,9 +402,9 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   return written;
 }
 
-size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
-                   const uint8_t pdl_in, const void *pd_in, uint8_t *pdl_out,
-                   void *pd_out, rdm_ack_t *ack) {
+bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
+                 const void *pd_in, uint8_t *pdl_out, void *pd_out,
+                 rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(pd_in != NULL || pdl_in == 0, 0, "pdl_in is invalid");
@@ -458,7 +458,7 @@ size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
         ack->type = RDM_RESPONSE_TYPE_INVALID;
         ack->num = 0;
       }
-      return size;
+      return false;
     }
   } else {
     if (ack != NULL) {
@@ -466,7 +466,7 @@ size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
       ack->num = 0;
     }
     dmx_wait_sent(dmx_num, 2);
-    return size;
+    return false;
   }
 
   // Handle the RDM response packet
@@ -512,7 +512,7 @@ size_t rdm_request(dmx_port_t dmx_num, rdm_header_t *header,
     ack->num = decoded;
   }
 
-  return size;
+  return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
 
 bool rdm_register_response(dmx_port_t dmx_num, rdm_pid_description_t *desc,

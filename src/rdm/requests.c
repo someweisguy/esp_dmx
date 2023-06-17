@@ -10,9 +10,9 @@ static const char *TAG = "rdm_requests";
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
-size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
-                                   const rdm_disc_unique_branch_t *param,
-                                   rdm_ack_t *ack) {
+bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
+                                 const rdm_disc_unique_branch_t *param,
+                                 rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(param != NULL, 0, "param is null");
@@ -31,8 +31,8 @@ size_t rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL, ack);
 }
 
-size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
-                          rdm_ack_t *ack, rdm_disc_mute_t *param) {
+bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
+                        rdm_ack_t *ack, rdm_disc_mute_t *param) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -45,14 +45,14 @@ size_t rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*param);
   uint8_t pd_out[sizeof(*param)];
-  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  bool ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(param, "wv&", pd_out, sizeof(*param), true);
 
   return ret;
 }
 
-size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
-                             rdm_ack_t *ack, rdm_disc_mute_t *param) {
+bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
+                           rdm_ack_t *ack, rdm_disc_mute_t *param) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -65,7 +65,7 @@ size_t rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*param);
   uint8_t pd_out[sizeof(*param)];
-  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  bool ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(param, "wv&", pd_out, sizeof(*param), true);
 
   return ret;
@@ -242,8 +242,8 @@ int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
   return found;
 }
 
-size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
-                           rdm_ack_t *ack, rdm_device_info_t *param) {
+bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
+                         rdm_ack_t *ack, rdm_device_info_t *param) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(param != NULL, 0, "param is null");
@@ -256,15 +256,14 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*param);
   uint8_t pd_out[sizeof(*param)];
-  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  bool ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(param, "#0100hwwdwbbwwb$", pd_out, sizeof(*param), true);
 
   return ret;
 }
 
-size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
-                                      rdm_ack_t *ack, char *param,
-                                      size_t size) {
+bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
+                                    rdm_ack_t *ack, char *param, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(param != NULL, 0, "param is null");
@@ -277,7 +276,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out;
   uint8_t pd_out[33];
-  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  bool ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   if (pdl_out > size) {
     pdl_out = size;
   }
@@ -286,8 +285,8 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
   return ret;
 }
 
-size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                               rdm_ack_t *ack, bool *identify) {
+bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                             rdm_ack_t *ack, bool *identify) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(identify != NULL, 0, "identify is null");
@@ -300,14 +299,14 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*identify);
   uint8_t pd_out[sizeof(*identify)];
-  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  bool ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(identify, "b$", pd_out, sizeof(*identify), true);
 
   return ret;
 }
 
-size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                               bool identify, rdm_ack_t *ack) {
+bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                             bool identify, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -323,8 +322,8 @@ size_t rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, NULL, NULL, ack);
 }
 
-size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                                 rdm_ack_t *ack, uint16_t *dmx_start_address) {
+bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                               rdm_ack_t *ack, uint16_t *dmx_start_address) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
@@ -332,14 +331,14 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pdl_out = sizeof(*dmx_start_address);
   uint8_t pd_out[sizeof(*dmx_start_address)];
-  size_t ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
+  bool ret = rdm_request(dmx_num, header, 0, NULL, &pdl_out, pd_out, ack);
   pd_emplace(dmx_start_address, "w$", pd_out, sizeof(*dmx_start_address), true);
 
   return ret;
 }
 
-size_t rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                                 uint16_t dmx_start_address, rdm_ack_t *ack) {
+bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                               uint16_t dmx_start_address, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_start_address < 513, 0, "dmx_start_address is invalid");
