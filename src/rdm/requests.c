@@ -18,12 +18,13 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(param != NULL, 0, "param is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->dest_uid = RDM_UID_BROADCAST_ALL;
+  header->port_id = dmx_num + 1;
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-  rdm_driver_get_uid(dmx_num, &header->src_uid);
-  header->port_id = dmx_num + 1;
+  header->pdl = sizeof(rdm_disc_unique_branch_t);
 
   uint8_t pd_in[sizeof(*param)];
   pd_emplace(pd_in, "uu$", param, sizeof(*param), false);
@@ -37,11 +38,12 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
+  header->port_id = dmx_num + 1;
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_MUTE;
-  rdm_driver_get_uid(dmx_num, &header->src_uid);
-  header->port_id = dmx_num + 1;
+  header->pdl = 0;
 
   uint8_t pd_out[sizeof(*param)];
   bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
@@ -56,11 +58,12 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
+  header->port_id = dmx_num + 1;
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UN_MUTE;
-  rdm_driver_get_uid(dmx_num, &header->src_uid);
-  header->port_id = dmx_num + 1;
+  header->pdl = 0;
 
   uint8_t pd_out[sizeof(*param)];
   bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
@@ -247,10 +250,11 @@ bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(param != NULL, 0, "param is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  header->cc = RDM_CC_GET_COMMAND;
-  header->pid = RDM_PID_DEVICE_INFO;
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
+  header->cc = RDM_CC_GET_COMMAND;
+  header->pid = RDM_PID_DEVICE_INFO;
+  header->pdl = 0;
 
   uint8_t pd_out[sizeof(*param)];
   bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
@@ -266,10 +270,11 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(param != NULL, 0, "param is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  header->cc = RDM_CC_GET_COMMAND;
-  header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
+  header->cc = RDM_CC_GET_COMMAND;
+  header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
+  header->pdl = 0;
   
   // Clamp size to 32 chars
   if (size > 32) {
@@ -284,16 +289,17 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
 }
 
 bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             rdm_ack_t *ack, bool *identify) {
+                             rdm_ack_t *ack, uint8_t *identify) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(identify != NULL, 0, "identify is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  header->cc = RDM_CC_GET_COMMAND;
-  header->pid = RDM_PID_IDENTIFY_DEVICE;
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
+  header->cc = RDM_CC_GET_COMMAND;
+  header->pid = RDM_PID_IDENTIFY_DEVICE;
+  header->pdl = 0;
 
   uint8_t pd_out[sizeof(*identify)];
   bool ret =
@@ -304,15 +310,21 @@ bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 }
 
 bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             bool identify, rdm_ack_t *ack) {
+                             uint8_t identify, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  header->cc = RDM_CC_SET_COMMAND;
-  header->pid = RDM_PID_IDENTIFY_DEVICE;
+  // Clamp identify to 0 or 1
+  if (identify != 0) {
+    identify = 1;
+  }
+
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
+  header->cc = RDM_CC_SET_COMMAND;
+  header->pid = RDM_PID_IDENTIFY_DEVICE;
+  header->pdl = sizeof(uint8_t);
 
   uint8_t pd_in[sizeof(identify)];
   pd_emplace(pd_in, "b$", &identify, sizeof(identify), false);
@@ -326,6 +338,12 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  rdm_driver_get_uid(dmx_num, &header->src_uid);
+  header->port_id = dmx_num + 1;
+  header->cc = RDM_CC_GET_COMMAND;
+  header->pid = RDM_PID_DMX_START_ADDRESS;
+  header->pdl = 0;
 
   uint8_t pd_out[sizeof(*dmx_start_address)];
   bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*dmx_start_address),
@@ -342,10 +360,11 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_start_address < 513, 0, "dmx_start_address is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  header->cc = RDM_CC_SET_COMMAND;
-  header->pid = RDM_PID_DMX_START_ADDRESS;
   rdm_driver_get_uid(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
+  header->cc = RDM_CC_SET_COMMAND;
+  header->pid = RDM_PID_DMX_START_ADDRESS;
+  header->pdl = sizeof(uint16_t);
 
   uint8_t pd_in[sizeof(dmx_start_address)];
   pd_emplace(pd_in, "w$", &dmx_start_address, sizeof(dmx_start_address), false);
