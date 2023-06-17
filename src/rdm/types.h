@@ -313,16 +313,6 @@ typedef struct __attribute__((packed)) rdm_header_t {
   uint16_t pid;  // The parameter ID (PID) identifies a specific type of parameter data.
 } rdm_header_t;
 
-/**
- * @brief A function type for RDM responder callbacks. This is the type of
- * function that is called when responding to RDM requests.
- */
-typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
-                                                 const rdm_header_t *header,
-                                                 void *pd, uint8_t *pdl,
-                                                 void *param, int num,
-                                                 void *context);
-
 typedef enum rdm_product_category_t {
   RDM_PRODUCT_CATEGORY_NOT_DECLARED = 0x0000,  // The product category is not declared.
 

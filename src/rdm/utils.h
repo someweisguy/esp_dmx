@@ -21,6 +21,16 @@ extern "C" {
 #endif
 
 /**
+ * @brief A function type for RDM responder callbacks. This is the type of
+ * function that is called when responding to RDM requests.
+ */
+typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
+                                                 const rdm_header_t *header,
+                                                 void *pd, uint8_t *pdl,
+                                                 void *param, unsigned int num,
+                                                 void *context);
+
+/**
  * @brief Copies RDM UID from a source buffer directly into a destination
  * buffer. This function swaps endianness, allowing for UIDs to be copied from
  * RDM packet buffers into ESP32 memory. Either the source or the destination
