@@ -90,8 +90,6 @@ typedef struct dmx_driver_t {
     uint32_t num_callbacks;
     struct rdm_cb_table_t {
       rdm_pid_description_t desc;
-      rdm_encode_decode_t get;
-      rdm_encode_decode_t set;
       rdm_response_cb_t cb;
       void *param;
       int num;
