@@ -174,14 +174,6 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
   return n;
 }
 
-size_t get_preamble_len(const void *data) {
-  size_t preamble_len = 0;
-  for (const uint8_t *d = data; preamble_len <= 7; ++preamble_len) {
-    if (d[preamble_len] == RDM_DELIMITER) break;
-  }
-  return preamble_len;
-}
-
 size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
                 void *pd) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");

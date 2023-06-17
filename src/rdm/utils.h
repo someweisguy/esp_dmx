@@ -171,16 +171,6 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
                   size_t num, bool encode_nulls);
 
 /**
- * @brief Get the preamble length of a DISC_UNIQUE_BRANCH response. A
- * DISC_UNIQUE_BRANCH response contains a preamble of between 0 and 7
- * (inclusive) preamble bytes and one delimiter byte.
- *
- * @param data A pointer to a buffer containing a DISC_UNIQUE_BRANCH response.
- * @return The number of preamble bytes in the buffer.
- */
-size_t get_preamble_len(const void *data);
-
-/**
  * @brief Reads and formats a received RDM message from the DMX driver buffer.
  *
  * @param dmx_num The DMX port number.

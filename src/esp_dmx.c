@@ -180,6 +180,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                          ? ESP_FAIL               // Missing stop bits
                          : ESP_ERR_NOT_FINISHED;  // UART overflow
       } else if (intr_flags & DMX_INTR_RX_DATA) {
+        // TODO: if driver->data.head > 16, call rdm_read(dmx_num, &header, 0, NULL)
+        
         // Check if a full packet has been received and process packet data
         if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
           if (driver->data.head < RDM_BASE_PACKET_SIZE ||
@@ -206,7 +208,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
                     *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
-          const size_t preamble_len = get_preamble_len(driver->data.buffer);
+          size_t preamble_len = 0;
+          for (; preamble_len <= 7; ++preamble_len) {
+            if (driver->data.buffer[preamble_len] == RDM_DELIMITER) break;
+          }
           if (preamble_len <= 7) {
             if (driver->data.head < preamble_len + 17) {
               continue;  // Haven't received DISC_UNIQUE_BRANCH response yet
