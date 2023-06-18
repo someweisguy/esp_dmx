@@ -1144,7 +1144,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
 
     // Wait for a task notification
-    const bool notified = xTaskNotifyWait(0, -1, &err, wait_ticks);
+    const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
     taskENTER_CRITICAL(spinlock);
     packet_size = driver->data.head;
     driver->task_waiting = NULL;
