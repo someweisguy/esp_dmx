@@ -560,12 +560,9 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
     response_type = header->response_type;  // Response is ok
   }
 
-  int decoded;  // FIXME: set, but not used
+  uint32_t decoded;
   // Handle the response based on the response type
-  if (response_type == RDM_RESPONSE_TYPE_ACK) {
-    // TODO: what to do here?
-
-  } else if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+  if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
     // Get and convert the estimated response time to FreeRTOS ticks
     decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
   } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
@@ -575,12 +572,14 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
     ESP_LOGW(TAG, "RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");
     decoded = 0;
   } else {
-    decoded = 0;  // This code should never run
+    // Do nothing when response_type is RDM_RESPONSE_TYPE_ACK
+    decoded = 0;
   }
 
   // Report the results back to the caller
   if (ack != NULL) {
     ack->type = response_type;
+    ack->timer = decoded;
   }
 
   return (response_type == RDM_RESPONSE_TYPE_ACK);

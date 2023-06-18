@@ -241,7 +241,6 @@ typedef struct rdm_ack_t {
   size_t size;               // The size of the packet received.
   rdm_response_type_t type;  // The type of the RDM response received.
   union {
-    // TODO: The size of the packet received. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK or RDM_RESPONSE_TYPE_ACK_OVERFLOW.
     TickType_t timer;      // The amount of time in FreeRTOS ticks until the responder device will be ready to respond to the request. This field should be read when the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.
     rdm_nr_t nack_reason;  // The reason that the request was unable to be fulfilled. This field should be read when the response type received is RDM_RESPONSE_TYPE_NACK_REASON.
   };
