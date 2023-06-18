@@ -369,11 +369,6 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
   taskEXIT_CRITICAL(spinlock);
 
-  for (int i = 0; i < written; ++i) {
-    printf("%02x ", driver->data.buffer[i]);
-  }
-  printf("\n");
-
   return written;
 }
 
@@ -432,12 +427,6 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
       if (ack != NULL) {
         ack->type = RDM_RESPONSE_TYPE_INVALID;
       }
-      return false;
-    } else if (size == 0) {
-      if (ack != NULL) {
-        ack->type = RDM_RESPONSE_TYPE_NONE;
-      }
-      ESP_LOGW(TAG, "here");
       return false;
     }
   } else {
