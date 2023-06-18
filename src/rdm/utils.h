@@ -27,7 +27,7 @@ extern "C" {
 typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
                                                  const rdm_header_t *header,
                                                  void *pd, uint8_t *pdl_out,
-                                                 void *param, unsigned int num,
+                                                 void *param, size_t param_size,
                                                  void *context);
 
 /**
@@ -178,6 +178,8 @@ static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
 size_t pd_emplace(void *destination, const char *format, const void *source,
                   size_t num, bool encode_nulls);
 
+size_t pd_emplace_word(void *destination, uint16_t word);
+
 /**
  * @brief Reads and formats a received RDM message from the DMX driver buffer.
  *
@@ -262,7 +264,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
 bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            rdm_pid_description_t *desc,
                            rdm_response_cb_t callback, void *param,
-                           unsigned int num, void *context);
+                           size_t param_len, void *context);
 
 #ifdef __cplusplus
 }

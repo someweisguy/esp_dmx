@@ -1208,6 +1208,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // TODO: Verify the packet format is valid
   /*
+  if (header->cc == RDM_CC_DISC_COMMAND && !(header->pid ==
+    RDM_PID_DISC_UNIQUE_BRANCH || header->pid == RDM_PID_DISC_MUTE || header->pid
+    RDM_PID_DISC_UN_MUTE)) { return failure }
   message_len >= 24 (how to check this?)
   !uid_is_broadcast(&header->src_uid)
   port_id > 0 (should this be enforced? Maybe turn on/off in sdkconfig?)
@@ -1226,11 +1229,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       if (header.pdl > 0) {
         rdm_read(dmx_num, NULL, header.pdl, pd);
       }
-      int num = driver->rdm.cbs[cb_num].num;
+      size_t param_len = driver->rdm.cbs[cb_num].len;
       void *param = driver->rdm.cbs[cb_num].param;
       void *const context = driver->rdm.cbs[cb_num].context;
       response_type = driver->rdm.cbs[cb_num].cb(dmx_num, &header, pd, &pdl_out,
-                                                 param, num, context);
+                                                 param, param_len, context);
       break;
     }
   }

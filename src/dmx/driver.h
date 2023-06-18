@@ -91,7 +91,7 @@ typedef struct dmx_driver_t {
       rdm_pid_description_t desc;
       rdm_response_cb_t cb;
       void *param;
-      unsigned int num;
+      size_t len;
       void *context;
     } cbs[CONFIG_RDM_RESPONDER_MAX_PARAMETERS];
   } rdm;

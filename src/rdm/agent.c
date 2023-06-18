@@ -74,9 +74,15 @@ void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
 static int rdm_default_discovery_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *pd,
                                     uint8_t *pdl_out, void *param,
-                                    unsigned int num, void *context) {
+                                    size_t param_len, void *context) {
   // Ignore this message if discovery is muted
   if (rdm_driver_is_muted(dmx_num)) {
+    return RDM_RESPONSE_TYPE_NONE;
+  }
+
+  // Return early if the sub-device is out of range
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    // Cannot respond to RDM_CC_DISC_COMMAND with NACK
     return RDM_RESPONSE_TYPE_NONE;
   }
 
@@ -189,9 +195,18 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
 static int rdm_simple_response_cb(dmx_port_t dmx_num,
                                   const rdm_header_t *header, void *pd,
                                   uint8_t *pdl_out, void *param,
-                                  unsigned int num, void *context) {
-  
-  // TODO
+                                  size_t param_len, void *context) {
+  // Return early if the sub-device is out of range
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    *pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  if (header->cc == RDM_CC_GET_COMMAND) {
+    *pdl_out = pd_emplace(pd, context, param, param_len, false);
+  } else {
+    pd_emplace(param, context, pd, header->pdl, true);
+  }
 
   return RDM_RESPONSE_TYPE_ACK;
 }
@@ -214,7 +229,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
                                rdm_simple_response_cb, device_info, 1,
-                               param_str);
+                               (void *)param_str);
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
@@ -240,9 +255,9 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
     num = 32;
   }
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_simple_response_cb, software_version_label,
-                               num, param_str);
+  return rdm_register_response(
+      dmx_num, RDM_SUB_DEVICE_ROOT, &desc, rdm_simple_response_cb,
+      (void *)software_version_label, num, (void *)param_str);
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num) {
@@ -276,9 +291,9 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                 .max_value = 512,
                                 .default_value = 1,
                                 .description = "DMX Start Address"};
+  const char *param_str = "w$";
 
-  // return rdm_register_callback(dmx_num, &desc, &get, &set,
-  //                              rdm_simple_param_cb, dmx_start_address, 1,
-  //                              NULL);
-  return false;
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
+                               rdm_simple_response_cb, dmx_start_address,
+                               sizeof(uint16_t), (void *)param_str);
 }
