@@ -19,7 +19,7 @@ extern "C" {
 /**
  * @brief RDM unique ID type.
  */
-typedef struct __attribute__((__packed__)) rdm_uid_t {
+typedef struct __attribute__((packed)) rdm_uid_t {
   uint16_t man_id;
   uint32_t dev_id;
 } rdm_uid_t;
