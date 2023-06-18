@@ -109,9 +109,10 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
  * @param[out] uids An array of UIDs used to store found device UIDs.
  * @param size The size of the provided UID array.
  * @return The number of devices found.
+ * // TODO: docs
  */
 int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
-                                const size_t size);
+                                unsigned int num);
 
 /**
  * @brief Sends an RDM get device info request and reads the response, if any.
