@@ -252,18 +252,15 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
                                rdm_default_discovery_cb, NULL, 0, NULL);
 }
 
-// static int rdm_simple_param_cb(dmx_port_t dmx_num, const rdm_header_t
-// *header,
-//                                rdm_encode_decode_t *functions, rdm_mdb_t
-//                                *mdb, void *param, int num, void *context) {
-//   // if (functions->decode != NULL) {
-//   //   functions->decode(mdb, param, num);
-//   // }
-//   // if (functions->encode != NULL) {
-//   //   functions->encode(mdb, param, num);
-//   // }
-//   return RDM_RESPONSE_TYPE_ACK;
-// }
+static int rdm_simple_response_cb(dmx_port_t dmx_num,
+                                  const rdm_header_t *header, void *pd,
+                                  uint8_t *pdl_out, void *param,
+                                  unsigned int num, void *context) {
+  
+  // TODO
+
+  return RDM_RESPONSE_TYPE_ACK;
+}
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info) {
@@ -279,12 +276,11 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
                                 .max_value = 0,
                                 .default_value = 0,
                                 .description = "Device Info"};
+  const char *param_str = "#0100hwwdwbbwwb$";
 
-  // return rdm_register_callback(dmx_num, &desc, &get, NULL,
-  // rdm_simple_param_cb,
-  //                              device_info, 1, NULL);
-
-  return false;
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
+                               rdm_simple_response_cb, device_info, 1,
+                               param_str);
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
@@ -301,16 +297,18 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                 .max_value = 0,
                                 .default_value = 0,
                                 .description = "Software Version Label"};
+  const char *param_str = "a";
 
-  // size_t len = strlen(software_version_label);
-  // if (len > 32) {
-  //   len = 32;
-  // }
+  // Get the string length and clamp it to 32 chars
+  unsigned int num = strlen(software_version_label);
+  if (num > 32) {
+    ESP_LOGW(TAG, "Software version label will be truncated to 32 characters.");
+    num = 32;
+  }
 
-  // return rdm_register_callback(dmx_num, &desc, &get, NULL,
-  //                              rdm_simple_param_cb,
-  //                              (void *)software_version_label, len, NULL);
-  return false;
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
+                               rdm_simple_response_cb, software_version_label,
+                               num, param_str);
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num) {
