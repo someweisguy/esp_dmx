@@ -428,6 +428,12 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
         ack->type = RDM_RESPONSE_TYPE_INVALID;
       }
       return false;
+    } else if (size == 0) {
+      // TODO: remove this else if when refactoring dmx_receive()
+      if (ack != NULL) {
+        ack->type = RDM_RESPONSE_TYPE_NONE;
+      }
+      return false;
     }
   } else {
     if (ack != NULL) {
@@ -438,7 +444,6 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
     dmx_wait_sent(dmx_num, 2);
     return false;
   }
-
 
   // Handle the RDM response packet
   const rdm_header_t req = *header;
