@@ -129,32 +129,44 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
   for (int i = 0; i < num_params_to_copy; ++i) {
     for (const char *f = format; *f != '\0'; ++f) {
       if (*f == 'b' || *f == 'B') {
-        *(uint8_t *)(destination + n) = *(uint8_t *)(source + n);
+        if (destination != NULL) {
+          *(uint8_t *)(destination + n) = *(uint8_t *)(source + n);
+        }
         n += sizeof(uint8_t);
       } else if (*f == 'w' || *f == 'W') {
-        *(uint16_t *)(destination + n) = bswap16(*(uint16_t *)(source + n));
+        if (destination != NULL) {
+          *(uint16_t *)(destination + n) = bswap16(*(uint16_t *)(source + n));
+        }
         n += sizeof(uint16_t);
       } else if (*f == 'd' || *f == 'D') {
-        *(uint32_t *)(destination + n) = bswap32(*(uint32_t *)(source + n));
+        if (destination != NULL) {
+          *(uint32_t *)(destination + n) = bswap32(*(uint32_t *)(source + n));
+        }
         n += sizeof(uint32_t);
       } else if (*f == 'u' || *f == 'U' || *f == 'v' || *f == 'V') {
-        if ((*f == 'v' || *f == 'V') && !encode_nulls &&
+        if ((*f == 'v' || *f == 'V') && !encode_nulls && source != NULL &&
             uid_is_null(source + n)) {
           break;  // Optional UIDs will be at end of parameter string
         }
-        uidmove(destination + n, source + n);
+        if (destination != NULL && source != NULL) {
+          uidmove(destination + n, source + n);
+        }
         n += sizeof(rdm_uid_t);
       } else if (*f == 'a' || *f == 'A') {
         size_t len = atoi(f + 1);
-        if (len == 0) {
+        if (len == 0 && source != NULL) {
           // Field is a variable-length string
           const size_t str_size = num - (encode_nulls ? 1 : 0);
           const size_t max_len = (str_size - n) < 32 ? (str_size - n) : 32;
           len = strnlen(source + n, max_len);
         }
-        memmove(destination + n, source + n, len);
+        if (destination != NULL && source != NULL) {
+          memmove(destination + n, source + n, len);
+        }
         if (encode_nulls) {
-          *((uint8_t *)destination + len) = '\0';
+          if (destination != NULL) {
+            *((uint8_t *)destination + len) = '\0';
+          }
           ++n;  // Null terminator was encoded
         }
         n += len;
@@ -163,8 +175,10 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
         char *end_ptr;
         const uint64_t literal = strtol(f, &end_ptr, 16);
         const int literal_len = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
-        for (int j = 0, k = literal_len - 1; j < literal_len; ++j, --k) {
-          ((uint8_t *)destination + n)[j] = ((uint8_t *)&literal)[k];
+        if (destination != NULL) {
+          for (int j = 0, k = literal_len - 1; j < literal_len; ++j, --k) {
+            ((uint8_t *)destination + n)[j] = ((uint8_t *)&literal)[k];
+          }
         }
         f = end_ptr;
         n += literal_len;
@@ -355,6 +369,11 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
   taskEXIT_CRITICAL(spinlock);
 
+  for (int i = 0; i < written; ++i) {
+    printf("%02x ", driver->data.buffer[i]);
+  }
+  printf("\n");
+
   return written;
 }
 
@@ -395,10 +414,10 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
   header->message_count = 0;
 
   // Write and sdn the response and determind if a response is expected
-  size_t size = rdm_write(dmx_num, header, pdl_in, pd_in);
   const bool response_expected = !uid_is_broadcast(&header->dest_uid) ||
                                  (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
                                   header->cc == RDM_CC_DISC_COMMAND);
+  size_t size = rdm_write(dmx_num, header, pdl_in, pd_in);
   dmx_send(dmx_num, size);
 
   // Return early if a packet error occurred or if no response was expected
@@ -414,6 +433,12 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
         ack->type = RDM_RESPONSE_TYPE_INVALID;
       }
       return false;
+    } else if (size == 0) {
+      if (ack != NULL) {
+        ack->type = RDM_RESPONSE_TYPE_NONE;
+      }
+      ESP_LOGW(TAG, "here");
+      return false;
     }
   } else {
     if (ack != NULL) {
@@ -424,6 +449,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
     dmx_wait_sent(dmx_num, 2);
     return false;
   }
+
 
   // Handle the RDM response packet
   const rdm_header_t req = *header;
