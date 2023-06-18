@@ -79,22 +79,6 @@ bool rdm_driver_is_muted(dmx_port_t dmx_num) {
   return is_muted;
 }
 
-bool rdm_driver_get_device_info(dmx_port_t dmx_num,
-                                rdm_device_info_t *device_info) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(device_info != NULL, false, "device_info is null");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  taskENTER_CRITICAL(spinlock);
-  *device_info = driver->rdm.device_info;
-  taskEXIT_CRITICAL(spinlock);
-
-  return true;
-}
-
 void rdm_driver_set_device_info(dmx_port_t dmx_num,
                                 const rdm_device_info_t *device_info) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");

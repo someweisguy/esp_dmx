@@ -43,19 +43,6 @@ void rdm_driver_set_uid(dmx_port_t dmx_num, rdm_uid_t uid);
 bool rdm_driver_is_muted(dmx_port_t dmx_num);
 
 /**
- * @brief Gets the device info for this device. To get the device info of a
- * responder device, use `rdm_get_device_info()`.
- *
- * @param dmx_num The DMX port number.
- * @param[out] device_info A pointer to a struct which stores a copy of this
- * device's device info.
- * @return true if the device info was copied.
- * @return false if the the device info was not copied.
- */
-bool rdm_driver_get_device_info(dmx_port_t dmx_num,
-                                rdm_device_info_t *device_info);
-
-/**
  * @brief Sets the device info for this device.
  *
  * @param dmx_num The DMX port number.
