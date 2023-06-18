@@ -244,9 +244,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       driver->end_of_packet = true;
       driver->data.sent_last = false;
       driver->data.type = packet_type;
-      driver->data.err = packet_err;
       if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
+        xTaskNotifyFromISR(driver->task_waiting, packet_err,
                            eSetValueWithOverwrite, &task_awoken);
       }
       taskEXIT_CRITICAL_ISR(spinlock);
@@ -277,7 +276,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       driver->is_sending = false;
       driver->data.timestamp = now;
       if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, 0, eNoAction, &task_awoken);
+        xTaskNotifyFromISR(driver->task_waiting, ESP_OK, eNoAction,
+                           &task_awoken);
       }
       taskEXIT_CRITICAL_ISR(spinlock);
 
@@ -382,8 +382,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     }
   } else if (driver->task_waiting) {
     // Notify the task
-    xTaskNotifyFromISR(driver->task_waiting, driver->data.head,
-                       eSetValueWithOverwrite, &task_awoken);
+    xTaskNotifyFromISR(driver->task_waiting, ESP_OK, eSetValueWithOverwrite,
+                       &task_awoken);
 
     // Pause the receive timer alarm
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -1063,6 +1063,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   dmx_driver_t *const restrict driver = dmx_driver[dmx_num];
 
   // Set default return value and default values for output argument
+  esp_err_t err = ESP_OK;
   uint32_t packet_size = 0;
   if (packet != NULL) {
     packet->err = ESP_ERR_TIMEOUT;
@@ -1143,8 +1144,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
 
     // Wait for a task notification
-    const bool notified = xTaskNotifyWait(0, -1, &packet_size, wait_ticks);
+    const bool notified = xTaskNotifyWait(0, -1, &err, wait_ticks);
     taskENTER_CRITICAL(spinlock);
+    packet_size = driver->data.head;
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(spinlock);
     if (!notified) {
@@ -1170,7 +1172,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Parse DMX data packet
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
-    packet->err = driver->data.err;
+    packet->err = err;  // FIXME
     packet->sc = packet_size > 0 ? driver->data.buffer[0] : -1;
     driver->new_packet = false;
     taskEXIT_CRITICAL(spinlock);

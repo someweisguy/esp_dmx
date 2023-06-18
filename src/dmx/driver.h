@@ -68,8 +68,6 @@ typedef struct dmx_driver_t {
     int sent_last;      // True if the last packet was sent from this driver.
     int type;           // The type of the packet received.
     int64_t timestamp;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
-
-    esp_err_t err;  // The error state of the received DMX data.
   } data;
 
   int is_in_break;    // True if the driver is sending or receiving a DMX break.
