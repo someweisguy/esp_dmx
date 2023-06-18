@@ -482,7 +482,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->is_enabled = true;
 
   // Initialize RDM settings
-  driver->rdm.uid = RDM_UID_NULL;
   driver->rdm.tn = 0;
   driver->rdm.discovery_is_muted = false;
   driver->rdm.num_callbacks = 0;

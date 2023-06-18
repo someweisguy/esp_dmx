@@ -80,7 +80,6 @@ typedef struct dmx_driver_t {
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
   struct rdm_info_t {
-    rdm_uid_t uid;          // The assigned RDM UID of this port. Must be allocated on the heap to allow for unaligned memory access.
     uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
     int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
     int identify_device;     // True if RDM identify is active.
