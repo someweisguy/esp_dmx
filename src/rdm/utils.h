@@ -209,8 +209,7 @@ void rdm_identify_set(const bool identify);
  * invalid.
  * // TODO
  */
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
-                void *pd);
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
 
 /**
  * @brief Writes and formats an RDM message into the DMX driver buffer.
@@ -223,8 +222,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
  * error.
  * // TODO
  */
-size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
-                 const void *pd);
+size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 
 /**
  * @brief Sends an RDM controller request and processes the response. It is
@@ -259,9 +257,8 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
  * @return The size of the received RDM packet or 0 if no packet was received.
  */
 // TODO: docs
-bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
-                 const void *pd_in, uint8_t pdl_out, void *pd_out,
-                 rdm_ack_t *ack);
+bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
+                 void *pd_out, size_t num, rdm_ack_t *ack);
 
 /**
  * @brief Registers a callback which is called when a request is received for

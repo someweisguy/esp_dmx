@@ -180,7 +180,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                          ? ESP_FAIL               // Missing stop bits
                          : ESP_ERR_NOT_FINISHED;  // UART overflow
       } else if (intr_flags & DMX_INTR_RX_DATA) {
-        // TODO: if driver->data.head >= 17, call rdm_read(dmx_num, &header, 0, NULL)
+        // TODO: if driver->data.head >= 17, call rdm_read(dmx_num, &header, NULL, 0)
         // TODO: rdm_read() must be declared DMX_ISR_ATTR
 
         // Check if a full packet has been received and process packet data
@@ -1184,7 +1184,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Return early if the packet is neither RDM nor an RDM request
   rdm_header_t header;
-  if (!rdm_read(dmx_num, &header, 0, NULL) || header.message_len > 0 ||
+  if (!rdm_read(dmx_num, &header, NULL, 0) || header.message_len > 0 ||
       (header.cc != RDM_CC_DISC_COMMAND && header.cc != RDM_CC_GET_COMMAND &&
        header.cc != RDM_CC_SET_COMMAND)) {
     xSemaphoreGiveRecursive(driver->mux);
@@ -1223,7 +1223,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   for (; cb_num < driver->rdm.num_callbacks; ++cb_num) {
     if (driver->rdm.cbs[cb_num].desc.pid == header.pid) {
       if (header.pdl > 0) {
-        rdm_read(dmx_num, NULL, header.pdl, pd);
+        rdm_read(dmx_num, NULL, pd, sizeof(pd));
       }
       size_t param_len = driver->rdm.cbs[cb_num].len;
       void *param = driver->rdm.cbs[cb_num].param;
@@ -1263,10 +1263,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.message_count = 0;  // TODO: update this if messages are queued
   header.cc += 1;  // Set to RCM_CC_x_COMMAND_RESPONSE
   header.pdl = pdl_out;
-  // These fields should not change: message_len, tn, sub_device, and pid
+  // These fields should not change: tn, sub_device, and pid
+  // The message_len field will be updated in rdm_write()
   
   // Write the RDM response and send it
-  size_t response_size = rdm_write(dmx_num, &header, pdl_out, pd);
+  size_t response_size = rdm_write(dmx_num, &header, pd);
   dmx_send(dmx_num, response_size);
 
   // Give the mutex back and return

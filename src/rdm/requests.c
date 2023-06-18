@@ -11,11 +11,11 @@ extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
-                                 const rdm_disc_unique_branch_t *param,
+                                 const rdm_disc_unique_branch_t *branch,
                                  rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(param != NULL, 0, "param is null");
+  DMX_CHECK(branch != NULL, 0, "branch is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   uid_get(dmx_num, &header->src_uid);
@@ -24,16 +24,15 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
   header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-  header->pdl = sizeof(rdm_disc_unique_branch_t);
+  header->pdl = sizeof(*branch);
 
-  uint8_t pd_in[sizeof(*param)];
-  pd_emplace(pd_in, "uu$", param, sizeof(*param), false);
-
-  return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, 0, NULL, ack);
+  rdm_disc_unique_branch_t param;
+  pd_emplace(&param, "uu$", branch, sizeof(*branch), false);
+  return rdm_request(dmx_num, header, &param, NULL, 0, ack);
 }
 
 bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
-                        rdm_ack_t *ack, rdm_disc_mute_t *param) {
+                        rdm_ack_t *ack, rdm_disc_mute_t *mute) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -45,15 +44,17 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DISC_MUTE;
   header->pdl = 0;
 
-  uint8_t pd_out[sizeof(*param)];
-  bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
-  pd_emplace(param, "wv$", pd_out, sizeof(*param), true);
+  rdm_disc_mute_t param;
+  bool ret = rdm_request(dmx_num, header, NULL, &param, sizeof(param), ack);
+  if (ret && mute != NULL) {
+    pd_emplace(mute, "wv$", &param, sizeof(*mute), true);
+  }
 
   return ret;
 }
 
 bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
-                           rdm_ack_t *ack, rdm_disc_mute_t *param) {
+                           rdm_ack_t *ack, rdm_disc_mute_t *mute) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -65,9 +66,11 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DISC_UN_MUTE;
   header->pdl = 0;
 
-  uint8_t pd_out[sizeof(*param)];
-  bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
-  pd_emplace(param, "wv$", pd_out, sizeof(*param), true);
+  rdm_disc_mute_t param;
+  bool ret = rdm_request(dmx_num, header, NULL, &param, sizeof(param), ack);
+  if (ret && mute != NULL) {
+    pd_emplace(mute, "wv$", &param, sizeof(*mute), true);
+  }
 
   return ret;
 }
@@ -244,10 +247,10 @@ int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
 }
 
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
-                         rdm_ack_t *ack, rdm_device_info_t *param) {
+                         rdm_ack_t *ack, rdm_device_info_t *device_info) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(param != NULL, 0, "param is null");
+  DMX_CHECK(device_info != NULL, 0, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   uid_get(dmx_num, &header->src_uid);
@@ -256,18 +259,22 @@ bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DEVICE_INFO;
   header->pdl = 0;
 
-  uint8_t pd_out[sizeof(*param)];
-  bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
-  pd_emplace(param, "#0100hwwdwbbwwb$", pd_out, sizeof(*param), true);
+  rdm_device_info_t param;
+  bool ret = rdm_request(dmx_num, header, NULL, &param, sizeof(param), ack);
+  if (ret) {
+    pd_emplace(device_info, "#0100hwwdwbbwwb$", &param, sizeof(param), true);
+  }
 
   return ret;
 }
 
 bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
-                                    rdm_ack_t *ack, char *param, size_t size) {
+                                    rdm_ack_t *ack,
+                                    char *software_version_label, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(param != NULL, 0, "param is null");
+  DMX_CHECK(software_version_label != NULL, 0,
+            "software_version_label is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   uid_get(dmx_num, &header->src_uid);
@@ -276,14 +283,11 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   header->pdl = 0;
   
-  // Clamp size to 32 chars
-  if (size > 32) {
-    size = 32;
+  char param[32];
+  bool ret = rdm_request(dmx_num, header, NULL, param, sizeof(param), ack);
+  if (ret) {
+    pd_emplace(software_version_label, "a", &param, size, true);
   }
-
-  uint8_t pd_out[33];
-  bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(pd_out), pd_out, ack);
-  pd_emplace(param, "a", pd_out, size, true);
 
   return ret;
 }
@@ -301,35 +305,25 @@ bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_IDENTIFY_DEVICE;
   header->pdl = 0;
 
-  uint8_t pd_out[sizeof(*identify)];
-  bool ret =
-      rdm_request(dmx_num, header, 0, NULL, sizeof(*identify), pd_out, ack);
-  pd_emplace(identify, "b$", pd_out, sizeof(*identify), true);
-
-  return ret;
+  // Single-byte responses don't need to be emplaced
+  return rdm_request(dmx_num, header, NULL, identify, sizeof(*identify), ack);
 }
 
 bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             uint8_t identify, rdm_ack_t *ack) {
+                             const uint8_t identify, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(identify == 0 || identify == 1, 0, "identify is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // Clamp identify to 0 or 1
-  if (identify != 0) {
-    identify = 1;
-  }
 
   uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_IDENTIFY_DEVICE;
-  header->pdl = sizeof(uint8_t);
+  header->pdl = sizeof(identify);
 
-  uint8_t pd_in[sizeof(identify)];
-  pd_emplace(pd_in, "b$", &identify, sizeof(identify), false);
-
-  return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, 0, NULL, ack);
+  // Single-byte requests don't need to be emplaced
+  return rdm_request(dmx_num, header, &identify, NULL, 0, ack);
 }
 
 bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
@@ -345,16 +339,18 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DMX_START_ADDRESS;
   header->pdl = 0;
 
-  uint8_t pd_out[sizeof(*dmx_start_address)];
-  bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*dmx_start_address),
-                         pd_out, ack);
-  pd_emplace(dmx_start_address, "w$", pd_out, sizeof(*dmx_start_address), true);
+  uint16_t param;
+  bool ret = rdm_request(dmx_num, header, NULL, &param, sizeof(param), ack);
+  if (ret) {
+    pd_emplace(dmx_start_address, "w$", &param, sizeof(param), true);
+  }
 
   return ret;
 }
 
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                               uint16_t dmx_start_address, rdm_ack_t *ack) {
+                               const uint16_t dmx_start_address,
+                               rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_start_address < 513, 0, "dmx_start_address is invalid");
@@ -364,10 +360,9 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_DMX_START_ADDRESS;
-  header->pdl = sizeof(uint16_t);
+  header->pdl = sizeof(dmx_start_address);
 
-  uint8_t pd_in[sizeof(dmx_start_address)];
-  pd_emplace(pd_in, "w$", &dmx_start_address, sizeof(dmx_start_address), false);
-
-  return rdm_request(dmx_num, header, sizeof(pd_in), pd_in, 0, NULL, ack);
+  uint16_t param;
+  pd_emplace(&param, "w$", &dmx_start_address, sizeof(param), false);
+  return rdm_request(dmx_num, header, &param, NULL, 0, ack);
 }

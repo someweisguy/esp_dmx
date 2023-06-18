@@ -287,8 +287,8 @@ void rdm_identify_set(const bool identify) {
   // TODO
 }
 
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
-                void *pd) {
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
+                size_t num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -340,7 +340,8 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
       pd_emplace(header, "#cc01hbuubbbwbwb", header_ptr, sizeof(*header), true);
     }
     if (pd != NULL) {
-      memcpy(pd, pd_ptr, pdl);
+      const size_t copy_size = header->pdl < num ? header->pdl : num;
+      memcpy(pd, pd_ptr, copy_size);
     }
 
     // Update the read size
@@ -386,11 +387,9 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   return read;
 }
 
-size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
-                 const void *pd) {
+size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(pdl <= 231, 0, "pdl is invalid");
-  DMX_CHECK(header != NULL || (pd != NULL && pdl == sizeof(rdm_uid_t)), 0,
+  DMX_CHECK(header != NULL || pd != NULL, 0,
             "header is null and pd does not contain a UID");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -416,10 +415,10 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
   if (header != NULL && header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
     // Copy the header, pd, message_len, and pdl into the driver
-    header->pdl = pdl < 231 ? pdl : 231;
-    header->message_len = pdl + 24;
+    const size_t copy_size = header->pdl <= 231 ? header->pdl : 231;
+    header->message_len = copy_size + 24;
     pd_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header), false);
-    memcpy(pd_ptr, pd, pdl);
+    memcpy(pd_ptr, pd, copy_size);
 
     // Calculate and copy the checksum
     checksum = RDM_SC + RDM_SUB_SC;
@@ -441,8 +440,8 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
 
     // Encode the UID and calculate the checksum
     uint8_t uid[6];
-    if (pdl > 0 && pd != NULL) {
-      memcpy(uid, pd, sizeof(uid));
+    if (header == NULL) {
+      memcpy(uid, pd, sizeof(rdm_uid_t));
     } else {
       uidcpy(uid, &header->src_uid);
     }
@@ -471,13 +470,10 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, uint8_t pdl,
   return written;
 }
 
-bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
-                 const void *pd_in, uint8_t pdl_out, void *pd_out,
-                 rdm_ack_t *ack) {
+bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
+                 void *pd_out, size_t num, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(pd_in != NULL || pdl_in == 0, 0, "pdl_in is invalid");
-  DMX_CHECK(pd_out != NULL || pdl_out == 0, 0, "pdl_out is invalid");
   DMX_CHECK(!uid_is_null(&header->dest_uid), 0, "dest_uid is invalid");
   DMX_CHECK(!uid_is_broadcast(&header->src_uid), 0, "src_uid is invalid");
   DMX_CHECK(header->cc == RDM_CC_DISC_COMMAND ||
@@ -488,6 +484,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
       header->sub_device < 513 || (header->sub_device == RDM_SUB_DEVICE_ALL &&
                                    header->cc != RDM_CC_GET_COMMAND),
       0, "sub_device is invalid");
+  DMX_CHECK(header->pdl <= 231, 0, "pdl is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -511,7 +508,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
   const bool response_expected = !uid_is_broadcast(&header->dest_uid) ||
                                  (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
                                   header->cc == RDM_CC_DISC_COMMAND);
-  size_t size = rdm_write(dmx_num, header, pdl_in, pd_in);
+  size_t size = rdm_write(dmx_num, header, pd_in);
   dmx_send(dmx_num, size);
 
   // Return early if a packet error occurred or if no response was expected
@@ -547,7 +544,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
   // Handle the RDM response packet
   const rdm_header_t req = *header;
   rdm_response_type_t response_type;
-  if (!rdm_read(dmx_num, header, pdl_out, pd_out)) {
+  if (!rdm_read(dmx_num, header, pd_out, num)) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
   } else if (header->response_type != RDM_RESPONSE_TYPE_ACK &&
              header->response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
