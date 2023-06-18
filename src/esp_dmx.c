@@ -203,7 +203,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             packet_type = RDM_PACKET_TYPE_RESPONSE;
           }
           rdm_uid_t my_uid;
-          rdm_driver_get_uid(driver->dmx_num, &my_uid);
+          uid_get(driver->dmx_num, &my_uid);
           if (uid_is_target(&my_uid, &dest_uid)) {
             // TODO: packet is addressed to me
           }
@@ -1200,7 +1200,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Check that this device is targeted by the RDM packet
   rdm_uid_t my_uid;
-  rdm_driver_get_uid(dmx_num, &my_uid);
+  uid_get(dmx_num, &my_uid);
   if (!uid_is_target(&my_uid, &header.dest_uid)) {
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;

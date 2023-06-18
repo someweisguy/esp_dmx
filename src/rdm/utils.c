@@ -10,6 +10,29 @@
 #include "esp_log.h"
 #include "rdm/types.h"
 
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "esp_mac.h"
+#endif
+
+#ifndef CONFIG_RDM_DEVICE_UID_MAN_ID
+#define CONFIG_RDM_DEVICE_UID_MAN_ID 0
+#endif
+#ifndef CONFIG_RDM_DEVICE_UID_DEV_ID
+#define CONFIG_RDM_DEVICE_UID_DEV_ID 0
+#endif
+
+/**
+ * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
+ * with this software. Any device that uses this ID is associated with this
+ * library. Users of this library are welcome to use this manufacturer ID (as
+ * long as it is used responsibly) or may choose to register their own
+ * manufacturer ID.
+ */
+#define RDM_MAN_ID_DEFAULT (0x05e0)
+
+// TODO: docs
+static rdm_uid_t binding_uid = {};
+
 static const char *TAG = "rdm_utils";
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
@@ -25,6 +48,41 @@ void *uidmove(void *destination, const void *source) {
   const rdm_uid_t temp = {.man_id = ((rdm_uid_t *)source)->man_id,
                           .dev_id = ((rdm_uid_t *)source)->dev_id};
   return uidcpy(destination, &temp);
+}
+
+void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
+  // Initialize the binding UID if it isn't initialized
+  if (uid_is_null(&binding_uid)) {
+    uint16_t man_id;
+    uint32_t dev_id;
+#if CONFIG_RDM_DEVICE_UID_MAN_ID == 0
+    man_id = RDM_MAN_ID_DEFAULT;
+#else
+    man_id = CONFIG_RDM_DEVICE_UID_MAN_ID;
+#endif
+#if CONFIG_RDM_DEVICE_UID_DEV_ID == 0
+    uint8_t mac[8];
+    esp_efuse_mac_get_default(mac);
+    dev_id = bswap32(*(uint32_t *)(mac + 2));
+#else
+    dev_id = CONFIG_RDM_DEVICE_UID_DEV_ID;
+#endif
+    binding_uid.man_id = man_id;
+    binding_uid.dev_id = dev_id;
+  }
+
+  // Return early if there is an argument error
+  if (dmx_num >= DMX_NUM_MAX || uid == NULL) {
+    return;
+  }
+
+  // Copy the binding UID and increment the final octet by dmx_num
+  uid->man_id = binding_uid.man_id;
+  uid->dev_id = binding_uid.dev_id;
+  uint8_t last_octet = (uint8_t)binding_uid.dev_id;
+  last_octet += dmx_num;
+  uid->dev_id &= 0x00ffffff;
+  uid->dev_id |= last_octet;
 }
 
 static size_t rdm_param_parse(const char *format, bool *is_singleton) {
@@ -399,7 +457,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const uint8_t pdl_in,
     header->port_id = dmx_num + 1;
   }
   if (uid_is_null(&header->src_uid)) {
-    rdm_driver_get_uid(dmx_num, &header->src_uid);
+    uid_get(dmx_num, &header->src_uid);
   }
 
   // Set header values that the user cannot set themselves

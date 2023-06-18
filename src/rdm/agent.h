@@ -15,15 +15,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Returns the 48-bit unique ID of this device.
- *
- * @param dmx_num The DMX port number.
- * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
- * @return The UID of the DMX port.
- */
-void rdm_driver_get_uid(dmx_port_t dmx_num, rdm_uid_t *uid);
-
-/**
  * @brief Returns true if RDM discovery responses are be muted on this device.
  *
  * @param dmx_num The DMX port number.

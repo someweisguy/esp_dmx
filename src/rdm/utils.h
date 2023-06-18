@@ -62,6 +62,14 @@ void *uidcpy(void *restrict destination, const void *restrict source);
 void *uidmove(void *destination, const void *source);
 
 /**
+ * @brief Returns the 48-bit unique ID of the desired DMX port.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
+ */
+void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
+
+/**
  * @brief Returns true if the UIDs are equal to each other. Is equivalent to
  * a == b.
  *
