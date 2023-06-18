@@ -47,7 +47,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pd_out[sizeof(*param)];
   bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
-  pd_emplace(param, "wv&", pd_out, sizeof(*param), true);
+  pd_emplace(param, "wv$", pd_out, sizeof(*param), true);
 
   return ret;
 }
@@ -67,7 +67,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint8_t pd_out[sizeof(*param)];
   bool ret = rdm_request(dmx_num, header, 0, NULL, sizeof(*param), pd_out, ack);
-  pd_emplace(param, "wv&", pd_out, sizeof(*param), true);
+  pd_emplace(param, "wv$", pd_out, sizeof(*param), true);
 
   return ret;
 }
