@@ -252,7 +252,7 @@ typedef struct rdm_ack_t {
  * device's UID falls within the lower bound and upper bound, it will respond to
  * the discovery request.
  */
-typedef struct rdm_disc_unique_branch_t {
+typedef struct __attribute__((packed)) rdm_disc_unique_branch_t {
   rdm_uid_t lower_bound;  // The lower bound of the RDM discovery request.
   rdm_uid_t upper_bound;  // The upper bound of the RDM discovery request.
 } rdm_disc_unique_branch_t;
