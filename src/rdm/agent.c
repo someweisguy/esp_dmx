@@ -198,7 +198,9 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num,
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info) {
-  // TODO: arg check
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(device_info != NULL, false, "device_info is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   rdm_pid_description_t desc = {.pid = RDM_PID_DEVICE_INFO,
                                 .pdl_size = sizeof(rdm_device_info_t),
@@ -219,7 +221,10 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          const char *software_version_label) {
-  // TODO: arg check
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(software_version_label != NULL, false,
+            "software_version_label is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   rdm_pid_description_t desc = {.pid = RDM_PID_SOFTWARE_VERSION_LABEL,
                                 .pdl_size = 32,
@@ -275,7 +280,9 @@ static int rdm_identify_response_cb(dmx_port_t dmx_num,
 
 bool rdm_register_identify_device(dmx_port_t dmx_num,
                                   void (*identify_cb)(dmx_port_t, bool)) {
-  // TODO
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(identify_cb != NULL, false, "identify_cb is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   rdm_pid_description_t desc = {.pid = RDM_PID_IDENTIFY_DEVICE,
                                 .pdl_size = sizeof(uint8_t),
@@ -294,7 +301,9 @@ bool rdm_register_identify_device(dmx_port_t dmx_num,
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                     uint16_t *dmx_start_address) {
-  // TODO: arg check
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_start_address != NULL, false, "dmx_start_address is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
                                 .pdl_size = sizeof(uint16_t),
