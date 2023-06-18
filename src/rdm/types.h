@@ -266,12 +266,12 @@ typedef struct rdm_disc_unique_branch_t {
 typedef struct __attribute__((packed)) rdm_disc_mute_t {
   union {
     struct {
-      bool managed_proxy : 1;  // The manged proxy flag shall be set to 1 when the responder is a proxy device.
-      bool sub_device : 1;  // The boot-loader flag shall only be set to 1 when the device is incapable of normal operation until receiving a firmware upload.
-      bool boot_loader : 1;  // The proxied device flag shall only be set to 1 when a proxy is responding to discovery on behalf of another device. This flag indicates that the response has come from a proxy rather than the actual device.
-      bool proxied_device : 1;  // The binding UID field shall only be included when the responding device contains multiple responder ports. If the device does contain multiple ports then the binding UID field shall contain the UID for the primary port on the device. If the device does not contain multiple responder ports, this field is set to 0.
+      bool managed_proxy : 1;  // The managed proxy flag shall be set to 1 when the responder is a proxy device.
+      bool sub_device : 1;  // The sub-device flag shall be set to 1 when the responder supports sub-devices.
+      bool boot_loader : 1; // The boot-loader flag shall only be set to 1 when the device is incapable of normal operation until receiving a firmware upload. 
+      bool proxied_device : 1;  // The proxied device flag shall only be set to 1 when a proxy is responding to discovery on behalf of another device. This flag indicates that the response has come from a proxy rather than the actual device.
     };
-    uint16_t control_field;
+    uint16_t control_field;  // The control field contains bit flags. Bit 0 is the managed proxy flag, bit 1 is the sub-device flag, bit 2 is the boot-loader flag, bit 3 is the proxied device flag. Bits 4 through 15 are reserved and shall be set to 0.
   };
   rdm_uid_t binding_uid;  // The binding UID field shall only be included when the responding device contains multiple responder ports. If the device does contain multiple ports then the binding UID field shall contain the UID for the primary port on the device. If the device does not contain multiple responder ports, this field is set to 0.
 } rdm_disc_mute_t;
