@@ -1172,10 +1172,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Parse DMX data packet
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
-    packet->err = err;  // FIXME
     packet->sc = packet_size > 0 ? driver->data.buffer[0] : -1;
     driver->new_packet = false;
     taskEXIT_CRITICAL(spinlock);
+    packet->err = err; 
     packet->size = packet_size;
     packet->is_rdm = false;
   }
