@@ -91,7 +91,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 #endif
 
   // Initialize the stack with the initial branch instruction
-  size_t stack_size = 1;
+  int stack_size = 1;
   stack[0].lower_bound = RDM_UID_NULL;
   stack[0].upper_bound = RDM_UID_MAX;
 
