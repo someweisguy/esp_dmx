@@ -82,7 +82,6 @@ typedef struct dmx_driver_t {
   struct rdm_info_t {
     uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
     int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
-    int identify_device;     // True if RDM identify is active.
     rdm_device_info_t device_info;    // The RDM device info of this device.
 
     uint32_t num_callbacks;

@@ -181,6 +181,24 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
 size_t pd_emplace_word(void *destination, uint16_t word);
 
 /**
+ * @brief Returns true if RDM discovery responses are be muted on this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @return true if RDM discovery is muted.
+ * @return false if RDM discovery is not muted.
+ */
+bool rdm_discovery_is_muted(dmx_port_t dmx_num);
+
+// TODO: docs
+void rdm_discovery_mute(dmx_port_t dmx_num, const bool mute);
+
+// TODO: docs
+bool rdm_identify_get();
+
+// TODO: docs
+void rdm_identify_set(const bool identify);
+
+/**
  * @brief Reads and formats a received RDM message from the DMX driver buffer.
  *
  * @param dmx_num The DMX port number.

@@ -14,21 +14,6 @@ static const char *TAG = "rdm_agent";
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
-bool rdm_driver_is_muted(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  bool is_muted;
-  taskENTER_CRITICAL(spinlock);
-  is_muted = driver->rdm.discovery_is_muted;
-  taskEXIT_CRITICAL(spinlock);
-
-  return is_muted;
-}
-
 void rdm_driver_set_device_info(dmx_port_t dmx_num,
                                 const rdm_device_info_t *device_info) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
@@ -76,7 +61,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
                                     uint8_t *pdl_out, void *param,
                                     size_t param_len, void *context) {
   // Ignore this message if discovery is muted
-  if (rdm_driver_is_muted(dmx_num)) {
+  if (rdm_discovery_is_muted(dmx_num)) {
     return RDM_RESPONSE_TYPE_NONE;
   }
 
@@ -260,7 +245,36 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       (void *)software_version_label, num, (void *)param_str);
 }
 
-bool rdm_register_identify_device(dmx_port_t dmx_num) {
+static int rdm_identify_response_cb(dmx_port_t dmx_num,
+                                    const rdm_header_t *header, void *pd,
+                                    uint8_t *pdl_out, void *param,
+                                    size_t param_len, void *context) {
+  // Return early if the sub-device is out of range
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    *pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  const char *param_str = "b$";
+  if (header->cc == RDM_CC_GET_COMMAND) {
+    *pdl_out = pd_emplace(pd, param_str, param, param_len, false);
+  } else {
+    // Call the user-specified callback when the state changes
+    const uint8_t old_value = *(uint8_t *)param;
+    const uint8_t new_value = *(uint8_t *)pd;
+    if (old_value != new_value) {
+      void (*identify_callback)(dmx_port_t, bool) = context;
+      identify_callback(dmx_num, new_value);
+    }
+
+    pd_emplace(param, param_str, pd, header->pdl, true);
+  }
+
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+bool rdm_register_identify_device(dmx_port_t dmx_num,
+                                  void (*identify_cb)(dmx_port_t, bool)) {
   // TODO
 
   rdm_pid_description_t desc = {.pid = RDM_PID_IDENTIFY_DEVICE,
@@ -274,7 +288,8 @@ bool rdm_register_identify_device(dmx_port_t dmx_num) {
                                 .default_value = 0,
                                 .description = "Identify Device"};
 
-  return false;
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
+                               rdm_identify_response_cb, NULL, 0, identify_cb);
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,

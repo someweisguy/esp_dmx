@@ -497,9 +497,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->rdm.device_info.sub_device_count = 0;
   driver->rdm.device_info.sensor_count = 0;
 
-  // Initialize RDM identify device
-  driver->rdm.identify_device = false;
-
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
   driver->data.sent_last = false;

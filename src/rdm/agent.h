@@ -15,15 +15,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Returns true if RDM discovery responses are be muted on this device.
- *
- * @param dmx_num The DMX port number.
- * @return true if RDM discovery is muted.
- * @return false if RDM discovery is not muted.
- */
-bool rdm_driver_is_muted(dmx_port_t dmx_num);
-
-/**
  * @brief Sets the device info for this device.
  *
  * @param dmx_num The DMX port number.
@@ -70,7 +61,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          const char *software_version_label);
 
 // TODO: docs
-bool rdm_register_identify_device(dmx_port_t dmx_num);
+bool rdm_register_identify_device(dmx_port_t dmx_num,
+                                  void (*identify_cb)(dmx_port_t, bool));
 
 // TODO: docs
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
