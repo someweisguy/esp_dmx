@@ -267,7 +267,15 @@ bool rdm_discovery_is_muted(dmx_port_t dmx_num) {
 }
 
 void rdm_discovery_mute(dmx_port_t dmx_num, const bool mute) {
-  // TODO
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
+  
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  taskENTER_CRITICAL(spinlock);
+  driver->rdm.discovery_is_muted = mute;
+  taskEXIT_CRITICAL(spinlock);
 }
 
 bool rdm_identify_get() {

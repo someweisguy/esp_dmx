@@ -89,8 +89,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
     }
   } else {
     // Mute or un-mute the discovery responses
-    dmx_driver[dmx_num]->rdm.discovery_is_muted =
-        (header->pid == RDM_PID_DISC_MUTE);
+    rdm_discovery_mute(dmx_num, (header->pid == RDM_PID_DISC_MUTE));
 
     // Get the binding UID of this device
     int num_ports = 0;
