@@ -449,7 +449,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
     } else {
       uidcpy(uid, &header->src_uid);
     }
-    for (int i = 0, j = 0; i < sizeof(rdm_uid_t); i += 2, ++j) {
+    for (int i = 0, j = 0; j < sizeof(rdm_uid_t); i += 2, ++j) {
       header_ptr[i] = uid[j] | 0xaa;
       header_ptr[i + 1] = uid[j] | 0x55;
       checksum += uid[j] + (0xaa | 0x55);
@@ -459,8 +459,8 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
     // Encode the checksum
     header_ptr[0] = (uint8_t)(checksum >> 8) | 0xaa;
     header_ptr[1] = (uint8_t)(checksum >> 8) | 0x55;
-    header_ptr[2] = (uint8_t)checksum | 0xaa;
-    header_ptr[3] = (uint8_t)checksum | 0x55;
+    header_ptr[2] = (uint8_t)(checksum) | 0xaa;
+    header_ptr[3] = (uint8_t)(checksum) | 0x55;
 
     // Update written size
     written = preamble_len + 1 + 16;
