@@ -62,7 +62,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
 // TODO: docs
 bool rdm_register_identify_device(dmx_port_t dmx_num,
-                                  void (*identify_cb)(dmx_port_t, bool));
+                                  void (*identify_cb)(dmx_port_t, bool, void *),
+                                  void *context);
 
 // TODO: docs
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
