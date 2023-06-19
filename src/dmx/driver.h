@@ -34,15 +34,13 @@ extern "C" {
 #define CONFIG_RDM_RESPONDER_MAX_PARAMETERS 16
 #endif
 
-// Used for argument checking at the beginning of each function.
+/** @brief Used for argument checking at the beginning of each function.*/
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
-/**
- * @brief The DMX driver object used to handle reading and writing DMX data on 
+/** @brief The DMX driver object used to handle reading and writing DMX data on
  * the UART port. It storese all the information needed to run and analyze DMX
- * and RDM.
- */
+ * and RDM.*/
 typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
