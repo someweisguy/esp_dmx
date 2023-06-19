@@ -343,7 +343,8 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
       pd_emplace(header, "#cc01hbuubbbwbwb", header_ptr, sizeof(*header), true);
     }
     if (pd != NULL) {
-      const size_t copy_size = header->pdl < num ? header->pdl : num;
+      const uint8_t pdl = header_ptr[23];
+      const size_t copy_size = pdl < num ? pdl : num;
       memcpy(pd, pd_ptr, copy_size);
     }
 
