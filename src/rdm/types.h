@@ -284,9 +284,9 @@ typedef enum rdm_product_category_t {
   // Manufacturer Specific Categories: 0x8000-0xdfff
 } rdm_product_category_t;
 
-/** @brief Data type defines the size of teh data entries in the parameter data
+/** @brief Data type defines the size of the data entries in the parameter data
  * of an RDM message for a given PID.*/
-typedef enum rdm_data_type_t {
+typedef enum rdm_ds_t {
   /** @brief Data type is not defined.*/
   RDM_DS_NOT_DEFINED = 0x00,
   /** @brief Data is bit packed.*/
@@ -307,7 +307,7 @@ typedef enum rdm_data_type_t {
   RDM_DS_SIGNED_DWORD = 0x08,
 
   // Manufacturer Specific Data Types: 0x80-0xdf
-} rdm_data_type_t;
+} rdm_ds_t;
 
 /** @brief The units define the SI unit of a specific PID.*/
 typedef enum rdm_units_t {
