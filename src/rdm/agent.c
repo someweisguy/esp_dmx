@@ -104,7 +104,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
     }
     if (num_ports == 1) {
       // Only report binding UID if there are multiple ports
-      binding_uid = RDM_UID_NULL;
+      binding_uid = (rdm_uid_t){0, 0};
     }
 
     // Respond with this device's mute parameters

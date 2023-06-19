@@ -377,7 +377,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
     // Copy the data into the header
     if (header != NULL) {
       uidcpy(&header->src_uid, buf);
-      header->dest_uid = RDM_UID_NULL;
+      header->dest_uid = (rdm_uid_t){0, 0};
       header->tn = 0;
       header->response_type = RDM_RESPONSE_TYPE_ACK;
       header->message_count = 0;

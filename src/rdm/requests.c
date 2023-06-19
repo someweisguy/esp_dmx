@@ -95,7 +95,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
 
   // Initialize the stack with the initial branch instruction
   int stack_size = 1;
-  stack[0].lower_bound = RDM_UID_NULL;
+  stack[0].lower_bound = (rdm_uid_t){0, 0};
   stack[0].upper_bound = RDM_UID_MAX;
 
   rdm_header_t header;   // Send and receive header information.
@@ -119,7 +119,6 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
     if (uid_is_eq(&branch->lower_bound, &branch->upper_bound)) {
       // Can't branch further so attempt to mute the device
       do {
-        header.src_uid = RDM_UID_NULL;
         header.dest_uid = branch->lower_bound;
         rdm_send_disc_mute(dmx_num, &header, &mute, &ack);
       } while (ack.type != RDM_RESPONSE_TYPE_ACK && ++attempts < 3);
@@ -143,7 +142,6 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
     } else {
       // Search the current branch in the RDM address space
       do {
-        header.src_uid = RDM_UID_NULL;
         rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
       } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
       if (ack.type != RDM_RESPONSE_TYPE_NONE) {
@@ -164,8 +162,6 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
             // Attempt to mute the device
             attempts = 0;
             do {
-              header.src_uid = RDM_UID_NULL;
-              header.sub_device = RDM_SUB_DEVICE_ROOT;
               header.dest_uid = uid;
               rdm_send_disc_mute(dmx_num, &header, &mute, &ack);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
@@ -179,7 +175,6 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
             // Check if there are more devices in this branch
             attempts = 0;
             do {
-              header.dest_uid = RDM_UID_BROADCAST_ALL;
               rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
           } while (ack.type == RDM_RESPONSE_TYPE_ACK);
