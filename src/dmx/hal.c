@@ -7,7 +7,6 @@
 #endif
 
 void dmx_uart_init(uart_dev_t *uart) {
-  // Configure the UART for DMX output
   uart_ll_set_sclk(uart, UART_SCLK_APB);
 #if ESP_IDF_VERSION_MAJOR >= 5
   uart_ll_set_baudrate(uart, DMX_BAUD_RATE, esp_clk_apb_freq());
@@ -47,37 +46,37 @@ void dmx_uart_set_txfifo_empty(uart_dev_t *uart, uint8_t threshold) {
   uart_ll_set_txfifo_empty_thr(uart, threshold);
 }
 
-DMX_ISR_ATTR void dmx_uart_invert_tx(uart_dev_t *uart, uint32_t invert) {
+void DMX_ISR_ATTR dmx_uart_invert_tx(uart_dev_t *uart, uint32_t invert) {
   uart->conf0.txd_inv = invert;
 }
 
 int dmx_uart_get_rts(uart_dev_t *uart) { return uart->conf0.sw_rts; }
 
-DMX_ISR_ATTR int dmx_uart_get_interrupt_status(uart_dev_t *uart) {
+int DMX_ISR_ATTR dmx_uart_get_interrupt_status(uart_dev_t *uart) {
   return uart_ll_get_intsts_mask(uart);
 }
 
-DMX_ISR_ATTR void dmx_uart_enable_interrupt(uart_dev_t *uart, int mask) {
+void DMX_ISR_ATTR dmx_uart_enable_interrupt(uart_dev_t *uart, int mask) {
   uart_ll_ena_intr_mask(uart, mask);
 }
 
-DMX_ISR_ATTR void dmx_uart_disable_interrupt(uart_dev_t *uart, int mask) {
+void DMX_ISR_ATTR dmx_uart_disable_interrupt(uart_dev_t *uart, int mask) {
   uart_ll_disable_intr_mask(uart, mask);
 }
 
-DMX_ISR_ATTR void dmx_uart_clear_interrupt(uart_dev_t *uart, int mask) {
+void DMX_ISR_ATTR dmx_uart_clear_interrupt(uart_dev_t *uart, int mask) {
   uart_ll_clr_intsts_mask(uart, mask);
 }
 
-DMX_ISR_ATTR uint32_t dmx_uart_get_rxfifo_len(uart_dev_t *uart) {
+uint32_t DMX_ISR_ATTR dmx_uart_get_rxfifo_len(uart_dev_t *uart) {
   return uart_ll_get_rxfifo_len(uart);
 }
 
-DMX_ISR_ATTR uint32_t dmx_uart_get_rx_level(uart_dev_t *uart) {
+uint32_t DMX_ISR_ATTR dmx_uart_get_rx_level(uart_dev_t *uart) {
   return uart->status.rxd;
 }
 
-DMX_ISR_ATTR void dmx_uart_read_rxfifo(uart_dev_t *uart, uint8_t *buf,
+void DMX_ISR_ATTR dmx_uart_read_rxfifo(uart_dev_t *uart, uint8_t *buf,
                                        int *size) {
   const size_t rxfifo_len = uart_ll_get_rxfifo_len(uart);
   if (*size > rxfifo_len) {
@@ -86,25 +85,25 @@ DMX_ISR_ATTR void dmx_uart_read_rxfifo(uart_dev_t *uart, uint8_t *buf,
   uart_ll_read_rxfifo(uart, buf, *size);
 }
 
-DMX_ISR_ATTR void dmx_uart_set_rts(uart_dev_t *uart, int set) {
+void DMX_ISR_ATTR dmx_uart_set_rts(uart_dev_t *uart, int set) {
   uart_ll_set_rts_active_level(uart, set);
 }
 
-DMX_ISR_ATTR void dmx_uart_rxfifo_reset(uart_dev_t *uart) {
+void DMX_ISR_ATTR dmx_uart_rxfifo_reset(uart_dev_t *uart) {
   uart_ll_rxfifo_rst(uart);
 }
 
-DMX_ISR_ATTR uint32_t dmx_uart_get_txfifo_len(uart_dev_t *uart) {
+uint32_t DMX_ISR_ATTR dmx_uart_get_txfifo_len(uart_dev_t *uart) {
   return uart_ll_get_txfifo_len(uart);
 }
 
-DMX_ISR_ATTR void dmx_uart_write_txfifo(uart_dev_t *uart, const void *buf,
+void DMX_ISR_ATTR dmx_uart_write_txfifo(uart_dev_t *uart, const void *buf,
                                         size_t *size) {
   const size_t txfifo_len = uart_ll_get_txfifo_len(uart);
   if (*size > txfifo_len) *size = txfifo_len;
   uart_ll_write_txfifo(uart, (uint8_t *)buf, *size);
 }
 
-DMX_ISR_ATTR void dmx_uart_txfifo_reset(uart_dev_t *uart) {
+void DMX_ISR_ATTR dmx_uart_txfifo_reset(uart_dev_t *uart) {
   uart_ll_txfifo_rst(uart);
 }

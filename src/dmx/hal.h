@@ -76,7 +76,7 @@ void dmx_uart_set_txfifo_empty(uart_dev_t *uart, uint8_t threshold);
  * @param uart A pointer to a UART port.
  * @param invert_mask 1 to invert, 0 to un-invert.
  */
-DMX_ISR_ATTR void dmx_uart_invert_tx(uart_dev_t *uart, uint32_t invert);
+void dmx_uart_invert_tx(uart_dev_t *uart, uint32_t invert);
 
 /**
  * @brief Gets the level of the UART RTS line.
@@ -93,7 +93,7 @@ int dmx_uart_get_rts(uart_dev_t *uart);
  * @param uart A pointer to a UART port.
  * @return The interrupt status mask.
  */
-DMX_ISR_ATTR int dmx_uart_get_interrupt_status(uart_dev_t *uart);
+int dmx_uart_get_interrupt_status(uart_dev_t *uart);
 
 /**
  * @brief Enables UART interrupts using an interrupt mask.
@@ -101,7 +101,7 @@ DMX_ISR_ATTR int dmx_uart_get_interrupt_status(uart_dev_t *uart);
  * @param uart A pointer to a UART port.
  * @param mask The UART mask that is enabled.
  */
-DMX_ISR_ATTR void dmx_uart_enable_interrupt(uart_dev_t *uart, int mask);
+void dmx_uart_enable_interrupt(uart_dev_t *uart, int mask);
 
 /**
  * @brief Disables UART interrupts using an interrupt mask.
@@ -109,7 +109,7 @@ DMX_ISR_ATTR void dmx_uart_enable_interrupt(uart_dev_t *uart, int mask);
  * @param uart A pointer to a UART port.
  * @param mask The UART mask that is disabled.
  */
-DMX_ISR_ATTR void dmx_uart_disable_interrupt(uart_dev_t *uart, int mask);
+void dmx_uart_disable_interrupt(uart_dev_t *uart, int mask);
 
 /**
  * @brief Clears UART interrupts using a mask.
@@ -117,7 +117,7 @@ DMX_ISR_ATTR void dmx_uart_disable_interrupt(uart_dev_t *uart, int mask);
  * @param uart A pointer to a UART port.
  * @param mask The UART mask that is cleared.
  */
-DMX_ISR_ATTR void dmx_uart_clear_interrupt(uart_dev_t *uart, int mask);
+void dmx_uart_clear_interrupt(uart_dev_t *uart, int mask);
 
 /**
  * @brief Gets the current length of the bytes in the UART RX FIFO.
@@ -125,7 +125,7 @@ DMX_ISR_ATTR void dmx_uart_clear_interrupt(uart_dev_t *uart, int mask);
  * @param uart A pointer to a UART port.
  * @return The number of bytes in the UART RX FIFO.
  */
-DMX_ISR_ATTR uint32_t dmx_uart_get_rxfifo_len(uart_dev_t *uart);
+uint32_t dmx_uart_get_rxfifo_len(uart_dev_t *uart);
 
 /**
  * @brief Gets the level of the UART RX line.
@@ -134,7 +134,7 @@ DMX_ISR_ATTR uint32_t dmx_uart_get_rxfifo_len(uart_dev_t *uart);
  * @return The UART RX line level.
  */
 
-DMX_ISR_ATTR uint32_t dmx_uart_get_rx_level(uart_dev_t *uart);
+uint32_t dmx_uart_get_rx_level(uart_dev_t *uart);
 
 /**
  * @brief Reads from the UART RX FIFO.
@@ -145,8 +145,7 @@ DMX_ISR_ATTR uint32_t dmx_uart_get_rx_level(uart_dev_t *uart);
  * data.
  * @return The number of characters read.
  */
-DMX_ISR_ATTR void dmx_uart_read_rxfifo(uart_dev_t *uart, uint8_t *buf,
-                                       int *size);
+void dmx_uart_read_rxfifo(uart_dev_t *uart, uint8_t *buf, int *size);
 
 /**
  * @brief Enables or disables the UART RTS line.
@@ -155,13 +154,13 @@ DMX_ISR_ATTR void dmx_uart_read_rxfifo(uart_dev_t *uart, uint8_t *buf,
  * @param set 1 to enable the UART RTS line (set low; read), 0 to disable the
  * UART RTS line (set high; write).
  */
-DMX_ISR_ATTR void dmx_uart_set_rts(uart_dev_t *uart, int set);
+void dmx_uart_set_rts(uart_dev_t *uart, int set);
 /**
  * @brief Resets the UART RX FIFO.
  *
  * @param uart A pointer to a UART port.
  */
-DMX_ISR_ATTR void dmx_uart_rxfifo_reset(uart_dev_t *uart);
+void dmx_uart_rxfifo_reset(uart_dev_t *uart);
 
 /**
  * @brief Gets the length of the UART TX FIFO.
@@ -169,7 +168,7 @@ DMX_ISR_ATTR void dmx_uart_rxfifo_reset(uart_dev_t *uart);
  * @param uart A pointer to a UART port.
  * @return The length of the UART TX FIFO.
  */
-DMX_ISR_ATTR uint32_t dmx_uart_get_txfifo_len(uart_dev_t *uart);
+uint32_t dmx_uart_get_txfifo_len(uart_dev_t *uart);
 
 /**
  * @brief Writes to the UART TX FIFO.
@@ -178,15 +177,14 @@ DMX_ISR_ATTR uint32_t dmx_uart_get_txfifo_len(uart_dev_t *uart);
  * @param buf The source buffer from which to write.
  * @param size The number of bytes to write.
  */
-DMX_ISR_ATTR void dmx_uart_write_txfifo(uart_dev_t *uart, const void *buf,
-                                        size_t *size);
+void dmx_uart_write_txfifo(uart_dev_t *uart, const void *buf, size_t *size);
 
 /**
  * @brief Resets the UART TX FIFO.
  *
  * @param uart A pointer to a UART port.
  */
-DMX_ISR_ATTR void dmx_uart_txfifo_reset(uart_dev_t *uart);
+void dmx_uart_txfifo_reset(uart_dev_t *uart);
 
 #ifdef __cplusplus
 }
