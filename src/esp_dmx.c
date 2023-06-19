@@ -11,9 +11,9 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
-#include "rdm/utils.h"
 #include "rdm/requests.h"
 #include "rdm/responses.h"
+#include "rdm/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -182,7 +182,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                          ? ESP_FAIL               // Missing stop bits
                          : ESP_ERR_NOT_FINISHED;  // UART overflow
       } else if (intr_flags & DMX_INTR_RX_DATA) {
-        // TODO: if driver->data.head >= 17, call rdm_read(dmx_num, &header, NULL, 0)
+        // TODO: if driver->data.head >= 17, call rdm_read(dmx_num, &header,
+        // NULL, 0)
         // TODO: rdm_read() must be declared DMX_ISR_ATTR
 
         // Check if a full packet has been received and process packet data
@@ -684,7 +685,7 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
 bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
   bool is_enabled = false;
 
-  if(dmx_driver_is_installed(dmx_num)) {
+  if (dmx_driver_is_installed(dmx_num)) {
     spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
     taskENTER_CRITICAL(spinlock);
     is_enabled = dmx_driver[dmx_num]->is_enabled;
@@ -1149,7 +1150,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     packet->sc = packet_size > 0 ? driver->data.buffer[0] : -1;
     driver->new_packet = false;
     taskEXIT_CRITICAL(spinlock);
-    packet->err = err; 
+    packet->err = err;
     packet->size = packet_size;
     packet->is_rdm = false;
   }
@@ -1182,9 +1183,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // TODO: Verify the packet format is valid
   /*
-  if (header->cc == RDM_CC_DISC_COMMAND && !(header->pid ==
-    RDM_PID_DISC_UNIQUE_BRANCH || header->pid == RDM_PID_DISC_MUTE || header->pid
-    RDM_PID_DISC_UN_MUTE)) { return failure }
+  if (header->cc == RDM_CC_DISC_COMMAND && 
+    !(header->pid == RDM_PID_DISC_UNIQUE_BRANCH || 
+      header->pid == RDM_PID_DISC_MUTE || 
+      header->pid == RDM_PID_DISC_UN_MUTE)) { 
+    return failure;
+  }
   message_len >= 24 (how to check this?)
   !uid_is_broadcast(&header->src_uid)
   port_id > 0 (should this be enforced? Maybe turn on/off in sdkconfig?)
@@ -1211,7 +1215,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       break;
     }
   }
-  
+
   // Do not send a response if the packet was a non-discovery broadcast request
   if (uid_is_broadcast(&header.dest_uid) &&
       !(header.cc == RDM_CC_DISC_COMMAND &&
@@ -1243,7 +1247,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.pdl = pdl_out;
   // These fields should not change: tn, sub_device, and pid
   // The message_len field will be updated in rdm_write()
-  
+
   // Write the RDM response and send it
   size_t response_size = rdm_write(dmx_num, &header, pd);
   dmx_send(dmx_num, response_size);
@@ -1366,8 +1370,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   uidcpy(&dest_uid, &driver->data.buffer[3]);
   int packet_type = RDM_PACKET_TYPE_NON_RDM;
   if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
-    if (cc == RDM_CC_DISC_COMMAND &&
-        pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+    if (cc == RDM_CC_DISC_COMMAND && pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       packet_type = RDM_PACKET_TYPE_DISCOVERY;
       ++driver->rdm.tn;
     } else if (uid_is_broadcast(&dest_uid)) {
