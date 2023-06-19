@@ -612,7 +612,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Check if there is space for callbacks
-  if (i == sizeof(driver->rdm.cbs) / sizeof(rdm_cb_table_t)) {
+  if (i == 8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS) {
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
