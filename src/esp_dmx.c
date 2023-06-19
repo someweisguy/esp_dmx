@@ -402,34 +402,10 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 
 static const char *TAG = "dmx";  // The log tagline for the file.
 
-
-// FIXME
-// static int rdm_identify_device(dmx_port_t dmx_num, const rdm_header_t *header,
-//                                rdm_mdb_t *mdb, void *context) {
-//   // Ensure that the parameter data is the expected length
-//   if (!(header->cc == RDM_CC_GET_COMMAND && mdb->pdl == 0) &&
-//       !(header->cc == RDM_CC_SET_COMMAND && mdb->pdl == 1)) {
-//     rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
-//     return RDM_RESPONSE_TYPE_NACK_REASON;
-//   }
-
-//   if (header->cc == RDM_CC_GET_COMMAND) {
-//     rdm_encode_8bit(mdb, &dmx_driver[dmx_num]->rdm.identify_device, 1);
-//     return RDM_RESPONSE_TYPE_ACK;
-//   } else if (header->cc == RDM_CC_SET_COMMAND) {
-//     uint8_t set;
-//     rdm_decode_8bit(mdb, &set, 1);
-
-//     dmx_driver[dmx_num]->rdm.identify_device = set;
-
-//     // TODO: figure out a way to identify the device
-
-//     return RDM_RESPONSE_TYPE_ACK;
-//   } else {
-//     rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
-//     return RDM_RESPONSE_TYPE_NACK_REASON;
-//   }
-// }
+static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
+                                    void *context) {
+  // TODO
+}
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
@@ -580,7 +556,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   rdm_register_disc_mute(dmx_num);
   rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->rdm.device_info);
   rdm_register_software_version_label(dmx_num, "esp_dmx");
-  // TODO: rdm_register_identify_device(dmx_num);
+  rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
   void *start_address = &dmx_driver[dmx_num]->rdm.device_info.start_address;
   rdm_register_dmx_start_address(dmx_num, start_address);
   // TODO: rdm_register_supported_parameters()
