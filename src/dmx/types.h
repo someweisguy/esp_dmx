@@ -156,10 +156,10 @@ enum dmx_start_code_t {
      will not compromise any DMX functionality.*/
   RDM_SC = 0xcc,
 
-  /** @brief The sub-START code within RDM shall be sent in the slot after the
-     RDM START code (RDM_SC). Future versions of the ANSI-ESTA E1.20 standard
+  /** @brief The sub-start code within RDM shall be sent in the slot after the
+     RDM start code (RDM_SC). Future versions of the ANSI-ESTA E1.20 standard
      which may have additional or different packet structures would use the
-     sub-START code code to identify the packet structure being used.
+     sub-start code code to identify the packet structure being used.
      Controllers shall always send RDM_SUB_SC, and responders shall ignore any
      packets containing other values.*/
   RDM_SUB_SC = 0x01,
@@ -233,12 +233,12 @@ enum dmx_start_code_t {
      sub-code.*/
   DMX_ORG_ID_SC = 0x91,
 
-  /** @brief System Information Packet alternate start code. Alternate startcode
-     0xCF is reserved for a System Information Packet (SIP). The SIP includes a
-     method of sending checksum data relating to the previous NULL start code
-     packet on the data link and other control information. No other packet
-     shall be sent between the NULL start code packet and the SIP that carries
-     its checksum. For more information on the System Information Packet
+  /** @brief System Information Packet alternate start code. Alternate start 
+     code 0xCF is reserved for a System Information Packet (SIP). The SIP 
+     includes a method of sending checksum data relating to the previous NULL 
+     start code packet on the data link and other control information. No other
+     packet shall be sent between the NULL start code packet and the SIP that 
+     carries its checksum. For more information on the System Information Packet
      alternate start code, see annex D5 in the ANSI-ESTA E1.11 DMX512-A
      standards document.*/
   DMX_SIP_SC = 0xcf
