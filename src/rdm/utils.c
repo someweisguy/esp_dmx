@@ -30,7 +30,8 @@
  */
 #define RDM_MAN_ID_DEFAULT (0x05e0)
 
-// TODO: docs
+static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static bool rdm_is_identifying = false;
 static rdm_uid_t binding_uid = {};
 
 static const char *TAG = "rdm_utils";
@@ -52,6 +53,7 @@ void *uidmove(void *destination, const void *source) {
 
 void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
+  taskENTER_CRITICAL(&rdm_spinlock);
   if (uid_is_null(&binding_uid)) {
     uint16_t man_id;
     uint32_t dev_id;
@@ -70,6 +72,7 @@ void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
     binding_uid.man_id = man_id;
     binding_uid.dev_id = dev_id;
   }
+  taskEXIT_CRITICAL(&rdm_spinlock);
 
   // Return early if there is an argument error
   if (dmx_num >= DMX_NUM_MAX || uid == NULL) {
@@ -279,12 +282,18 @@ void rdm_discovery_mute(dmx_port_t dmx_num, const bool mute) {
 }
 
 bool rdm_identify_get() {
-  // TODO
-  return false;
+  bool identify;
+  taskENTER_CRITICAL(&rdm_spinlock);
+  identify = rdm_is_identifying;
+  taskEXIT_CRITICAL(&rdm_spinlock);
+
+  return identify;
 }
 
 void rdm_identify_set(const bool identify) {
-  // TODO
+  taskENTER_CRITICAL(&rdm_spinlock);
+  rdm_is_identifying = identify;
+  taskEXIT_CRITICAL(&rdm_spinlock);
 }
 
 size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
