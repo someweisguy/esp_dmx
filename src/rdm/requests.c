@@ -241,8 +241,8 @@ int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
   return found;
 }
 
-bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
-                         rdm_device_info_t *device_info, rdm_ack_t *ack) {
+bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
+                              rdm_device_info_t *device_info, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(device_info != NULL, 0, "device_info is null");
@@ -264,9 +264,10 @@ bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   return ret;
 }
 
-bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
-                                    char *software_version_label, size_t size,
-                                    rdm_ack_t *ack) {
+bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
+                                         rdm_header_t *header,
+                                         char *software_version_label,
+                                         size_t size, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(software_version_label != NULL, 0,
@@ -288,8 +289,8 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
   return ret;
 }
 
-bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             uint8_t *identify, rdm_ack_t *ack) {
+bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                                  uint8_t *identify, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(identify != NULL, 0, "identify is null");
@@ -305,8 +306,8 @@ bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   return rdm_request(dmx_num, header, NULL, identify, sizeof(*identify), ack);
 }
 
-bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             const uint8_t identify, rdm_ack_t *ack) {
+bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                                  const uint8_t identify, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(identify == 0 || identify == 1, 0, "identify is invalid");
@@ -322,8 +323,9 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   return rdm_request(dmx_num, header, &identify, NULL, 0, ack);
 }
 
-bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                               uint16_t *dmx_start_address, rdm_ack_t *ack) {
+bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                    uint16_t *dmx_start_address,
+                                    rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
@@ -344,9 +346,9 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   return ret;
 }
 
-bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                               const uint16_t dmx_start_address,
-                               rdm_ack_t *ack) {
+bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                    const uint16_t dmx_start_address,
+                                    rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_start_address < 513, 0, "dmx_start_address is invalid");

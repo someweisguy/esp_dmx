@@ -129,8 +129,8 @@ int rdm_discover_devices_simple(dmx_port_t dmx_num, rdm_uid_t *uids,
  * @return The number of bytes received in response to the request.
  * // TODO: docs
  */
-bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
-                         rdm_device_info_t *device_info, rdm_ack_t *ack);
+bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
+                              rdm_device_info_t *device_info, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM get software version label request and reads the
@@ -148,9 +148,10 @@ bool rdm_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
  * @return The number of bytes received in response to the request.
  * // TODO: docs
  */
-bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
-                                    char *software_version_label, size_t size,
-                                    rdm_ack_t *ack);
+bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
+                                         rdm_header_t *header,
+                                         char *software_version_label,
+                                         size_t size, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM get identify device request and reads the response, if
@@ -166,8 +167,8 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num, rdm_header_t *header,
  * @return The number of bytes received in response to the request.
  * // TODO docs
  */
-bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             uint8_t *identify, rdm_ack_t *ack);
+bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                                  uint8_t *identify, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM set identify device request and reads the response, if
@@ -182,8 +183,8 @@ bool rdm_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
  * the target device(s).
  * @return The number of bytes received in response to the request.
  */
-bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                             const uint8_t identify, rdm_ack_t *ack);
+bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
+                                  const uint8_t identify, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM get DMX start address request and reads the response, if
@@ -199,8 +200,9 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
  * @return The number of bytes received in response to the request.
  * // TODO: docs
  */
-bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                               uint16_t *dmx_start_address, rdm_ack_t *ack);
+bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                    uint16_t *dmx_start_address,
+                                    rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM set DMX start address request and reads the response, if
@@ -216,9 +218,9 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
  * @return The number of bytes received in response to the request.
  * // TODO: docs
  */
-bool rdm_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
-                               const uint16_t dmx_start_address,
-                               rdm_ack_t *ack);
+bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
+                                    const uint16_t dmx_start_address,
+                                    rdm_ack_t *ack);
 
 #ifdef __cplusplus
 }
