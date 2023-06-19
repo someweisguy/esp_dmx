@@ -597,10 +597,13 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   DMX_CHECK(desc != NULL, false, "desc is null");
   DMX_CHECK(callback != NULL, false, "callback is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  
+  if (sub_device != RDM_SUB_DEVICE_ROOT) {
+    ESP_LOGE(TAG, "Responses for multiple sub-devices are not yet supported.");
+    return false;
+  }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // TODO: utilize sub_device in response callbacks
 
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;
