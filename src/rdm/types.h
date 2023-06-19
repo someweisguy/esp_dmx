@@ -342,9 +342,16 @@ typedef struct rdm_ack_t {
   };
 } rdm_ack_t;
 
-/** @brief RDM unique ID type.*/
+/** @brief Responders and controllers identify themselves with a 48-bit Unique
+ * ID (UID). The UID consists of a 16-bit ESTA assigned manufacturer ID with a
+ * 32-bit device ID.*/
 typedef struct __attribute__((packed)) rdm_uid_t {
+  /** @brief The 16-bit manufacturer ID identifies a device's manufacturer. It
+     shall be restricted to 0x0001 through 0x7fff (inclusive).*/
   uint16_t man_id;
+  /** @brief The 32-bit device ID shall be unique throughout all products
+     manufactured under a specific manufacturer ID, to ensure that no two
+     devices with the same UID will appear on the data link*/
   uint32_t dev_id;
 } rdm_uid_t;
 
