@@ -597,7 +597,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   DMX_CHECK(desc != NULL, false, "desc is null");
   DMX_CHECK(callback != NULL, false, "callback is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  
+
   if (sub_device != RDM_SUB_DEVICE_ROOT) {
     ESP_LOGE(TAG, "Responses for multiple sub-devices are not yet supported.");
     return false;
@@ -612,7 +612,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Check if there is space for callbacks
-  if (i == CONFIG_RDM_RESPONDER_MAX_PARAMETERS) {
+  if (i == sizeof(driver->rdm.cbs) / sizeof(rdm_cb_table_t)) {
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
