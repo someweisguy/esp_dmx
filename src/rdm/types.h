@@ -454,8 +454,8 @@ typedef struct __attribute__((packed)) rdm_disc_mute_t {
 
 /** @brief Parameter for use with RDM device info requests.*/
 typedef struct __attribute__((packed)) rdm_device_info_t {
-  uint8_t : 8;
-  uint8_t : 8;
+  uint8_t : 8;  // RDM major version. Is always 1.
+  uint8_t : 8;  // RDM minor version. Is always 0.
   /** @brief This field identifies the device model ID of the root device or
    * sub-device. The manufacturer shall not use the same ID to represent more
    * than one unique model type.*/
