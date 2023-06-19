@@ -2,11 +2,11 @@ menu "DMX/RDM Configuration"
 
     config RDM_DEVICE_UID_MAN_ID
         hex "The manufacturer ID for this device's UID"
-        range 0x0000 0xffff
+        range 0x0000 0x7fff
         default 0x05e0
         help
             Set the default manufacturer ID for this device's UID. The accepted
-            range is 0x0000 to 0xffff (inclusive). Setting this value to 0x0
+            range is 0x0000 to 0x7fff (inclusive). Setting this value to 0x0
             sets it to its default value.
 
     config RDM_DEVICE_UID_DEV_ID
