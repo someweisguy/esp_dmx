@@ -75,7 +75,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   return ret;
 }
 
-int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
+int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
                                void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(cb != NULL, 0, "cb is null");
@@ -137,7 +137,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
       // Call the callback function and report a device has been found
       if (ack.type == RDM_RESPONSE_TYPE_ACK) {
-        cb(dmx_num, header.src_uid, num_found, &mute, context);
+        cb(dmx_num, &header.src_uid, num_found, &mute, context);
         ++num_found;
       }
     } else {
@@ -172,7 +172,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
 
             // Call the callback function and report a device has been found
             if (ack.type == RDM_RESPONSE_TYPE_ACK) {
-              cb(dmx_num, uid, num_found, &mute, context);
+              cb(dmx_num, &uid, num_found, &mute, context);
               ++num_found;
             }
 
@@ -227,11 +227,11 @@ struct rdm_disc_default_ctx {
   rdm_uid_t *uids;
 };
 
-static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t num_found,
-                        rdm_disc_mute_t *mute, void *context) {
+static void rdm_disc_cb(dmx_port_t dmx_num, const rdm_uid_t *uid, int num_found,
+                        const rdm_disc_mute_t *mute, void *context) {
   struct rdm_disc_default_ctx *c = (struct rdm_disc_default_ctx *)context;
   if (num_found < c->num && c->uids != NULL) {
-    c->uids[num_found] = uid;
+    c->uids[num_found] = *uid;
   }
 }
 

@@ -24,10 +24,11 @@ extern "C" {
  * @param[in] mute_params A pointer to the received mute parameters from the
  * device.
  * @param[inout] context A pointer to user-provided context.
+ * // TODO: docs
  */
-typedef void(rdm_discovery_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
-                                 size_t device_num,
-                                 rdm_disc_mute_t *mute_params, void *context);
+typedef void(rdm_disc_cb_t)(dmx_port_t dmx_num, const rdm_uid_t *uid,
+                            int num_found, const rdm_disc_mute_t *mute,
+                            void *context);
 
 /**
  * @brief Sends an RDM discovery request and reads the response, if any.
@@ -91,8 +92,9 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
  * @param[inout] context Context which is passed to the callback function when a
  * new device is found.
  * @return The number of devices found.
+ * // TODO: docs
  */
-int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_discovery_cb_t cb,
+int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
                                void *context);
 
 /**
