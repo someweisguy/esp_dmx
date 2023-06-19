@@ -14,7 +14,6 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "rdm/agent.h"
-#include "rdm/requests.h"
 #include "rdm/types.h"
 
 #ifdef __cplusplus

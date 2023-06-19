@@ -12,6 +12,8 @@
 #include "esp_log.h"
 #include "esp_task_wdt.h"
 #include "rdm/utils.h"
+#include "rdm/requests.h"
+#include "rdm/responses.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
