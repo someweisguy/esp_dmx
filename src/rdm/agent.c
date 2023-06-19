@@ -267,8 +267,8 @@ static rdm_response_type_t rdm_identify_response_cb(
     const uint8_t new_value = *(uint8_t *)pd;
     if (old_value != new_value) {
       rdm_identify_set(new_value);
-      void (*identify_callback)(dmx_port_t, bool, void *) = param;
-      identify_callback(dmx_num, new_value, context);
+      rdm_identify_cb_t identify_cb = param;
+      identify_cb(dmx_num, new_value, context);
     }
 
     pd_emplace(param, param_str, pd, header->pdl, true);
@@ -278,7 +278,7 @@ static rdm_response_type_t rdm_identify_response_cb(
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num,
-                                  void (*identify_cb)(dmx_port_t, bool, void *),
+                                  rdm_identify_cb_t identify_cb,
                                   void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(identify_cb != NULL, false, "identify_cb is null");
