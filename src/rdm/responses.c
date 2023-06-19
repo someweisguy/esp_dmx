@@ -84,7 +84,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num) {
                                       .description = "Discovery Unique Branch"};
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_default_discovery_cb, NULL, 0, NULL);
+                               rdm_default_discovery_cb, NULL, NULL);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num) {
@@ -103,7 +103,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num) {
                                       .description = "Discovery Mute"};
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_default_discovery_cb, NULL, 0, NULL);
+                               rdm_default_discovery_cb, NULL, NULL);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
@@ -122,7 +122,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
                                       .description = "Discovery Un-Mute"};
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_default_discovery_cb, NULL, 0, NULL);
+                               rdm_default_discovery_cb, NULL, NULL);
 }
 
 static rdm_response_type_t rdm_simple_response_cb(dmx_port_t dmx_num,
@@ -164,7 +164,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   const char *param_str = "#0100hwwdwbbwwb$";
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_simple_response_cb, device_info, 1,
+                               rdm_simple_response_cb, device_info,
                                (void *)param_str);
 }
 
@@ -175,8 +175,15 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
             "software_version_label is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
+  // Get the string length and clamp it to 32 chars
+  unsigned int num = strlen(software_version_label);
+  if (num > 32) {
+    ESP_LOGW(TAG, "Software version label will be truncated to 32 characters.");
+    num = 32;
+  }
+
   const rdm_pid_description_t desc = {.pid = RDM_PID_SOFTWARE_VERSION_LABEL,
-                                      .pdl_size = 32,
+                                      .pdl_size = num,
                                       .data_type = RDM_DS_ASCII,
                                       .cc = RDM_CC_GET,
                                       .unit = RDM_UNITS_NONE,
@@ -187,16 +194,9 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                       .description = "Software Version Label"};
   const char *param_str = "a";
 
-  // Get the string length and clamp it to 32 chars
-  unsigned int num = strlen(software_version_label);
-  if (num > 32) {
-    ESP_LOGW(TAG, "Software version label will be truncated to 32 characters.");
-    num = 32;
-  }
-
   return rdm_register_response(
       dmx_num, RDM_SUB_DEVICE_ROOT, &desc, rdm_simple_response_cb,
-      (void *)software_version_label, num, (void *)param_str);
+      (void *)software_version_label, (void *)param_str);
 }
 
 static rdm_response_type_t rdm_identify_response_cb(
@@ -246,8 +246,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num,
                                       .description = "Identify Device"};
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_identify_response_cb, identify_cb, 0,
-                               context);
+                               rdm_identify_response_cb, identify_cb, context);
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
@@ -270,5 +269,5 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
                                rdm_simple_response_cb, dmx_start_address,
-                               sizeof(uint16_t), (void *)param_str);
+                               (void *)param_str);
 }

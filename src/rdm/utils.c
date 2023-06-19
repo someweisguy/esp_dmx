@@ -591,7 +591,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
 bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *desc,
                            rdm_response_cb_t callback, void *param,
-                           size_t param_len, void *context) {
+                           void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(sub_device < 513, false, "sub_device error");
   DMX_CHECK(desc != NULL, false, "desc is null");
@@ -616,7 +616,6 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Add the requested callback to the callback list
   driver->rdm.cbs[i].param = param;
-  driver->rdm.cbs[i].len = param_len;
   driver->rdm.cbs[i].context = context;
   driver->rdm.cbs[i].cb = callback;
   driver->rdm.cbs[i].desc = *desc;

@@ -371,7 +371,6 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
  * request for the specified PID is received.
  * @param[in] param A pointer to the parameter which can be used in the response
  * callback. 
- * @param param_len The length of the parameter.
  * @param[in] context A pointer to a user-defined context.
  * @return true if the response was successfully registered.
  * @return false if the response was not registered.
@@ -379,7 +378,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
 bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *desc,
                            rdm_response_cb_t callback, void *param,
-                           size_t param_len, void *context);
+                           void *context);
 
 #ifdef __cplusplus
 }

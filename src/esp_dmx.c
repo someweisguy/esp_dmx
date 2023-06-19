@@ -1227,7 +1227,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       if (header.pdl > 0) {
         rdm_read(dmx_num, NULL, pd, sizeof(pd));
       }
-      size_t param_len = driver->rdm.cbs[cb_num].len;
+      size_t param_len = driver->rdm.cbs[cb_num].desc.pdl_size;
       void *param = driver->rdm.cbs[cb_num].param;
       void *const context = driver->rdm.cbs[cb_num].context;
       response_type = driver->rdm.cbs[cb_num].cb(dmx_num, &header, pd, &pdl_out,
