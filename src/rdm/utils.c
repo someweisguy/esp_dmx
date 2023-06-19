@@ -163,7 +163,7 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
 }
 
 size_t pd_emplace(void *destination, const char *format, const void *source,
-                  size_t num, bool encode_nulls) {
+                  size_t num, bool emplace_nulls) {
   // Clamp the size to the maximum parameter data length
   if (num > 231) {
     num = 231;
@@ -199,7 +199,7 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
         }
         n += sizeof(uint32_t);
       } else if (*f == 'u' || *f == 'U' || *f == 'v' || *f == 'V') {
-        if ((*f == 'v' || *f == 'V') && !encode_nulls && source != NULL &&
+        if ((*f == 'v' || *f == 'V') && !emplace_nulls && source != NULL &&
             uid_is_null(source + n)) {
           break;  // Optional UIDs will be at end of parameter string
         }
@@ -211,14 +211,14 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
         size_t len = atoi(f + 1);
         if (len == 0 && source != NULL) {
           // Field is a variable-length string
-          const size_t str_size = num - (encode_nulls ? 1 : 0);
+          const size_t str_size = num - (emplace_nulls ? 1 : 0);
           const size_t max_len = (str_size - n) < 32 ? (str_size - n) : 32;
           len = strnlen(source + n, max_len);
         }
         if (destination != NULL && source != NULL) {
           memmove(destination + n, source + n, len);
         }
-        if (encode_nulls) {
+        if (emplace_nulls) {
           if (destination != NULL) {
             *((uint8_t *)destination + len) = '\0';
           }
