@@ -73,8 +73,8 @@ void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
  * @brief Returns true if the UIDs are equal to each other. Is equivalent to
  * a == b.
  *
- * @param a A pointer to the first operand.
- * @param b A pointer to the second operand.
+ * @param[in] a A pointer to the first operand.
+ * @param[in] b A pointer to the second operand.
  * @return true if the UIDs are equal.
  * @return false if the UIDs are not equal.
  */
@@ -86,8 +86,8 @@ static inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @brief Returns true if the first UID is less than the second UID. Is
  * equivalent to a < b.
  *
- * @param a A pointer to the first operand.
- * @param b A pointer to the second operand.
+ * @param[in] a A pointer to the first operand.
+ * @param[in] b A pointer to the second operand.
  * @return true if a is less than b.
  * @return false if a is not less than b.
  */
@@ -100,8 +100,8 @@ static inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @brief Returns true if the first UID is greater than the second UID. Is
  * equivalent to a > b.
  *
- * @param a A pointer to the first operand.
- * @param b A pointer to the second operand.
+ * @param[in] a A pointer to the first operand.
+ * @param[in] b A pointer to the second operand.
  * @return true if a is greater than b.
  * @return false if a is not greater than b.
  */
@@ -114,8 +114,8 @@ static inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @brief Returns true if the first UID is less than or equal to the second
  * UID. Is equivalent to a <= b.
  *
- * @param a A pointer to the first operand.
- * @param b A pointer to the second operand.
+ * @param[in] a A pointer to the first operand.
+ * @param[in] b A pointer to the second operand.
  * @return true if a is less than or equal to b.
  * @return false if a is not less than or equal to b.
  */
@@ -127,8 +127,8 @@ static inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @brief Returns true if the first UID is greater than or equal to the second
  * UID. Is equivalent to a >= b.
  *
- * @param a A pointer to the first operand.
- * @param b A pointer to the second operand.
+ * @param[in] a A pointer to the first operand.
+ * @param[in] b A pointer to the second operand.
  * @return true if a is greater than or equal to b.
  * @return false if a is not greater than or equal to b.
  */
@@ -139,7 +139,7 @@ static inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
 /**
  * @brief Returns true if the specified UID is a broadcast address.
  *
- * @param uid A pointer to the unary UID operand.
+ * @param[in] uid A pointer to the unary UID operand.
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
@@ -150,7 +150,7 @@ static inline bool uid_is_broadcast(const rdm_uid_t *uid) {
 /**
  * @brief Returns true if the specified UID is null.
  *
- * @param uid A pointer to the unary UID operand.
+ * @param[in] uid A pointer to the unary UID operand.
  * @return true if the UID is null.
  * @return false if the UID is not null.
  */
@@ -163,8 +163,8 @@ static inline bool uid_is_null(const rdm_uid_t *uid) {
  * common usage of this function is `uid_is_target(&my_uid,
  * &destination_uid)`.
  *
- * @param uid A pointer to a UID which to check is targeted.
- * @param alias A pointer to a UID which may alias the first UID.
+ * @param[in] uid A pointer to a UID which to check is targeted.
+ * @param[in] alias A pointer to a UID which may alias the first UID.
  * @return true if the UID is targeted by the alias UID.
  * @return false if the UID is not targeted by the alias UID.
  */
@@ -229,10 +229,10 @@ static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
  * RDM_PID_SOFTWARE_VERSION_LABEL: "a$"
  * RDM_PID_DMX_START_ADDRESS: "w$"
  *
- * @param destination The destination into which to emplace the data.
- * @param format The format string which instructs the function how to emplace
- * data.
- * @param source The source buffer which is emplaced into the destination.
+ * @param[out] destination The destination into which to emplace the data.
+ * @param[in] format The format string which instructs the function how to 
+ * emplace data.
+ * @param[in] source The source buffer which is emplaced into the destination.
  * @param num The maximum number of bytes to emplace.
  * @param emplace_nulls True to emplace null terminators and optional UIDs into
  * the source buffer.
@@ -245,7 +245,7 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
  * @brief Emplaces a 16-bit word into a destination. Used as a convenience
  * function for quickly emplacing NACK reasons and timer values.
  * 
- * @param destination A pointer to a destination buffer.
+ * @param[out] destination A pointer to a destination buffer.
  * @param word The word to emplace.
  * @return The size of the word which was emplaced. Is always 2.
  */
@@ -366,13 +366,13 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
  * 
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device to which to register the response callback.
- * @param desc A pointer to a descriptor for the PID to be registered.
- * @param callback A pointer to a callback function which is called when a
+ * @param[in] desc A pointer to a descriptor for the PID to be registered.
+ * @param[in] callback A pointer to a callback function which is called when a
  * request for the specified PID is received.
- * @param param A pointer to the parameter which can be used in the response
+ * @param[in] param A pointer to the parameter which can be used in the response
  * callback. 
  * @param param_len The length of the parameter.
- * @param context A pointer to a user-defined context.
+ * @param[in] context A pointer to a user-defined context.
  * @return true if the response was successfully registered.
  * @return false if the response was not registered.
  */
