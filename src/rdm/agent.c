@@ -56,10 +56,9 @@ void rdm_driver_set_dmx_start_address(dmx_port_t dmx_num, int start_address) {
   taskEXIT_CRITICAL(spinlock);
 }
 
-static int rdm_default_discovery_cb(dmx_port_t dmx_num,
-                                    const rdm_header_t *header, void *pd,
-                                    uint8_t *pdl_out, void *param,
-                                    size_t param_len, void *context) {
+static rdm_response_type_t rdm_default_discovery_cb(
+    dmx_port_t dmx_num, const rdm_header_t *header, void *pd, uint8_t *pdl_out,
+    void *param, size_t param_len, void *context) {
   // Ignore this message if discovery is muted
   if (rdm_discovery_is_muted(dmx_num)) {
     return RDM_RESPONSE_TYPE_NONE;
@@ -176,10 +175,11 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
                                rdm_default_discovery_cb, NULL, 0, NULL);
 }
 
-static int rdm_simple_response_cb(dmx_port_t dmx_num,
-                                  const rdm_header_t *header, void *pd,
-                                  uint8_t *pdl_out, void *param,
-                                  size_t param_len, void *context) {
+static rdm_response_type_t rdm_simple_response_cb(dmx_port_t dmx_num,
+                                                  const rdm_header_t *header,
+                                                  void *pd, uint8_t *pdl_out,
+                                                  void *param, size_t param_len,
+                                                  void *context) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -249,10 +249,9 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       (void *)software_version_label, num, (void *)param_str);
 }
 
-static int rdm_identify_response_cb(dmx_port_t dmx_num,
-                                    const rdm_header_t *header, void *pd,
-                                    uint8_t *pdl_out, void *param,
-                                    size_t param_len, void *context) {
+static rdm_response_type_t rdm_identify_response_cb(
+    dmx_port_t dmx_num, const rdm_header_t *header, void *pd, uint8_t *pdl_out,
+    void *param, size_t param_len, void *context) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
