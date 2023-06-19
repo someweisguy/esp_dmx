@@ -174,10 +174,81 @@ static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
          uid_is_eq(uid, alias);
 }
 
-// TODO: docs
+/**
+ * @brief Emplaces parameter data from a source buffer to a destination buffer.
+ * It is necessary to emplace parameter data before it is written and read to
+ * ensure it is formatted correctly for the RDM data bus or for the ESP32's
+ * memory. Emplacing data swaps the endianness of each parameter field and also
+ * optionally writes null terminators for strings and writes optional UID
+ * fields.
+ *
+ * Parameter fields are emplaced using a format string. This provides the
+ * instructions on how data is written. Fields are written in the order provided
+ * in the format string. The following characters can be used to write parameter
+ * data:
+ * - 'b' writes an 8-bit byte of data.
+ * - 'w' writes a 16-bit word of data.
+ * - 'd' writes a 32-bit dword of data.
+ * - 'u' writes a 48-bit UID.
+ * - 'v' writes an optional 48-bit UID if the UID is not 0000:00000000. Optional
+ *   UIDs must be at the end of the format string.
+ * - 'a' writes an ASCII string. A fixed-length string may be represented
+ *   writing a decimal value after the 'a'. For example, 'a10' represents a 10
+ *   character string. A variable-length string must be at the end of the format
+ *   string but a fixed-length string may not.
+ *
+ * Integer literals may be written by beginning the integer with '#' and writing
+ * the literal in hexadecimal form. Integer literals must be terminated with an
+ * 'h' character. For example, the integer 0xbeef is represented as '#beefh'.
+ * Integer literals are written regardless of what the underlying value is. This
+ * is used for situations such as emplacing a rdm_device_info_t wherein the
+ * first two bytes are 0x01 and 0x00.
+ *
+ * Parameters will continue to be emplaced as long as the number of bytes
+ * written does not exceed the size of the destination buffer, as provided in
+ * the num argument. A single parameter may be emplaced instead of multiple by
+ * including a '$' character at the end of the format string.
+ *
+ * Null terminators are not used for strings sent on the RDM data bus. When
+ * emplacing data onto the RDM data bus, the emplace_nulls argument should be
+ * set to false. When emplacing into ESP32 memory to be read by the caller,
+ * emplace_nulls should be set to true to ensure that strings are null
+ * terminated. Setting emplace_nulls to true will also affect optional UID
+ * fields by emplacing a 0000:00000000 into the destination buffer when an
+ * optional UID is not present in the source buffer. When emplace_nulls is
+ * false, optional UIDs will not be emplaced when its value is 0000:00000000. It
+ * is considered good practice to set emplace_nulls to true when the destination
+ * buffer is intended to be read by the user, and false when the destination
+ * buffer will be sent on the RDM data bus.
+ *
+ * Example format strings and their corresponding PIDs are included below.
+ *
+ * RDM_PID_DISC_UNIQUE_BRANCH: "uu$"
+ * RDM_PID_DISC_MUTE: "wv$"
+ * RDM_PID_DEVICE_INFO: "#0100hwwdwbbwwb$"
+ * RDM_PID_SOFTWARE_VERSION_LABEL: "a$"
+ * RDM_PID_DMX_START_ADDRESS: "w$"
+ *
+ * @param destination The destination into which to emplace the data.
+ * @param format The format string which instructs the function how to emplace
+ * data.
+ * @param source The source buffer which is emplaced into the destination.
+ * @param num The maximum number of bytes to emplace.
+ * @param emplace_nulls True to emplace null terminators and optional UIDs into
+ * the source buffer.
+ * @return The size of the data that was emplaced.
+ */
 size_t pd_emplace(void *destination, const char *format, const void *source,
-                  size_t num, bool encode_nulls);
+                  size_t num, bool emplace_nulls);
 
+/**
+ * @brief Emplaces a 16-bit word into a destination. Used as a convenience
+ * function for quickly emplacing NACK reasons and timer values.
+ * 
+ * @param destination A pointer to a destination buffer.
+ * @param word The word to emplace.
+ * @return The size of the word which was emplaced. Is always 2.
+ */
 size_t pd_emplace_word(void *destination, uint16_t word);
 
 /**
@@ -194,94 +265,117 @@ bool rdm_disc_mute_get(dmx_port_t dmx_num);
  * @brief Mutes or un-mutes discovery on the desired port.
  * 
  * @param dmx_num The DMX port number.
- * @param mute true to mute discovery on the port, false to un-mute.
+ * @param mute True to mute discovery on the port, false to un-mute.
  */
 void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute);
 
-// TODO: docs
+/**
+ * @brief Returns true if the identify state on this device is active.
+ * 
+ * @return true if the identify state is active.
+ * @return false if the identify state is inactive.
+ */
 bool rdm_identify_get();
 
-// TODO: docs
+/**
+ * @brief Sets the identify state of this device
+ * 
+ * @param identify True to set the identify state, false to unset.
+ */
 void rdm_identify_set(const bool identify);
 
 /**
- * @brief Reads and formats a received RDM message from the DMX driver buffer.
- *
- * @param dmx_num The DMX port number.
+ * @brief Reads an RDM packet from the DMX driver buffer. Header information is
+ * emplaced into a header pointer so that it may be read by the caller.
+ * Parameter data information needs to be emplaced before it can be properly
+ * read by the caller. This function does not perform any data error checking to
+ * ensure that the RDM packet is within specification.
+ * 
+ * @param dmx_num The DMX port number. 
  * @param[out] header A pointer which stores RDM header information.
- * @param[out] mdb A pointer which stores RDM message data block information.
- * This is typically further decoded using functions defined in `rdm/mdb.h`.
- * @return The number of bytes in the RDM packet or zero if the packet is
- * invalid.
- * // TODO
+ * @param[out] pd A pointer to store parameter data from the RDM packet.
+ * @param num The size of the pd pointer. Used to prevent buffer overflows.
+ * @return The size of the RDM packet that was read or 0 on error.
  */
 size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
 
 /**
- * @brief Writes and formats an RDM message into the DMX driver buffer.
- *
+ * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
+ * dmx_send(). Header information is emplaced into the DMX driver buffer but 
+ * parameter data information must be emplaced before calling this function to 
+ * ensure that the RDM packet is properly formatted. This function does not
+ * perform any data error checking to ensure that the RDM packet is within
+ * specification.
+ * 
  * @param dmx_num The DMX port number.
  * @param[in] header A pointer which stores RDM header information.
- * @param[in] mdb A pointer which stores RDM message data block information.
- * This is typically already encoded using functions defined in `rdm/mdb.h`.
- * @return The number of bytes written to the DMX driver buffer or zero on
- * error.
- * // TODO
+ * @param[in] pd A pointer which stores parameter data to be written.
+ * @return The size of the RDM packet that was written or 0 on error.
  */
 size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 
 /**
- * @brief Sends an RDM controller request and processes the response. It is
- * important for users to check the value of the ack argument to verify if a
- * valid RDM response was received.
+ * @brief Sends an RDM controller request and processes the response. This 
+ * function writes, sends, receives, and reads a request and response RDM
+ * packet. It performs error checking on the written packet to ensure that it
+ * adheres to RDM specification and prevents RDM bus errors. An rdm_ack_t is
+ * provided to process DMX and RDM errors.
  * - ack.err will evaluate to true if an error occurred during the sending or
  * receiving of raw DMX data. RDM data will not be processed if an error
  * occurred. If a response was expected but none was received, ack.err will
  * evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be
  * set to ESP_OK.
+ * - ack.size is the size of the received RDM packet, including the RDM
+ * checksum.
  * - ack.type will evaluate to RDM_RESPONSE_TYPE_INVALID if an invalid
  * response is received but does not necessarily indicate a DMX error
  * occurred. If no response is received ack.type will be set to
  * RDM_RESPONSE_TYPE_NONE whether or not a response was expected. Otherwise,
- * ack.type will be set to the ack type received in the RDM response. The
- * final parameter of ack is a union of num, nack_reason, and timer. If the
- * received response type is RDM_RESPONSE_TYPE_ACK or
- * RDM_RESPONSE_TYPE_ACK_OVERFLOW, ack.num should be read. If the response
- * type is RDM_RESPONSE_TYPE_NACK_REASON, nack_reason should be read. If the
- * response type is RDM_RESPONSE_TYPE_TIMER, timer should be read.
- *
+ * ack.type will be set to the ack type received in the RDM response. 
+ * - ack.timer and ack.nack_reason are a union which should be read depending on
+ * the value of ack.type. If ack.type is RDM_RESPONSE_TYPE_ACK_TIMER, ack.timer
+ * should be read. ack.timer is the estimated amount of time in FreeRTOS ticks 
+ * until the responder is able to provide a response to the request. If ack.type
+ * is RDM_RESPONSE_TYPE_NACK_REASON, ack.nack_reason should be read to get the
+ * NACK reason.
+ * 
+ * 
  * @param dmx_num The DMX port number.
- * @param[inout] header A pointer to an rdm_header_t with information on where
- * to address the RDM request. Upon receiving a response, this information is
- * overwritten with information about the received RDM response.
- * @param[in] encode A pointer to an rdm_encode_t which contains information
- * about how to encode the MDB of the RDM request.
- * @param[out] decode A pointer to an rdm_decode_t which contains information
- * about how to decode the MDB of the RDM response.
- * @param[out] ack A pointer to an rdm_ack_t which contains information about
- * the received RDM response.
- * @return The size of the received RDM packet or 0 if no packet was received.
+ * @param[inout] header A pointer which stores header information for the RDM
+ * request. When a response is received, this pointer will also store the header
+ * information from the RDM response.
+ * @param[in] pd_in A pointer which stores parameter data to be written.
+ * @param[out] pd_out A pointer which stores parameter data which was read, if a
+ * response was received.
+ * @param num The size of the pd_out buffer. Used to prevent buffer overflows.
+ * @param[out] ack A pointer to an rdm_ack_t which stores information about the
+ * RDM response.
+ * @return true if an RDM_RESPONSE_TYPE_ACK response was received.
+ * @return false if any other response type was received.
  */
-// TODO: docs
 bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
                  void *pd_out, size_t num, rdm_ack_t *ack);
 
 /**
- * @brief Registers a callback which is called when a request is received for
- * this device for a specified PID. Callbacks may be overwritten, but they may
- * not be deleted.
- *
+ * @brief Registers a response callback to be called when a request is received
+ * for a specified PID for this device. Callbacks may be overwritten, but they
+ * may not be deleted. The pointers to the parameter and context are copied by 
+ * reference and must be valid throughout the lifetime of the DMX driver. The
+ * maximum number of response callbacks that may be registered are defined by
+ * CONFIG_RDM_RESPONDER_MAX_PARAMETERS found in the kconfig.
+ * 
  * @param dmx_num The DMX port number.
- * @param pid The PID to which the callback function should be attached.
- * @param callback A pointer to a callback function which will be called when
- * receiving a request for the specified PID.
- * @param[inout] context A pointer to a user-specified context for use within
- * the callback function.
- * @return true when the callback has been successfully registered.
- * @return false on failure.
- * // TODO update docs
+ * @param sub_device The sub-device to which to register the response callback.
+ * @param desc A pointer to a descriptor for the PID to be registered.
+ * @param callback A pointer to a callback function which is called when a
+ * request for the specified PID is received.
+ * @param param A pointer to the parameter which can be used in the response
+ * callback. 
+ * @param param_len The length of the parameter.
+ * @param context A pointer to a user-defined context.
+ * @return true if the response was successfully registered.
+ * @return false if the response was not registered.
  */
-// TODO: docs
 bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *desc,
                            rdm_response_cb_t callback, void *param,
