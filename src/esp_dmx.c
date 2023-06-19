@@ -185,7 +185,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
         // Check if a full packet has been received and process packet data
         if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
-          if (driver->data.head < RDM_BASE_PACKET_SIZE ||
+          if (driver->data.head < 26 ||
               driver->data.head < driver->data.buffer[2] + 2) {
             continue;  // Haven't received RDM packet yet
           }
