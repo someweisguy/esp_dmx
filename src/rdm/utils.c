@@ -14,13 +14,6 @@
 #include "esp_mac.h"
 #endif
 
-#ifndef CONFIG_RDM_DEVICE_UID_MAN_ID
-#define CONFIG_RDM_DEVICE_UID_MAN_ID 0
-#endif
-#ifndef CONFIG_RDM_DEVICE_UID_DEV_ID
-#define CONFIG_RDM_DEVICE_UID_DEV_ID 0
-#endif
-
 /**
  * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
  * with this software. Any device that uses this ID is associated with this
@@ -29,6 +22,13 @@
  * manufacturer ID.
  */
 #define RDM_MAN_ID_DEFAULT (0x05e0)
+
+#ifndef CONFIG_RDM_DEVICE_UID_MAN_ID
+#define CONFIG_RDM_DEVICE_UID_MAN_ID RDM_MAN_ID_DEFAULT
+#endif
+#ifndef CONFIG_RDM_DEVICE_UID_DEV_ID
+#define CONFIG_RDM_DEVICE_UID_DEV_ID 0xffffffff
+#endif
 
 static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static bool rdm_is_identifying = false;
@@ -55,21 +55,15 @@ void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
   taskENTER_CRITICAL(&rdm_spinlock);
   if (uid_is_null(&rdm_binding_uid)) {
-    uint16_t man_id;
     uint32_t dev_id;
-#if CONFIG_RDM_DEVICE_UID_MAN_ID == 0
-    man_id = RDM_MAN_ID_DEFAULT;
-#else
-    man_id = CONFIG_RDM_DEVICE_UID_MAN_ID;
-#endif
-#if CONFIG_RDM_DEVICE_UID_DEV_ID == 0
+#if CONFIG_RDM_DEVICE_UID_DEV_ID == 0xffffffff
     uint8_t mac[8];
     esp_efuse_mac_get_default(mac);
     dev_id = bswap32(*(uint32_t *)(mac + 2));
 #else
     dev_id = CONFIG_RDM_DEVICE_UID_DEV_ID;
 #endif
-    rdm_binding_uid.man_id = man_id;
+    rdm_binding_uid.man_id = CONFIG_RDM_DEVICE_UID_MAN_ID;
     rdm_binding_uid.dev_id = dev_id;
   }
   taskEXIT_CRITICAL(&rdm_spinlock);

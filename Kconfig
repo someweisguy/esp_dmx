@@ -6,17 +6,16 @@ menu "DMX/RDM Configuration"
         default 0x05e0
         help
             Set the default manufacturer ID for this device's UID. The accepted
-            range is 0x0000 to 0x7fff (inclusive). Setting this value to 0x0
-            sets it to its default value.
+            range is 0x0001 to 0x7fff (inclusive).
 
     config RDM_DEVICE_UID_DEV_ID
         hex "The device ID for this device's UID"
-        range 0x00000000 0xfffffffe
-        default 0x00
+        range 0x00000000 0xffffffff
+        default 0xffffffff
         help
             Set the default device ID for this device's UID. The accepted
-            range is 0x00000000 to 0xfffffffe (inclusive). Setting this value to
-            0x0 sets it to its default value.
+            range is 0x00000000 to 0xffffffff (inclusive). Setting this value to
+            0xffffffff sets it to its default value.
 
     config DMX_ISR_IN_IRAM
         bool "Place DMX ISR functions in IRAM"
