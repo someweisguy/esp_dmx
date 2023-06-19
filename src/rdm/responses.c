@@ -10,7 +10,7 @@ static rdm_response_type_t rdm_default_discovery_cb(
     dmx_port_t dmx_num, const rdm_header_t *header, void *pd, uint8_t *pdl_out,
     void *param, size_t param_len, void *context) {
   // Ignore this message if discovery is muted
-  if (rdm_discovery_is_muted(dmx_num)) {
+  if (rdm_disc_mute_get(dmx_num)) {
     return RDM_RESPONSE_TYPE_NONE;
   }
 
@@ -38,7 +38,7 @@ static rdm_response_type_t rdm_default_discovery_cb(
     }
   } else {
     // Mute or un-mute the discovery responses
-    rdm_discovery_mute(dmx_num, (header->pid == RDM_PID_DISC_MUTE));
+    rdm_disc_mute_set(dmx_num, (header->pid == RDM_PID_DISC_MUTE));
 
     // Get the binding UID of this device
     int num_ports = 0;

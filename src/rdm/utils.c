@@ -248,7 +248,7 @@ size_t pd_emplace_word(void *destination, uint16_t word) {
   return sizeof(word);
 }
 
-bool rdm_discovery_is_muted(dmx_port_t dmx_num) {
+bool rdm_disc_mute_get(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -263,7 +263,7 @@ bool rdm_discovery_is_muted(dmx_port_t dmx_num) {
   return is_muted;
 }
 
-void rdm_discovery_mute(dmx_port_t dmx_num, const bool mute) {
+void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
   

@@ -181,16 +181,22 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
 size_t pd_emplace_word(void *destination, uint16_t word);
 
 /**
- * @brief Returns true if RDM discovery responses are be muted on this device.
+ * @brief Returns true if RDM discovery responses are be muted on the desired
+ * port.
  *
  * @param dmx_num The DMX port number.
  * @return true if RDM discovery is muted.
  * @return false if RDM discovery is not muted.
  */
-bool rdm_discovery_is_muted(dmx_port_t dmx_num);
+bool rdm_disc_mute_get(dmx_port_t dmx_num);
 
-// TODO: docs
-void rdm_discovery_mute(dmx_port_t dmx_num, const bool mute);
+/**
+ * @brief Mutes or un-mutes discovery on the desired port.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param mute true to mute discovery on the port, false to un-mute.
+ */
+void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute);
 
 // TODO: docs
 bool rdm_identify_get();
