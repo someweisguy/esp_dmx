@@ -32,7 +32,7 @@
 
 static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static bool rdm_is_identifying = false;
-static rdm_uid_t binding_uid = {};
+static rdm_uid_t rdm_binding_uid = {};
 
 static const char *TAG = "rdm_utils";
 
@@ -54,7 +54,7 @@ void *uidmove(void *destination, const void *source) {
 void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
   taskENTER_CRITICAL(&rdm_spinlock);
-  if (uid_is_null(&binding_uid)) {
+  if (uid_is_null(&rdm_binding_uid)) {
     uint16_t man_id;
     uint32_t dev_id;
 #if CONFIG_RDM_DEVICE_UID_MAN_ID == 0
@@ -69,8 +69,8 @@ void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
 #else
     dev_id = CONFIG_RDM_DEVICE_UID_DEV_ID;
 #endif
-    binding_uid.man_id = man_id;
-    binding_uid.dev_id = dev_id;
+    rdm_binding_uid.man_id = man_id;
+    rdm_binding_uid.dev_id = dev_id;
   }
   taskEXIT_CRITICAL(&rdm_spinlock);
 
@@ -80,9 +80,9 @@ void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   }
 
   // Copy the binding UID and increment the final octet by dmx_num
-  uid->man_id = binding_uid.man_id;
-  uid->dev_id = binding_uid.dev_id;
-  uint8_t last_octet = (uint8_t)binding_uid.dev_id;
+  uid->man_id = rdm_binding_uid.man_id;
+  uid->dev_id = rdm_binding_uid.dev_id;
+  uint8_t last_octet = (uint8_t)rdm_binding_uid.dev_id;
   last_octet += dmx_num;
   uid->dev_id &= 0x00ffffff;
   uid->dev_id |= last_octet;
