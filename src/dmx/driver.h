@@ -89,7 +89,7 @@ typedef struct dmx_driver_t {
       void *param;
       size_t len;
       void *context;
-    } cbs[CONFIG_RDM_RESPONDER_MAX_PARAMETERS];
+    } cbs[8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS];
   } rdm;
 
   struct dmx_sniffer_t {
