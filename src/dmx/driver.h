@@ -82,7 +82,7 @@ typedef struct dmx_driver_t {
     int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
     rdm_device_info_t device_info;    // The RDM device info of this device.
 
-    uint32_t num_callbacks;
+    uint32_t num_cbs;
     struct rdm_cb_table_t {
       rdm_pid_description_t desc;
       rdm_response_cb_t cb;

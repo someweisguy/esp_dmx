@@ -484,7 +484,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   // Initialize RDM settings
   driver->rdm.tn = 0;
   driver->rdm.discovery_is_muted = false;
-  driver->rdm.num_callbacks = 0;
+  driver->rdm.num_cbs = 0;
 
   // Initialize RDM device info
   driver->rdm.device_info.model_id = 0;  // Defined by user
@@ -1220,7 +1220,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   uint8_t pd[231];
   uint8_t pdl_out = 0;
   rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
-  for (; cb_num < driver->rdm.num_callbacks; ++cb_num) {
+  for (; cb_num < driver->rdm.num_cbs; ++cb_num) {
     if (driver->rdm.cbs[cb_num].desc.pid == header.pid) {
       if (header.pdl > 0) {
         rdm_read(dmx_num, NULL, pd, sizeof(pd));
@@ -1250,7 +1250,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   } else if (response_type == RDM_RESPONSE_TYPE_NONE) {
     ESP_LOGW(TAG, "Non-discovery RDM callback returned RDM_RESPONSE_TYPE_NONE");
     // TODO: NACK REASON hardware error
-  } else if (cb_num == driver->rdm.num_callbacks &&
+  } else if (cb_num == driver->rdm.num_cbs &&
              header.cc != RDM_CC_DISC_COMMAND) {
     // If a PID callback wasn't found, send a NR_UNKNOWN_PID response
     // TODO: send PID not supported

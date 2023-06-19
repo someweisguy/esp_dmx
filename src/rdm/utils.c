@@ -610,7 +610,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;
-  for (; i < driver->rdm.num_callbacks; ++i) {
+  for (; i < driver->rdm.num_cbs; ++i) {
     if (driver->rdm.cbs[i].desc.pid == desc->pid) break;
   }
 
@@ -626,7 +626,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm.cbs[i].context = context;
   driver->rdm.cbs[i].cb = callback;
   driver->rdm.cbs[i].desc = *desc;
-  ++driver->rdm.num_callbacks;
+  ++driver->rdm.num_cbs;
 
   return true;
 }
