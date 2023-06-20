@@ -560,7 +560,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
              (req.cc != (header->cc - 1) || req.pid != header->pid ||
               req.tn != header->tn ||
               !uid_is_target(&header->src_uid, &req.dest_uid) ||
-             !uid_is_eq(&header->dest_uid, &req.src_uid)) {
+              !uid_is_eq(&header->dest_uid, &req.src_uid))) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
   } else {
     response_type = header->response_type;  // Response is ok
