@@ -1232,15 +1232,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       header.cc == RDM_CC_DISC_COMMAND) {
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
-  } else if (response_type == RDM_RESPONSE_TYPE_NONE) {
-    ESP_LOGW(TAG, "Non-discovery RDM callback returned RDM_RESPONSE_TYPE_NONE");
-    pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
-    // TODO: set mute boot-loader flag
   } else if (cb_num == driver->rdm.num_cbs &&
              header.cc != RDM_CC_DISC_COMMAND) {
     // If a PID callback wasn't found, send a NR_UNKNOWN_PID response
     pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-  }
+  } else if (response_type == RDM_RESPONSE_TYPE_NONE) {
+    ESP_LOGW(TAG, "PID 0x%04x callback returned RDM_RESPONSE_TYPE_NONE",
+             header.pid);
+    pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    // TODO: set mute boot-loader flag
+  } 
 
   // Rewrite the header for the response packet
   header.dest_uid = header.src_uid;
