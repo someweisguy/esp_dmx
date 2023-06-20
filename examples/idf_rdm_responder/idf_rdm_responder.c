@@ -20,7 +20,7 @@
 #include "driver/gpio.h"
 #include "esp_dmx.h"
 #include "esp_log.h"
-#include "rdm/responses.h"
+#include "rdm/responder.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
