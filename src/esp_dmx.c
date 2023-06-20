@@ -1166,7 +1166,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Return early if the packet is neither RDM nor an RDM request
   rdm_header_t header;
-  if (!rdm_read(dmx_num, &header, NULL, 0) || header.message_len > 0 ||
+  if (!rdm_read(dmx_num, &header, NULL, 0) ||
       (header.cc != RDM_CC_DISC_COMMAND && header.cc != RDM_CC_GET_COMMAND &&
        header.cc != RDM_CC_SET_COMMAND)) {
     xSemaphoreGiveRecursive(driver->mux);
