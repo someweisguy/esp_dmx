@@ -108,7 +108,6 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
 
   // Un-mute all devices
   header.dest_uid = RDM_UID_BROADCAST_ALL;
-  header.sub_device = 0;
   rdm_send_disc_un_mute(dmx_num, &header, NULL, NULL);
 
   while (stack_size > 0) {
