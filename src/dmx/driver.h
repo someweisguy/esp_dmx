@@ -33,6 +33,9 @@ extern "C" {
 #ifndef CONFIG_RDM_RESPONDER_MAX_PARAMETERS
 #define CONFIG_RDM_RESPONDER_MAX_PARAMETERS 16
 #endif
+/** @brief The maximum number of parameters that the RDM responder can
+ * support. This value is editable in the Kconfig.*/
+#define RDM_RESPONDER_MAX_PIDS (8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS)
 
 /** @brief Used for argument checking at the beginning of each function.*/
 #define DMX_CHECK(a, err_code, format, ...) \
@@ -89,7 +92,7 @@ typedef struct dmx_driver_t {
       void *param;
       size_t len;
       void *context;
-    } cbs[8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS];
+    } cbs[RDM_RESPONDER_MAX_PIDS];
   } rdm;
 
   struct dmx_sniffer_t {
