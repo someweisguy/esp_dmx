@@ -406,9 +406,9 @@ static const char *TAG = "dmx";  // The log tagline for the file.
 static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
                                     void *context) {
 #if LED_BUILTIN
-gpio_set_level(RDM_ID_PIN, identify);
+  gpio_set_level(LED_BUILTIN, identify);
 #endif
-ESP_LOGI(TAG, "RDM identify device is %s", identify ? "on" : "off");
+  ESP_LOGI(TAG, "RDM identify device is %s", identify ? "on" : "off");
 }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
@@ -1185,10 +1185,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // TODO: Verify the packet format is valid
   /*
-  if (header->cc == RDM_CC_DISC_COMMAND && 
-    !(header->pid == RDM_PID_DISC_UNIQUE_BRANCH || 
-      header->pid == RDM_PID_DISC_MUTE || 
-      header->pid == RDM_PID_DISC_UN_MUTE)) { 
+  if (header->cc == RDM_CC_DISC_COMMAND &&
+    !(header->pid == RDM_PID_DISC_UNIQUE_BRANCH ||
+      header->pid == RDM_PID_DISC_MUTE ||
+      header->pid == RDM_PID_DISC_UN_MUTE)) {
     return failure;
   }
   message_len >= 24 (how to check this?)
@@ -1246,7 +1246,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.src_uid = my_uid;
   header.response_type = response_type;
   header.message_count = 0;  // TODO: update this if messages are queued
-  header.cc += 1;  // Set to RCM_CC_x_COMMAND_RESPONSE
+  header.cc += 1;            // Set to RCM_CC_x_COMMAND_RESPONSE
   header.pdl = pdl_out;
   // These fields should not change: tn, sub_device, and pid
   // The message_len field will be updated in rdm_write()
