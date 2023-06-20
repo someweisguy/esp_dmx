@@ -9,11 +9,6 @@ static const char *TAG = "rdm_responses";
 static rdm_response_type_t rdm_default_discovery_cb(
     dmx_port_t dmx_num, const rdm_header_t *header, void *pd, uint8_t *pdl_out,
     void *param, size_t param_len, void *context) {
-  // Ignore this message if discovery is muted
-  if (rdm_disc_mute_get(dmx_num)) {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
-
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     // Cannot respond to RDM_CC_DISC_COMMAND with NACK
@@ -22,6 +17,11 @@ static rdm_response_type_t rdm_default_discovery_cb(
 
   rdm_response_type_t response_type;
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+    // Ignore this message if discovery is muted
+    if (rdm_disc_mute_get(dmx_num)) {
+      return RDM_RESPONSE_TYPE_NONE;
+    }
+
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
     pd_emplace(&branch, "uu$", pd, sizeof(branch), true);
