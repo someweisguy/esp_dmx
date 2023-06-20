@@ -417,7 +417,8 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
     dmx_uart_set_rts(driver->uart, 0);  // Stops writes from being overwritten
   }
 
-  if (header != NULL && header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+  if (header != NULL && !(header->cc == RDM_CC_DISC_COMMAND_RESPONSE &&
+                          header->pid == RDM_PID_DISC_UNIQUE_BRANCH)) {
     // Copy the header, pd, message_len, and pdl into the driver
     const size_t copy_size = header->pdl <= 231 ? header->pdl : 231;
     header->message_len = copy_size + 24;
