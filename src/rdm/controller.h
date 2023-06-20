@@ -26,9 +26,9 @@ extern "C" {
  * @param[inout] context A pointer to user-provided context.
  * // TODO: docs
  */
-typedef void(rdm_disc_cb_t)(dmx_port_t dmx_num, const rdm_uid_t *uid,
-                            int num_found, const rdm_disc_mute_t *mute,
-                            void *context);
+typedef void (*rdm_disc_cb_t)(dmx_port_t dmx_num, const rdm_uid_t *uid,
+                              int num_found, const rdm_disc_mute_t *mute,
+                              void *context);
 
 /**
  * @brief Sends an RDM discovery request and reads the response, if any.
