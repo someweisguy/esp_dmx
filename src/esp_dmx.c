@@ -1124,6 +1124,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     packet_size = driver->data.head;
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(spinlock);
+    if (packet_size == -1) {
+      packet_size = 0;
+    }
     if (!notified) {
 #if ESP_IDF_VERSION_MAJOR >= 5
       gptimer_stop(driver->gptimer_handle);
