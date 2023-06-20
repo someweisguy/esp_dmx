@@ -405,7 +405,10 @@ static const char *TAG = "dmx";  // The log tagline for the file.
 
 static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
                                     void *context) {
-  // TODO
+#if LED_BUILTIN
+gpio_set_level(RDM_ID_PIN, identify);
+#endif
+ESP_LOGI(TAG, "RDM identify device is %s", identify ? "on" : "off");
 }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
