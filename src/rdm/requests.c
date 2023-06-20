@@ -156,7 +156,6 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
         this function.
         */
         if (ack.type == RDM_RESPONSE_TYPE_ACK) {
-          const rdm_uid_t uid = ack.src_uid;
           do {
             // Attempt to mute the device
             attempts = 0;
