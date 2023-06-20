@@ -322,26 +322,6 @@ typedef enum rdm_prefix_t {
   RDM_PREFIX_NONE = 0x00
 } rdm_prefix_t;
 
-/** @brief Provides information about RDM responses.*/
-typedef struct rdm_ack_t {
-  /** @brief Evaluates to true if an error occurred reading DMX data.*/
-  esp_err_t err;
-  /** @brief The size of the packet received.*/
-  size_t size;
-  /** @brief The type of the RDM response received.*/
-  rdm_response_type_t type;
-  union {
-    /** @brief The amount of time in FreeRTOS ticks until the responder device
-       will be ready to respond to the request. This field should be read when
-       the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.*/
-    TickType_t timer;
-    /** @brief The reason that the request was unable to be fulfilled. This
-       field should be read when the response type received is
-       RDM_RESPONSE_TYPE_NACK_REASON.*/
-    rdm_nr_t nack_reason;
-  };
-} rdm_ack_t;
-
 /** @brief Responders and controllers identify themselves with a 48-bit Unique
  * ID (UID). The UID consists of a 16-bit ESTA assigned manufacturer ID with a
  * 32-bit device ID.*/
@@ -354,6 +334,31 @@ typedef struct __attribute__((packed)) rdm_uid_t {
      devices with the same UID will appear on the data link*/
   uint32_t dev_id;
 } rdm_uid_t;
+
+/** @brief Provides information about RDM responses.*/
+typedef struct rdm_ack_t {
+  /** @brief Evaluates to true if an error occurred reading DMX data.*/
+  esp_err_t err;
+  /** @brief The size of the packet received.*/
+  size_t size;
+  /** @brief The UID of the device originating the response packet.*/
+  rdm_uid_t src_uid;
+  /** @brief The type of the RDM response received.*/
+  rdm_response_type_t type;
+  /** @brief The message count field is used by a responder to indicate that
+       additional data is now available for collection by a controller.*/
+  int message_count;
+  union {
+    /** @brief The amount of time in FreeRTOS ticks until the responder device
+       will be ready to respond to the request. This field should be read when
+       the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.*/
+    TickType_t timer;
+    /** @brief The reason that the request was unable to be fulfilled. This
+       field should be read when the response type received is
+       RDM_RESPONSE_TYPE_NACK_REASON.*/
+    rdm_nr_t nack_reason;
+  };
+} rdm_ack_t;
 
 /** @brief RDM sub-device type.*/
 typedef uint16_t rdm_sub_device_t;

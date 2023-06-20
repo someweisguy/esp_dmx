@@ -117,16 +117,16 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
     size_t attempts = 0;
     if (uid_is_eq(&branch->lower_bound, &branch->upper_bound)) {
       // Can't branch further so attempt to mute the device
+      header.dest_uid = branch->lower_bound;
       do {
-        header.dest_uid = branch->lower_bound;
         rdm_send_disc_mute(dmx_num, &header, &mute, &ack);
       } while (ack.type != RDM_RESPONSE_TYPE_ACK && ++attempts < 3);
 
       // TODO: remove this workaround?
       // Attempt to fix possible error where responder is flipping its own UID
       if (ack.type != RDM_RESPONSE_TYPE_ACK) {
-        uint64_t uid = bswap64(((uint64_t)header.dest_uid.man_id << 32) |
-                               header.dest_uid.dev_id) >>
+        uint64_t uid = bswap64(((uint64_t)branch->lower_bound.man_id << 32) |
+                               branch->lower_bound.dev_id) >>
                        16;
         header.dest_uid.man_id = uid >> 32;
         header.dest_uid.dev_id = uid;
@@ -135,7 +135,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
 
       // Call the callback function and report a device has been found
       if (ack.type == RDM_RESPONSE_TYPE_ACK) {
-        cb(dmx_num, &header.src_uid, num_found, &mute, context);
+        cb(dmx_num, &ack.src_uid, num_found, &mute, context);
         ++num_found;
       }
     } else {
@@ -156,18 +156,18 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
         this function.
         */
         if (ack.type == RDM_RESPONSE_TYPE_ACK) {
-          const rdm_uid_t uid = header.src_uid;
+          const rdm_uid_t uid = ack.src_uid;
           do {
             // Attempt to mute the device
             attempts = 0;
+            header.dest_uid = ack.src_uid;
             do {
-              header.dest_uid = uid;
               rdm_send_disc_mute(dmx_num, &header, &mute, &ack);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
 
             // Call the callback function and report a device has been found
             if (ack.type == RDM_RESPONSE_TYPE_ACK) {
-              cb(dmx_num, &uid, num_found, &mute, context);
+              cb(dmx_num, &ack.src_uid, num_found, &mute, context);
               ++num_found;
             }
 

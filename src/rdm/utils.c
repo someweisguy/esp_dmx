@@ -526,12 +526,16 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
     }
     if (packet.err) {
       if (ack != NULL) {
+        ack->src_uid = (rdm_uid_t){0, 0};
+        ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_INVALID;
       }
       return false;
     } else if (size == 0) {
       // TODO: remove this else if when refactoring dmx_receive()
       if (ack != NULL) {
+        ack->src_uid = (rdm_uid_t){0, 0};
+        ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_NONE;
       }
       return false;
@@ -540,6 +544,8 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
     if (ack != NULL) {
       ack->err = ESP_OK;
       ack->size = size;
+      ack->src_uid = (rdm_uid_t){0, 0};
+      ack->message_count = 0;
       ack->type = RDM_RESPONSE_TYPE_NONE;
     }
     dmx_wait_sent(dmx_num, 2);
@@ -547,23 +553,23 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
   }
 
   // Handle the RDM response packet
-  const rdm_header_t req = *header;
+  rdm_header_t resp;
   rdm_response_type_t response_type;
-  if (!rdm_read(dmx_num, header, pd_out, num)) {
+  if (!rdm_read(dmx_num, &resp, pd_out, num)) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
-  } else if (header->response_type != RDM_RESPONSE_TYPE_ACK &&
-             header->response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-             header->response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
-             header->response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+  } else if (resp.response_type != RDM_RESPONSE_TYPE_ACK &&
+             resp.response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+             resp.response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+             resp.response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response_type
   } else if (header->pid != RDM_PID_DISC_UNIQUE_BRANCH &&
-             (req.cc != (header->cc - 1) || req.pid != header->pid ||
-              req.tn != header->tn ||
-              !uid_is_target(&header->src_uid, &req.dest_uid) ||
-              !uid_is_eq(&header->dest_uid, &req.src_uid))) {
+             (header->cc != (resp.cc - 1) || header->pid != resp.pid ||
+              header->tn != resp.tn ||
+              !uid_is_target(&resp.src_uid, &header->dest_uid) ||
+              !uid_is_eq(&resp.dest_uid, &header->src_uid))) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
   } else {
-    response_type = header->response_type;  // Response is ok
+    response_type = resp.response_type;  // Response is ok
   }
 
   uint32_t decoded;
@@ -585,6 +591,8 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
   // Report the results back to the caller
   if (ack != NULL) {
     ack->type = response_type;
+    ack->src_uid = resp.src_uid;
+    ack->message_count = resp.message_count;
     ack->timer = decoded;
   }
 

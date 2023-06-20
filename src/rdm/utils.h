@@ -230,7 +230,7 @@ static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
  * RDM_PID_DMX_START_ADDRESS: "w$"
  *
  * @param[out] destination The destination into which to emplace the data.
- * @param[in] format The format string which instructs the function how to 
+ * @param[in] format The format string which instructs the function how to
  * emplace data.
  * @param[in] source The source buffer which is emplaced into the destination.
  * @param num The maximum number of bytes to emplace.
@@ -244,7 +244,7 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
 /**
  * @brief Emplaces a 16-bit word into a destination. Used as a convenience
  * function for quickly emplacing NACK reasons and timer values.
- * 
+ *
  * @param[out] destination A pointer to a destination buffer.
  * @param word The word to emplace.
  * @return The size of the word which was emplaced. Is always 2.
@@ -263,7 +263,7 @@ bool rdm_disc_mute_get(dmx_port_t dmx_num);
 
 /**
  * @brief Mutes or un-mutes discovery on the desired port.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param mute True to mute discovery on the port, false to un-mute.
  */
@@ -271,15 +271,15 @@ void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute);
 
 /**
  * @brief Returns true if the identify state on this device is active.
- * 
+ *
  * @return true if the identify state is active.
  * @return false if the identify state is inactive.
  */
 bool rdm_identify_get();
 
 /**
- * @brief Sets the identify state of this device
- * 
+ * @brief Sets the identify state of this device.
+ *
  * @param identify True to set the identify state, false to unset.
  */
 void rdm_identify_set(const bool identify);
@@ -290,8 +290,8 @@ void rdm_identify_set(const bool identify);
  * Parameter data information needs to be emplaced before it can be properly
  * read by the caller. This function does not perform any data error checking to
  * ensure that the RDM packet is within specification.
- * 
- * @param dmx_num The DMX port number. 
+ *
+ * @param dmx_num The DMX port number.
  * @param[out] header A pointer which stores RDM header information.
  * @param[out] pd A pointer to store parameter data from the RDM packet.
  * @param num The size of the pd pointer. Used to prevent buffer overflows.
@@ -301,12 +301,12 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
 
 /**
  * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
- * dmx_send(). Header information is emplaced into the DMX driver buffer but 
- * parameter data information must be emplaced before calling this function to 
+ * dmx_send(). Header information is emplaced into the DMX driver buffer but
+ * parameter data information must be emplaced before calling this function to
  * ensure that the RDM packet is properly formatted. This function does not
  * perform any data error checking to ensure that the RDM packet is within
  * specification.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param[in] header A pointer which stores RDM header information.
  * @param[in] pd A pointer which stores parameter data to be written.
@@ -315,35 +315,36 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
 size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 
 /**
- * @brief Sends an RDM controller request and processes the response. This 
+ * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
  * packet. It performs error checking on the written packet to ensure that it
  * adheres to RDM specification and prevents RDM bus errors. An rdm_ack_t is
  * provided to process DMX and RDM errors.
  * - ack.err will evaluate to true if an error occurred during the sending or
- * receiving of raw DMX data. RDM data will not be processed if an error
- * occurred. If a response was expected but none was received, ack.err will
- * evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be
- * set to ESP_OK.
+ *   receiving of raw DMX data. RDM data will not be processed if an error
+ *   occurred. If a response was expected but none was received, ack.err will
+ *   evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be
+ *   set to ESP_OK.
  * - ack.size is the size of the received RDM packet, including the RDM
- * checksum.
+ *   checksum.
+ * - ack.src_uid is the UID of the device which responds to the request.
  * - ack.type will evaluate to RDM_RESPONSE_TYPE_INVALID if an invalid
- * response is received but does not necessarily indicate a DMX error
- * occurred. If no response is received ack.type will be set to
- * RDM_RESPONSE_TYPE_NONE whether or not a response was expected. Otherwise,
- * ack.type will be set to the ack type received in the RDM response. 
+ *   response is received but does not necessarily indicate a DMX error
+ *   occurred. If no response is received ack.type will be set to
+ *   RDM_RESPONSE_TYPE_NONE whether or not a response was expected. Otherwise,
+ *   ack.type will be set to the ack type received in the RDM response.
+ * - ack.message_count indicates the number of messages that are waiting to be
+ *   retrieved from the responder's message queue.
  * - ack.timer and ack.nack_reason are a union which should be read depending on
- * the value of ack.type. If ack.type is RDM_RESPONSE_TYPE_ACK_TIMER, ack.timer
- * should be read. ack.timer is the estimated amount of time in FreeRTOS ticks 
- * until the responder is able to provide a response to the request. If ack.type
- * is RDM_RESPONSE_TYPE_NACK_REASON, ack.nack_reason should be read to get the
- * NACK reason.
- * 
- * 
+ *   the value of ack.type. If ack.type is RDM_RESPONSE_TYPE_ACK_TIMER,
+ *   ack.timer should be read. ack.timer is the estimated amount of time in
+ *   FreeRTOS ticks until the responder is able to provide a response to the
+ *   request. If ack.type is RDM_RESPONSE_TYPE_NACK_REASON, ack.nack_reason
+ *   should be read to get the NACK reason.
+ *
  * @param dmx_num The DMX port number.
  * @param[inout] header A pointer which stores header information for the RDM
- * request. When a response is received, this pointer will also store the header
- * information from the RDM response.
+ * request.
  * @param[in] pd_in A pointer which stores parameter data to be written.
  * @param[out] pd_out A pointer which stores parameter data which was read, if a
  * response was received.
@@ -359,18 +360,18 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
 /**
  * @brief Registers a response callback to be called when a request is received
  * for a specified PID for this device. Callbacks may be overwritten, but they
- * may not be deleted. The pointers to the parameter and context are copied by 
+ * may not be deleted. The pointers to the parameter and context are copied by
  * reference and must be valid throughout the lifetime of the DMX driver. The
  * maximum number of response callbacks that may be registered are defined by
  * CONFIG_RDM_RESPONDER_MAX_PARAMETERS found in the kconfig.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device to which to register the response callback.
  * @param[in] desc A pointer to a descriptor for the PID to be registered.
  * @param[in] callback A pointer to a callback function which is called when a
  * request for the specified PID is received.
  * @param[in] param A pointer to the parameter which can be used in the response
- * callback. 
+ * callback.
  * @param[in] context A pointer to a user-defined context.
  * @return true if the response was successfully registered.
  * @return false if the response was not registered.
