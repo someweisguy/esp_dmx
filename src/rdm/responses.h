@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "esp_dmx.h"
+#include "dmx/types.h"
 #include "rdm/agent.h"
 #include "rdm/types.h"
 
