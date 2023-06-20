@@ -1137,10 +1137,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
     }
-    if (packet_size == -1) {
-      packet_size = 0;
-    }
-
   } else if (!new_packet_available) {
     // Fail early if there is no data available and this function cannot block
     xSemaphoreGiveRecursive(driver->mux);
@@ -1234,11 +1230,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   } else if (response_type == RDM_RESPONSE_TYPE_NONE) {
     ESP_LOGW(TAG, "Non-discovery RDM callback returned RDM_RESPONSE_TYPE_NONE");
-    // TODO: NACK REASON hardware error
+    pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    // TODO: set mute boot-loader flag
   } else if (cb_num == driver->rdm.num_cbs &&
              header.cc != RDM_CC_DISC_COMMAND) {
     // If a PID callback wasn't found, send a NR_UNKNOWN_PID response
-    // TODO: send PID not supported
+    pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
   }
 
   // Rewrite the header for the response packet
