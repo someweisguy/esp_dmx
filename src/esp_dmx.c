@@ -408,7 +408,8 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
 #if LED_BUILTIN
   gpio_set_level(LED_BUILTIN, identify);
 #endif
-  ESP_LOGI(TAG, "RDM identify device is %s", identify ? "on" : "off");
+  ESP_LOGI("rdm_responder", "RDM identify device is %s",
+           identify ? "on" : "off");
 }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {

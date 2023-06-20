@@ -5,7 +5,7 @@
 #include "dmx/driver.h"
 #include "dmx/types.h"
 
-static const char *TAG = "rdm_agent";
+static const char *TAG = "rdm_responder";  // The log tagline for the file.
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];

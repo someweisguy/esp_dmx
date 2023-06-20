@@ -5,7 +5,7 @@
 #include "rdm/agent.h"
 #include "rdm/utils.h"
 
-static const char *TAG = "rdm_requests";
+static const char *TAG = "rdm_controller";  // The log tagline for the file.
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];

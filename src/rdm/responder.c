@@ -4,7 +4,7 @@
 #include "endian.h"
 #include "rdm/utils.h"
 
-static const char *TAG = "rdm_responses";
+static const char *TAG = "rdm_responder";  // The log tagline for the file.
 
 static rdm_response_type_t rdm_default_discovery_cb(
     dmx_port_t dmx_num, const rdm_header_t *header, void *pd, uint8_t *pdl_out,
