@@ -226,11 +226,10 @@ static rdm_response_type_t rdm_identify_response_cb(
   return RDM_RESPONSE_TYPE_ACK;
 }
 
-bool rdm_register_identify_device(dmx_port_t dmx_num,
-                                  rdm_identify_cb_t identify_cb,
+bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_identify_cb_t cb,
                                   void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(identify_cb != NULL, false, "identify_cb is null");
+  DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_IDENTIFY_DEVICE,
@@ -245,7 +244,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num,
                                       .description = "Identify Device"};
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_identify_response_cb, identify_cb, context);
+                               rdm_identify_response_cb, cb, context);
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,

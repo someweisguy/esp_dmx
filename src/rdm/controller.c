@@ -90,7 +90,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
     return 0;
   }
 #else
-  rdm_disc_unique_branch_t stack[49];  // 784B - use with caution!
+  rdm_disc_unique_branch_t stack[49];  // 588 bytes - use with caution!
 #endif
 
   // Initialize the stack with the initial branch instruction

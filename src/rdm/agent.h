@@ -15,8 +15,7 @@ extern "C" {
 #endif
 
 /**
- * @brief Gets the DMX start address of this device. To get the DMX start
- * address of a responder device, use `rdm_get_dmx_start_address()`.
+ * @brief Gets the DMX start address of this device.
  *
  * @param dmx_num The DMX port number.
  * @return The DMX start address of this device or 0 on failure.
@@ -24,8 +23,7 @@ extern "C" {
 uint16_t rdm_get_dmx_start_address(dmx_port_t dmx_num);
 
 /**
- * @brief Sets the DMX start address of this device. To set the DMX start
- * address of a responder device, use `rdm_set_dmx_start_address()`.
+ * @brief Sets the DMX start address of this device.
  *
  * @param dmx_num The DMX port number.
  * @param start_address The DMX start address to which to set this device. Must
