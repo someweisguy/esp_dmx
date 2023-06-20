@@ -29,6 +29,15 @@ extern "C" {
  * printf-like functions.*/
 #define UID2STR(uid) uid.man_id, uid.dev_id
 
+/** @brief RDM sub-device type.*/
+typedef enum rdm_sub_device_t {
+  /** @brief Sub-device which respresents the root of a RDM device.*/
+  RDM_SUB_DEVICE_ROOT = 0,
+  /** @brief The RDM sub-device number which can be used to address all
+     sub-devices of an RDM device in a request.*/
+  RDM_SUB_DEVICE_ALL = 0xffff
+} rdm_sub_device_t;
+
 /** @brief The RDM command class (CC) type. The command class specifies the
  * action of the message. Responders shall always generate a response to
  * GET_COMMAND and SET_COMMAND messages except when the destination UID of the
@@ -360,9 +369,6 @@ typedef struct rdm_ack_t {
   };
 } rdm_ack_t;
 
-/** @brief RDM sub-device type.*/
-typedef uint16_t rdm_sub_device_t;
-
 /** @brief A struct which stores RDM packet header information. Header
  * information contains metadata about the packet message data block.*/
 typedef struct __attribute__((packed)) rdm_header_t {
@@ -559,19 +565,6 @@ static const rdm_uid_t RDM_UID_BROADCAST_ALL = {0xffff, 0xffffffff};
 
 /** @brief The maximum possible RDM UID.*/
 static const rdm_uid_t RDM_UID_MAX = {0xffff, 0xfffffffe};
-
-/** @brief Sub-device which respresents the root of a RDM device.*/
-static const rdm_sub_device_t RDM_SUB_DEVICE_ROOT = 0;
-
-/** @brief The RDM sub-device number which can be used to address all
- * sub-devices of an RDM device in a request.*/
-static const rdm_sub_device_t RDM_SUB_DEVICE_ALL = 0xffff;
-
-/** @brief RDM controllers may send GET and SET requests for the
- * RDM_PID_DMX_START_ADDRESS of this device. When an RDM responder has a DMX
- * footprint of 0, the DMX start address of this device must be set to this
- * value.*/
-static const uint16_t DMX_START_ADDRESS_NONE = 0xffff;
 
 #ifdef __cplusplus
 }
