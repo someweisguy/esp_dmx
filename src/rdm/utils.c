@@ -556,9 +556,10 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
              header->response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
              header->response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response_type
-  } else if (req.cc != (header->cc - 1) || req.pid != header->pid ||
-             req.tn != header->tn ||
-             !uid_is_target(&header->src_uid, &req.dest_uid) ||
+  } else if (header->pid != RDM_PID_DISC_UNIQUE_BRANCH &&
+             (req.cc != (header->cc - 1) || req.pid != header->pid ||
+              req.tn != header->tn ||
+              !uid_is_target(&header->src_uid, &req.dest_uid) ||
              !uid_is_eq(&header->dest_uid, &req.src_uid)) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
   } else {
