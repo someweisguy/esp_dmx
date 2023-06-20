@@ -210,7 +210,8 @@ static rdm_response_type_t rdm_identify_response_cb(
 
   const char *param_str = "b$";
   if (header->cc == RDM_CC_GET_COMMAND) {
-    *pdl_out = pd_emplace(pd, param_str, param, param_len, false);
+    const uint8_t identify = rdm_identify_get();
+    *pdl_out = pd_emplace(pd, param_str, &identify, sizeof(identify), false);
   } else {
     // Call the user-specified callback when the state changes
     const uint8_t old_value = rdm_identify_get();
@@ -220,8 +221,6 @@ static rdm_response_type_t rdm_identify_response_cb(
       rdm_identify_cb_t identify_cb = param;
       identify_cb(dmx_num, new_value, context);
     }
-
-    pd_emplace(param, param_str, pd, header->pdl, true);
   }
 
   return RDM_RESPONSE_TYPE_ACK;
