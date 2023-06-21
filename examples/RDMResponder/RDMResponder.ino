@@ -2,13 +2,12 @@
 
   RDM Responder
 
-  Configure this device to act as an RDM responder. This example sets the
-  device's device info, which defines many of the device's basic capabilities.
-  This example also registers a custom callback for RDM_PID_DMX_START_ADDRESS
-  requests. This PID is already registered when installing the DMX driver, but
-  is overwritten for demonstration purposes. Afterwards, this example loops
-  continuously in a simple DMX receive loop which allows for processing and
-  responding to RDM requests.
+  Configure this device to act as an RDM responder. This example registers a
+  two custom RDM response callbacks: one for RDM_PID_SOFTWARE_VERSION_LABEL and
+  one for RDM_PID_IDENTIFY_DEVICE. These PIDs are already registered when
+  installing the DMX driver, but are overwritten for demonstration purposes.
+  Afterwards, this example loops continuously in a simple DMX receive loop which
+  allows for processing and responding to RDM requests.
 
   Created 20 June 2023
   By Mitch Weisbrod
@@ -31,28 +30,28 @@ int enablePin = 21;
   Some ESP32s, such as the ESP32-WROVER series, do not allow you to read or
   write data on pins 16 or 17, so it's always good to read the manuals. */
 
-// TODO: docs
-int ledPin = 13;  // The LED pin to use for identification.
-
 /* Next, lets decide which DMX port to use. The ESP32 has either 2 or 3 ports.
   Port 0 is typically used to transmit serial data back to your Serial Monitor,
   so we shouldn't use that port. Lets use port 1! */
 dmx_port_t dmxPort = 1;
 
-// TODO: docs
+/* The two RDM responses we will register are RDM_PID_SOFTWARE_VERSION_LABEL and
+  RDM_PID_IDENTIFY_DEVICE. These responses are already registered when calling
+  dmx_driver_install() but we can overwrite them. */
+
+/* To overwrite RDM_PID_SOFTWARE_VERSION_LABEL we must, of course, define a new
+  software version label! We will define it below. */
 const char *softwareVersionLabel = "My Custom Software!";
 
-void rdmIdentifyCallback(dmx_port_t dmx_num, bool identify, void *context) {
+/* To overwrite RDM_PID_IDENTIFY_DEVICE, we will define a callback which will
+  illuminate an LED when the identify device mode is active, and extinguish the
+  LED when identify is inactive. Don't forget to also declare which pin your LED
+  is using! */
+int ledPin = 13;
+void rdmIdentifyCallback(dmx_port_t dmxPort, bool identify, void *context) {
   // Illuminate the LED if the identify state is set to true
   digitalWrite(ledPin, identify);
-  
-  const char *statusString;
-  if (identify) {
-    statusString = "on";
-  } else {
-    statusString = "off";
-  }
-  Serial.printf("Identify mode is %s!", statusString);
+  Serial.printf("Identify mode is %s.\n", identify ? "on" : "off");
 }
 
 void setup() {
@@ -69,21 +68,22 @@ void setup() {
     interrupt to its default settings.*/
   dmx_driver_install(dmxPort, DMX_DEFAULT_INTR_FLAGS);
 
-
-  /* Register the custom callback. This overwrites the default
-    RDM_PID_DMX_START_ADDRESS response. */
+  /* Register the custom RDM_PID_SOFTWARE_VERSION_LABEL callback. This
+    overwrites the default response. */
   rdm_register_software_version_label(dmxPort, softwareVersionLabel);
-  
-  // TODO: docs
+
+  /* Register the custom RDM_PID_IDENTIFY_DEVICE callback. This overwrites the
+    default response. Since we aren't using a user context in the callback, we
+    can pass NULL as the final argument. Don't forget to set the pin mode for
+    your LED pin! */
+  rdm_register_identify_device(dmxPort, rdmIdentifyCallback, NULL);
   pinMode(ledPin, OUTPUT);
 
-  // TODO: docs
-  rdm_register_identify_device(dmxPort, rdmIdentifyCallback, NULL);
-
-  /* Care should be taken to ensure that the user context never goes out of
-    scope. Allowing this to happen can lead to undesired behavior. User contexts
-    are not copied into the driver. In this example, we won't need to worry
-    about this because the user context is NULL. */
+  /* Care should be taken to ensure that the parameters registered for callbacks
+    never go out of scope. The variables passed as parameter data for responses
+    must be valid throughout the lifetime of the DMX driver. Allowing parameter
+    variables to go out of scope can result in undesired behavior during RDM
+    response callbacks. */
 }
 
 void loop() {
