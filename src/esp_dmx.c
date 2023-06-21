@@ -1203,7 +1203,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       header->pid == RDM_PID_DISC_UN_MUTE)) {
     return failure;
   }
-  message_len >= 24 (how to check this?)
+  message_len >= 24
   !uid_is_broadcast(&header->src_uid)
   port_id > 0 (should this be enforced? Maybe turn on/off in sdkconfig?)
   sub_device <= 512 || (sub_device == 0xffff && header.cc != RDM_CC_GET_COMMAND)
