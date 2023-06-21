@@ -96,12 +96,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ALL) {
       // Stop the RDM receive alarm (which may or may not be running)
+      if (driver->timer_is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_stop(driver->gptimer_handle);
+        gptimer_stop(driver->gptimer_handle);
 #else
-      timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                            driver->timer_idx, 0);
+        timer_group_set_counter_enable_in_isr(driver->timer_group,
+                                              driver->timer_idx, 0);
 #endif
+        driver->timer_is_running = false;
+      }
 
       // Read data into the DMX buffer if there is enough space
       const bool is_in_break = intr_flags & DMX_INTR_RX_BREAK;
@@ -380,6 +383,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       timer_group_set_counter_enable_in_isr(driver->timer_group,
                                             driver->timer_idx, 0);
 #endif
+      driver->timer_is_running = false;
+
       // Enable DMX write interrupts
       dmx_uart_enable_interrupt(driver->uart, DMX_INTR_TX_ALL);
     }
@@ -396,6 +401,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     timer_group_set_counter_enable_in_isr(driver->timer_group,
                                           driver->timer_idx, 0);
 #endif
+    driver->timer_is_running = false;
   }
 
   return task_awoken;
@@ -463,6 +469,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   driver->is_sending = false;
   driver->new_packet = false;
   driver->is_enabled = true;
+  driver->timer_is_running = false;
 
   // Initialize RDM settings
   driver->rdm.tn = 0;
@@ -1119,6 +1126,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                             RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
       timer_start(timer_group, timer_idx);
 #endif
+      driver->timer_is_running = true;
       taskEXIT_CRITICAL(spinlock);
     }
 
@@ -1132,11 +1140,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       packet_size = 0;
     }
     if (!notified) {
-#if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_stop(driver->gptimer_handle);
-#else
-      timer_pause(driver->timer_group, driver->timer_idx);
-#endif
+      if (driver->timer_is_running) {
+  #if ESP_IDF_VERSION_MAJOR >= 5
+        gptimer_stop(driver->gptimer_handle);
+  #else
+        timer_pause(driver->timer_group, driver->timer_idx);
+  #endif
+        driver->timer_is_running = false;
+      }
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
@@ -1324,6 +1335,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     timer_set_alarm_value(driver->timer_group, driver->timer_idx, timeout);
     timer_start(driver->timer_group, driver->timer_idx);
 #endif
+    driver->timer_is_running = true;
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(spinlock);
@@ -1332,11 +1344,14 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
+      if (driver->timer_is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_stop(driver->gptimer_handle);
+        gptimer_stop(driver->gptimer_handle);
 #else
-      timer_pause(driver->timer_group, driver->timer_idx);
+        timer_pause(driver->timer_group, driver->timer_idx);
 #endif
+        driver->timer_is_running = false;
+      }
       xTaskNotifyStateClear(driver->task_waiting);
     }
     driver->task_waiting = NULL;
@@ -1428,6 +1443,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
                           driver->break_len);
     timer_start(driver->timer_group, driver->timer_idx);
 #endif
+    driver->timer_is_running = true;
 
     dmx_uart_invert_tx(uart, 1);
     taskEXIT_CRITICAL(spinlock);
