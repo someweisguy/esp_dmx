@@ -472,6 +472,12 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
 
   taskEXIT_CRITICAL(spinlock);
 
+  // for (int i = 0; i < written; ++i) {
+  //   printf("%02x ", driver->data.buffer[i]);
+  // }
+  // printf("\n");
+
+
   return written;
 }
 
@@ -519,7 +525,8 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
   // Return early if a packet error occurred or if no response was expected
   if (response_expected) {
     dmx_packet_t packet;
-    size = dmx_receive(dmx_num, &packet, 2);
+    // TODO: setting the wait_ticks <= 3 causes instability on Arduino
+    size = dmx_receive(dmx_num, &packet, 10);
     if (ack != NULL) {
       ack->err = packet.err;
       ack->size = size;
