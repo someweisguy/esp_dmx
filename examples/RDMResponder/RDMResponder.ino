@@ -44,7 +44,7 @@ const char *softwareVersionLabel = "My Custom Software!";
 
 void rdmIdentifyCallback(dmx_port_t dmx_num, bool identify, void *context) {
   // Illuminate the LED if the identify state is set to true
-  gpio_set_level(LED_PIN, identify);
+  digitalWrite(ledPin, identify);
   
   const char *statusString;
   if (identify) {
@@ -52,7 +52,7 @@ void rdmIdentifyCallback(dmx_port_t dmx_num, bool identify, void *context) {
   } else {
     statusString = "off";
   }
-  Serial.println("Identify mode is %s!", statusString);
+  Serial.printf("Identify mode is %s!", statusString);
 }
 
 void setup() {
@@ -78,7 +78,7 @@ void setup() {
   pinMode(ledPin, OUTPUT);
 
   // TODO: docs
-  rdm_register_identify_device(dmx_num, rdmIdentifyCallback, NULL)
+  rdm_register_identify_device(dmxPort, rdmIdentifyCallback, NULL);
 
   /* Care should be taken to ensure that the user context never goes out of
     scope. Allowing this to happen can lead to undesired behavior. User contexts
@@ -94,7 +94,7 @@ void loop() {
   /* Now we will block until data is received. If an RDM request for this device
     is received, the dmx_receive() function will automatically respond to the
     requesting RDM device with the appropriate callback. */
-  dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
+  dmx_receive(dmxPort, &packet, DMX_TIMEOUT_TICK);
 
   /* Typically, you would handle your packet information here. Since this is
     just an example, this section has been left blank. */
