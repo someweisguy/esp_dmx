@@ -194,6 +194,41 @@ typedef enum rdm_response_type_t {
   RDM_RESPONSE_TYPE_ACK_OVERFLOW = 0x03,
 } rdm_response_type_t;
 
+/** @brief Status collection messages include messages used to retrieve deferred
+ * (queued) responses, device status and error information, and information
+ * regarding the RDM parameters supported by the device. Status collection
+ * messages are normally addressed to root devices. The status type is used to
+ * identify the severity of the condition.*/
+typedef enum rdm_status_t {
+  /** @brief The status type of RDM_STATUS_NONE shall be used when a controller
+     wants to establish whether a device is present on the network without
+     retrieving any status message data from the device. Not allowed for use
+     with GET RDM_PID_QUEUED_MESSAGE.*/
+  RDM_STATUS_NONE = 0x00,
+  /** @brief If the status type requested is RDM_STATUS_GET_LAST_MESSAGE, the
+     responder shall return the last message (which may be either a queued
+     message or a status message) sent in response to a GET
+     RDM_PID_QUEUED_MESSAGE.*/
+  RDM_STATUS_GET_LAST_MESSAGE = 0x01,
+  /** @brief The sub-device has an advisory or informational status message.*/
+  RDM_STATUS_ADVISORY = 0x02,
+  /** @brief The sub-device has a warning status message indicating a
+     recoverable error has occurred.*/
+  RDM_STATUS_WARNING = 0x03,
+  /** @brief The sub-device has an error status message indicating a
+     non-recoverable or fatal error has occurred.*/
+  RDM_STATUS_ERROR = 0x04
+  /** @brief The sub-device previously had an advisory or informational status
+     message but it has been cleared.*/
+  RDM_STATUS_ADVISORY_CLEARED = 0x12,
+  /** @brief The sub-device previously had a warning status message but it has
+     been cleared.*/
+  RDM_STATUS_WARNING_CLEARED = 0x13,
+  /** @brief The sub-device previously had an error status message but it has
+     been cleared.*/
+  RDM_STATUS_ERROR_CLEARED = 0x14
+} rdm_status_t;
+
 /** @brief The NACK reason defines the reason that the responder is unable to
  * comply with the request.*/
 typedef enum rdm_nr_t {
