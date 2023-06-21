@@ -38,6 +38,8 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   timer_idx_t timer_idx;      // The timer index to use for DMX functions.
 #endif
 
+  int timer_is_running;  // True if the hardware timer is running.
+
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
