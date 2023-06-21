@@ -26,6 +26,7 @@
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/task.h"
+#include "rdm/controller.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
