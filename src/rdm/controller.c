@@ -7,9 +7,6 @@
 
 static const char *TAG = "rdm_controller";  // The log tagline for the file.
 
-extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
-
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                                  const rdm_disc_unique_branch_t *branch,
                                  rdm_ack_t *ack) {
@@ -102,7 +99,8 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   rdm_disc_mute_t mute;  // Mute parameters returned from devices.
   rdm_ack_t ack;         // Request response information.
   int num_found = 0;
-
+  
+  extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
   dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
