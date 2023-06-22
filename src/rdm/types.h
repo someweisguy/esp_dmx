@@ -525,8 +525,8 @@ typedef struct __attribute__((packed)) rdm_device_info_t {
   uint8_t personality_count;
   /** @brief The DMX start address of the device. If the device or sub-device
    * that the request is directed to has a DMX footprint of 0, then this field
-   * shall be set to DMX_START_ADDRESS_NONE.*/
-  uint16_t start_address;
+   * shall be set to 0xffff.*/
+  uint16_t dmx_start_address;
   /** @brief This parameter is used to retrieve the number of sub-devices
    * respresented by the root device. The response for this field shall always
    * be the same regardless of whether this message is directed to the root

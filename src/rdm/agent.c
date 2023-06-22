@@ -19,7 +19,7 @@ uint16_t rdm_get_dmx_start_address(dmx_port_t dmx_num) {
 
   uint16_t dmx_start_address;
   taskENTER_CRITICAL(spinlock);
-  dmx_start_address = driver->rdm.device_info.start_address;
+  dmx_start_address = driver->rdm.device_info.dmx_start_address;
   taskEXIT_CRITICAL(spinlock);
 
   return dmx_start_address;
@@ -35,6 +35,6 @@ void rdm_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   taskENTER_CRITICAL(spinlock);
-  driver->rdm.device_info.start_address = dmx_start_address;
+  driver->rdm.device_info.dmx_start_address = dmx_start_address;
   taskEXIT_CRITICAL(spinlock);
 }
