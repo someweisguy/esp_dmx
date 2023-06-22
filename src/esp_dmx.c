@@ -478,11 +478,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
 
   // Initialize RDM device info
   driver->rdm.device_info.model_id = 0;  // Defined by user
-  driver->rdm.device_info.product_category = 0;
+  driver->rdm.device_info.product_category = RDM_PRODUCT_CATEGORY_FIXTURE;
   driver->rdm.device_info.software_version_id = 303;  // TODO
-  driver->rdm.device_info.footprint = 0;
-  driver->rdm.device_info.current_personality = 0;
-  driver->rdm.device_info.personality_count = 0;
+  driver->rdm.device_info.footprint = 1;
+  driver->rdm.device_info.current_personality = 1;
+  driver->rdm.device_info.personality_count = 1;
   driver->rdm.device_info.dmx_start_address = 1;
   driver->rdm.device_info.sub_device_count = 0;
   driver->rdm.device_info.sensor_count = 0;
