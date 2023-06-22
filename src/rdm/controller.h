@@ -19,12 +19,12 @@ extern "C" {
  * @brief A callback function type for use with rdm_discover_with_callback().
  * 
  * @param dmx_num The DMX port number.
- * @param[out] uid A pointer to a UID of the found device.
+ * @param uid A pointer to a UID of the found device.
  * @param num_found The number of devices that have been found by discovery.
  * @param[out] mute A pointer to the mute parameter received by the device.
  * @param[inout] context A pointer to a user context.
  */
-typedef void (*rdm_disc_cb_t)(dmx_port_t dmx_num, const rdm_uid_t *uid,
+typedef void (*rdm_disc_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
                               int num_found, const rdm_disc_mute_t *mute,
                               void *context);
 

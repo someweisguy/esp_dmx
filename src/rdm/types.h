@@ -18,7 +18,7 @@ extern "C" {
 
 /** @brief Macro for creating a manufacturer broadcast UID based on the desired
  * manufacturer ID.*/
-#define RDM_UID_BROADCAST_MAN(man_id) ((rdm_uid_t){man_id, 0xffffffff})
+#define RDM_UID_BROADCAST_MAN(man_id) ((rdm_uid_t){(man_id), 0xffffffff})
 
 /** @brief The recommended method for representing the UID in text by separating
  * the manufacturer ID and the device ID. For use with printf-like functions.*/
@@ -27,7 +27,7 @@ extern "C" {
 /** @brief Used to generate arguments for the UIDSTR macro for representing the
  * UID in text by separating the manufacturer ID and device ID. For use with
  * printf-like functions.*/
-#define UID2STR(uid) uid.man_id, uid.dev_id
+#define UID2STR(uid) (uid).man_id, (uid).dev_id
 
 /** @brief RDM sub-device type.*/
 typedef enum rdm_sub_device_t {
