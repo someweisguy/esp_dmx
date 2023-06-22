@@ -217,7 +217,7 @@ typedef enum rdm_status_t {
   RDM_STATUS_WARNING = 0x03,
   /** @brief The sub-device has an error status message indicating a
      non-recoverable or fatal error has occurred.*/
-  RDM_STATUS_ERROR = 0x04
+  RDM_STATUS_ERROR = 0x04,
   /** @brief The sub-device previously had an advisory or informational status
      message but it has been cleared.*/
   RDM_STATUS_ADVISORY_CLEARED = 0x12,
