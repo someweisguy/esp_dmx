@@ -79,7 +79,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Allocate the instruction stack. The max binary tree depth is 49
-#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
+#ifndef CONFIG_RDM_STACK_ALLOCATE_DISCOVERY
   rdm_disc_unique_branch_t *stack;
   stack = malloc(sizeof(rdm_disc_unique_branch_t) * 49);
   if (stack == NULL) {
@@ -206,7 +206,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
 
   xSemaphoreGiveRecursive(driver->mux);
 
-#ifndef CONFIG_RDM_STATIC_DEVICE_DISCOVERY
+#ifndef CONFIG_RDM_STACK_ALLOCATE_DISCOVERY
   free(stack);
 #endif
 
