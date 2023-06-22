@@ -525,7 +525,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
       ack->err = packet.err;
       ack->size = size;
     }
-    if (packet.err) {
+    if (packet.err && packet.err != ESP_ERR_TIMEOUT) {
       if (ack != NULL) {
         ack->src_uid = (rdm_uid_t){0, 0};
         ack->message_count = 0;
