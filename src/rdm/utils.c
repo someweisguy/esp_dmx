@@ -472,12 +472,6 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
 
   taskEXIT_CRITICAL(spinlock);
 
-  // for (int i = 0; i < written; ++i) {
-  //   printf("%02x ", driver->data.buffer[i]);
-  // }
-  // printf("\n");
-
-
   return written;
 }
 
