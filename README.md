@@ -169,7 +169,7 @@ UIDs are represented in text by displaying the UID in hexadecimal and by separat
 
 When a controller device composes an RDM request, it must be addressed using a destination UID. The recipient of a request may be a single device, by using the device's UID, or multiple devices, by using a broadcast UID. Broadcast UIDs can be addressed to every device of a specific manufacturer or to all devices on the RDM network. To send a manufacturer broadcast, the destination UID's manufacturer ID must match the manufacturer ID of the desired manufacturer, and the device ID must be `ffffffff`. To broadcast to every device with the manufacturer ID of `05e0`, the UID must be set to `05e0:ffffffff`. The UID used to broadcast to all devices on the RDM network is `ffff:ffffffff`.
 
-The lowest possible UID is `0000:00000000` and the highest possible UID is `ffff:fffffffe`. In practice the manufacturer IDs `0000` and `ffff` are not permitted so real-world RDM devices would never possess these UIDs. This library represents the maximum UID with the constant `RDM_UID_MAX`.
+The lowest possible UID is `0001:00000000` and the highest possible UID is `ffff:fffffffe`. In practice the manufacturer ID `ffff` is not permitted so real-world RDM devices would never possess a UID higher than `7fff:fffffffe`. This library represents the maximum UID with the constant `RDM_UID_MAX`.
 
 Organizations may apply for a unique manufacturer ID by contacting ESTA. The instructions to do so and a list of registered manufacturer IDs can be found [here](https://tsp.esta.org/tsp/working_groups/CP/mfctrIDs.php). This software library is registered and listed with the manufacturer ID of `05e0`. Users of this library may use this manufacturer ID for their devices.
 
@@ -187,33 +187,23 @@ The constants `RDM_SUB_DEVICE_ROOT` and `RDM_SUB_DEVICE_ALL` are provided to imp
 
 ### Parameters
 
-RDM requests must be able to fetch and update parameters. The RDM standard specifies 52 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/).
+RDM requests must be able to fetch and update parameters. The RDM standard specifies more than 50 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/).
 
-Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. RDM specifies that every device (but not its sub-devices necessarily) must support the following PIDs:
+Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. This library provides constants for each PID. Each PID in this library is prefixed with `RDM_PID_`. Therefore, `DISC_UNIQUE_BRANCH` would become `RDM_PID_DISC_UNIQUE_BRANCH`. This document will refer to PIDs by their prefixed names for consistency of documentation.
 
-Parameter Name           | GET | SET | Notes
-:------------------------|:---:|:---:|:------
-`DEVICE_INFO`            |  X  |     |
-`DISC_MUTE`              |     |     |
-`DISC_UN_MUTE`           |     |     |
-`DISC_UNIQUE_BRANCH`     |     |     |
-`DMX_START_ADDRESS`      |  X  |  X  | Support required if device uses a DMX slot.
-`IDENTIFY_DEVICE`        |  X  |  X  |
-`PARAMETER_DESCRIPTION`  |  X  |     | Support required for manufacturer-specific PIDs.
-`SOFTWARE_VERSION_LABEL` |  X  |     |
-`SUPPORTED_PARAMETERS`   |  X  |     | Only required if supporting PIDs beyond the minimum set.
+RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the required PIDs can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section.
 
 GET requests may not be sent to all sub-devices of a root devices. It is therefore not permitted to send a GET request to `RDM_SUB_DEVICE_ALL`.
 
 ### Discovery
 
-When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting a `DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. A `DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
+When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting an `RDM_PID_DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `RDM_PID_DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. An `RDM_PID_DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
 
-When a single device is found within an address space, that device is sent a `DISC_MUTE` request to mute its response to future `DISC_UNIQUE_BRANCH` requests. When responding to `DISC_MUTE` requests, devices that have multiple UIDs return a binding UID which represents its primary UID.
+When a single device is found within an address space, that device is sent an `RDM_PID_DISC_MUTE` request to mute its response to future `RDM_PID_DISC_UNIQUE_BRANCH` requests. When responding to `RDM_PID_DISC_MUTE` requests, devices that have multiple RDM ports return a binding UID which represents its primary UID.
 
-Some RDM devices act as proxy devices. A proxy device is any inline device that acts as an agent or representative for one or more devices. A proxy device shall respond to all controller messages on behalf of the devices it represents as if it is the represented device. If a device is acting as a proxy device or if it is proxied by another device, it will indicate so in its response to `DISC_MUTE` and `DISC_UN_MUTE` requests.
+Some RDM devices act as proxy devices. A proxy device is any inline device that acts as an agent or representative for one or more devices. A proxy device shall respond to all controller messages on behalf of the devices it represents as if it is the represented device. If a device is acting as a proxy device or if it is proxied by another device, it will indicate so in its response to `RDM_PID_DISC_MUTE` and `RDM_PID_DISC_UN_MUTE` requests.
 
-Discovery should be performed periodically as discovered devices may be removed from the RDM network or new devices may be added. Before restarting the discovery algorithm, a `DISC_UN_MUTE` request should be broadcast to all devices in order to detect if devices were removed from the RDM network.
+Discovery should be performed periodically as discovered devices may be removed from the RDM network or new devices may be added. Before restarting the discovery algorithm, a `RDM_PID_DISC_UN_MUTE` request should be broadcast to all devices in order to detect if devices were removed from the RDM network.
 
 ### Response Types
 
@@ -229,7 +219,7 @@ Two additional response types are defined for this library. Responders will not 
 - `RDM_RESPONSE_TYPE_NONE` indicates that no response was received.
 - `RDM_RESPONSE_TYPE_INVALID` indicates that a response was received, but the response was invalid. This can occur for several reasons including an invalid checksum, or an invalid packet format.
 
-Responders must respond to every non-broadcast RDM request as well as every broadcast `DISC_UNIQUE_BRANCH` request if their RDM discovery is un-muted and if their UID falls within the request's address space. When responding to `DISC_UNIQUE_BRANCH` requests, responders shall not send a DMX break and mark-after-break in order to improve discovery times and shall encode their response to reduce data loss during data collisions. The omission of the DMX break and mark-after-break is handled automatically by the DMX driver. Responders may only respond to `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE` requests with `RDM_RESPONSE_TYPE_ACK`.
+Responders must respond to every non-broadcast RDM request as well as every broadcast `RDM_PID_DISC_UNIQUE_BRANCH` request if their RDM discovery is un-muted and if their UID falls within the request's address space. When responding to `RDM_PID_DISC_UNIQUE_BRANCH` requests, responders shall not send a DMX break and mark-after-break in order to improve discovery times and shall encode their response to reduce data loss during data collisions. The omission of the DMX break and mark-after-break is handled automatically by the DMX driver. Responders may only respond to `RDM_PID_DISC_UNIQUE_BRANCH`, `RDM_PID_DISC_MUTE`, and `RDM_PID_DISC_UN_MUTE` requests with `RDM_RESPONSE_TYPE_ACK`.
 
 ## Configuring the DMX Port
 
@@ -344,7 +334,7 @@ The DMX sniffer installs an edge-triggered interrupt on the specified GPIO pin. 
 
 A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed earlier than higher GPIO numbers. It is recommended that the DMX read pin be shorted to a lower GPIO number in order to ensure that the DMX sniffer can run with low latency.
 
-It is important to note that the sniffer requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the sniffer, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `sdkconfig` if the ESP-IDF is used.
+It is important to note that the sniffer requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the sniffer, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `Kconfig` if the ESP-IDF is used.
 
 Before enabling the sniffer tool, `gpio_install_isr_service()` must be called with the required DMX sniffer interrupt flags. The macro `DMX_DEFAULT_SNIFFER_INTR_FLAGS` can be used to provide the proper interrupt flags.
 
@@ -448,22 +438,19 @@ dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK);  // Unblocks in 3ms
 
 ### RDM Requests
 
-This library supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_`, whether the request is a GET or a SET, and the parameter name. To GET a device's `DEVICE_INFO`, users can call `rdm_get_device_info()`. To SET a device's `DMX_START_ADDRESS`, users can call `rdm_set_dmx_start_address()`. All RDM request functions return the number of bytes received in the RDM response or 0 if no response was received.
+This library supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_send_`, whether the request is a GET or a SET, and the parameter name. To GET the `RDM_PID_DEVICE_INFO` of a responder device, users can call `rdm_send_get_device_info()`. To SET a device's `RDM_PID_DMX_START_ADDRESS`, users can call `rdm_send_set_dmx_start_address()`. All standard RDM request functions return `true` if an `RDM_RESPONSE_TYPE_ACK` was received or `false` if no response was received.
 
-RDM request functions use an `rdm_header_t` pointer to direct the DMX driver where to send its request and also store RDM header information from the received response, if a response is received. The `rdm_header_t` type contains several fields. Some fields must typically be assigned a value, some fields may be assigned values, and some fields should not be assigned values when sending RDM requests. The fields which typically must be assigned are:
+RDM request functions use an `rdm_header_t` pointer to direct the DMX driver where to send its request. The `rdm_header_t` type contains several fields. Two fields are required to be defined when sending an RDM request. They are as follows:
 
-- `dest_uid` the destination UID for the RDM packet. This field must be assigned except when sending a `DISC_UNIQUE_BRANCH` packet.
-- `sub_device` the target sub-device for the RDM packet. This field must be assigned except when indicated otherwise. In situations where this field may not be assigned, it must be assigned to 0 or `RDM_SUB_DEVICE_ROOT`.
+- `dest_uid` the destination UID for the RDM packet. This field must be defined as a valid UID except when sending a `RDM_PID_DISC_UNIQUE_BRANCH` packet.
+- `sub_device` the target sub-device for the RDM packet. The RDM standard defines many PIDs in which the `sub_device` field may only be `RDM_SUB_DEVICE_ROOT`. Only one PID, `RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD` may not be sent to `RDM_SUB_DEVICE_ROOT`. The `sub_device` field may not be set to `RDM_SUB_DEVICE_ALL` in any GET requests.
 
-Fields which may be defined:
+The remaining fields are set within the request function:
 
-- `src_uid` the source UID for the RDM packet. Typically, this field should be assigned as 0. Assigning a different value to this field allows users to spoof RDM UIDs. This can be useful when creating RDM proxy devices.
-- `port_id` the port ID that the packet originated from. When assigned to 0, this field will be set to `dmx_num + 1`. Otherwise, this field may be set between 1 and 255, inclusive.
-
-Fields which must be undefined or initialized to 0:
-
-- `cc` the Command class for the RDM packet. This field will automatically be set to `RDM_CC_GET_COMMAND` or `RDM_CC_SET_COMMAND` depending on the function that is used. When writing packets using `rdm_write()` this field should be set.
-- `pid` the Parameter ID for the RDM packet. This field will be set to the PID specified by the request function. When writing packet using `rdm_write()` this field should be set to the desired PID.
+- `src_uid` the source UID for the RDM packet. This is the ESP32's UID.
+- `port_id` the port ID that the packet originated from. This field is set to `dmx_num + 1`.
+- `cc` the Command class for the RDM packet. This field will automatically be set to `RDM_CC_GET_COMMAND`, `RDM_CC_SET_COMMAND`, or `RDM_CC_DISC_COMMAND` depending on the function that is used.
+- `pid` the Parameter ID for the RDM packet. This field will be set to the PID specified by the request function.
 - `message_count` this field indicates if a responder has additional packets in its queue waiting to be sent. When sending an RDM request, this value is always set to 0.
 - `tn` the Transaction Number field is incremented after sending each RDM packet. The DMX driver automatically tracks this value and assigns it when sending an RDM request. Responses must ensure that the response transaction number matches the request transaction number.
 
@@ -471,25 +458,18 @@ When printing UIDs to the terminal, the macros `UIDSTR` and `UID2STR()` can be u
 
 ```c
 rdm_header_t header = {
-  .dest_uid = 0x05e044c06fbf  // The destination UID for the request.
+  .dest_uid = {0x05e0, 0x44c06fbf}  // The destination UID for the request.
 };
 rdm_ack_t ack;  // Stores response information.
 
 rdm_device_info_t device_info;  // Stores the response parameter data.
-
-rdm_get_device_info(DMX_NUM_2, &header, &ack, &device_info);
-if (ack.type == RDM_RESPONSE_TYPE_ACK) {
+if (rdm_send_get_device_info(DMX_NUM_2, &header, &device_info, &ack)) {
   printf("Successfully received device info from " UIDSTR "!\n", 
          UID2STR(header.src_uid));
 }
 
-// Re-use the RDM header for an additional request.
-header.dest_uid = header.src_uid;
-header.src_uid = 0;  // Sets src_uid to this device's UID.
-
-const int new_address = 123;  // The new DMX_START_ADDRESS to send.
-rdm_set_dmx_start_address(DMX_NUM_2, &header, &ack, new_address);
-if (ack.type == RDM_RESPONSE_TYPE_ACK) {
+const uint16_t new_address = 123;  // The new RDM_PID_DMX_START_ADDRESS to send.
+if (rdm_set_dmx_start_address(DMX_NUM_2, &header, new_address, &ack)) {
   printf("Device " UIDSTR " has been set to DMX address %i.\n", UID2STR(uid), 
          new_address);
 }
@@ -498,23 +478,15 @@ if (ack.type == RDM_RESPONSE_TYPE_ACK) {
 Response information from requests is read into a `rdm_ack_t` pointer which is provided by the user. Users can use this type to ensure that requests were successful and, if they are not successful, handle errors. The `rdm_ack_t` type contains the following fields:
 
 - `err` evaluates to `true` if an error occurred reading DMX data. This field only indicates if an error occurred reading raw DMX data. It does not indicate if an invalid RDM packet was received. More information on error handling can be found in the [Error Handling](#error-handling) section.
+- `size` is the size of the received packet, including start code, sub-start code, and checksum.
+- `src_uid` is the UID of the device originating the response packet.
 - `type` is the type of the RDM response received. It can be any of the RDM response types enumerated in [Response Types](#response-types).
+- `message_count` is used by an RDM responder to indicate that additional data is now available for collection by a controller.
 
 The remaining field is a union which should be read depending on the value in `type`.
 
-- `num` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_ACK_OVERFLOW`. It returns the number of RDM parameters that was received from the RDM responder.
 - `timer` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_TIMER`. It returns the number of FreeRTOS ticks that must elapse before the RDM responder will be ready to process the request.
 - `nack_reason` should be read if `type` evaluates to `RDM_RESPONSE_TYPE_NACK_REASON`. It returns the NACK reason code that was received from the RDM responder.
-
-The UID for the DMX driver may be get and set using `rdm_driver_get_uid()` and `rdm_driver_set_uid()` respectively. Setting the driver's UID to 0 will reset the driver UID back to its default value.
-
-```c
-// Get this driver's UID.
-rdm_uid_t uid = rdm_driver_get_uid(DMX_NUM_2);
-
-// Increment this driver's UID by 5.
-rdm_driver_set_uid(DMX_NUM_2, uid + 5);
-```
 
 ### Discovering Devices
 
@@ -532,25 +504,24 @@ printf("Discovery found %i UIDs!\n", num_uids);
 
 Discovery can take several seconds to complete. Users may want to perform an action, such as update a progress bar, whenever a new UID is found. When this is desired, the function `rdm_discover_with_callback()` may be used to specify a callback function which is called when a new UID is discovered.
 
-`DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, the values in the `rdm_header_t` type should be initialized to 0 when this request is sent.
+`RDM_PID_DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `RDM_PID_DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, the values in the `rdm_header_t` type need not be initialized before passing it to `rdm_send_disc_unique_branch()`.
 
 ```c
-rdm_header_t header = {};  // Initialize all values to 0.
+rdm_header_t header;  // Do not initialize.
 rdm_ack_t ack;
 
 // Define the address space within which devices will be discovered.
-const rdm_disc_unique_branch_t disc_unique_branch = {
+const rdm_disc_unique_branch_t branch = {
   .upper_bound = RDM_UID_MAX,
-  .lower_bound = 0
+  .lower_bound = 0  // Set to 0000:00000000
 };
 
-size_t packet_size = rdm_send_disc_unique_branch(DMX_NUM_2, &header, 
-                                                 &disc_unique_branch, &ack);
-if (packet_size > 0) {
+rdm_send_disc_unique_branch(DMX_NUM_2, &header, &branch, &ack);
+if (ack.size > 0) {
   // Got a response!
   if (ack.type == RDM_RESPONSE_TYPE_ACK) {
     // Only one device was found - print its UID.
-    printf("Found the UID " UIDSTR ".\n", UID2STR(header.src_uid));
+    printf("Found the UID " UIDSTR ".\n", UID2STR(ack.src_uid));
   } else if (ack.type == RDM_RESPONSE_TYPE_INVALID) {
     // The checksum was invalid indicating a data collision occurred.
     printf("Multiple devices detected within this address space!\n");
@@ -564,7 +535,7 @@ if (packet_size > 0) {
 }
 ```
 
-`DISC_MUTE` and `DISC_UN_MUTE` similarly do not support GET nor SET. Devices may be muted and un-muted by using the functions `rdm_send_disc_mute()` and `rdm_send_disc_un_mute()`. These requests may only be sent to the root device. `DISC_MUTE` and `DISC_UN_MUTE` requests receive the same response data from responders. Therefore `rdm_disc_mute_t` can be used to store parameter data from responder devices for both requests.
+`RDM_PID_DISC_MUTE` and `RDM_PID_DISC_UN_MUTE` similarly do not support GET nor SET. Devices may be muted and un-muted by using the functions `rdm_send_disc_mute()` and `rdm_send_disc_un_mute()`. These requests may only be sent to the root device. `RDM_PID_DISC_MUTE` and `RDM_PID_DISC_UN_MUTE` requests receive the same response data from responders. Therefore `rdm_disc_mute_t` can be used to store parameter data from responder devices for both requests.
 
 ```c
 rdm_header_t header = {
@@ -572,11 +543,10 @@ rdm_header_t header = {
 };
 rdm_ack_t ack;
 
-rdm_disc_mute_t disc_mute;  // Stores the response parameter data.
+rdm_disc_mute_t mute;  // Stores the response parameter data.
 
-size_t packet_size = rdm_send_disc_un_mute(DMX_NUM_2, &header, &ack, 
-                                           &disc_mute);
-if (packet_size > 0) {
+rdm_send_disc_un_mute(DMX_NUM_2, &header, &mute, &ack);
+if (ack.size > 0) {
   /* This code will never run because the RDM controller does not receive a 
     response from RDM responders when the destination UID is a broadcast UID. 
     Therefore its return value can be ignored and the function can be passed 
@@ -586,76 +556,22 @@ if (packet_size > 0) {
 
 ### RDM Responder
 
-An RDM responder must respond to every non-discovery, non-broadcast packet addressed to it. When a responder receives a `DISC_UNIQUE_BRANCH` packet, it must respond to the packet if the responder's UID falls within the request's address space and if the responder is un-muted.
+An RDM responder must respond to every non-discovery, non-broadcast packet addressed to it. When a responder receives a `RDM_PID_DISC_UNIQUE_BRANCH` packet, it must respond to the packet if the responder's UID falls within the request's address space and if the responder is un-muted.
 
 The DMX driver will parse RDM requests and send responses within the `dmx_receive()` function. It is therefore required for RDM requests to be received with `dmx_receive()` to ensure that a response is sent. If `dmx_receive()` is not called, an RDM response will not be sent.
 
-This library provides the ability to attach user-defined callbacks to request PIDs. Callbacks may be registered by using `rdm_register_callback()`. Callbacks are defined as the `rdm_response_cb_t` type. An example of the GET `SOFTWARE_VERSION_LABEL` response callback can be seen below.
+This library provides the ability to attach parameter pointers to RDM response callbacks. This allows users to set their own variables which will be read from and written to during RDM responses. The functions used to register RDM responses are prefixed with `rdm_register_`. A new `RDM_PID_SOFTWARE_VERSION_LABEL` may be registered with `rdm_register_software_version_label()`.
 
 ```c
-rdm_response_type_t rdm_software_version_label(dmx_port_t dmx_num,
-                                               const rdm_header_t *header,
-                                               rdm_mdb_t *mdb, void *context) {
-  // Ensure that the parameter data is the expected length.
-  if (mdb->pdl != 0) {
-    rdm_encode_nack_reason(mdb, RDM_NR_FORMAT_ERROR);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
-
-  // Ensure that the CC is correct.
-  if (header->cc != RDM_CC_GET_COMMAND) {
-    rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
-
-  // Encode the response.
-  const char *sw_version_label = "esp_dmx";
-  rdm_encode_string(mdb, sw_version_label, sizeof(sw_version_label));
-  return RDM_RESPONSE_TYPE_ACK;
+const char *new_software_label = "My Custom Software";
+if (rdm_register_software_version_label(DMX_NUM_2, new_software_label)) {
+  printf("A new software version label has been registered!\n");
 }
 ```
 
-The value passed to `dmx_num` is the port number that this callback is responding on. The value in the `header` pointer will contain header information of the request. The `rdm_mdb_t` type contains information about the received Message Data Block. It contains the following two fields:
-
-- `pd` is a 231-byte array containing the Parameter Data.
-- `pdl` is the Parameter Data Length. It is the number of bytes received in the parameter data.
-
-Parameter data in an `rdm_mdb_t` is typically encoded and decoded using functions found in `rdm/mdb.h`. In the example above, to GET `SOFTWARE_VERSION_LABEL` requires that a string is encoded into the mdb using `rdm_encode_string()`. The two if-statements in the function check for error conditions. If an error is found, the message data block is encoded with the appropriate NACK reason using `rdm_encode_nack_reason()`.
-
-The final argument in an `rdm_response_cb_t` is a user defined context. The DMX driver does not maintain a copy of the context. The pointer provided by the user must remain valid throughout the lifetime of the DMX driver.
-
-The return value of `rdm_response_cb_t` determines the type of response that is sent to the requesting device. This value must be either `RDM_RESPONSE_TYPE_ACK`, `RDM_RESPONSE_TYPE_ACK_OVERFLOW`, `RDM_RESPONSE_TYPE_TIMER`, or `RDM_RESPONSE_TYPE_NACK_REASON`. If any other value is returned, the device will disregard the response callback and respond to the request with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_HARDWARE_FAULT` as the NACK reason. When responding to a `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, or `DISC_UN_MUTE` request, the return value must be either `RDM_RESPONSE_TYPE_ACK` or `RDM_RESPONSE_TYPE_NONE`. If any other value is returned, the responder will not send a response.
-
-Registering callbacks with `rdm_register_callback()` can be performed by specifying the PID for the callback and the desired callback function. A pointer to a user-defined context may be provided as well.
-
-```c
-// Register a callback for the SOFTWARE_VERSION_LABEL PID.
-// No context is needed for the above callback function so NULL is used.
-rdm_register_callback(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
-                      rdm_software_version_label, NULL);
-```
-
-Callbacks must handle both GET and SET requests in the same function. Some PIDs support GET or SET, but not both. In such cases, it is required for the user to verify the `cc` from the `rdm_header_t` passed in the function. If the `cc` is invalid, the user must call `rdm_encode_nack_reason(mdb, RDM_NR_UNSUPPORTED_COMMAND_CLASS)` and return `RDM_RESPONSE_TYPE_NACK_REASON`.
-
 If a request for a PID that does not have a registered callback is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
 
-This library defines several, required RDM response functions by default. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of these automatically registered functions can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section. The function for `IDENTIFY_DEVICE` should be overwritten to ensure that the callback performs a function to identify the device. Otherwise, responses to `IDENTIFY_DEVICE` will respond with `RDM_RESPONSE_TYPE_ACK` without doing any additional work. When using Arduino, the `IDENTIFY_DEVICE` callback will illuminate the built-in LED on the ESP32 breakout board.
-
-When responding to discovery requests, the function `rdm_driver_is_muted()` is provided to check if the DMX driver has been muted by a `DISC_MUTE` request.
-
-The DMX driver also has a built-in `rdm_device_info_t` type which stores information about itself. This information can be sent to RDM controllers when the driver receives a GET `DEVICE_INFO` request. The `rdm_device_info_t` can be get and set using `rdm_driver_get_device_info()` and `rdm_driver_set_device_info()`. The `rdm_device_info_t` type contains the following fields:
-
-- `model_id` This field identifies the device model ID of the root device or sub-device. The manufacturer shall not use the same ID to represent more than one unique model type.
-- `product_category` Devices shall report a product category based on the product's primary function.
-- `software_version_id` This field indicates the software version ID for the device. The software version ID is a 32-bit value determined by the manufacturer.
-- `footprint` This field species the DMX footprint - the number of consecutive DMX slots required.
-- `current_personality` The current selected DMX personality of the device. The personality is the configured arrangement of DMX slots used by the device. Many devices may have multiple personalities from which to choose.
-- `personality_count` The number of personalities supported by the device.
-- `start_address` The DMX start address of the device. If the device or sub-device that the request is directed to has a DMX footprint of 0, then this field shall be set to -1.
-- `sub_device_count` This parameter is used to retrieve the number of sub-devices respresented by the root device. The response for this field shall always be the same regardless of whether this message is directed to the root device or a sub-device.
-- `sensor_count` This field indicates the number of available sensors in a root device or sub-device. When this parameter is directed to a sub-device, the reply shall be identical for any sub-device owned by a specific root device.
-
-Using the functions `rdm_driver_get_dmx_start_address()` and `rdm_driver_set_dmx_start_address()` will get and set the DMX start address for the device. These functions get and set the `start_address` field in the DMX driver device info.
+The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of these automatically registered functions can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section.
 
 ## Error Handling
 
@@ -786,18 +702,17 @@ Many RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated
 
 ### Currently Supported RDM PIDs
 
-The PIDs currently implemented by this library are listed below. An X in the ACK column indicates that the DMX driver has a default RDM response for the associated PID.
+The PIDs currently implemented by this library are listed below. PIDs marked as "required" are required by the RDM specification and are automatically registered upon installing the DMX driver. `RDM_PID_DMX_START_ADDRESS` is also automatically registered but this may be disabled in the `Kconfig`.
 
-Parameter                | GET | SET | ACK | Notes
-:------------------------|:---:|:---:|:---:|:------
-`DEVICE_INFO`            |  X  |     |  X  |
-`DISC_MUTE`              |     |     |  X  |
-`DISC_UN_MUTE`           |     |     |  X  |
-`DISC_UNIQUE_BRANCH`     |     |     |  X  |
-`DMX_START_ADDRESS`      |  X  |  X  |  X  |
-`IDENTIFY_DEVICE`        |  X  |  X  |  X  | Response function must be overwritten if not using Arduino.
-`SOFTWARE_VERSION_LABEL` |  X  |     |  X  |
-`SUPPORTED_PARAMETERS`   |  X  |     |     | `RDM_RESPONSE_TYPE_ACK_OVERFLOW` not currently supported.
+Parameter                        | GET | SET | Notes
+:--------------------------------|:---:|:---:|:------
+`RDM_PID_DEVICE_INFO`            |  X  |     | Required.
+`RDM_PID_DISC_MUTE`              |     |     | Required.
+`RDM_PID_DISC_UN_MUTE`           |     |     | Required.
+`RDM_PID_DISC_UNIQUE_BRANCH`     |     |     | Required.
+`RDM_PID_DMX_START_ADDRESS`      |  X  |  X  | Required if a DMX address is used.
+`RDM_PID_IDENTIFY_DEVICE`        |  X  |  X  | Required.
+`RDM_PID_SOFTWARE_VERSION_LABEL` |  X  |     | Required.
 
 ### Hardware Specifications
 
