@@ -220,7 +220,7 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
         }
         if (emplace_nulls) {
           if (destination != NULL) {
-            *((uint8_t *)destination + len) = '\0';
+            *((uint8_t *)destination + n + len - 1) = '\0';
           }
           ++n;  // Null terminator was encoded
         }
