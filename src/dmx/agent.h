@@ -4,7 +4,7 @@
 #include "esp_system.h"
 
 #ifdef __cplusplus
-extern 'C' {
+extern "C" {
 #endif
 
 /**
