@@ -1,5 +1,6 @@
 #include "controller.h"
 
+#include "dmx/agent.h"
 #include "dmx/driver.h"
 #include "endian.h"
 #include "rdm/agent.h"
@@ -99,7 +100,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   rdm_disc_mute_t mute;  // Mute parameters returned from devices.
   rdm_ack_t ack;         // Request response information.
   int num_found = 0;
-  
+
   extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
   dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
@@ -218,9 +219,8 @@ struct rdm_disc_default_ctx {
   rdm_uid_t *uids;
 };
 
-static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid,
-                        int num_found, const rdm_disc_mute_t *mute,
-                        void *context) {
+static void rdm_disc_cb(dmx_port_t dmx_num, rdm_uid_t uid, int num_found,
+                        const rdm_disc_mute_t *mute, void *context) {
   struct rdm_disc_default_ctx *c = (struct rdm_disc_default_ctx *)context;
   if (num_found < c->num && c->uids != NULL) {
     c->uids[num_found] = uid;
