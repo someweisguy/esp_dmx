@@ -411,11 +411,12 @@ static const char *TAG = "dmx";  // The log tagline for the file.
 
 static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
                                     void *context) {
-#if LED_BUILTIN
-  gpio_set_level(LED_BUILTIN, identify);
-#endif
+#ifdef ARDUINO
+  printf("RDM identify device is %s\n", identify ? "on" : "off");
+#else
   ESP_LOGI("rdm_responder", "RDM identify device is %s",
            identify ? "on" : "off");
+#endif
 }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
