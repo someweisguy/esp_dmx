@@ -6,29 +6,52 @@ menu "DMX/RDM Configuration"
         select GPTIMER_ISR_IRAM_SAFE
         select GPTIMER_CTRL_FUNC_IN_IRAM
         help
-            The DMX driver ISR is placed in IRAM to reduce latency. In 
-            particular, printing to the terminal with this option disabled can
-            interfere with the RDM timer causing it to output RDM that is
-            slightly out of specification. ESP-IDF v5 only: enabling this also
-            enables some kconfig options in the GPTimer driver.
-    
-    config RDM_STATIC_DEVICE_DISCOVERY
-        bool "Enable static memory use for RDM device discovery"
-        default n
-        help
-            RDM Device Discovery needs nearly 1KB of memory. Allocating this
-            much memory on the stack can lead to stack overflow crashes.
-            Therefore, the default behavior is for the DMX driver to heap
-            allocate the needed memory. Enabling this option instructs the DMX
-            driver to allocate the needed memory on the stack.
+            Placing DMX driver ISR functions in IRAM makes DMX functions
+            slightly more performant. It allows the DMX driver to continue
+            operation when cache is disabled. ESP-IDF v5 only: enabling this
+            option places the GPTimer functions in IRAM as well.
 
+    config RDM_DEVICE_UID_MAN_ID
+        hex "RDM manufacturer ID"
+        range 0x0001 0x7fff
+        default 0x05e0
+        help
+            Set the default manufacturer ID for this device's UID. The valid
+            range is 0x0001 to 0x7fff (inclusive).
+
+    config RDM_DEVICE_UID_DEV_ID
+        hex "RDM device ID"
+        range 0x00000000 0xffffffff
+        default 0xffffffff
+        help
+            Set the default device ID for this device's UID. The valid
+            range is 0x00000000 to 0xffffffff (inclusive). Setting this value to
+            0xffffffff sets the device ID to its default value.
+    
     config RDM_DEBUG_DEVICE_DISCOVERY
-        bool "Enable debugging for RDM device discovery"
+        bool "Debug RDM discovery"
         default n
         help
             Enabling this option can help to find bugs within the DMX driver's
             RDM discovery algorithm, but it can make the discovery process take
-            significantly longer. This options should remain disabled unless
-            changes are being made to the RDM API.
+            longer. This option should remain disabled unless changes are being
+            made to the RDM API.
+    
+    config RDM_STACK_ALLOCATE_DISCOVERY
+        bool "Stack allocate RDM discovery address spaces"
+        default n
+        help
+            RDM discovery needs over 500 bytes of memory. Enabling this option 
+            instructs the DMX driver to allocate the needed memory on the stack
+            instead of heap allocating it.
+
+    config RDM_RESPONDER_MAX_PARAMETERS
+        int "Max RDM responder PIDs"
+        range 0 512
+        default 16
+        help
+            This is the maximum number of RDM parameter responses that the DMX
+            driver supports. Increasing this number increases the size of the
+            DMX driver.
 
 endmenu

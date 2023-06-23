@@ -1,14 +1,24 @@
+/**
+ * @file driver.h
+ * @author Mitch Weisbrod
+ * @brief This file contains the definition for the DMX driver. It is intended
+ * to be obfuscated from end-users, but may be included when forking this
+ * library or adding new features.
+ */
 #pragma once
 
 #include <stdint.h>
 
-#include "dmx_types.h"
+#include "dmx/types.h"
+#include "esp_check.h"
 #include "esp_err.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "hal/uart_hal.h"
+#include "rdm/types.h"
+#include "rdm/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -20,12 +30,21 @@
 extern "C" {
 #endif
 
-/**
- * @brief The DMX driver object used to handle reading and writing DMX data on 
+#ifndef CONFIG_RDM_RESPONDER_MAX_PARAMETERS
+#define CONFIG_RDM_RESPONDER_MAX_PARAMETERS 16
+#endif
+/** @brief The maximum number of parameters that the RDM responder can
+ * support. This value is editable in the Kconfig.*/
+#define RDM_RESPONDER_MAX_PIDS (8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS)
+
+/** @brief Used for argument checking at the beginning of each function.*/
+#define DMX_CHECK(a, err_code, format, ...) \
+  ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
+
+/** @brief The DMX driver object used to handle reading and writing DMX data on
  * the UART port. It storese all the information needed to run and analyze DMX
- * and RDM.
- */
-typedef __attribute__((aligned(4))) struct dmx_driver_t {
+ * and RDM.*/
+typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
   uart_dev_t *uart;               // A pointer to the UART port.
@@ -50,10 +69,9 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
     int sent_last;      // True if the last packet was sent from this driver.
     int type;           // The type of the packet received.
     int64_t timestamp;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
-
-    esp_err_t err;  // The error state of the received DMX data.
   } data;
 
+  int timer_is_running;
   int is_in_break;    // True if the driver is sending or receiving a DMX break.
   int end_of_packet;  // True if the driver received an end-of-packet condition.
   int is_sending;     // True if the driver is sending data.
@@ -64,9 +82,18 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 
   struct rdm_info_t {
-    rdm_uid_t uid;           // The assigned RDM UID of this port.
     uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
     int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
+    rdm_device_info_t device_info;    // The RDM device info of this device.
+
+    uint32_t num_cbs;
+    struct rdm_cb_table_t {
+      rdm_pid_description_t desc;
+      rdm_response_cb_t cb;
+      void *param;
+      size_t len;
+      void *context;
+    } cbs[RDM_RESPONDER_MAX_PIDS];
   } rdm;
 
   struct dmx_sniffer_t {
@@ -79,9 +106,6 @@ typedef __attribute__((aligned(4))) struct dmx_driver_t {
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
 } dmx_driver_t;
-
-extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 #ifdef __cplusplus
 }

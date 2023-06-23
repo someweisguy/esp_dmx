@@ -26,6 +26,7 @@
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/task.h"
+#include "rdm/controller.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
@@ -33,14 +34,14 @@
 
 static const char *TAG = "main";
 
-void discover_cb(dmx_port_t dmx_num, rdm_uid_t uid, size_t device_num,
-                 rdm_disc_mute_t *mute_params, void *context) {
+void discover_cb(dmx_port_t dmx_num, rdm_uid_t uid, int num_found,
+                 const rdm_disc_mute_t *mute, void *context) {
   /* This is a callback which is called during RDM discovery. It can be used to
     fetch additional device info when a device is discovered. It can also be
     used to increment a progress bar. In this example, we will just log that a
     new device has been found. The function rdm_discover_devices_simple() will
     not execute this callback. */
-  ESP_LOGI(TAG, "Device %i has UID " UIDSTR, device_num, UID2STR(uid));
+  ESP_LOGI(TAG, "Device %i has UID " UIDSTR, num_found, UID2STR(uid));
 }
 
 void app_main() {

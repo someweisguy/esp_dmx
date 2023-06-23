@@ -14,6 +14,7 @@
 */
 #include <Arduino.h>
 #include <esp_dmx.h>
+#include <rdm/controller.h>
 
 /* First, lets define the hardware pins that we are using with our ESP32. We
   need to define which pin is transmitting data and which pin is receiving data.
@@ -57,7 +58,7 @@ void setup() {
     RDM devices on the network. When a device is found, its UID is added to an
     array of UIDs. This function will never overflow the UID array as long as
     the size argument is set properly. */
-  size_t devicesFound = rdm_discover_devices_simple(dmxPort, uids, 32);
+  int devicesFound = rdm_discover_devices_simple(dmxPort, uids, 32);
   if (devicesFound) {
     /* Now we'll print the devices we found to the Serial Monitor! */
     Serial.printf("Discovery found %i device(s).\n", devicesFound);

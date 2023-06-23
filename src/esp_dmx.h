@@ -5,16 +5,16 @@
  * needed for installing the DMX driver and sending or receiving DMX data. It is
  * possible to implement RDM using the functions found in this header file
  * alone. However, RDM can be complex to users who aren't familiar with the
- * standard. Functions found in esp_rdm.h can be used to simplify basic RDM
- * tasks.
+ * standard. Functions found in rdm/agent.h and rdm/requests.h can be used to
+ * simplify basic RDM tasks.
  */
 #pragma once
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "driver/gpio.h"
-#include "esp_rdm.h"
 #include "freertos/FreeRTOS.h"
-#include "rdm_types.h"
+#include "rdm/agent.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,10 +79,13 @@ bool dmx_driver_is_installed(dmx_port_t dmx_num);
  * and reenabling the DMX driver is not needed.
  * 
  * @param dmx_num The DMX port number.
- * @retval true if the driver was disabled.
- * @retval false if the driver was not disabled.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there is an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver is not installed or already
+ * disabled.
+ * @retval ESP_ERR_NOT_FINISHED if the driver is currently sending data.
  */
-bool dmx_driver_disable(dmx_port_t dmx_num);
+esp_err_t dmx_driver_disable(dmx_port_t dmx_num);
 
 /**
  * @brief Enables the DMX driver. When the DMX driver is not placed in IRAM,
@@ -92,12 +95,14 @@ bool dmx_driver_disable(dmx_port_t dmx_num);
  * disabled before disabling the cache. When cache is reenabled, the DMX driver
  * can be reenabled as well. When the DMX driver is placed in IRAM, disabling
  * and reenabling the DMX driver is not needed.
- * 
+ *
  * @param dmx_num The DMX port number.
- * @retval true if the driver was enabled.
- * @retval false if the driver was enabled.
+ * @retval ESP_OK on success.
+ * @retval ESP_ERR_INVALID_ARG if there is an argument error.
+ * @retval ESP_ERR_INVALID_STATE if the driver is not installed or already
+ * enabled.
  */
-bool dmx_driver_enable(dmx_port_t dmx_num);
+esp_err_t dmx_driver_enable(dmx_port_t dmx_num);
 
 /**
  * @brief Checks if the DMX driver is enabled. When the DMX driver is not placed
