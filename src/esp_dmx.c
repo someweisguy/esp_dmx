@@ -15,6 +15,9 @@
 #include "rdm/responder.h"
 #include "rdm/utils.h"
 
+#include "esp_rom_gpio.h"
+#include "hal/gpio_hal.h"
+
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
 #include "esp_mac.h"
@@ -550,7 +553,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   gptimer_enable(driver->gptimer_handle);
 #else
   driver->timer_group = dmx_num / 2;
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+  driver->timer_idx = 0;  // Timer 1 is the watchdog on ESP32C3
+#else
   driver->timer_idx = dmx_num % 2;
+#endif
   const timer_config_t timer_config = {
       .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
       .counter_dir = TIMER_COUNT_UP,
