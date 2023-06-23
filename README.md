@@ -328,7 +328,7 @@ int value = dmx_read_slot(DMX_NUM_2, slot_num);
 
 ### DMX Sniffer
 
-This library offers an option to measure DMX break and mark-after-break timings of received data packets. This tool is much more resource intensive than the default DMX driver, so it must be explicitly enabled by calling `dmx_sniffer_enable()`.
+This library offers an option to measure DMX break and mark-after-break timings of received data packets. Its associated functions must be included by calling `#include "dmx/sniffer.h"`. The sniffer is much more resource intensive than the default DMX driver, so it must be explicitly enabled by calling `dmx_sniffer_enable()`.
 
 The DMX sniffer installs an edge-triggered interrupt on the specified GPIO pin. This library uses the ESP-IDF provided GPIO ISR which allows the use of individual interrupt handlers for specific GPIO interrupts. The interrupt handler works by iterating through each GPIO to determine if it triggered an interrupt and if so, it calls the appropriate handler.
 

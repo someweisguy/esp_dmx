@@ -20,6 +20,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "freertos/task.h"
+#include "dmx/sniffer.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
