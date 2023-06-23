@@ -2,10 +2,10 @@
 
 #include "dmx/driver.h"
 #include "dmx/hal.h"
-#include "rdm/responder.h"
 #include "dmx/sniffer.h"
 #include "driver/uart.h"
 #include "endian.h"
+#include "rdm/responder.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -16,6 +16,9 @@
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
 #endif
+
+#define str(s) #s
+#define xstr(s) str(s)
 
 static const char *TAG = "dmx";
 
@@ -392,7 +395,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
   // Initialize RDM device info
   driver->rdm.device_info.model_id = 0;  // Defined by user
   driver->rdm.device_info.product_category = RDM_PRODUCT_CATEGORY_FIXTURE;
-  driver->rdm.device_info.software_version_id = 303;  // TODO
+  driver->rdm.device_info.software_version_id = ESP_IDF_VERSION_VAL(
+      ESP_DMX_VERSION_MAJOR, ESP_DMX_VERSION_MINOR, ESP_DMX_VERSION_PATCH);
   driver->rdm.device_info.footprint = 1;
   driver->rdm.device_info.current_personality = 1;
   driver->rdm.device_info.personality_count = 1;
@@ -479,12 +483,16 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags) {
                          driver, intr_flags);
 #endif
 
+  const char *software_version_label =
+      "esp_dmx v" xstr(ESP_DMX_VERSION_MAJOR) "." xstr(
+          ESP_DMX_VERSION_MINOR) "." xstr(ESP_DMX_VERSION_PATCH);
+
   // Add required RDM response callbacks
   rdm_register_disc_unique_branch(dmx_num);
   rdm_register_disc_un_mute(dmx_num);
   rdm_register_disc_mute(dmx_num);
   rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->rdm.device_info);
-  rdm_register_software_version_label(dmx_num, "esp_dmx");
+  rdm_register_software_version_label(dmx_num, software_version_label);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
   void *start_address = &dmx_driver[dmx_num]->rdm.device_info.dmx_start_address;
   rdm_register_dmx_start_address(dmx_num, start_address);
