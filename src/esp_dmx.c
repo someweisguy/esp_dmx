@@ -1248,12 +1248,15 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
              header.cc != RDM_CC_DISC_COMMAND) {
     // If a PID callback wasn't found, send a NR_UNKNOWN_PID response
     pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-  } else if (response_type == RDM_RESPONSE_TYPE_NONE) {
-    ESP_LOGW(TAG, "PID 0x%04x callback returned RDM_RESPONSE_TYPE_NONE",
+  } else if (response_type == RDM_RESPONSE_TYPE_NONE ||
+             response_type == RDM_RESPONSE_TYPE_INVALID) {
+    ESP_LOGW(TAG,
+             "PID 0x%04x callback returned RDM_RESPONSE_TYPE_NONE or "
+             "RDM_RESPONSE_TYPE_INVALID",
              header.pid);
     pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     // TODO: set mute boot-loader flag
-  } 
+  }
 
   // Rewrite the header for the response packet
   header.dest_uid = header.src_uid;
