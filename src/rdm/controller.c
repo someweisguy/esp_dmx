@@ -277,10 +277,10 @@ bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
   header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   header->pdl = 0;
 
-  char pd[32];
+  char pd[33];
   bool ret = rdm_request(dmx_num, header, NULL, pd, sizeof(pd), ack);
   if (ret) {
-    pd_emplace(software_version_label, "a", &pd, size, true);
+    pd_emplace(software_version_label, "a", pd, size, true);
   }
 
   return ret;

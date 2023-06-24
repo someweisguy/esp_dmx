@@ -208,23 +208,22 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
         }
         n += sizeof(rdm_uid_t);
       } else if (*f == 'a' || *f == 'A') {
-        size_t len = atoi(f + 1);
-        if (len == 0 && source != NULL) {
+        size_t len;
+        if (source != NULL) {
           // Field is a variable-length string
-          const size_t str_size = num - (emplace_nulls ? 1 : 0);
-          const size_t max_len = (str_size - n) < 32 ? (str_size - n) : 32;
+          const size_t max_len = (num - n) < 32 ? (num - n) : 32;
           len = strnlen(source + n, max_len);
+        } else {
+          len = 32;
         }
         if (destination != NULL && source != NULL) {
           memmove(destination + n, source + n, len);
-        }
-        if (emplace_nulls) {
-          if (destination != NULL) {
-            *((uint8_t *)destination + n + len - 1) = '\0';
+          if (emplace_nulls) {
+            *(uint8_t *)(destination + n + len) = 0;
           }
-          ++n;  // Null terminator was encoded
         }
-        n += len;
+        n += len + emplace_nulls;
+        break;
       } else if (*f == '#') {
         ++f;  // Skip '#' character
         char *end_ptr;
