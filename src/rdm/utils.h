@@ -192,14 +192,13 @@ static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
  * - 'u' writes a 48-bit UID.
  * - 'v' writes an optional 48-bit UID if the UID is not 0000:00000000. Optional
  *   UIDs must be at the end of the format string.
- * - 'a' writes an ASCII string. A fixed-length string may be represented
- *   writing a decimal value after the 'a'. For example, 'a10' represents a 10
- *   character string. A variable-length string must be at the end of the format
- *   string but a fixed-length string may not.
+ * - 'a' writes an ASCII string. ASCII strings may be up to 32 characters long
+ *   and may or may not be null-terminated. An ASCII string must be at the end
+ *   of the format string.
  *
  * Integer literals may be written by beginning the integer with '#' and writing
  * the literal in hexadecimal form. Integer literals must be terminated with an
- * 'h' character. For example, the integer 0xbeef is represented as '#beefh'.
+ * 'h' character. For example, the integer 0xbeef is represented as "#beefh".
  * Integer literals are written regardless of what the underlying value is. This
  * is used for situations such as emplacing a rdm_device_info_t wherein the
  * first two bytes are 0x01 and 0x00.

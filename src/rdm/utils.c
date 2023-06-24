@@ -104,26 +104,12 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
       field_size = sizeof(rdm_uid_t);
     } else if (*f == 'a' || *f == 'A') {
       // Handle ASCII string
-      char *end_ptr;
-      const bool str_has_fixed_len = isdigit((int)f[1]);
-      field_size = str_has_fixed_len ? (size_t)strtol(&f[1], &end_ptr, 10) : 32;
-      if (!str_has_fixed_len && (f[1] != '\0' && f[1] != '$')) {
+      if (f[1] != '\0' && f[1] != '$') {
         ESP_LOGE(TAG, "Variable-length string not at end of parameter.");
         return -1;
-      } else if (str_has_fixed_len) {
-        if (field_size == 0) {
-          ESP_LOGE(TAG, "Fixed-length string has no size.");
-          return 0;
-        } else if (field_size > (231 - param_size)) {
-          ESP_LOGE(TAG, "Fixed-length string is too big.");
-          return 0;
-        }
       }
-      if (str_has_fixed_len) {
-        f = end_ptr;
-      } else {
-        *is_singleton = true;
-      }
+      field_size = 32;
+      *is_singleton = true;
     } else if (*f == '#') {
       // Handle integer literal
       ++f;  // Ignore '#' character
@@ -210,7 +196,6 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
       } else if (*f == 'a' || *f == 'A') {
         size_t len;
         if (source != NULL) {
-          // Field is a variable-length string
           const size_t max_len = (num - n) < 32 ? (num - n) : 32;
           len = strnlen(source + n, max_len);
         } else {
