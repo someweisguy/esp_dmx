@@ -412,15 +412,17 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   if (footprint == 0) {
     dmx_start_address = 0xffff;
   }
-  driver->rdm.device_info = {.model_id = config->model_id,
-                             .product_category = config->product_category,
-                             .software_version_id = config->software_version_id,
-                             .footprint = footprint,
-                             .current_personality = current_personality,
-                             .personality_count = config->personality_count,
-                             .dmx_start_address = dmx_start_address,
-                             .sub_device_count = 0,
-                             .sensor_count = 0};
+  driver->rdm.device_info = {
+      .model_id = config->model_id,
+      .product_category = config->product_category,
+      .software_version_id = config->software_version_id,
+      .footprint = footprint,
+      .current_personality = current_personality,
+      .personality_count = config->personality_count,
+      .dmx_start_address = dmx_start_address,
+      .sub_device_count = 0,  // Sub-devices must be registered
+      .sensor_count = 0       // Sensors must be registered
+  };
   // TODO: copy footprint and descriptions to driver
 
   driver->rdm.device_info.model_id = config->model_id;
