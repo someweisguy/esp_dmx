@@ -503,47 +503,47 @@ typedef struct __attribute__((packed)) rdm_device_info_t {
   uint8_t : 8;  // RDM major version. Is always 1.
   uint8_t : 8;  // RDM minor version. Is always 0.
   /** @brief This field identifies the device model ID of the root device or
-   * sub-device. The manufacturer shall not use the same ID to represent more
-   * than one unique model type.*/
+     sub-device. The manufacturer shall not use the same ID to represent more
+     than one unique model type.*/
   uint16_t model_id;
   /** @brief Devices shall report a product category based on the product's
-   * primary function.*/
+     primary function.*/
   uint16_t product_category;
   /** @brief This field indicates the software version ID for the device. The
-   * software version ID is a 32-bit value determined by the manufacturer.*/
+     software version ID is a 32-bit value determined by the manufacturer.*/
   uint32_t software_version_id;
   /** @brief This field species the DMX footprint - the number of consecutive
-   * DMX slots required.*/
+     DMX slots required.*/
   uint16_t footprint;
   /** @brief The current selected DMX personality of the device. The personality
-   * is the configured arrangement of DMX slots used by the device. Many devices
-   * may have multiple personalities from which to choose.*/
+     is the configured arrangement of DMX slots used by the device. Many devices
+     may have multiple personalities from which to choose. These personalities
+     shall be consecutively numbered starting from 1.*/
   uint8_t current_personality;
   /** @brief The number of personalities supported by the device. The
-   * personality is the configured arrangement of DMX slots used by the device.
-   * Many devices may have multiple personalities from which to choose.*/
+     personality is the configured arrangement of DMX slots used by the device.
+     Many devices may have multiple personalities from which to choose. These
+     personalities shall be consecutively numbered starting from 1.*/
   uint8_t personality_count;
   /** @brief The DMX start address of the device. If the device or sub-device
-   * that the request is directed to has a DMX footprint of 0, then this field
-   * shall be set to 0xffff.*/
+     that the request is directed to has a DMX footprint of 0, then this field
+     shall be set to 0xffff.*/
   uint16_t dmx_start_address;
   /** @brief This parameter is used to retrieve the number of sub-devices
-   * respresented by the root device. The response for this field shall always
-   * be the same regardless of whether this message is directed to the root
-   * device or a sub-device.*/
+     respresented by the root device. The response for this field shall always
+     be the same regardless of whether this message is directed to the root
+     device or a sub-device.*/
   uint16_t sub_device_count;
   /** @brief This field indicates the number of available sensors in a root
-   * device or sub-device. When this parameter is directed to a sub-device, the
-   * reply shall be identical for any sub-device owned by a specific root
-   * device.*/
+     device or sub-device. When this parameter is directed to a sub-device, the
+     reply shall be identical for any sub-device owned by a specific root
+     device.*/
   uint8_t sensor_count;
 } rdm_device_info_t;
 
-/**
- * @brief The purpose of this parameter is to allow a controller to retrieve
+/** @brief The purpose of this parameter is to allow a controller to retrieve
  * enough information about the manufacturerspecific PID to generate GET and SET
- * commands.
- */
+ * commands.*/
 typedef struct __attribute__((packed)) rdm_pid_description_t {
   /** @brief The manufacturer specific PID requested by the controller.*/
   uint16_t pid;
