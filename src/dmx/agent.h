@@ -21,10 +21,6 @@ extern "C" {
  * recommended to use the hardware timer that the DMX driver is using while the
  * DMX driver is installed.
  *
- * @note Using a hardware timer can be disabled by setting the appropriate
- * option in the Kconfig under "DMX Configuration." Hardware timers cannot be
- * disabled when using Arduino.
- *
  * @note The DMX interrupt service routine is installed on the same CPU core
  * that this function is running on.
  *
