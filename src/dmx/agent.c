@@ -334,7 +334,7 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
 #endif
 }
 
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
                              int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
@@ -394,46 +394,41 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->rdm.num_cbs = 0;
 
   // Initialize RDM device info
-  uint8_t current_personality = config->current_personality;  // TODO: check NVS
-  if (current_personality > config->personality_count) {
-    if (config->personality_count == 0) {
-      current_personality = 0;
-    } else {
-      current_personality = 1;
-    }
+  if (config->personality_count == 0 ||
+      config->personality_count > CONFIG_DMX_MAX_PERSONALITIES) {
+    ESP_LOGW(TAG, "Personality count is invalid, using default personality");
+    config->personalities[0].footprint = 1;
+    config->personalities[0].description = "Default Personality";
+    config->current_personality = 1;
+    config->personality_count = 1;
   }
-  uint16_t footprint;
-  if (current_personality == 0) {
-    footprint = 0;
-  } else {
-    footprint = config->personalities[current_personality - 1].footprint;
+  if (config->current_personality == 0) {;
+    config->current_personality = 1;  // TODO: Check NVS for value
   }
-  uint16_t dmx_start_address = config->dmx_start_address;  // TODO: check NVS
+  if (config->current_personality >= config->personality_count) {
+    ESP_LOGW(TAG, "Current personality is invalid, using personality 1");
+    config->current_personality = 1;
+  }
+  const int footprint_num = config->current_personality - 1;
+  uint16_t footprint = config->personalities[footprint_num].footprint;
   if (footprint == 0) {
-    dmx_start_address = 0xffff;
+    config->dmx_start_address = 0xffff;
   }
-  driver->rdm.device_info = {
+  if (config->dmx_start_address == 0) {
+    config->dmx_start_address = 1;  // TODO: Check NVS for value
+  }
+  driver->rdm.device_info = (rdm_device_info_t){
       .model_id = config->model_id,
       .product_category = config->product_category,
       .software_version_id = config->software_version_id,
       .footprint = footprint,
-      .current_personality = current_personality,
+      .current_personality = config->current_personality,
       .personality_count = config->personality_count,
-      .dmx_start_address = dmx_start_address,
+      .dmx_start_address = config->dmx_start_address,
       .sub_device_count = 0,  // Sub-devices must be registered
       .sensor_count = 0       // Sensors must be registered
   };
   // TODO: copy footprint and descriptions to driver
-
-  driver->rdm.device_info.model_id = config->model_id;
-  driver->rdm.device_info.product_category = config->product_category;
-  driver->rdm.device_info.software_version_id = config->software_version_id;
-  driver->rdm.device_info.footprint = 1;
-  driver->rdm.device_info.current_personality = 1;
-  driver->rdm.device_info.personality_count = 1;
-  driver->rdm.device_info.dmx_start_address = 1;
-  driver->rdm.device_info.sub_device_count = 0;
-  driver->rdm.device_info.sensor_count = 0;
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);

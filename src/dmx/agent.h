@@ -26,7 +26,7 @@ extern "C" {
  * that this function is running on.
  *
  * @param dmx_num The DMX port number.
- * @param[in] config A pointer to a DMX configuration which will be used to 
+ * @param[inout] config A pointer to a DMX configuration which will be used to 
  * setup the DMX driver.
  * @param intr_flags The interrupt allocation flags to use.
  * @retval ESP_OK on success.
@@ -34,7 +34,7 @@ extern "C" {
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
                              int intr_flags);
 
 /**
