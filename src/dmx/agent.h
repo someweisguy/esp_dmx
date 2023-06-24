@@ -19,7 +19,8 @@ extern "C" {
  * to determine which timer group and number to use is
  * timer_group == (dmx_num / 2) and timer_num == (dmx_num % 2). It is not
  * recommended to use the hardware timer that the DMX driver is using while the
- * DMX driver is installed.
+ * DMX driver is installed. On the ESP32-C3, hardware timer number 0 will always
+ * be used to avoid clobbering the watchdog timer.
  *
  * @note The DMX interrupt service routine is installed on the same CPU core
  * that this function is running on.
