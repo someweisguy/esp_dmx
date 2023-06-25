@@ -106,10 +106,10 @@ typedef struct dmx_driver_t {
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
   struct dmx_data_t {
-    int head;                  // The index of the current slot being either transmitted or received.
+    int16_t head;                  // The index of the current slot being either transmitted or received.
     uint8_t *restrict buffer;  // The buffer that stores the DMX packet.
-    int tx_size;            // The size of the outgoing data packet.
-    int rx_size;            // The expected size of the incoming data packet.
+    int16_t tx_size;            // The size of the outgoing data packet.
+    int16_t rx_size;            // The expected size of the incoming data packet.
 
     int64_t timestamp;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
   } data;
@@ -124,10 +124,10 @@ typedef struct dmx_driver_t {
 
 
   struct rdm_info_t {
-    uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
+    uint8_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
     rdm_device_info_t device_info;    // The RDM device info of this device.
 
-    uint32_t num_cbs;
+    uint16_t num_cbs;
     struct rdm_cb_table_t {
       rdm_pid_description_t desc;
       rdm_response_cb_t cb;
