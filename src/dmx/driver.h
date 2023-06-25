@@ -107,7 +107,7 @@ typedef struct dmx_driver_t {
 
   struct dmx_data_t {
     int16_t head;                  // The index of the current slot being either transmitted or received.
-    uint8_t *restrict buffer;  // The buffer that stores the DMX packet.
+    uint8_t *buffer;  // The buffer that stores the DMX packet.
     int16_t tx_size;            // The size of the outgoing data packet.
     int16_t rx_size;            // The expected size of the incoming data packet.
 
