@@ -208,6 +208,9 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 /**
  * @brief Gets the current DMX personality of this device.
  * 
+  @note DMX personalities are indexed from one. The first personality in the
+ * personality table is personality number one, not zero.
+ * 
  * @param dmx_num The DMX port number.
  * @return The current personality number or 0 on error.
  */
@@ -219,6 +222,9 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num);
  * footprint of the device will not fit in a DMX universe at the current DMX
  * start address. When the DMX start address is updated, it is updated to the
  * highest value that can fit with a DMX universe.
+ * 
+ * @note DMX personalities are indexed from one. The first personality in the
+ * personality table is personality number one, not zero.
  *
  * @param dmx_num The DMX port number.
  * @param num The personality number to set to. Must be between 1 and
@@ -230,6 +236,9 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num);
  * @brief Gets the number of personalities that this device supports. This
  * number is equal to the number of personalities that were passed to the DMX
  * driver on dmx_driver_install().
+ * 
+ * @note DMX personalities are indexed from one. The first personality in the
+ * personality table is personality number one, not zero.
  * 
  * @param dmx_num The DMX port number.
  * @return The personality count or 0 on error.
