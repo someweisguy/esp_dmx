@@ -7,6 +7,20 @@
 extern "C" {
 #endif
 
+/** @brief The default configuration for the DMX driver. Passing this
+ * configuration to dmx_driver_install() installs the driver with one DMX
+ * personality which has a footprint of one DMX address. The DMX address will 
+ * automatically be searched for in NVS and set to 1 if not found or if NVS is 
+ * disabled. */
+#define DMX_CONFIG_DEFAULT                                                    \
+  (dmx_config_t) {                                                            \
+    .model_id = 0, .product_category = 0x0100,                                \
+    .software_version_id = ESP_IDF_VERSION_VAL(                               \
+        ESP_DMX_VERSION_MAJOR, ESP_DMX_VERSION_MINOR, ESP_DMX_VERSION_PATCH), \
+    .current_personality = 1, .personalities = {{1, "Default Personality"}},  \
+    .personality_count = 1, .dmx_start_address = 0                            \
+  }
+
 /**
  * @brief Installs the DMX driver and sets the default configuration. To
  * generate the DMX reset sequence, users may choose to use either the hardware
@@ -26,13 +40,16 @@ extern "C" {
  * that this function is running on.
  *
  * @param dmx_num The DMX port number.
+ * @param[inout] config A pointer to a DMX configuration which will be used to 
+ * setup the DMX driver.
  * @param intr_flags The interrupt allocation flags to use.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there is an argument error.
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, int intr_flags);
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
+                             int intr_flags);
 
 /**
  * @brief Uninstalls the DMX driver.
@@ -187,6 +204,88 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
  * @return the current DMX mark-after-break length or 0 on error.
  */
 uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
+
+/**
+ * @brief Gets the current DMX personality of this device.
+ * 
+  @note DMX personalities are indexed from one. The first personality in the
+ * personality table is personality number one, not zero.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The current personality number or 0 on error.
+ */
+uint8_t dmx_get_current_personality(dmx_port_t dmx_num);
+
+/**
+ * @brief Sets the current DMX personality of this device. This updates the
+ * footprint of this device and may update the DMX start address if the new
+ * footprint of the device will not fit in a DMX universe at the current DMX
+ * start address. When the DMX start address is updated, it is updated to the
+ * highest value that can fit with a DMX universe.
+ * 
+ * @note DMX personalities are indexed from one. The first personality in the
+ * personality table is personality number one, not zero.
+ *
+ * @param dmx_num The DMX port number.
+ * @param num The personality number to set to. Must be between 1 and
+ * dmx_get_personality_count() (inclusive).
+ */
+void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num);
+
+/**
+ * @brief Gets the number of personalities that this device supports. This
+ * number is equal to the number of personalities that were passed to the DMX
+ * driver on dmx_driver_install().
+ * 
+ * @note DMX personalities are indexed from one. The first personality in the
+ * personality table is personality number one, not zero.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The personality count or 0 on error.
+ */
+uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
+
+/**
+ * @brief Gets the footprint of the desired personality.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param num The personality number of which to get the footprint.
+ * @return uint16_t 
+ */
+uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num);
+
+/**
+ * @brief Gets the DMX start address of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The DMX start address of this device or 0 on error.
+ */
+uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num);
+
+/**
+ * @brief Sets the DMX start address of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param start_address The DMX start address to which to set this device. Must
+ * be between 1 and 512 (inclusive).
+ */
+void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address);
+
+/**
+ * @brief Gets the sub-device count of this device.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The sub-device count or 0 on error.
+ */
+uint16_t dmx_get_sub_device_count(dmx_port_t dmx_num);
+
+/**
+ * @brief Gets the sensor count of this device.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The sensor count or 0 on error.
+ */
+uint8_t dmx_get_sensor_count(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
 }

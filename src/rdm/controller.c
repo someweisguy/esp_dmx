@@ -3,7 +3,6 @@
 #include "dmx/agent.h"
 #include "dmx/driver.h"
 #include "endian.h"
-#include "rdm/agent.h"
 #include "rdm/utils.h"
 
 static const char *TAG = "rdm_controller";  // The log tagline for the file.

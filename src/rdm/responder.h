@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 #include "dmx/types.h"
-#include "rdm/agent.h"
 #include "rdm/types.h"
 
 #ifdef __cplusplus

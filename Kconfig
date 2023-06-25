@@ -10,6 +10,15 @@ menu "DMX/RDM Configuration"
             slightly more performant. It allows the DMX driver to continue
             operation when cache is disabled. ESP-IDF v5 only: enabling this
             option places the GPTimer functions in IRAM as well.
+    
+    config DMX_MAX_PERSONALITIES
+        int "Max DMX personalities"
+        range 1 255
+        default 16
+        help
+            This is the maximum number of DMX personalities that the DMX driver
+            supports. Increasing this number increases the size of the DMX
+            driver.
 
     config RDM_DEVICE_UID_MAN_ID
         hex "RDM manufacturer ID"
@@ -44,7 +53,7 @@ menu "DMX/RDM Configuration"
             RDM discovery needs over 500 bytes of memory. Enabling this option 
             instructs the DMX driver to allocate the needed memory on the stack
             instead of heap allocating it.
-
+           
     config RDM_RESPONDER_MAX_PARAMETERS
         int "Max RDM responder PIDs"
         range 0 512
@@ -53,5 +62,6 @@ menu "DMX/RDM Configuration"
             This is the maximum number of RDM parameter responses that the DMX
             driver supports. Increasing this number increases the size of the
             DMX driver.
+           
 
 endmenu

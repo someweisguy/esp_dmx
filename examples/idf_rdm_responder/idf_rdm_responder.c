@@ -40,7 +40,8 @@ void custom_rdm_identify_cb(dmx_port_t dmx_num, bool identify, void *context) {
 void app_main() {
   const dmx_port_t dmx_num = DMX_NUM_2;
   ESP_ERROR_CHECK(dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN));
-  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, DMX_DEFAULT_INTR_FLAGS));
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT));
 
   // Register software version label response
   if (!rdm_register_software_version_label(dmx_num, software_version_label)) {
