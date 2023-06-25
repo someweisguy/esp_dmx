@@ -428,7 +428,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
       .sub_device_count = 0,  // Sub-devices must be registered
       .sensor_count = 0       // Sensors must be registered
   };
-  // TODO: copy footprint and descriptions to driver
+  memcpy(driver->personalities, config->personalities,
+         sizeof(config->personalities[0]) * config->personality_count);
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);

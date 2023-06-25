@@ -109,6 +109,11 @@ typedef struct dmx_driver_t {
     int64_t timestamp;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
   } data;
 
+  struct dmx_personality_t {
+    uint16_t footprint;
+    const char *description;
+  } personalities[CONFIG_DMX_MAX_PERSONALITIES];
+
   int timer_is_running;
   int is_in_break;    // True if the driver is sending or receiving a DMX break.
   int end_of_packet;  // True if the driver received an end-of-packet condition.
