@@ -244,7 +244,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     if ((driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) &&
         (rdm_type & RDM_EARLY_TIMEOUT) == RDM_EARLY_TIMEOUT) {
       taskENTER_CRITICAL(spinlock);
-      const int64_t last_timestamp = driver->data.timestamp;
+      const int64_t last_timestamp = driver->data.last_slot_ts;
       taskEXIT_CRITICAL(spinlock);
 
       // Guard against setting hardware alarm durations with negative values
@@ -453,7 +453,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
       (cc == RDM_CC_DISC_COMMAND_RESPONSE ||
        cc == RDM_CC_GET_COMMAND_RESPONSE ||
        cc == RDM_CC_SET_COMMAND_RESPONSE)) {
-    elapsed = esp_timer_get_time() - driver->data.timestamp;
+    elapsed = esp_timer_get_time() - driver->data.last_slot_ts;
   }
   taskEXIT_CRITICAL(spinlock);
   if (elapsed >= RDM_RESPONDER_RESPONSE_LOST_TIMEOUT) {
@@ -475,7 +475,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_VALID) {
     timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
   }
-  elapsed = esp_timer_get_time() - driver->data.timestamp;
+  elapsed = esp_timer_get_time() - driver->data.last_slot_ts;
   if (elapsed < timeout) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_set_raw_count(driver->gptimer_handle, elapsed);

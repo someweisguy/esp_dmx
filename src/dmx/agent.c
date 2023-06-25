@@ -98,7 +98,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Set data timestamp, DMX break flag, and clear interrupts
       taskENTER_CRITICAL_ISR(spinlock);
-      driver->data.timestamp = now;
+      driver->data.last_slot_ts = now;
       if (is_in_break) {
         driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
       } else {
@@ -217,7 +217,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(spinlock);
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
-      driver->data.timestamp = now;
+      driver->data.last_slot_ts = now;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, ESP_OK, eNoAction,
                            &task_awoken);
@@ -343,6 +343,14 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
   dmx_driver[dmx_num] = driver;
 
+  // driver state
+
+  // device info
+
+  // buffer
+
+  // sniffer
+
   // Buffer must be allocated in unaligned memory
   driver->data.buffer = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
   if (driver->data.buffer == NULL) {
@@ -411,7 +419,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->data.timestamp = 0;
+  driver->data.last_slot_ts = 0;
   driver->data.head = -1;  // Wait for DMX break before reading data
   driver->data.rx_size = DMX_MAX_PACKET_SIZE;
 
