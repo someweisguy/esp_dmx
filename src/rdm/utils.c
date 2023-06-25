@@ -290,7 +290,7 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
 
   // Get pointers to driver data buffer locations and declare checksum
   uint16_t checksum = 0;
-  const uint8_t *header_ptr = driver->data.buffer;
+  const uint8_t *header_ptr = driver->data;
   const void *pd_ptr = header_ptr + 24;
 
   taskENTER_CRITICAL(spinlock);
@@ -392,7 +392,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
 
   // Get pointers to driver data buffer locations and declare checksum
   uint16_t checksum = 0;
-  uint8_t *header_ptr = driver->data.buffer;
+  uint8_t *header_ptr = driver->data;
   void *pd_ptr = header_ptr + 24;
 
   taskENTER_CRITICAL(spinlock);
@@ -456,7 +456,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   }
 
   // Update driver transmission size
-  driver->data.tx_size = written;
+  driver->tx_size = written;
 
   taskEXIT_CRITICAL(spinlock);
 

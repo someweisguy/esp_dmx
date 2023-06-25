@@ -59,24 +59,24 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Read data into the DMX buffer if there is enough space
       const bool is_in_break = intr_flags & DMX_INTR_RX_BREAK;
-      if (driver->data.head >= 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
-        int read_len = DMX_MAX_PACKET_SIZE - driver->data.head;
+      if (driver->head >= 0 && driver->head < DMX_MAX_PACKET_SIZE) {
+        int read_len = DMX_MAX_PACKET_SIZE - driver->head;
         if (is_in_break) --read_len;  // Ignore DMX breaks
 
         // Read the UART data into the DMX buffer and increment the head
-        uint8_t *current_slot = &driver->data.buffer[driver->data.head];
+        uint8_t *current_slot = &driver->data[driver->head];
         dmx_uart_read_rxfifo(uart, current_slot, &read_len);
-        driver->data.head += read_len;
+        driver->head += read_len;
 
         // Handle receiving a valid packet with larger than expected size
-        if (driver->data.head > driver->data.rx_size) {
-          driver->data.rx_size = driver->data.head;
+        if (driver->head > driver->rx_size) {
+          driver->rx_size = driver->head;
         }
 
       } else {
         // Record the number of slots received for error reporting
-        if (driver->data.head > 0) {
-          driver->data.head += dmx_uart_get_rxfifo_len(uart);
+        if (driver->head > 0) {
+          driver->head += dmx_uart_get_rxfifo_len(uart);
         }
         dmx_uart_rxfifo_reset(uart);
       }
@@ -85,20 +85,20 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (is_in_break) {
         // Handle receiveing a valid packet with smaller than expected size
         if (!(driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) &&
-            driver->data.head > 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
-          driver->data.rx_size = driver->data.head - 1;
+            driver->head > 0 && driver->head < DMX_MAX_PACKET_SIZE) {
+          driver->rx_size = driver->head - 1;
         }
 
         // Set driver flags
         taskENTER_CRITICAL_ISR(spinlock);
         driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
-        driver->data.head = 0;          // Driver is ready for data
+        driver->head = 0;          // Driver is ready for data
         taskEXIT_CRITICAL_ISR(spinlock);
       }
 
       // Set data timestamp, DMX break flag, and clear interrupts
       taskENTER_CRITICAL_ISR(spinlock);
-      driver->data.last_slot_ts = now;
+      driver->last_slot_ts = now;
       if (is_in_break) {
         driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
       } else {
@@ -127,16 +127,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         // TODO: rdm_read() must be declared DMX_ISR_ATTR
 
         // Check if a full packet has been received and process packet data
-        if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
-          if (driver->data.head < 26 ||
-              driver->data.head < driver->data.buffer[2] + 2) {
+        if (*(uint16_t *)driver->data == (RDM_SC | (RDM_SUB_SC << 8))) {
+          if (driver->head < 26 || driver->head < driver->data[2] + 2) {
             continue;  // Haven't received RDM packet yet
           }
           rdm_type |= DMX_FLAGS_RDM_IS_VALID;
-          const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
+          const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data[21]);
           rdm_uid_t dest_uid;
-          uidcpy(&dest_uid, &driver->data.buffer[3]);
-          const rdm_cc_t cc = driver->data.buffer[20];
+          uidcpy(&dest_uid, &driver->data[3]);
+          const rdm_cc_t cc = driver->data[20];
           if (cc == RDM_CC_DISC_COMMAND || cc == RDM_CC_GET_COMMAND ||
               cc == RDM_CC_SET_COMMAND) {
             rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
@@ -152,26 +151,26 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           if (uid_is_target(&my_uid, &dest_uid)) {
             rdm_type |= DMX_FLAGS_RDM_IS_RECIPIENT;
           }
-        } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
-                    *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
+        } else if ((*(uint8_t *)driver->data == RDM_PREAMBLE ||
+                    *(uint8_t *)driver->data == RDM_DELIMITER)) {
           rdm_type |= DMX_FLAGS_RDM_IS_VALID;
           size_t preamble_len = 0;
           for (; preamble_len <= 7; ++preamble_len) {
-            if (driver->data.buffer[preamble_len] == RDM_DELIMITER) break;
+            if (driver->data[preamble_len] == RDM_DELIMITER) break;
           }
           if (preamble_len <= 7) {
-            if (driver->data.head < preamble_len + 17) {
+            if (driver->head < preamble_len + 17) {
               continue;  // Haven't received DISC_UNIQUE_BRANCH response yet
             }
             rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
           } else {
             // When preamble_len > 7 the packet should not be considered RDM
-            if (driver->data.head < driver->data.rx_size) {
+            if (driver->head < driver->rx_size) {
               continue;  // Haven't received DMX packet yet
             }
           }
         } else {
-          if (driver->data.head < driver->data.rx_size) {
+          if (driver->head < driver->rx_size) {
             continue;  // Haven't received full DMX packet yet
           }
         }
@@ -197,14 +196,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Transmit #####################################################
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // Write data to the UART and clear the interrupt
-      size_t write_size = driver->data.tx_size - driver->data.head;
-      const uint8_t *src = &driver->data.buffer[driver->data.head];
+      size_t write_size = driver->tx_size - driver->head;
+      const uint8_t *src = &driver->data[driver->head];
       dmx_uart_write_txfifo(uart, src, &write_size);
-      driver->data.head += write_size;
+      driver->head += write_size;
       dmx_uart_clear_interrupt(uart, DMX_INTR_TX_DATA);
 
       // Allow FIFO to empty when done writing data
-      if (driver->data.head == driver->data.tx_size) {
+      if (driver->head == driver->tx_size) {
         dmx_uart_disable_interrupt(uart, DMX_INTR_TX_DATA);
       }
     }
@@ -217,7 +216,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(spinlock);
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
-      driver->data.last_slot_ts = now;
+      driver->last_slot_ts = now;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, ESP_OK, eNoAction,
                            &task_awoken);
@@ -228,10 +227,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       bool expecting_response = false;
       if (driver->rdm_type & DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH) {
         expecting_response = true;
-        driver->data.head = 0;  // Not expecting a DMX break
+        driver->head = 0;  // Not expecting a DMX break
       } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_REQUEST) {
         expecting_response = true;
-        driver->data.head = -1;  // Expecting a DMX break
+        driver->head = -1;  // Expecting a DMX break
       }
       if (expecting_response) {
         taskENTER_CRITICAL_ISR(spinlock);
@@ -272,9 +271,9 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 #endif
     } else {
       // Write data to the UART
-      size_t write_size = driver->data.tx_size;
-      dmx_uart_write_txfifo(driver->uart, driver->data.buffer, &write_size);
-      driver->data.head += write_size;
+      size_t write_size = driver->tx_size;
+      dmx_uart_write_txfifo(driver->uart, driver->data, &write_size);
+      driver->head += write_size;
 
       // Pause MAB timer alarm
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -352,8 +351,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   // sniffer
 
   // Buffer must be allocated in unaligned memory
-  driver->data.buffer = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
-  if (driver->data.buffer == NULL) {
+  driver->data = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
+  if (driver->data == NULL) {
     ESP_LOGE(TAG, "DMX driver buffer malloc error");
     dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
@@ -418,10 +417,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
          sizeof(config->personalities[0]) * config->personality_count);
 
   // Initialize the driver buffer
-  bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->data.last_slot_ts = 0;
-  driver->data.head = -1;  // Wait for DMX break before reading data
-  driver->data.rx_size = DMX_MAX_PACKET_SIZE;
+  bzero(driver->data, DMX_MAX_PACKET_SIZE);
+  driver->last_slot_ts = 0;
+  driver->head = -1;  // Wait for DMX break before reading data
+  driver->rx_size = DMX_MAX_PACKET_SIZE;
 
   // Initialize DMX transmit settings
   driver->break_len = RDM_BREAK_LEN_US;
@@ -547,8 +546,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free driver data buffer
-  if (driver->data.buffer != NULL) {
-    heap_caps_free(driver->data.buffer);
+  if (driver->data != NULL) {
+    heap_caps_free(driver->data);
   }
 
   // Free hardware timer ISR
@@ -615,7 +614,7 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
 
   // Initialize driver flags and reenable interrupts
   taskENTER_CRITICAL(spinlock);
-  driver->data.head = -1;  // Wait for DMX break before reading data
+  driver->head = -1;  // Wait for DMX break before reading data
   driver->flags |= (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
   driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_HAS_DATA);
   dmx_uart_rxfifo_reset(driver->uart);

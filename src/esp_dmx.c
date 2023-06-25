@@ -45,7 +45,7 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
   // TODO: make thread-safe
 
   // Copy data from the driver buffer to the destination asynchronously
-  memcpy(destination, driver->data.buffer, size);
+  memcpy(destination, driver->data, size);
 
   return size;
 }
@@ -67,7 +67,7 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Copy data from the driver buffer to the destination asynchronously
-  memcpy(destination, driver->data.buffer + offset, size);
+  memcpy(destination, driver->data + offset, size);
 
   return size;
 }
@@ -80,7 +80,7 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Return data from the driver buffer asynchronously
-  return driver->data.buffer[slot_num];
+  return driver->data[slot_num];
 }
 
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
@@ -108,11 +108,11 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
     // Flip the bus to stop writes from being overwritten by incoming data
     dmx_uart_set_rts(uart, 0);
   }
-  driver->data.tx_size = size;  // Update driver transmit size
+  driver->tx_size = size;  // Update driver transmit size
   taskEXIT_CRITICAL(spinlock);
 
   // Copy data from the source to the driver buffer asynchronously
-  memcpy(driver->data.buffer, source, size);
+  memcpy(driver->data, source, size);
 
   return size;
 }
@@ -144,11 +144,11 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
     // Flip the bus to stop writes from being overwritten by incoming data
     dmx_uart_set_rts(uart, 0);
   }
-  driver->data.tx_size = offset + size;  // Update driver transmit size
+  driver->tx_size = offset + size;  // Update driver transmit size
   taskEXIT_CRITICAL(spinlock);
 
   // Copy data from the source to the driver buffer asynchronously
-  memcpy(driver->data.buffer + offset, source, size);
+  memcpy(driver->data + offset, source, size);
 
   return size;
 }
@@ -173,13 +173,13 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   }
 
   // Ensure that the next packet to be sent includes this slot
-  if (driver->data.tx_size < slot_num) {
-    driver->data.tx_size = slot_num;
+  if (driver->tx_size < slot_num) {
+    driver->tx_size = slot_num;
   }
   taskEXIT_CRITICAL(spinlock);
 
   // Set the driver buffer slot to the assigned value asynchronously
-  driver->data.buffer[slot_num] = value;
+  driver->data[slot_num] = value;
 
   return value;
 }
@@ -221,7 +221,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (dmx_uart_get_rts(uart) == 0) {
     taskENTER_CRITICAL(spinlock);
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    driver->data.head = -1;  // Wait for DMX break before reading data
+    driver->head = -1;  // Wait for DMX break before reading data
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
     dmx_uart_set_rts(uart, 1);
     taskEXIT_CRITICAL(spinlock);
@@ -244,7 +244,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     if ((driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) &&
         (rdm_type & RDM_EARLY_TIMEOUT) == RDM_EARLY_TIMEOUT) {
       taskENTER_CRITICAL(spinlock);
-      const int64_t last_timestamp = driver->data.last_slot_ts;
+      const int64_t last_timestamp = driver->last_slot_ts;
       taskEXIT_CRITICAL(spinlock);
 
       // Guard against setting hardware alarm durations with negative values
@@ -280,7 +280,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Wait for a task notification
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
     taskENTER_CRITICAL(spinlock);
-    packet_size = driver->data.head;
+    packet_size = driver->head;
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(spinlock);
     if (packet_size == -1) {
@@ -311,7 +311,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Parse DMX data packet
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
-    packet->sc = packet_size > 0 ? driver->data.buffer[0] : -1;
+    packet->sc = packet_size > 0 ? driver->data[0] : -1;
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
     taskEXIT_CRITICAL(spinlock);
     packet->err = err;
@@ -448,12 +448,12 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Determine if it is too late to send a response packet
   int64_t elapsed = 0;
   taskENTER_CRITICAL(spinlock);
-  const rdm_cc_t cc = driver->data.buffer[20];
-  if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8)) &&
+  const rdm_cc_t cc = driver->data[20];
+  if (*(uint16_t *)driver->data == (RDM_SC | (RDM_SUB_SC << 8)) &&
       (cc == RDM_CC_DISC_COMMAND_RESPONSE ||
        cc == RDM_CC_GET_COMMAND_RESPONSE ||
        cc == RDM_CC_SET_COMMAND_RESPONSE)) {
-    elapsed = esp_timer_get_time() - driver->data.last_slot_ts;
+    elapsed = esp_timer_get_time() - driver->last_slot_ts;
   }
   taskEXIT_CRITICAL(spinlock);
   if (elapsed >= RDM_RESPONDER_RESPONSE_LOST_TIMEOUT) {
@@ -475,7 +475,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_VALID) {
     timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
   }
-  elapsed = esp_timer_get_time() - driver->data.last_slot_ts;
+  elapsed = esp_timer_get_time() - driver->last_slot_ts;
   if (elapsed < timeout) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_set_raw_count(driver->gptimer_handle, elapsed);
@@ -529,20 +529,20 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
       size = DMX_MAX_PACKET_SIZE;
     }
     taskENTER_CRITICAL(spinlock);
-    driver->data.tx_size = size;
+    driver->tx_size = size;
     taskEXIT_CRITICAL(spinlock);
   } else {
     taskENTER_CRITICAL(spinlock);
-    size = driver->data.tx_size;
+    size = driver->tx_size;
     taskEXIT_CRITICAL(spinlock);
   }
 
   // Record the outgoing packet type
-  const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
+  const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data[21]);
   rdm_uid_t dest_uid;
-  uidcpy(&dest_uid, &driver->data.buffer[3]);
+  uidcpy(&dest_uid, &driver->data[3]);
   int rdm_type = 0;
-  if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
+  if (*(uint16_t *)driver->data == (RDM_SC | (RDM_SUB_SC << 8))) {
     rdm_type |= DMX_FLAGS_RDM_IS_VALID;
     if (cc == RDM_CC_DISC_COMMAND || cc == RDM_CC_GET_COMMAND ||
         cc == RDM_CC_SET_COMMAND) {
@@ -554,8 +554,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
     }
-  } else if (driver->data.buffer[0] == RDM_PREAMBLE ||
-             driver->data.buffer[0] == RDM_DELIMITER) {
+  } else if (driver->data[0] == RDM_PREAMBLE ||
+             driver->data[0] == RDM_DELIMITER) {
     rdm_type |= DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
   }
   driver->rdm_type = rdm_type;
@@ -572,9 +572,9 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     taskENTER_CRITICAL(spinlock);
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
 
-    size_t write_size = driver->data.tx_size;
-    dmx_uart_write_txfifo(uart, driver->data.buffer, &write_size);
-    driver->data.head = write_size;
+    size_t write_size = driver->tx_size;
+    dmx_uart_write_txfifo(uart, driver->data, &write_size);
+    driver->head = write_size;
 
     // Enable DMX write interrupts
     dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
@@ -582,7 +582,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   } else {
     // Send the packet by starting the DMX break
     taskENTER_CRITICAL(spinlock);
-    driver->data.head = 0;
+    driver->head = 0;
     driver->flags |=
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
 #if ESP_IDF_VERSION_MAJOR >= 5

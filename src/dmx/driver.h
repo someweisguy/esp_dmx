@@ -92,30 +92,31 @@ enum dmx_flags_t {
 typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
   uart_dev_t *uart;               // A pointer to the UART port.
-  intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
-  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;  // The general purpose timer to use for DMX functions.
 #else
   timer_group_t timer_group;  // The timer group to use for DMX functions.
   timer_idx_t timer_idx;      // The timer index to use for DMX functions.
 #endif
+  intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
+
+  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
+  // Transmit and receive settings
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
+  int16_t tx_size;     // The size of the outgoing data packet.
+  int16_t rx_size;     // The expected size of the incoming data packet.
 
-  struct dmx_data_t {
-    int16_t head;                  // The index of the current slot being either transmitted or received.
-    uint8_t *buffer;  // The buffer that stores the DMX packet.
-    int16_t tx_size;            // The size of the outgoing data packet.
-    int16_t rx_size;            // The expected size of the incoming data packet.
+  // Data buffer
+  int16_t head;   // The index of the current slot being either transmitted or received.
+  uint8_t *data;  // The buffer that stores the DMX packet.
 
-    int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
-  } data;
 
-  uint8_t rdm_type;
   uint16_t flags;
+  uint8_t rdm_type;
+  int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
   struct dmx_personality_t {
     uint16_t footprint;
