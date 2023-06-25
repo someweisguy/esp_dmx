@@ -127,7 +127,8 @@ typedef struct dmx_driver_t {
   } data;
 
   // TODO: combine all these flags into one variable
-  int type;           // The type of the packet received.
+  // int type;           // The type of the packet received.
+  uint8_t rdm_type;
 
   uint16_t flags;
 

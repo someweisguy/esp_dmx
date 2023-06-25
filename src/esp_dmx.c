@@ -100,8 +100,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) &&
-      driver->type != RDM_PACKET_TYPE_NON_RDM) {
+  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) && driver->rdm_type != 0) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -137,8 +136,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) &&
-      driver->type != RDM_PACKET_TYPE_NON_RDM) {
+  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) && driver->rdm_type != 0) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -165,8 +163,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) &&
-      driver->type != RDM_PACKET_TYPE_NON_RDM) {
+  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) && driver->rdm_type != 0) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -238,12 +235,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Set task waiting and get additional DMX driver flags
     taskENTER_CRITICAL(spinlock);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
-    const enum rdm_packet_type_t data_type = driver->type;
+    const int rdm_type = driver->rdm_type;
     taskEXIT_CRITICAL(spinlock);
 
     // Check for early timeout according to RDM specification
+    const int RDM_EARLY_TIMEOUT =
+        (DMX_FLAGS_RDM_IS_REQUEST | DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH);
     if ((driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) &&
-        (data_type & RDM_PACKET_TYPE_EARLY_TIMEOUT)) {
+        (rdm_type & RDM_EARLY_TIMEOUT) == RDM_EARLY_TIMEOUT) {
       taskENTER_CRITICAL(spinlock);
       const int64_t last_timestamp = driver->data.timestamp;
       taskEXIT_CRITICAL(spinlock);
@@ -466,14 +465,14 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   uint32_t timeout = 0;
   taskENTER_CRITICAL(spinlock);
   if (driver->flags & DMX_FLAGS_DRIVER_SENT_LAST) {
-    if (driver->type == RDM_PACKET_TYPE_DISCOVERY) {
+    if (driver->rdm_type & DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
-    } else if (driver->type == RDM_PACKET_TYPE_BROADCAST) {
+    } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_BROADCAST) {
       timeout = RDM_BROADCAST_PACKET_SPACING;
-    } else if (driver->type == RDM_PACKET_TYPE_REQUEST) {
+    } else if (driver->rdm_type == DMX_FLAGS_RDM_IS_REQUEST) {
       timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
     }
-  } else if (driver->type != RDM_PACKET_TYPE_NON_RDM) {
+  } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_VALID) {
     timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
   }
   elapsed = esp_timer_get_time() - driver->data.timestamp;
@@ -542,30 +541,29 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
   rdm_uid_t dest_uid;
   uidcpy(&dest_uid, &driver->data.buffer[3]);
-  int packet_type = RDM_PACKET_TYPE_NON_RDM;
+  int rdm_type = 0;
   if (*(uint16_t *)driver->data.buffer == (RDM_SC | (RDM_SUB_SC << 8))) {
-    if (cc == RDM_CC_DISC_COMMAND && pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-      packet_type = RDM_PACKET_TYPE_DISCOVERY;
-      ++driver->rdm.tn;
-    } else if (uid_is_broadcast(&dest_uid)) {
-      packet_type = RDM_PACKET_TYPE_BROADCAST;
-      ++driver->rdm.tn;
-    } else if (cc == RDM_CC_GET_COMMAND || cc == RDM_CC_SET_COMMAND ||
-               cc == RDM_CC_DISC_COMMAND) {
-      packet_type = RDM_PACKET_TYPE_REQUEST;
-      ++driver->rdm.tn;
-    } else {
-      packet_type = RDM_PACKET_TYPE_RESPONSE;
+    rdm_type |= DMX_FLAGS_RDM_IS_VALID;
+    if (cc == RDM_CC_DISC_COMMAND || cc == RDM_CC_GET_COMMAND ||
+        cc == RDM_CC_SET_COMMAND) {
+      rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
+    }
+    if (uid_is_broadcast(&dest_uid)) {
+      rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
+    }
+    if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+      rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
     }
   } else if (driver->data.buffer[0] == RDM_PREAMBLE ||
              driver->data.buffer[0] == RDM_DELIMITER) {
-    packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
+    rdm_type |= DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
   }
-  driver->type = packet_type;
+  driver->rdm_type = rdm_type;
   driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
 
   // Determine if a DMX break is required and send the packet
-  if (packet_type == RDM_PACKET_TYPE_DISCOVERY_RESPONSE) {
+  if (rdm_type ==
+      (DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH)) {
     // RDM discovery responses do not send a DMX break - write immediately
     taskENTER_CRITICAL(spinlock);
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;

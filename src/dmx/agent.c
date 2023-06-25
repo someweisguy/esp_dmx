@@ -112,30 +112,12 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         continue;
       }
 
-      /* TODO: make packet_type a bit mask
-      1 / 0
-      sent_last           bit0
-      end_of_packet       bit1
-      missing_stop_bits   bit2
-      uart_overflow       bit3
-      rdm / non-rdm       bit4
-      request / response  bit5
-      disc_unique_branch  bit6
-      broadcast           bit7
-      addressed_to_me     bit8
 
-      can remove:
-        sent_last
-        end_of_packet
-        err
-        packet_type (use packet_flags or data.flags instead)
-      */
 
       // Handle DMX errors or process DMX data
       esp_err_t packet_err = ESP_OK;
-      enum rdm_packet_type_t packet_type;
+      int rdm_type = 0;
       if (intr_flags & DMX_INTR_RX_ERR) {
-        packet_type = RDM_PACKET_TYPE_NON_RDM;
         packet_err = intr_flags & DMX_INTR_RX_FRAMING_ERR
                          ? ESP_FAIL               // Missing stop bits
                          : ESP_ERR_NOT_FINISHED;  // UART overflow
@@ -150,18 +132,20 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               driver->data.head < driver->data.buffer[2] + 2) {
             continue;  // Haven't received RDM packet yet
           }
+          rdm_type |= DMX_FLAGS_RDM_IS_VALID;
           const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data.buffer[21]);
           rdm_uid_t dest_uid;
           uidcpy(&dest_uid, &driver->data.buffer[3]);
           const rdm_cc_t cc = driver->data.buffer[20];
+          if (cc == RDM_CC_DISC_COMMAND || cc == RDM_CC_GET_COMMAND ||
+              cc == RDM_CC_SET_COMMAND) {
+            rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
+          }
+          if (uid_is_broadcast(&dest_uid)) {
+            rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
+          }
           if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-            packet_type = RDM_PACKET_TYPE_DISCOVERY;
-          } else if (uid_is_broadcast(&dest_uid)) {
-            packet_type = RDM_PACKET_TYPE_BROADCAST;
-          } else if ((cc & 0x1) == 0) {
-            packet_type = RDM_PACKET_TYPE_REQUEST;
-          } else {
-            packet_type = RDM_PACKET_TYPE_RESPONSE;
+            rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
           }
           rdm_uid_t my_uid;
           uid_get(driver->dmx_num, &my_uid);
@@ -170,6 +154,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
                     *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
+          rdm_type |= DMX_FLAGS_RDM_IS_VALID;
           size_t preamble_len = 0;
           for (; preamble_len <= 7; ++preamble_len) {
             if (driver->data.buffer[preamble_len] == RDM_DELIMITER) break;
@@ -178,19 +163,17 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             if (driver->data.head < preamble_len + 17) {
               continue;  // Haven't received DISC_UNIQUE_BRANCH response yet
             }
-            packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
+            rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
           } else {
             // When preamble_len > 7 the packet should not be considered RDM
             if (driver->data.head < driver->data.rx_size) {
               continue;  // Haven't received DMX packet yet
             }
-            packet_type = RDM_PACKET_TYPE_NON_RDM;
           }
         } else {
           if (driver->data.head < driver->data.rx_size) {
             continue;  // Haven't received full DMX packet yet
           }
-          packet_type = RDM_PACKET_TYPE_NON_RDM;
         }
       } else {
         // This code should never run, but can prevent crashes just in case!
@@ -203,7 +186,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(spinlock);
       driver->flags |= (DMX_FLAGS_DRIVER_HAS_DATA | DMX_FLAGS_DRIVER_IS_IDLE);
       driver->flags &= ~DMX_FLAGS_DRIVER_SENT_LAST;
-      driver->type = packet_type;
+      driver->rdm_type = rdm_type;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, packet_err,
                            eSetValueWithOverwrite, &task_awoken);
@@ -243,10 +226,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Turn DMX bus around quickly if expecting an RDM response
       bool expecting_response = false;
-      if (driver->type == RDM_PACKET_TYPE_DISCOVERY) {
+      if (driver->rdm_type & DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH) {
         expecting_response = true;
         driver->data.head = 0;  // Not expecting a DMX break
-      } else if (driver->type == RDM_PACKET_TYPE_REQUEST) {
+      } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_REQUEST) {
         expecting_response = true;
         driver->data.head = -1;  // Expecting a DMX break
       }
@@ -381,6 +364,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->task_waiting = NULL;
   driver->uart = UART_LL_GET_HW(dmx_num);
   driver->flags = DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE;
+  driver->rdm_type = 0;
 
   // Initialize RDM settings
   driver->rdm.tn = 0;
@@ -427,7 +411,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->type = RDM_PACKET_TYPE_NON_RDM;
   driver->data.timestamp = 0;
   driver->data.head = -1;  // Wait for DMX break before reading data
   driver->data.rx_size = DMX_MAX_PACKET_SIZE;
