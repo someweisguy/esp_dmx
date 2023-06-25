@@ -19,15 +19,15 @@ extern "C" {
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 /** @brief The default interrupt flags for the DMX driver. Places the interrupts
  * in IRAM.*/
-#define DMX_DEFAULT_INTR_FLAGS (ESP_INTR_FLAG_IRAM)
+#define DMX_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_IRAM)
 /** @brief The default interrupt flags for the DMX sniffer. Places the
  * interrupts in IRAM.*/
-#define DMX_DEFAULT_SNIFFER_INTR_FLAGS (ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM)
+#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM)
 #else
 /** @brief The default interrupt flags for the DMX driver.*/
-#define DMX_DEFAULT_INTR_FLAGS (0)
+#define DMX_INTR_FLAGS_DEFAULT (0)
 /** @brief The default interrupt flags for the DMX sniffer.*/
-#define DMX_DEFAULT_SNIFFER_INTR_FLAGS (ESP_INTR_FLAG_EDGE)
+#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE)
 #endif
 
 /** @brief Evaluates to true if the start code is a start code permitted in a
