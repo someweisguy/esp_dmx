@@ -150,7 +150,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           rdm_uid_t my_uid;
           uid_get(driver->dmx_num, &my_uid);
           if (uid_is_target(&my_uid, &dest_uid)) {
-            // TODO: packet is addressed to me
+            rdm_type |= DMX_FLAGS_RDM_IS_RECIPIENT;
           }
         } else if ((*(uint8_t *)driver->data.buffer == RDM_PREAMBLE ||
                     *(uint8_t *)driver->data.buffer == RDM_DELIMITER)) {
