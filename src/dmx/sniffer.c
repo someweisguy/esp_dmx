@@ -1,7 +1,7 @@
 #include "sniffer.h"
 
-#include "driver/gpio.h"
 #include "dmx/hal.h"
+#include "driver/gpio.h"
 #include "esp_dmx.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5

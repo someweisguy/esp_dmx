@@ -82,15 +82,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Handle DMX break condition
       if (is_in_break) {
         // Handle receiveing a valid packet with smaller than expected size
-        if (!(driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) &&
-            driver->head > 0 && driver->head < DMX_MAX_PACKET_SIZE) {
+        if (!(driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) && driver->head > 0 &&
+            driver->head < DMX_MAX_PACKET_SIZE) {
           driver->rx_size = driver->head - 1;
         }
 
         // Set driver flags
         taskENTER_CRITICAL_ISR(spinlock);
         driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
-        driver->head = 0;          // Driver is ready for data
+        driver->head = 0;  // Driver is ready for data
         taskEXIT_CRITICAL_ISR(spinlock);
       }
 
@@ -109,8 +109,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) {
         continue;
       }
-
-
 
       // Handle DMX errors or process DMX data
       esp_err_t packet_err = ESP_OK;
@@ -281,7 +279,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       timer_group_set_counter_enable_in_isr(driver->timer_group,
                                             driver->timer_idx, 0);
 #endif
-      driver->flags &= ~ DMX_FLAGS_TIMER_IS_RUNNING;
+      driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
 
       // Enable DMX write interrupts
       dmx_uart_enable_interrupt(driver->uart, DMX_INTR_TX_ALL);

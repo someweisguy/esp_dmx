@@ -18,8 +18,8 @@ extern "C" {
 
 /** @brief The default configuration for the DMX driver. Passing this
  * configuration to dmx_driver_install() installs the driver with one DMX
- * personality which has a footprint of one DMX address. The DMX address will 
- * automatically be searched for in NVS and set to 1 if not found or if NVS is 
+ * personality which has a footprint of one DMX address. The DMX address will
+ * automatically be searched for in NVS and set to 1 if not found or if NVS is
  * disabled. */
 #define DMX_CONFIG_DEFAULT                                                    \
   (dmx_config_t) {                                                            \
@@ -49,7 +49,7 @@ extern "C" {
  * that this function is running on.
  *
  * @param dmx_num The DMX port number.
- * @param[inout] config A pointer to a DMX configuration which will be used to 
+ * @param[inout] config A pointer to a DMX configuration which will be used to
  * setup the DMX driver.
  * @param intr_flags The interrupt allocation flags to use.
  * @retval ESP_OK on success.
@@ -87,7 +87,7 @@ bool dmx_driver_is_installed(dmx_port_t dmx_num);
  * disabled before disabling the cache. When cache is reenabled, the DMX driver
  * can be reenabled as well. When the DMX driver is placed in IRAM, disabling
  * and reenabling the DMX driver is not needed.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there is an argument error.
@@ -216,10 +216,10 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 
 /**
  * @brief Gets the current DMX personality of this device.
- * 
+ *
   @note DMX personalities are indexed from one. The first personality in the
  * personality table is personality number one, not zero.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The current personality number or 0 on error.
  */
@@ -231,7 +231,7 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num);
  * footprint of the device will not fit in a DMX universe at the current DMX
  * start address. When the DMX start address is updated, it is updated to the
  * highest value that can fit with a DMX universe.
- * 
+ *
  * @note DMX personalities are indexed from one. The first personality in the
  * personality table is personality number one, not zero.
  *
@@ -245,10 +245,10 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num);
  * @brief Gets the number of personalities that this device supports. This
  * number is equal to the number of personalities that were passed to the DMX
  * driver on dmx_driver_install().
- * 
+ *
  * @note DMX personalities are indexed from one. The first personality in the
  * personality table is personality number one, not zero.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The personality count or 0 on error.
  */
@@ -256,10 +256,10 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
 
 /**
  * @brief Gets the footprint of the desired personality.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param num The personality number of which to get the footprint.
- * @return uint16_t 
+ * @return uint16_t
  */
 uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num);
 
@@ -282,7 +282,7 @@ void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address);
 
 /**
  * @brief Gets the sub-device count of this device.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The sub-device count or 0 on error.
  */
@@ -290,7 +290,7 @@ uint16_t dmx_get_sub_device_count(dmx_port_t dmx_num);
 
 /**
  * @brief Gets the sensor count of this device.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The sensor count or 0 on error.
  */

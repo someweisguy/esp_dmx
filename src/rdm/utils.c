@@ -250,7 +250,7 @@ bool rdm_disc_mute_get(dmx_port_t dmx_num) {
 void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  
+
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
