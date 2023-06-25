@@ -132,7 +132,6 @@ typedef struct dmx_driver_t {
       rdm_pid_description_t desc;
       rdm_response_cb_t cb;
       void *param;
-      size_t len;  // TODO: can we remove this?
       void *context;
     } cbs[RDM_RESPONDER_MAX_PIDS];
   } rdm;
