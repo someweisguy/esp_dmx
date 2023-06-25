@@ -234,6 +234,12 @@ uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num);
  */
 void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address);
 
+// TODO: docs
+uint16_t dmx_get_sub_device_count(dmx_port_t dmx_num);
+
+// TODO: docs
+uint8_t dmx_get_sensor_count(dmx_port_t dmx_num);
+
 #ifdef __cplusplus
 }
 #endif
