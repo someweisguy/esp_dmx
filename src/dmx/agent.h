@@ -205,23 +205,51 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
  */
 uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 
-// TODO: docs
+/**
+ * @brief Gets the current DMX personality of this device.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The current personality number or 0 on error.
+ */
 uint8_t dmx_get_current_personality(dmx_port_t dmx_num);
 
-// TODO: docs
-void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality);
+/**
+ * @brief Sets the current DMX personality of this device. This updates the
+ * footprint of this device and may update the DMX start address if the new
+ * footprint of the device will not fit in a DMX universe at the current DMX
+ * start address. When the DMX start address is updated, it is updated to the
+ * highest value that can fit with a DMX universe.
+ *
+ * @param dmx_num The DMX port number.
+ * @param num The personality number to set to. Must be between 1 and
+ * dmx_get_personality_count() (inclusive).
+ */
+void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num);
 
-// TODO: docs
+/**
+ * @brief Gets the number of personalities that this device supports. This
+ * number is equal to the number of personalities that were passed to the DMX
+ * driver on dmx_driver_install().
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The personality count or 0 on error.
+ */
 uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
 
-// TODO: docs
-uint16_t dmx_get_footprint(dmx_port_t dmx_num);
+/**
+ * @brief Gets the footprint of the desired personality.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param num The personality number of which to get the footprint.
+ * @return uint16_t 
+ */
+uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num);
 
 /**
  * @brief Gets the DMX start address of this device.
  *
  * @param dmx_num The DMX port number.
- * @return The DMX start address of this device or 0 on failure.
+ * @return The DMX start address of this device or 0 on error.
  */
 uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num);
 
@@ -234,10 +262,20 @@ uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num);
  */
 void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address);
 
-// TODO: docs
+/**
+ * @brief Gets the sub-device count of this device.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The sub-device count or 0 on error.
+ */
 uint16_t dmx_get_sub_device_count(dmx_port_t dmx_num);
 
-// TODO: docs
+/**
+ * @brief Gets the sensor count of this device.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The sensor count or 0 on error.
+ */
 uint8_t dmx_get_sensor_count(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
