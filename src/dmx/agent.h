@@ -7,6 +7,20 @@
 extern "C" {
 #endif
 
+/** @brief The default configuration for the DMX driver. Passing this
+ * configuration to dmx_driver_install() installs the driver with one DMX
+ * personality which has a footprint of one DMX address. The DMX address will 
+ * automatically be searched for in NVS and set to 1 if not found or if NVS is 
+ * disabled. */
+#define DMX_CONFIG_DEFAULT                                                    \
+  (dmx_config_t) {                                                            \
+    .model_id = 0, .product_category = 0x0100,                                \
+    .software_version_id = ESP_IDF_VERSION_VAL(                               \
+        ESP_DMX_VERSION_MAJOR, ESP_DMX_VERSION_MINOR, ESP_DMX_VERSION_PATCH), \
+    .current_personality = 1, .personalities = {{1, "Default Personality"}},  \
+    .personality_count = 1, .dmx_start_address = 0                            \
+  }
+
 /**
  * @brief Installs the DMX driver and sets the default configuration. To
  * generate the DMX reset sequence, users may choose to use either the hardware
