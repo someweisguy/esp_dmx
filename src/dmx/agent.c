@@ -18,9 +18,6 @@
 #include "driver/timer.h"
 #endif
 
-#define str(s) #s
-#define xstr(s) str(s)
-
 static const char *TAG = "dmx";
 
 enum dmx_default_interrupt_values_t {
@@ -407,7 +404,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     ;
     config->current_personality = 1;  // TODO: Check NVS for value
   }
-  if (config->current_personality >= config->personality_count) {
+  if (config->current_personality > config->personality_count) {
     ESP_LOGW(TAG, "Current personality is invalid, using personality 1");
     config->current_personality = 1;
   }
@@ -513,8 +510,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 #endif
 
   const char *software_version_label =
-      "esp_dmx v" xstr(ESP_DMX_VERSION_MAJOR) "." xstr(
-          ESP_DMX_VERSION_MINOR) "." xstr(ESP_DMX_VERSION_PATCH);
+      "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
+          ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
 
   // Add required RDM response callbacks
   rdm_register_disc_unique_branch(dmx_num);
