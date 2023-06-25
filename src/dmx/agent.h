@@ -259,7 +259,7 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
  *
  * @param dmx_num The DMX port number.
  * @param num The personality number of which to get the footprint.
- * @return uint16_t
+ * @return The footprint of the desired personality or 0 on error.
  */
 uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num);
 
