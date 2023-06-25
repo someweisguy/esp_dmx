@@ -114,6 +114,8 @@ typedef struct dmx_driver_t {
   uint8_t *data;  // The buffer that stores the DMX packet.
 
 
+  uint8_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
+  rdm_device_info_t device_info;    // The RDM device info of this device.
   uint16_t flags;
   uint8_t rdm_type;
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
@@ -125,8 +127,6 @@ typedef struct dmx_driver_t {
 
 
   struct rdm_info_t {
-    uint8_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
-    rdm_device_info_t device_info;    // The RDM device info of this device.
 
     uint16_t num_cbs;
     struct rdm_cb_table_t {

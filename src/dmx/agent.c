@@ -374,7 +374,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->rdm_type = 0;
 
   // Initialize RDM settings
-  driver->rdm.tn = 0;
+  driver->tn = 0;
   driver->rdm.num_cbs = 0;
 
   // Initialize RDM device info
@@ -402,7 +402,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   if (config->dmx_start_address == 0) {
     config->dmx_start_address = 1;  // TODO: Check NVS for value
   }
-  driver->rdm.device_info = (rdm_device_info_t){
+  driver->device_info = (rdm_device_info_t){
       .model_id = config->model_id,
       .product_category = config->product_category,
       .software_version_id = config->software_version_id,
@@ -501,11 +501,11 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   rdm_register_disc_unique_branch(dmx_num);
   rdm_register_disc_un_mute(dmx_num);
   rdm_register_disc_mute(dmx_num);
-  rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->rdm.device_info);
+  rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->device_info);
   rdm_register_software_version_label(dmx_num, software_version_label);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-  void *start_address = &dmx_driver[dmx_num]->rdm.device_info.dmx_start_address;
-  rdm_register_dmx_start_address(dmx_num, start_address);
+  void *dmx_start_address = &dmx_driver[dmx_num]->device_info.dmx_start_address;
+  rdm_register_dmx_start_address(dmx_num, dmx_start_address);
   // TODO: rdm_register_supported_parameters()
 
   // Enable UART read interrupt and set RTS low
@@ -749,7 +749,7 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   taskENTER_CRITICAL(spinlock);
   const uint8_t current_personality =
-      dmx_driver[dmx_num]->rdm.device_info.current_personality;
+      dmx_driver[dmx_num]->device_info.current_personality;
   taskEXIT_CRITICAL(spinlock);
 
   return current_personality;
@@ -765,8 +765,8 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   const uint16_t footprint = dmx_get_footprint(dmx_num, num);
   taskENTER_CRITICAL(spinlock);
-  driver->rdm.device_info.footprint = footprint;
-  driver->rdm.device_info.current_personality = num;
+  driver->device_info.footprint = footprint;
+  driver->device_info.current_personality = num;
   taskEXIT_CRITICAL(spinlock);
 
   if (footprint > 0 &&
@@ -780,7 +780,7 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num) {
 uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  return dmx_driver[dmx_num]->rdm.device_info.personality_count;
+  return dmx_driver[dmx_num]->device_info.personality_count;
 }
 
 uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num) {
@@ -798,7 +798,7 @@ uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   uint16_t dmx_start_address;
   taskENTER_CRITICAL(spinlock);
-  dmx_start_address = dmx_driver[dmx_num]->rdm.device_info.dmx_start_address;
+  dmx_start_address = dmx_driver[dmx_num]->device_info.dmx_start_address;
   taskEXIT_CRITICAL(spinlock);
 
   return dmx_start_address;
@@ -815,7 +815,7 @@ void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   taskENTER_CRITICAL(spinlock);
-  dmx_driver[dmx_num]->rdm.device_info.dmx_start_address = dmx_start_address;
+  dmx_driver[dmx_num]->device_info.dmx_start_address = dmx_start_address;
   taskEXIT_CRITICAL(spinlock);
 
   // TODO: use NVS
@@ -828,7 +828,7 @@ uint16_t dmx_get_sub_device_count(dmx_port_t dmx_num) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   uint16_t sub_device_count;
   taskENTER_CRITICAL(spinlock);
-  sub_device_count = dmx_driver[dmx_num]->rdm.device_info.sub_device_count;
+  sub_device_count = dmx_driver[dmx_num]->device_info.sub_device_count;
   taskEXIT_CRITICAL(spinlock);
 
   return sub_device_count;
@@ -841,7 +841,7 @@ uint8_t dmx_get_sensor_count(dmx_port_t dmx_num) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   uint16_t sensor_count;
   taskENTER_CRITICAL(spinlock);
-  sensor_count = dmx_driver[dmx_num]->rdm.device_info.sensor_count;
+  sensor_count = dmx_driver[dmx_num]->device_info.sensor_count;
   taskEXIT_CRITICAL(spinlock);
 
   return sensor_count;

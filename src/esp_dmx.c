@@ -562,7 +562,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
   if ((rdm_type & (DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_REQUEST)) ==
       (DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_REQUEST)) {
-    ++driver->rdm.tn;
+    ++driver->tn;
   }
 
   // Determine if a DMX break is required and send the packet

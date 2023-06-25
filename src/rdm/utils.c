@@ -493,7 +493,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
 
   // Set header values that the user cannot set themselves
   taskENTER_CRITICAL(spinlock);
-  header->tn = driver->rdm.tn;
+  header->tn = driver->tn;
   taskEXIT_CRITICAL(spinlock);
   header->message_count = 0;
 
