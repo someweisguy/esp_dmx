@@ -258,7 +258,7 @@ typedef struct dmx_config_t {
   uint16_t product_category;
   /** @brief This field indicates the software version ID for the device. The
      software version ID is a 32-bit value determined by the manufacturer.*/
-  uint16_t software_version_id;
+  uint32_t software_version_id;
   /** @brief The current selected DMX personality of the device. The personality
      is the configured arrangement of DMX slots used by the device. Many devices
      may have multiple personalities from which to choose. These personalities
