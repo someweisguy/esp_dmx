@@ -1,5 +1,6 @@
 #include "responder.h"
 
+#include "dmx/agent.h"
 #include "dmx/driver.h"
 #include "endian.h"
 #include "rdm/utils.h"

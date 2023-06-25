@@ -205,6 +205,35 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
  */
 uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 
+// TODO: docs
+uint8_t dmx_get_current_personality(dmx_port_t dmx_num);
+
+// TODO: docs
+void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality);
+
+// TODO: docs
+uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
+
+// TODO: docs
+uint16_t dmx_get_footprint(dmx_port_t dmx_num);
+
+/**
+ * @brief Gets the DMX start address of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The DMX start address of this device or 0 on failure.
+ */
+uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num);
+
+/**
+ * @brief Sets the DMX start address of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param start_address The DMX start address to which to set this device. Must
+ * be between 1 and 512 (inclusive).
+ */
+void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address);
+
 #ifdef __cplusplus
 }
 #endif
