@@ -241,7 +241,7 @@ bool rdm_disc_mute_get(dmx_port_t dmx_num) {
 
   bool is_muted;
   taskENTER_CRITICAL(spinlock);
-  is_muted = driver->rdm.discovery_is_muted;
+  is_muted = driver->discovery_is_muted;
   taskEXIT_CRITICAL(spinlock);
 
   return is_muted;
@@ -255,7 +255,7 @@ void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   taskENTER_CRITICAL(spinlock);
-  driver->rdm.discovery_is_muted = mute;
+  driver->discovery_is_muted = mute;
   taskEXIT_CRITICAL(spinlock);
 }
 

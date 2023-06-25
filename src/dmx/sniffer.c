@@ -28,7 +28,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 
     if (driver->is_in_break && driver->sniffer.last_neg_edge_ts > -1) {
       driver->sniffer.data.break_len = now - driver->sniffer.last_neg_edge_ts;
-      driver->sniffer.is_in_mab = true;
+      driver->is_in_mab = true;
       driver->is_in_break = false;
     }
     driver->sniffer.last_pos_edge_ts = now;
@@ -37,9 +37,9 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     the DMX mark-after-break has just finished. It can be recorded. Sniffer data
     is now available to be read by the user. */
 
-    if (driver->sniffer.is_in_mab) {
+    if (driver->is_in_mab) {
       driver->sniffer.data.mab_len = now - driver->sniffer.last_pos_edge_ts;
-      driver->sniffer.is_in_mab = false;
+      driver->is_in_mab = false;
 
       // Send the sniffer data to the queue
       xQueueOverwriteFromISR(driver->sniffer.queue, &driver->sniffer.data,
@@ -79,7 +79,7 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
 
   // Set sniffer default values
   driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
-  driver->sniffer.is_in_mab = false;
+  driver->is_in_mab = false;
 
   // Enable the interrupt
   gpio_set_intr_type(intr_pin, GPIO_INTR_ANYEDGE);

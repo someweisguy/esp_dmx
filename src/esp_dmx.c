@@ -100,7 +100,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
+  if (driver->is_sending && driver->type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -136,7 +136,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
+  if (driver->is_sending && driver->type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -163,7 +163,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
+  if (driver->is_sending && driver->type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -235,8 +235,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Set task waiting and get additional DMX driver flags
     taskENTER_CRITICAL(spinlock);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
-    const bool sent_last = driver->data.sent_last;
-    const enum rdm_packet_type_t data_type = driver->data.type;
+    const bool sent_last = driver->sent_last;
+    const enum rdm_packet_type_t data_type = driver->type;
     taskEXIT_CRITICAL(spinlock);
 
     // Check for early timeout according to RDM specification
@@ -458,15 +458,15 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Determine if an alarm needs to be set to wait until driver is ready
   uint32_t timeout = 0;
   taskENTER_CRITICAL(spinlock);
-  if (driver->data.sent_last) {
-    if (driver->data.type == RDM_PACKET_TYPE_DISCOVERY) {
+  if (driver->sent_last) {
+    if (driver->type == RDM_PACKET_TYPE_DISCOVERY) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
-    } else if (driver->data.type == RDM_PACKET_TYPE_BROADCAST) {
+    } else if (driver->type == RDM_PACKET_TYPE_BROADCAST) {
       timeout = RDM_BROADCAST_PACKET_SPACING;
-    } else if (driver->data.type == RDM_PACKET_TYPE_REQUEST) {
+    } else if (driver->type == RDM_PACKET_TYPE_REQUEST) {
       timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
     }
-  } else if (driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
+  } else if (driver->type != RDM_PACKET_TYPE_NON_RDM) {
     timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
   }
   elapsed = esp_timer_get_time() - driver->data.timestamp;
@@ -554,8 +554,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
              driver->data.buffer[0] == RDM_DELIMITER) {
     packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
   }
-  driver->data.type = packet_type;
-  driver->data.sent_last = true;
+  driver->type = packet_type;
+  driver->sent_last = true;
 
   // Determine if a DMX break is required and send the packet
   if (packet_type == RDM_PACKET_TYPE_DISCOVERY_RESPONSE) {

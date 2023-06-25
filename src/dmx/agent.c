@@ -199,8 +199,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(spinlock);
       driver->new_packet = true;
       driver->end_of_packet = true;
-      driver->data.sent_last = false;
-      driver->data.type = packet_type;
+      driver->sent_last = false;
+      driver->type = packet_type;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, packet_err,
                            eSetValueWithOverwrite, &task_awoken);
@@ -240,10 +240,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Turn DMX bus around quickly if expecting an RDM response
       bool expecting_response = false;
-      if (driver->data.type == RDM_PACKET_TYPE_DISCOVERY) {
+      if (driver->type == RDM_PACKET_TYPE_DISCOVERY) {
         expecting_response = true;
         driver->data.head = 0;  // Not expecting a DMX break
-      } else if (driver->data.type == RDM_PACKET_TYPE_REQUEST) {
+      } else if (driver->type == RDM_PACKET_TYPE_REQUEST) {
         expecting_response = true;
         driver->data.head = -1;  // Expecting a DMX break
       }
@@ -388,7 +388,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize RDM settings
   driver->rdm.tn = 0;
-  driver->rdm.discovery_is_muted = false;
+  driver->discovery_is_muted = false;
   driver->rdm.num_cbs = 0;
 
   // Initialize RDM device info
@@ -432,8 +432,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->data.sent_last = false;
-  driver->data.type = RDM_PACKET_TYPE_NON_RDM;
+  driver->sent_last = false;
+  driver->type = RDM_PACKET_TYPE_NON_RDM;
   driver->data.timestamp = 0;
   driver->data.head = -1;  // Wait for DMX break before reading data
   driver->data.rx_size = DMX_MAX_PACKET_SIZE;

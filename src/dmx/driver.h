@@ -84,16 +84,16 @@ enum rdm_packet_type_t {
  * and RDM.*/
 typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
-
   uart_dev_t *uart;               // A pointer to the UART port.
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
-
+  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;  // The general purpose timer to use for DMX functions.
 #else
   timer_group_t timer_group;  // The timer group to use for DMX functions.
   timer_idx_t timer_idx;      // The timer index to use for DMX functions.
 #endif
+  TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
@@ -104,29 +104,29 @@ typedef struct dmx_driver_t {
     int tx_size;            // The size of the outgoing data packet.
     int rx_size;            // The expected size of the incoming data packet.
 
-    int sent_last;      // True if the last packet was sent from this driver.
-    int type;           // The type of the packet received.
     int64_t timestamp;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
   } data;
 
-  struct dmx_personality_t {
-    uint16_t footprint;
-    const char *description;
-  } personalities[CONFIG_DMX_MAX_PERSONALITIES];
-
+  // TODO: combine all these flags into one variable
+  int type;           // The type of the packet received.
+  int sent_last;      // True if the last packet was sent from this driver.
   int timer_is_running;
   int is_in_break;    // True if the driver is sending or receiving a DMX break.
   int end_of_packet;  // True if the driver received an end-of-packet condition.
   int is_sending;     // True if the driver is sending data.
   int new_packet;     // True if the driver has a new, unhandled packet.
   int is_enabled;     // True if the driver is enabled.
+  int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
+  int is_in_mab;             // True if the sniffer is receiving a DMX mark-after-break.
 
-  TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
-  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
+  struct dmx_personality_t {
+    uint16_t footprint;
+    const char *description;
+  } personalities[CONFIG_DMX_MAX_PERSONALITIES];
+
 
   struct rdm_info_t {
     uint32_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
-    int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
     rdm_device_info_t device_info;    // The RDM device info of this device.
 
     uint32_t num_cbs;
@@ -134,7 +134,7 @@ typedef struct dmx_driver_t {
       rdm_pid_description_t desc;
       rdm_response_cb_t cb;
       void *param;
-      size_t len;
+      size_t len;  // TODO: can we remove this?
       void *context;
     } cbs[RDM_RESPONDER_MAX_PIDS];
   } rdm;
@@ -144,7 +144,6 @@ typedef struct dmx_driver_t {
     dmx_metadata_t data;       // The metadata received by the DMX sniffer.
 
     int intr_pin;              // The GPIO number of the DMX sniffer interrupt pin.
-    int is_in_mab;             // True if the sniffer is receiving a DMX mark-after-break.
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
