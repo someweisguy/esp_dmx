@@ -67,18 +67,6 @@ enum rdm_packet_timing_t {
   RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000
 };
 
-enum rdm_packet_type_t {
-  RDM_PACKET_TYPE_NON_RDM = 0,
-  RDM_PACKET_TYPE_DISCOVERY = BIT(0),
-  RDM_PACKET_TYPE_DISCOVERY_RESPONSE = BIT(1),
-  RDM_PACKET_TYPE_REQUEST = BIT(2),
-  RDM_PACKET_TYPE_RESPONSE = BIT(3),
-  RDM_PACKET_TYPE_BROADCAST = BIT(4),
-
-  RDM_PACKET_TYPE_EARLY_TIMEOUT =
-      (RDM_PACKET_TYPE_REQUEST | RDM_PACKET_TYPE_DISCOVERY)
-};
-
 enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_ENABLED = BIT0,   // The driver is enabled.
   DMX_FLAGS_DRIVER_IS_IDLE = BIT1,      // The driver is not sending data.
@@ -126,10 +114,7 @@ typedef struct dmx_driver_t {
     int64_t timestamp;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
   } data;
 
-  // TODO: combine all these flags into one variable
-  // int type;           // The type of the packet received.
   uint8_t rdm_type;
-
   uint16_t flags;
 
   struct dmx_personality_t {
