@@ -790,7 +790,8 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num) {
   driver->rdm.device_info.current_personality = num;
   taskEXIT_CRITICAL(spinlock);
 
-  if (dmx_get_dmx_start_address(dmx_num) + footprint > DMX_MAX_PACKET_SIZE) {
+  if (footprint > 0 &&
+      dmx_get_dmx_start_address(dmx_num) + footprint > DMX_MAX_PACKET_SIZE) {
     dmx_set_dmx_start_address(dmx_num, DMX_MAX_PACKET_SIZE - footprint);
   }
 
