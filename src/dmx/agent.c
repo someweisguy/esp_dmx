@@ -831,6 +831,7 @@ void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   DMX_CHECK(
       dmx_start_address > 0 && dmx_start_address + f <= DMX_MAX_PACKET_SIZE, ,
       "dmx_start_address is invalid");
+  DMX_CHECK(f > 0, , "cannot set DMX start address of this personality");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   taskENTER_CRITICAL(spinlock);
