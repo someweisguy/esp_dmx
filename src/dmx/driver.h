@@ -90,15 +90,18 @@ enum dmx_flags_t {
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.*/
 typedef struct dmx_driver_t {
+  // UART configuration
   dmx_port_t dmx_num;  // The driver's DMX port number.
   uart_dev_t *uart;               // A pointer to the UART port.
+  intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
+
+  // Hardware timer configuration
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;  // The general purpose timer to use for DMX functions.
 #else
   timer_group_t timer_group;  // The timer group to use for DMX functions.
   timer_idx_t timer_idx;      // The timer index to use for DMX functions.
 #endif
-  intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
