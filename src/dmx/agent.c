@@ -18,12 +18,10 @@
 #include "driver/timer.h"
 #endif
 
-static const char *TAG = "dmx";
+#define DMX_UART_FULL_DEFAULT 1
+#define DMX_UART_EMPTY_DEFAULT 8
 
-enum dmx_default_interrupt_values_t {
-  DMX_UART_FULL_DEFAULT = 1,   // RX FIFO full default interrupt threshold.
-  DMX_UART_EMPTY_DEFAULT = 8,  // TX FIFO empty default interrupt threshold.
-};
+static const char *TAG = "dmx";
 
 DRAM_ATTR dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {0};
 DRAM_ATTR spinlock_t dmx_spinlock[DMX_NUM_MAX] = {portMUX_INITIALIZER_UNLOCKED,
@@ -334,7 +332,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *restrict driver;
 
-  // Allocate the DMX driver dynamically
+  // Allocate the DMX driver
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
   if (driver == NULL) {
     ESP_LOGE(TAG, "DMX driver malloc error");
@@ -342,42 +340,61 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
   dmx_driver[dmx_num] = driver;
 
-  // driver state
-
-  // device info
-
-  // buffer
-
-  // sniffer
-
-  // Buffer must be allocated in unaligned memory
-  driver->data = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
-  if (driver->data == NULL) {
-    ESP_LOGE(TAG, "DMX driver buffer malloc error");
+  // Initialize hardware timer
+#if ESP_IDF_VERSION_MAJOR >= 5
+  gptimer_handle_t gptimer_handle;
+  const gptimer_config_t timer_config = {
+      .clk_src = GPTIMER_CLK_SRC_APB,
+      .direction = GPTIMER_COUNT_UP,
+      .resolution_hz = 1000000,  // 1MHz resolution timer
+  };
+  esp_err_t err = gptimer_new_timer(&timer_config, &gptimer_handle);
+  if (err) {
+    ESP_LOGE(TAG, "DMX driver gptimer error");
     dmx_driver_delete(dmx_num);
-    return ESP_ERR_NO_MEM;
+    return err;
   }
+#else
+  timer_group_t timer_group = dmx_num / 2;
+  timer_idx_t timer_idx;
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+  timer_idx = 0;  // ESP32C3 uses timer_idx 1 for Watchdog
+#else
+  timer_idx = dmx_num % 2;
+#endif
+  const timer_config_t timer_config = {
+      .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
+      .counter_dir = TIMER_COUNT_UP,
+      .counter_en = false,
+      .alarm_en = true,
+      .auto_reload = true,
+  };
+  esp_err_t err = timer_init(timer_group, timer_idx, &timer_config);
+  if (err) {
+    ESP_LOGE(TAG, "DMX driver timer error");
+    dmx_driver_delete(dmx_num);
+    return err;
+  }
+#endif
 
-  // Allocate semaphore
-  driver->mux = xSemaphoreCreateRecursiveMutex();
-  if (driver->mux == NULL) {
+  // Allocate mutex
+  SemaphoreHandle_t mux = xSemaphoreCreateRecursiveMutex();
+  if (mux == NULL) {
     ESP_LOGE(TAG, "DMX driver mutex malloc error");
     dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
   }
 
-  // Initialize driver state
-  driver->dmx_num = dmx_num;
-  driver->task_waiting = NULL;
-  driver->uart = UART_LL_GET_HW(dmx_num);
-  driver->flags = DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE;
-  driver->rdm_type = 0;
+  // Allocate DMX buffer
+  uint8_t *data = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
+  if (data == NULL) {
+    ESP_LOGE(TAG, "DMX driver buffer malloc error");
+    dmx_driver_delete(dmx_num);
+    return ESP_ERR_NO_MEM;
+  }
+  bzero(data, DMX_MAX_PACKET_SIZE);
 
-  // Initialize RDM settings
-  driver->tn = 0;
-  driver->num_rdm_cbs = 0;
-
-  // Initialize RDM device info
+  // Initialize device info
   if (config->personality_count == 0 ||
       config->personality_count > CONFIG_DMX_MAX_PERSONALITIES) {
     ESP_LOGW(TAG, "Personality count is invalid, using default personality");
@@ -387,7 +404,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     config->personality_count = 1;
   }
   if (config->current_personality == 0) {
-    ;
     config->current_personality = 1;  // TODO: Check NVS for value
   }
   if (config->current_personality > config->personality_count) {
@@ -402,6 +418,37 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   if (config->dmx_start_address == 0) {
     config->dmx_start_address = 1;  // TODO: Check NVS for value
   }
+
+  // UART configuration
+  driver->dmx_num = dmx_num;
+  driver->uart = UART_LL_GET_HW(dmx_num);
+  // The uart_isr_handle field is left uninitialized
+
+// Hardware timer configuration
+#if ESP_IDF_VERSION_MAJOR >= 5
+  driver->gptimer_handle = gptimer_handle;
+#else
+  driver->timer_group = timer_group;
+  driver->timer_idx = timer_idx;
+#endif
+
+  // Synchronization state
+  driver->mux = mux;
+  driver->task_waiting = NULL;
+
+  // Data buffer
+  driver->head = -1;
+  driver->data = data;
+  driver->tx_size = DMX_MAX_PACKET_SIZE;
+  driver->rx_size = DMX_MAX_PACKET_SIZE;
+
+  // Driver state
+  driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
+  driver->rdm_type = 0;
+  driver->tn = 0;
+  driver->last_slot_ts = 0;
+
+  // DMX configuration
   driver->device_info = (rdm_device_info_t){
       .model_id = config->model_id,
       .product_category = config->product_category,
@@ -413,106 +460,75 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
       .sub_device_count = 0,  // Sub-devices must be registered
       .sensor_count = 0       // Sensors must be registered
   };
-  memcpy(driver->personalities, config->personalities,
-         sizeof(config->personalities[0]) * config->personality_count);
-
-  // Initialize the driver buffer
-  bzero(driver->data, DMX_MAX_PACKET_SIZE);
-  driver->last_slot_ts = 0;
-  driver->head = -1;  // Wait for DMX break before reading data
-  driver->rx_size = DMX_MAX_PACKET_SIZE;
-
-  // Initialize DMX transmit settings
+  size_t size = sizeof(config->personalities[0]) * config->personality_count;
+  memcpy(driver->personalities, config->personalities, size);
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
 
-  // Initialize sniffer in the disabled state
-  driver->metadata_queue = NULL;
+  // RDM responder configuration
+  driver->num_rdm_cbs = 0;
+  // The driver->rdm_cbs field is left uninitialized
 
-  // Initialize the UART peripheral
-  uart_dev_t *const restrict uart = driver->uart;
+  // DMX sniffer configuration
+  // The driver->metadata field is left uninitialized
+  driver->metadata_queue = NULL;
+  driver->sniffer_pin = -1;
+  driver->last_pos_edge_ts = -1;
+  driver->last_neg_edge_ts = -1;
+
+  // Enable the UART peripheral
   taskENTER_CRITICAL(spinlock);
   periph_module_enable(uart_periph_signal[dmx_num].module);
   if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
 #if SOC_UART_REQUIRE_CORE_RESET
-    // ESP32-C3 workaround to prevent UART outputting garbage data.
-    uart_ll_set_reset_core(uart, true);
+    // ESP32C3 workaround to prevent UART outputting garbage data
+    uart_ll_set_reset_core(driver->uart, true);
     periph_module_reset(uart_periph_signal[dmx_num].module);
-    uart_ll_set_reset_core(uart, false);
+    uart_ll_set_reset_core(driver->uart, false);
 #else
     periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
   }
   taskEXIT_CRITICAL(spinlock);
-
-  // Initialize and flush the UART
-  dmx_uart_init(uart);
-  dmx_uart_rxfifo_reset(uart);
-  dmx_uart_txfifo_reset(uart);
-
-  // Install UART interrupt
-  dmx_uart_disable_interrupt(uart, DMX_ALL_INTR_MASK);
-  dmx_uart_clear_interrupt(uart, DMX_ALL_INTR_MASK);
-  dmx_uart_set_txfifo_empty(uart, DMX_UART_EMPTY_DEFAULT);
-  dmx_uart_set_rxfifo_full(uart, DMX_UART_FULL_DEFAULT);
+  dmx_uart_init(driver->uart);
+  dmx_uart_rxfifo_reset(driver->uart);
+  dmx_uart_txfifo_reset(driver->uart);
+  dmx_uart_disable_interrupt(driver->uart, DMX_ALL_INTR_MASK);
+  dmx_uart_clear_interrupt(driver->uart, DMX_ALL_INTR_MASK);
+  dmx_uart_set_txfifo_empty(driver->uart, DMX_UART_EMPTY_DEFAULT);
+  dmx_uart_set_rxfifo_full(driver->uart, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, intr_flags, &dmx_uart_isr,
                  driver, &driver->uart_isr_handle);
 
-  // Initialize hardware timer
+  // Enable the hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5
-  const gptimer_config_t timer_config = {
-      .clk_src = GPTIMER_CLK_SRC_APB,
-      .direction = GPTIMER_COUNT_UP,
-      .resolution_hz = 1000000,  // 1MHz resolution timer
-  };
-  esp_err_t err = gptimer_new_timer(&timer_config, &driver->gptimer_handle);
-  if (err) {
-    ESP_LOGE(TAG, "DMX driver gptimer error");
-    dmx_driver_delete(dmx_num);
-    return err;
-  }
   const gptimer_event_callbacks_t gptimer_cb = {.on_alarm = dmx_timer_isr};
   gptimer_register_event_callbacks(driver->gptimer_handle, &gptimer_cb, driver);
   gptimer_enable(driver->gptimer_handle);
 #else
-  driver->timer_group = dmx_num / 2;
-#ifdef CONFIG_IDF_TARGET_ESP32C3
-  driver->timer_idx = 0;  // Timer 1 is the watchdog on ESP32C3
-#else
-  driver->timer_idx = dmx_num % 2;
-#endif
-  const timer_config_t timer_config = {
-      .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
-      .counter_dir = TIMER_COUNT_UP,
-      .counter_en = false,
-      .alarm_en = true,
-      .auto_reload = true,
-  };
-  timer_init(driver->timer_group, driver->timer_idx, &timer_config);
   timer_isr_callback_add(driver->timer_group, driver->timer_idx, dmx_timer_isr,
                          driver, intr_flags);
 #endif
-
-  const char *software_version_label =
-      "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
-          ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
 
   // Add required RDM response callbacks
   rdm_register_disc_unique_branch(dmx_num);
   rdm_register_disc_un_mute(dmx_num);
   rdm_register_disc_mute(dmx_num);
   rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->device_info);
+  const char *software_version_label =
+      "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
+          ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
   rdm_register_software_version_label(dmx_num, software_version_label);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
   void *dmx_start_address = &dmx_driver[dmx_num]->device_info.dmx_start_address;
   rdm_register_dmx_start_address(dmx_num, dmx_start_address);
   // TODO: rdm_register_supported_parameters()
 
-  // Enable UART read interrupt and set RTS low
+  // Enable reading on the DMX port
   taskENTER_CRITICAL(spinlock);
   xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-  dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
-  dmx_uart_set_rts(uart, 1);
+  dmx_uart_enable_interrupt(driver->uart, DMX_INTR_RX_ALL);
+  dmx_uart_set_rts(driver->uart, 1);
   taskEXIT_CRITICAL(spinlock);
 
   // Give the mutex and return
