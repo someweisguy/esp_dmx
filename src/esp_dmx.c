@@ -100,7 +100,8 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->type != RDM_PACKET_TYPE_NON_RDM) {
+  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) &&
+      driver->type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -136,7 +137,8 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->type != RDM_PACKET_TYPE_NON_RDM) {
+  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) &&
+      driver->type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -163,7 +165,8 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   uart_dev_t *const restrict uart = driver->uart;
 
   taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->type != RDM_PACKET_TYPE_NON_RDM) {
+  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) &&
+      driver->type != RDM_PACKET_TYPE_NON_RDM) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(spinlock);
     return 0;
@@ -222,25 +225,25 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     taskENTER_CRITICAL(spinlock);
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     driver->data.head = -1;  // Wait for DMX break before reading data
-    driver->new_packet = false;
+    driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
     dmx_uart_set_rts(uart, 1);
     taskEXIT_CRITICAL(spinlock);
   }
 
   // Wait for new DMX packet to be received
   taskENTER_CRITICAL(spinlock);
-  const bool new_packet_available = driver->new_packet;
+  int driver_flags = driver->flags;
   taskEXIT_CRITICAL(spinlock);
-  if (!new_packet_available && wait_ticks > 0) {
+  if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA) && wait_ticks > 0) {
     // Set task waiting and get additional DMX driver flags
     taskENTER_CRITICAL(spinlock);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
-    const bool sent_last = driver->sent_last;
     const enum rdm_packet_type_t data_type = driver->type;
     taskEXIT_CRITICAL(spinlock);
 
     // Check for early timeout according to RDM specification
-    if (sent_last && (data_type & RDM_PACKET_TYPE_EARLY_TIMEOUT)) {
+    if ((driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) &&
+        (data_type & RDM_PACKET_TYPE_EARLY_TIMEOUT)) {
       taskENTER_CRITICAL(spinlock);
       const int64_t last_timestamp = driver->data.timestamp;
       taskEXIT_CRITICAL(spinlock);
@@ -270,8 +273,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                             RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
       timer_start(timer_group, timer_idx);
 #endif
-      driver->timer_is_running = true;
+      driver->flags |= DMX_FLAGS_TIMER_IS_RUNNING;
       taskEXIT_CRITICAL(spinlock);
+      driver_flags |= DMX_FLAGS_TIMER_IS_RUNNING;
     }
 
     // Wait for a task notification
@@ -284,19 +288,22 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       packet_size = 0;
     }
     if (!notified) {
-      if (driver->timer_is_running) {
+      if (driver_flags & DMX_FLAGS_TIMER_IS_RUNNING) {
 #if ESP_IDF_VERSION_MAJOR >= 5
         gptimer_stop(driver->gptimer_handle);
 #else
         timer_pause(driver->timer_group, driver->timer_idx);
 #endif
-        driver->timer_is_running = false;
+        taskENTER_CRITICAL(spinlock);
+        driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
+        taskEXIT_CRITICAL(spinlock);
+        driver_flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
       }
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
     }
-  } else if (!new_packet_available) {
+  } else if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA)) {
     // Fail early if there is no data available and this function cannot block
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
@@ -306,7 +313,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
     packet->sc = packet_size > 0 ? driver->data.buffer[0] : -1;
-    driver->new_packet = false;
+    driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
     taskEXIT_CRITICAL(spinlock);
     packet->err = err;
     packet->size = packet_size;
@@ -458,7 +465,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Determine if an alarm needs to be set to wait until driver is ready
   uint32_t timeout = 0;
   taskENTER_CRITICAL(spinlock);
-  if (driver->sent_last) {
+  if (driver->flags & DMX_FLAGS_DRIVER_SENT_LAST) {
     if (driver->type == RDM_PACKET_TYPE_DISCOVERY) {
       timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
     } else if (driver->type == RDM_PACKET_TYPE_BROADCAST) {
@@ -482,7 +489,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     timer_set_alarm_value(driver->timer_group, driver->timer_idx, timeout);
     timer_start(driver->timer_group, driver->timer_idx);
 #endif
-    driver->timer_is_running = true;
+    driver->flags |= DMX_FLAGS_TIMER_IS_RUNNING;
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(spinlock);
@@ -491,13 +498,13 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
-      if (driver->timer_is_running) {
+      if (driver->flags & DMX_FLAGS_TIMER_IS_RUNNING) {
 #if ESP_IDF_VERSION_MAJOR >= 5
         gptimer_stop(driver->gptimer_handle);
 #else
         timer_pause(driver->timer_group, driver->timer_idx);
 #endif
-        driver->timer_is_running = false;
+        driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
       }
       xTaskNotifyStateClear(driver->task_waiting);
     }
@@ -555,13 +562,13 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     packet_type = RDM_PACKET_TYPE_DISCOVERY_RESPONSE;
   }
   driver->type = packet_type;
-  driver->sent_last = true;
+  driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
 
   // Determine if a DMX break is required and send the packet
   if (packet_type == RDM_PACKET_TYPE_DISCOVERY_RESPONSE) {
     // RDM discovery responses do not send a DMX break - write immediately
     taskENTER_CRITICAL(spinlock);
-    driver->is_sending = true;
+    driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
 
     size_t write_size = driver->data.tx_size;
     dmx_uart_write_txfifo(uart, driver->data.buffer, &write_size);
@@ -574,8 +581,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     // Send the packet by starting the DMX break
     taskENTER_CRITICAL(spinlock);
     driver->data.head = 0;
-    driver->is_in_break = true;
-    driver->is_sending = true;
+    driver->flags |=
+        (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_set_raw_count(driver->gptimer_handle, 0);
     const gptimer_alarm_config_t alarm_config = {
@@ -590,7 +597,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
                           driver->break_len);
     timer_start(driver->timer_group, driver->timer_idx);
 #endif
-    driver->timer_is_running = true;
+    driver->flags |= DMX_FLAGS_TIMER_IS_RUNNING;
 
     dmx_uart_invert_tx(uart, 1);
     taskEXIT_CRITICAL(spinlock);
@@ -621,7 +628,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   if (wait_ticks > 0) {
     bool task_waiting = false;
     taskENTER_CRITICAL(spinlock);
-    if (driver->is_sending) {
+    if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
       driver->task_waiting = xTaskGetCurrentTaskHandle();
       task_waiting = true;
     }
@@ -634,7 +641,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
     }
   } else {
     taskENTER_CRITICAL(spinlock);
-    if (driver->is_sending) {
+    if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
       result = false;
     }
     taskEXIT_CRITICAL(spinlock);

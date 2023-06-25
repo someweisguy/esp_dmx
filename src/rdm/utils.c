@@ -241,7 +241,7 @@ bool rdm_disc_mute_get(dmx_port_t dmx_num) {
 
   bool is_muted;
   taskENTER_CRITICAL(spinlock);
-  is_muted = driver->discovery_is_muted;
+  is_muted = driver->flags & DMX_FLAGS_DRIVER_DISC_MUTED;
   taskEXIT_CRITICAL(spinlock);
 
   return is_muted;
@@ -255,7 +255,11 @@ void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   taskENTER_CRITICAL(spinlock);
-  driver->discovery_is_muted = mute;
+  if (mute) {
+    driver->flags |= DMX_FLAGS_DRIVER_DISC_MUTED;
+  } else {
+    driver->flags &= ~DMX_FLAGS_DRIVER_DISC_MUTED;
+  }
   taskEXIT_CRITICAL(spinlock);
 }
 
@@ -394,7 +398,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   taskENTER_CRITICAL(spinlock);
 
   // RDM writes must be synchronous to prevent data corruption
-  if (driver->is_sending) {
+  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
     taskEXIT_CRITICAL(spinlock);
     return written;
   } else if (dmx_uart_get_rts(driver->uart) == 1) {

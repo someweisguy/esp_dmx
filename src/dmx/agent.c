@@ -47,14 +47,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ALL) {
       // Stop the RDM receive alarm (which may or may not be running)
-      if (driver->timer_is_running) {
+      if (driver->flags & DMX_FLAGS_TIMER_IS_RUNNING) {
 #if ESP_IDF_VERSION_MAJOR >= 5
         gptimer_stop(driver->gptimer_handle);
 #else
         timer_group_set_counter_enable_in_isr(driver->timer_group,
                                               driver->timer_idx, 0);
 #endif
-        driver->timer_is_running = false;
+        driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
       }
 
       // Read data into the DMX buffer if there is enough space
@@ -84,14 +84,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Handle DMX break condition
       if (is_in_break) {
         // Handle receiveing a valid packet with smaller than expected size
-        if (!driver->end_of_packet && driver->data.head > 0 &&
-            driver->data.head < DMX_MAX_PACKET_SIZE) {
+        if (!(driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) &&
+            driver->data.head > 0 && driver->data.head < DMX_MAX_PACKET_SIZE) {
           driver->data.rx_size = driver->data.head - 1;
         }
 
         // Set driver flags
         taskENTER_CRITICAL_ISR(spinlock);
-        driver->end_of_packet = false;  // A new packet is being received
+        driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
         driver->data.head = 0;          // Driver is ready for data
         taskEXIT_CRITICAL_ISR(spinlock);
       }
@@ -99,12 +99,16 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Set data timestamp, DMX break flag, and clear interrupts
       taskENTER_CRITICAL_ISR(spinlock);
       driver->data.timestamp = now;
-      driver->is_in_break = is_in_break;
+      if (is_in_break) {
+        driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
+      } else {
+        driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
+      }
       taskEXIT_CRITICAL_ISR(spinlock);
       dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
 
       // Don't process data if end-of-packet condition already reached
-      if (driver->end_of_packet) {
+      if (driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) {
         continue;
       }
 
@@ -197,9 +201,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(spinlock);
-      driver->new_packet = true;
-      driver->end_of_packet = true;
-      driver->sent_last = false;
+      driver->flags |= (DMX_FLAGS_DRIVER_HAS_DATA | DMX_FLAGS_DRIVER_IS_IDLE);
+      driver->flags &= ~DMX_FLAGS_DRIVER_SENT_LAST;
       driver->type = packet_type;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, packet_err,
@@ -230,7 +233,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(spinlock);
-      driver->is_sending = false;
+      driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
       driver->data.timestamp = now;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, ESP_OK, eNoAction,
@@ -249,8 +252,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
       if (expecting_response) {
         taskENTER_CRITICAL_ISR(spinlock);
-        driver->end_of_packet = false;
-        driver->new_packet = false;
+        driver->flags &=
+            ~(DMX_FLAGS_DRIVER_IS_IDLE | DMX_FLAGS_DRIVER_HAS_DATA);
         dmx_uart_rxfifo_reset(uart);
         dmx_uart_set_rts(uart, 1);
         taskEXIT_CRITICAL_ISR(spinlock);
@@ -270,10 +273,10 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   dmx_driver_t *const restrict driver = (dmx_driver_t *)arg;
   int task_awoken = false;
 
-  if (driver->is_sending) {
-    if (driver->is_in_break) {
+  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
       dmx_uart_invert_tx(driver->uart, 0);
-      driver->is_in_break = false;
+      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
 
       // Reset the alarm for the end of the DMX mark-after-break
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -298,7 +301,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       timer_group_set_counter_enable_in_isr(driver->timer_group,
                                             driver->timer_idx, 0);
 #endif
-      driver->timer_is_running = false;
+      driver->flags &= ~ DMX_FLAGS_TIMER_IS_RUNNING;
 
       // Enable DMX write interrupts
       dmx_uart_enable_interrupt(driver->uart, DMX_INTR_TX_ALL);
@@ -316,7 +319,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     timer_group_set_counter_enable_in_isr(driver->timer_group,
                                           driver->timer_idx, 0);
 #endif
-    driver->timer_is_running = false;
+    driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
   }
 
   return task_awoken;
@@ -377,18 +380,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->dmx_num = dmx_num;
   driver->task_waiting = NULL;
   driver->uart = UART_LL_GET_HW(dmx_num);
-
-  // Initialize driver flags
-  driver->is_in_break = false;
-  driver->end_of_packet = true;
-  driver->is_sending = false;
-  driver->new_packet = false;
-  driver->is_enabled = true;
-  driver->timer_is_running = false;
+  driver->flags = DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE;
 
   // Initialize RDM settings
   driver->rdm.tn = 0;
-  driver->discovery_is_muted = false;
   driver->rdm.num_cbs = 0;
 
   // Initialize RDM device info
@@ -432,7 +427,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize the driver buffer
   bzero(driver->data.buffer, DMX_MAX_PACKET_SIZE);
-  driver->sent_last = false;
   driver->type = RDM_PACKET_TYPE_NON_RDM;
   driver->data.timestamp = 0;
   driver->data.head = -1;  // Wait for DMX break before reading data
@@ -607,10 +601,10 @@ esp_err_t dmx_driver_disable(dmx_port_t dmx_num) {
 
   // Disable receive interrupts
   taskENTER_CRITICAL(spinlock);
-  if (!driver->is_sending) {
+  if (!(driver->flags & DMX_FLAGS_DRIVER_IS_SENDING)) {
     dmx_uart_disable_interrupt(driver->uart, DMX_INTR_RX_ALL);
     dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
-    driver->is_enabled = false;
+    driver->flags &= ~DMX_FLAGS_DRIVER_IS_ENABLED;
     ret = ESP_OK;
   }
   taskEXIT_CRITICAL(spinlock);
@@ -630,15 +624,13 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
 
   // Initialize driver flags and reenable interrupts
   taskENTER_CRITICAL(spinlock);
-  driver->is_in_break = false;
-  driver->end_of_packet = true;
-  driver->new_packet = false;
   driver->data.head = -1;  // Wait for DMX break before reading data
+  driver->flags |= (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
+  driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_HAS_DATA);
   dmx_uart_rxfifo_reset(driver->uart);
   dmx_uart_txfifo_reset(driver->uart);
   dmx_uart_enable_interrupt(driver->uart, DMX_INTR_RX_ALL);
   dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
-  driver->is_enabled = true;
   taskEXIT_CRITICAL(spinlock);
 
   return ESP_OK;
@@ -650,7 +642,7 @@ bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
   if (dmx_driver_is_installed(dmx_num)) {
     spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
     taskENTER_CRITICAL(spinlock);
-    is_enabled = dmx_driver[dmx_num]->is_enabled;
+    is_enabled = dmx_driver[dmx_num]->flags & DMX_FLAGS_DRIVER_IS_ENABLED;
     taskEXIT_CRITICAL(spinlock);
   }
 

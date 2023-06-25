@@ -79,6 +79,25 @@ enum rdm_packet_type_t {
       (RDM_PACKET_TYPE_REQUEST | RDM_PACKET_TYPE_DISCOVERY)
 };
 
+enum dmx_flags_t {
+  DMX_FLAGS_DRIVER_IS_ENABLED = BIT0,   // The driver is enabled.
+  DMX_FLAGS_DRIVER_IS_IDLE = BIT1,      // The driver is not sending data.
+  DMX_FLAGS_DRIVER_IS_SENDING = BIT2,   // The driver is sending.
+  DMX_FLAGS_DRIVER_SENT_LAST = BIT3,    // The driver sent the last packet.
+  DMX_FLAGS_DRIVER_IS_IN_BREAK = BIT4,  // The driver is in a DMX break.
+  DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
+  DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
+  DMX_FLAGS_DRIVER_DISC_MUTED = BIT7,   // The driver discovery is muted.
+  DMX_FLAGS_DRIVER_BOOT_LOADER = BIT8,  // An error occurred with the driver.
+  DMX_FLAGS_TIMER_IS_RUNNING = BIT9,    // The driver hardware timer is running.
+
+  DMX_FLAGS_RDM_IS_VALID = BIT0,
+  DMX_FLAGS_RDM_IS_REQUEST = BIT1,
+  DMX_FLAGS_RDM_IS_BROADCAST = BIT2,
+  DMX_FLAGS_RDM_IS_RECIPIENT = BIT3,  // is addressed to me
+  DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,
+};
+
 /** @brief The DMX driver object used to handle reading and writing DMX data on
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.*/
@@ -109,15 +128,8 @@ typedef struct dmx_driver_t {
 
   // TODO: combine all these flags into one variable
   int type;           // The type of the packet received.
-  int sent_last;      // True if the last packet was sent from this driver.
-  int timer_is_running;
-  int is_in_break;    // True if the driver is sending or receiving a DMX break.
-  int end_of_packet;  // True if the driver received an end-of-packet condition.
-  int is_sending;     // True if the driver is sending data.
-  int new_packet;     // True if the driver has a new, unhandled packet.
-  int is_enabled;     // True if the driver is enabled.
-  int discovery_is_muted;  // True if RDM discovery responses are muted on this port.
-  int is_in_mab;             // True if the sniffer is receiving a DMX mark-after-break.
+
+  uint16_t flags;
 
   struct dmx_personality_t {
     uint16_t footprint;
