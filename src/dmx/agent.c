@@ -375,7 +375,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize RDM settings
   driver->tn = 0;
-  driver->rdm.num_cbs = 0;
+  driver->num_rdm_cbs = 0;
 
   // Initialize RDM device info
   if (config->personality_count == 0 ||
@@ -427,7 +427,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->mab_len = RDM_MAB_LEN_US;
 
   // Initialize sniffer in the disabled state
-  driver->sniffer.queue = NULL;
+  driver->metadata_queue = NULL;
 
   // Initialize the UART peripheral
   uart_dev_t *const restrict uart = driver->uart;

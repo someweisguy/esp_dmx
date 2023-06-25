@@ -100,51 +100,46 @@ typedef struct dmx_driver_t {
 #endif
   intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
+  // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
-  // Transmit and receive settings
-  uint32_t break_len;  // Length in microseconds of the transmitted break.
-  uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
-  int16_t tx_size;     // The size of the outgoing data packet.
-  int16_t rx_size;     // The expected size of the incoming data packet.
-
   // Data buffer
-  int16_t head;   // The index of the current slot being either transmitted or received.
-  uint8_t *data;  // The buffer that stores the DMX packet.
+  int16_t head;     // The index of the slot being transmitted or received.
+  uint8_t *data;    // The buffer that stores the DMX packet.
+  int16_t tx_size;  // The size of the outgoing packet.
+  int16_t rx_size;  // The expected size of the incoming packet.
 
-
-  uint8_t tn;             // The current RDM transaction number. Is incremented with every RDM packet sent.
-  rdm_device_info_t device_info;    // The RDM device info of this device.
+  // Driver state
   uint16_t flags;
   uint8_t rdm_type;
+  uint8_t tn;            // The current RDM transaction number. Is incremented with every RDM packet sent.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
+  // DMX configuration
+  rdm_device_info_t device_info;    // The RDM device info of this device.
   struct dmx_personality_t {
     uint16_t footprint;
     const char *description;
   } personalities[CONFIG_DMX_MAX_PERSONALITIES];
+  uint32_t break_len;  // Length in microseconds of the transmitted break.
+  uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
+  // RDM responder configuration
+  uint16_t num_rdm_cbs;
+  struct rdm_cb_table_t {
+    rdm_pid_description_t desc;
+    rdm_response_cb_t cb;
+    void *param;
+    void *context;
+  } rdm_cbs[RDM_RESPONDER_MAX_PIDS];
 
-  struct rdm_info_t {
-
-    uint16_t num_cbs;
-    struct rdm_cb_table_t {
-      rdm_pid_description_t desc;
-      rdm_response_cb_t cb;
-      void *param;
-      void *context;
-    } cbs[RDM_RESPONDER_MAX_PIDS];
-  } rdm;
-
-  struct dmx_sniffer_t {
-    QueueHandle_t queue;       // The queue handle used to receive sniffer data.
-    dmx_metadata_t data;       // The metadata received by the DMX sniffer.
-
-    int intr_pin;              // The GPIO number of the DMX sniffer interrupt pin.
-    int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
-    int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
-  } sniffer;
+  // DMX sniffer configuration
+  dmx_metadata_t metadata;       // The metadata received by the DMX sniffer.
+  QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
+  int sniffer_pin;               // The GPIO number of the DMX sniffer interrupt pin.
+  int64_t last_pos_edge_ts;      // Timestamp of the last positive edge on the sniffer pin.
+  int64_t last_neg_edge_ts;      // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;
 
 #ifdef __cplusplus

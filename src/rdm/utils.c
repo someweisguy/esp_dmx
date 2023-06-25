@@ -607,8 +607,8 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;
-  for (; i < driver->rdm.num_cbs; ++i) {
-    if (driver->rdm.cbs[i].desc.pid == desc->pid) break;
+  for (; i < driver->num_rdm_cbs; ++i) {
+    if (driver->rdm_cbs[i].desc.pid == desc->pid) break;
   }
 
   // Check if there is space for callbacks
@@ -618,11 +618,11 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Add the requested callback to the callback list
-  driver->rdm.cbs[i].param = param;
-  driver->rdm.cbs[i].context = context;
-  driver->rdm.cbs[i].cb = callback;
-  driver->rdm.cbs[i].desc = *desc;
-  ++driver->rdm.num_cbs;
+  driver->rdm_cbs[i].param = param;
+  driver->rdm_cbs[i].context = context;
+  driver->rdm_cbs[i].cb = callback;
+  driver->rdm_cbs[i].desc = *desc;
+  ++driver->num_rdm_cbs;
 
   return true;
 }

@@ -27,26 +27,26 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     also be deduced that the driver is now in a DMX mark-after-break. */
 
     if ((driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) &&
-        driver->sniffer.last_neg_edge_ts > -1) {
-      driver->sniffer.data.break_len = now - driver->sniffer.last_neg_edge_ts;
+        driver->last_neg_edge_ts > -1) {
+      driver->metadata.break_len = now - driver->last_neg_edge_ts;
       driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
     }
-    driver->sniffer.last_pos_edge_ts = now;
+    driver->last_pos_edge_ts = now;
   } else {
     /* If this ISR is called on a negative edge in a DMX mark-after-break then
     the DMX mark-after-break has just finished. It can be recorded. Sniffer data
     is now available to be read by the user. */
 
     if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_MAB) {
-      driver->sniffer.data.mab_len = now - driver->sniffer.last_pos_edge_ts;
+      driver->metadata.mab_len = now - driver->last_pos_edge_ts;
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
       // Send the sniffer data to the queue
-      xQueueOverwriteFromISR(driver->sniffer.queue, &driver->sniffer.data,
+      xQueueOverwriteFromISR(driver->metadata_queue, &driver->metadata,
                              &task_awoken);
     }
-    driver->sniffer.last_neg_edge_ts = now;
+    driver->last_neg_edge_ts = now;
   }
 
   if (task_awoken) portYIELD_FROM_ISR();
@@ -62,8 +62,8 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Allocate the sniffer queue
-  driver->sniffer.queue = xQueueCreate(1, sizeof(dmx_metadata_t));
-  if (driver->sniffer.queue == NULL) {
+  driver->metadata_queue = xQueueCreate(1, sizeof(dmx_metadata_t));
+  if (driver->metadata_queue == NULL) {
     ESP_LOGE(TAG, "DMX sniffer queue malloc error");
     return ESP_ERR_NO_MEM;
   }
@@ -72,14 +72,14 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   esp_err_t err = gpio_isr_handler_add(intr_pin, dmx_gpio_isr, driver);
   if (err) {
     ESP_LOGE(TAG, "DMX sniffer ISR handler error");
-    vQueueDelete(driver->sniffer.queue);
-    driver->sniffer.queue = NULL;
+    vQueueDelete(driver->metadata_queue);
+    driver->metadata_queue = NULL;
     return ESP_FAIL;
   }
-  driver->sniffer.intr_pin = intr_pin;
+  driver->sniffer_pin = intr_pin;
 
   // Set sniffer default values
-  driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
+  driver->last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
   driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
   // Enable the interrupt
@@ -96,23 +96,23 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Disable the interrupt and remove the interrupt handler
-  gpio_set_intr_type(driver->sniffer.intr_pin, GPIO_INTR_DISABLE);
-  esp_err_t err = gpio_isr_handler_remove(driver->sniffer.intr_pin);
+  gpio_set_intr_type(driver->sniffer_pin, GPIO_INTR_DISABLE);
+  esp_err_t err = gpio_isr_handler_remove(driver->sniffer_pin);
   if (err) {
     ESP_LOGE(TAG, "DMX sniffer ISR handler error");
     return ESP_FAIL;
   }
 
   // Deallocate the sniffer queue
-  vQueueDelete(driver->sniffer.queue);
-  driver->sniffer.queue = NULL;
+  vQueueDelete(driver->metadata_queue);
+  driver->metadata_queue = NULL;
 
   return ESP_OK;
 }
 
 bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
   return dmx_driver_is_installed(dmx_num) &&
-         dmx_driver[dmx_num]->sniffer.queue != NULL;
+         dmx_driver[dmx_num]->metadata_queue != NULL;
 }
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
@@ -124,5 +124,5 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  return xQueueReceive(driver->sniffer.queue, metadata, wait_ticks);
+  return xQueueReceive(driver->metadata_queue, metadata, wait_ticks);
 }
