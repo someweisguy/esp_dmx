@@ -34,7 +34,8 @@ void app_main() {
 
   // Set communication pins and install the driver
   ESP_ERROR_CHECK(dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN));
-  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, DMX_DEFAULT_INTR_FLAGS));
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT));
 
   // Install the default GPIO ISR and enable the sniffer
   ESP_ERROR_CHECK(gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS));

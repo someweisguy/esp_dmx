@@ -62,11 +62,13 @@ void setup() {
   /* Set the DMX hardware pins to the pins that we want to use. */
   dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
-  /* Now we can install the DMX driver! We'll tell it which DMX port to use and
-    which interrupt priority it should have. If you aren't sure which interrupt
-    priority to use, you can use the macro `DMX_DEFAULT_INTR_FLAG` to set the
-    interrupt to its default settings.*/
-  dmx_driver_install(dmxPort, DMX_DEFAULT_INTR_FLAGS);
+  /* Now we can install the DMX driver! We'll tell it which DMX port to use, 
+    what device configure to use, and which interrupt priority it should have. 
+    If you aren't sure which configuration or interrupt priority to use, you can
+    use the macros `DMX_CONFIG_DEFAULT` and `DMX_INTR_FLAGS_DEFAULT` to set the
+    configuration and interrupt to their default settings. */
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
 
   /* Register the custom RDM_PID_SOFTWARE_VERSION_LABEL callback. This
     overwrites the default response. */
