@@ -20,17 +20,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Reads DMX data from the driver into a destination buffer.
- *
- * @param dmx_num The DMX port number.
- * @param[out] destination The destination buffer into which to read the DMX
- * data.
- * @param size The size of the destination buffer.
- * @return The number of bytes read from the DMX driver.
- */
-size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size);
-
-/**
  * @brief Reads DMX data from the driver into a destination buffer with an
  * offset. This can be useful when a receiving DMX device only needs to process
  * a small footprint of the DMX packet.
@@ -47,6 +36,17 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
                        size_t size);
 
 /**
+ * @brief Reads DMX data from the driver into a destination buffer.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] destination The destination buffer into which to read the DMX
+ * data.
+ * @param size The size of the destination buffer.
+ * @return The number of bytes read from the DMX driver.
+ */
+size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size);
+
+/**
  * @brief Reads a single slot of DMX data.
  *
  * @param dmx_num The DMX port number.
@@ -54,17 +54,6 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
  * @return The value of the DMX slot or -1 on error.
  */
 int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
-
-/**
- * @brief Writes DMX data from a source buffer into the DMX driver buffer. Data
- * written into the DMX driver buffer can then be sent to DMX devices.
- *
- * @param dmx_num The DMX port number.
- * @param[in] source The source buffer which is copied to the DMX driver.
- * @param size The size of the source buffer.
- * @return The number of bytes written into the DMX driver.
- */
-size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
 
 /**
  * @brief Writes DMX data from a source buffer into the DMX driver buffer with
@@ -80,6 +69,17 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
  */
 size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
                         size_t size);
+
+/**
+ * @brief Writes DMX data from a source buffer into the DMX driver buffer. Data
+ * written into the DMX driver buffer can then be sent to DMX devices.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] source The source buffer which is copied to the DMX driver.
+ * @param size The size of the source buffer.
+ * @return The number of bytes written into the DMX driver.
+ */
+size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
 
 /**
  * @brief Writes a single slot of DMX data.
