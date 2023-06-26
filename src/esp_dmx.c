@@ -17,12 +17,6 @@
 #include "driver/timer.h"
 #endif
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
 static const char *TAG = "dmx";
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];

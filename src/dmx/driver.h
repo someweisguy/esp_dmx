@@ -30,6 +30,12 @@
 extern "C" {
 #endif
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 #ifndef CONFIG_RDM_RESPONDER_MAX_PARAMETERS
 #define CONFIG_RDM_RESPONDER_MAX_PARAMETERS 16
 #endif

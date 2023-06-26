@@ -51,7 +51,7 @@ void *uidmove(void *destination, const void *source) {
   return uidcpy(destination, &temp);
 }
 
-void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
+void DMX_ISR_ATTR uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
   taskENTER_CRITICAL(&rdm_spinlock);
   if (uid_is_null(&rdm_binding_uid)) {
@@ -278,7 +278,7 @@ void rdm_identify_set(const bool identify) {
   taskEXIT_CRITICAL(&rdm_spinlock);
 }
 
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
+size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
                 size_t num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");

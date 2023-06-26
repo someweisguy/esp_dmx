@@ -17,12 +17,6 @@
 #include "dmx/types.h"
 #include "hal/uart_hal.h"
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
