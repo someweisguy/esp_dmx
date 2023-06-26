@@ -280,12 +280,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // TODO: Verify the packet format is valid
   /*
-  if (header->cc == RDM_CC_DISC_COMMAND &&
-    !(header->pid == RDM_PID_DISC_UNIQUE_BRANCH ||
-      header->pid == RDM_PID_DISC_MUTE ||
-      header->pid == RDM_PID_DISC_UN_MUTE)) {
-    return failure;
-  }
   message_len >= 24
   !uid_is_broadcast(&header->src_uid)
   port_id > 0 (should this be enforced? Maybe turn on/off in sdkconfig?)
