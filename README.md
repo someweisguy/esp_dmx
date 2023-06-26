@@ -24,7 +24,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
 - [Configuring the DMX Port](#configuring-the-dmx-port)
   - [Setting Communication Pins](#setting-communication-pins)
   - [Installing the Driver](#installing-the-driver)
-  - [Parameter Configuration](#parameter-configuration)
+  - [Timing Configuration](#Timing-configuration)
 - [Reading and Writing DMX](#reading-and-writing-dmx)
   - [Reading DMX](#reading-dmx)
   - [DMX Sniffer](#dmx-sniffer)
@@ -76,8 +76,11 @@ const int rx_pin = 16;
 const int rts_pin = 21;
 dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
 
+// ...use the default DMX configuration...
+dmx_config_t config = DMX_CONFIG_DEFAULT;
+
 // ...and then install the driver!
-dmx_driver_install(dmx_num, DMX_DEFAULT_INTR_FLAGS);
+dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
 ```
 
 To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
@@ -151,7 +154,7 @@ Many DMX fixtures support multiple controllable DMX parameters. Fixtures that su
 
 Multi-parameter fixtures may support multiple footprints. On a fixture that supports multiple footprints, only one footprint can be active at a time. Larger footprints may be used to provide finer control of the fixture's DMX parameters. Conversely, smaller footprints may be used when finer control of a fixture is not needed. Instructions to change a fixture's active footprint may be found by consulting its user manual.
 
-A fixture's DMX footprint may also be called a DMX personality, particularly when a fixture supports multiple footprints.
+A fixture which supports multiple footprints is said to possess multiple personalities. Each DMX personality may support a different footprint.
 
 ### Universes
 
@@ -239,15 +242,48 @@ dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 After the communication pins are set, install the driver by calling `dmx_driver_install()`. This function will allocate the necessary resources for the DMX driver. It instantiates the driver to default DMX settings. The following parameters are passed to this function:
 
 - The DMX port to use.
-- Flags to allocate interrupts. The macro `DMX_DEFAULT_INTR_FLAGS` can be used to allocate the interrupts using the default interrupt flags.
+- The DMX configuration to use. The macro `DMX_CONFIG_DEFAULT` can be used to declare a struct with the default configuration.
+- Flags to allocate interrupts. The macro `DMX_INTR_FLAGS_DEFAULT` can be used to allocate the interrupts using the default interrupt flags.
 
 ```c
-dmx_driver_install(DMX_NUM_2, DMX_DEFAULT_INTR_FLAGS);
+dmx_config_t config = DMX_CONFIG_DEFAULT;
+dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
 ```
 
-### Parameter Configuration
+The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
 
-In most situations it is not necessary to adjust the default parameters of the DMX driver. Nevertheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break. After the DMX driver has been installed, the following functions may be called.
+- `model_id` identifies the device model ID. This is an arbitrary value set by the user. Users should not use the same model ID to represent more than one unique model type. The default value is `0`.
+- `product_category` is the primary function of the device. A list of product categories can be found in the `rdm_product_category_t` enum. The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
+- `software_version_id` indicates the software version ID for the device. This is a 32-bit value determined by the user. The default is a value returned by a function of this library's version number.
+- `current_personality` is the current selected DMX personality of the device. These personalities shall be consecutively numbered starting from 1. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the current personality to the value found in NVS, or 1 if no value is found in NVS.
+- `personalities` is a table defining the footprints of the device and a description of each personality. An example showing how to use this field is below. Unless the `Kconfig` is adjusted, the maximum number of footprints supported is 16.
+- `personality_count` is the number of personalities described in the `personalities` field.
+- `dmx_start_address` is the DMX start address of this device. If the footprint, current personality, or personality count of this device is 0 then this field shall be set to 0xffff. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the DMX start address to the value found in NVS, or 1 if no value is found in NVS.
+
+```c
+dmx_config_t config = {
+  .model_id = 0xabcd,
+  .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,
+  .software_version_id = 0x100,
+  .current_personality = 0,  // Load value from NVS
+  .personalities = {
+    /* Personalities are defined by an integer defining the personality's
+      footprint, and a string description of the personality. The description is
+      optional and may be left empty.*/
+    {1, "Intensity Only"},
+    {3, "RGB"},
+    {4, "RGBW"},
+    {7, "RGBW with Macros"},
+  },
+  .personality_count = 4,
+  .dmx_start_address = 0,  // Load values from NVS
+};
+dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
+```
+
+### Timing Configuration
+
+In most situations it is not necessary to adjust the default timing of the DMX driver. Nevertheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break. After the DMX driver has been installed, the following functions may be called.
 
 ```c
 dmx_set_baud_rate(DMX_NUM_2, DMX_BAUD_RATE);     // Set DMX baud rate.
@@ -255,9 +291,9 @@ dmx_set_break_len(DMX_NUM_2, DMX_BREAK_LEN_US);  // Set DMX break length.
 dmx_set_mab_len(DMX_NUM_2, DMX_MAB_LEN_US);      // Set DMX MAB length.
 ```
 
-If parameters values that are not within the DMX specification are passed to these functions, the values will be clamped so that they are within DMX specification. Note that it is possible to set driver parameters to be within DMX specification but not within RDM specification. Care must be used when using these functions to ensure that RDM capabilities are maintained.
+If timing values that are not within the DMX specification are passed to these functions, the values will be clamped so that they are within DMX specification. Note that it is possible to set driver timing to be within DMX specification but not within RDM specification. Care must be used when using these functions to ensure that RDM capabilities are maintained.
 
-The above functions each have `_get_` counterparts to retrieve the currently set DMX parameters.
+The above functions each have `_get_` counterparts to retrieve the currently set DMX timing parameters.
 
 ## Reading and Writing DMX
 
