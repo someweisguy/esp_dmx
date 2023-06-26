@@ -11,11 +11,9 @@
 
 #include "dmx/types.h"
 #include "esp_check.h"
-#include "esp_err.h"
 #include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "freertos/task.h"
 #include "hal/uart_hal.h"
 #include "rdm/types.h"
 #include "rdm/utils.h"
