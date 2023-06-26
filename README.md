@@ -24,7 +24,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
 - [Configuring the DMX Port](#configuring-the-dmx-port)
   - [Setting Communication Pins](#setting-communication-pins)
   - [Installing the Driver](#installing-the-driver)
-  - [Timing Configuration](#Timing-configuration)
+  - [Timing Configuration](#timing-configuration)
 - [Reading and Writing DMX](#reading-and-writing-dmx)
   - [Reading DMX](#reading-dmx)
   - [DMX Sniffer](#dmx-sniffer)
@@ -276,7 +276,7 @@ dmx_config_t config = {
     {7, "RGBW with Macros"},
   },
   .personality_count = 4,
-  .dmx_start_address = 0,  // Load values from NVS
+  .dmx_start_address = 0,  // Load value from NVS
 };
 dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
 ```
