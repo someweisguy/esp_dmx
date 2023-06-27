@@ -176,7 +176,7 @@ The lowest possible UID is `0001:00000000` and the highest possible UID is `ffff
 
 Organizations may apply for a unique manufacturer ID by contacting ESTA. The instructions to do so and a list of registered manufacturer IDs can be found [here](https://tsp.esta.org/tsp/working_groups/CP/mfctrIDs.php). This software library is registered and listed with the manufacturer ID of `05e0`. Users of this library may use this manufacturer ID for their devices.
 
-In this library, UIDs are represented with the `rdm_uid_t` type. The macro `RDM_UID_BROADCAST_MAN()` can be used to create a UID which broadcasts to the desired manufacturer ID and the constant `RDM_UID_BROADCAST_ALL` can be used to broadcast to all devices on the RDM network.
+In this library, UIDs are represented with the `rdm_uid_t` type. The macro `rdm_uid_broadcast_man()` can be used to create a UID which broadcasts to the desired manufacturer ID and the constant `RDM_UID_BROADCAST_ALL` can be used to broadcast to all devices on the RDM network.
 
 ### Sub-devices
 
@@ -666,12 +666,12 @@ When reading RDM packets, the `packet.err` field is copied into the `rdm_ack_t` 
 
 It should be noted that this library does not automatically check for DMX timing errors. This library does provide macros to assist with timing error checking, but it is left to the user to implement such measures. DMX and RDM each have their own timing requirements so macros for checking DMX and RDM are both provided. The following macros can be used to assist with timing error checking.
 
-- `DMX_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid for DMX.
-- `DMX_BREAK_LEN_IS_VALID()` evaluates to true if the DMX break duration is valid.
-- `DMX_MAB_LEN_IS_VALID()` evaluates to true if the DMX mark-after-break duration is valid.
-- `RDM_BAUD_RATE_IS_VALID()` evaluates to true if the baud rate is valid for RDM.
-- `RDM_BREAK_LEN_IS_VALID()` evaluates to true if the RDM break duration is valid.
-- `RDM_MAB_LEN_IS_VALID()` evaluates to true if the RDM mark-after-break duration is valid.
+- `dmx_baud_rate_is_valid()` evaluates to true if the baud rate is valid for DMX.
+- `dmx_break_len_is_valid()` evaluates to true if the DMX break duration is valid.
+- `dmx_mab_len_is_valid()` evaluates to true if the DMX mark-after-break duration is valid.
+- `rdm_baud_rate_is_valid()` evaluates to true if the baud rate is valid for RDM.
+- `rdm_break_len_is_valid()` evaluates to true if the RDM break duration is valid.
+- `rdm_mab_len_is_valid()` evaluates to true if the RDM mark-after-break duration is valid.
 
 DMX and RDM specify different timing requirements for receivers and transmitters. This library attempts to simplify error checking by combining timing requirements for receiving and transmitting. Therefore there are only the above six timing error checking macros instead of six macros each for receiving and transmitting.
 
