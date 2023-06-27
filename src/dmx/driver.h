@@ -41,6 +41,10 @@ extern "C" {
  * support. This value is editable in the Kconfig.*/
 #define RDM_RESPONDER_MAX_PIDS (8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS)
 
+#ifndef CONFIG_DMX_MAX_PERSONALITIES
+#define CONFIG_DMX_MAX_PERSONALITIES 16
+#endif
+
 /** @brief Used for argument checking at the beginning of each function.*/
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)

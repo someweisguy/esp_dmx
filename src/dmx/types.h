@@ -6,6 +6,10 @@
  */
 #pragma once
 
+#ifndef CONFIG_DMX_MAX_PERSONALITIES
+#define CONFIG_DMX_MAX_PERSONALITIES 16
+#endif
+
 #include "esp_intr_alloc.h"
 #include "freertos/FreeRTOS.h"
 
