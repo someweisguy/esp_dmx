@@ -25,7 +25,7 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
 
   rdm_disc_unique_branch_t pd;
   pd_emplace(&pd, "uu$", branch, sizeof(pd), false);
-  return rdm_request(dmx_num, header, &pd, NULL, 0, ack);
+  return rdm_send_request(dmx_num, header, &pd, NULL, 0, ack);
 }
 
 bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
@@ -42,7 +42,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = 0;
 
   rdm_disc_mute_t pd;
-  bool ret = rdm_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
+  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
   if (ret && mute != NULL) {
     pd_emplace(mute, "wv$", &pd, sizeof(*mute), true);
   }
@@ -64,7 +64,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = 0;
 
   rdm_disc_mute_t pd;
-  bool ret = rdm_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
+  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
   if (ret && mute != NULL) {
     pd_emplace(mute, "wv$", &pd, sizeof(*mute), true);
   }
@@ -251,7 +251,7 @@ bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = 0;
 
   rdm_device_info_t pd;
-  bool ret = rdm_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
+  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
   if (ret) {
     pd_emplace(device_info, "#0100hwwdwbbwwb$", &pd, sizeof(*device_info),
                true);
@@ -277,7 +277,7 @@ bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
   header->pdl = 0;
 
   char pd[33];
-  bool ret = rdm_request(dmx_num, header, NULL, pd, sizeof(pd), ack);
+  bool ret = rdm_send_request(dmx_num, header, NULL, pd, sizeof(pd), ack);
   if (ret) {
     pd_emplace(software_version_label, "a", pd, size, true);
   }
@@ -299,7 +299,8 @@ bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = 0;
 
   // Single-byte responses don't need to be emplaced
-  return rdm_request(dmx_num, header, NULL, identify, sizeof(*identify), ack);
+  return rdm_send_request(dmx_num, header, NULL, identify, sizeof(*identify),
+                          ack);
 }
 
 bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
@@ -316,7 +317,7 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = sizeof(identify);
 
   // Single-byte requests don't need to be emplaced
-  return rdm_request(dmx_num, header, &identify, NULL, 0, ack);
+  return rdm_send_request(dmx_num, header, &identify, NULL, 0, ack);
 }
 
 bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
@@ -334,7 +335,7 @@ bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = 0;
 
   uint16_t pd;
-  bool ret = rdm_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
+  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, sizeof(pd), ack);
   if (ret) {
     pd_emplace(dmx_start_address, "w$", &pd, sizeof(*dmx_start_address), true);
   }
@@ -358,5 +359,5 @@ bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint16_t pd;
   pd_emplace(&pd, "w$", &dmx_start_address, sizeof(pd), false);
-  return rdm_request(dmx_num, header, &pd, NULL, 0, ack);
+  return rdm_send_request(dmx_num, header, &pd, NULL, 0, ack);
 }

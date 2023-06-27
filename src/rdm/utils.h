@@ -353,8 +353,9 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
  * @return true if an RDM_RESPONSE_TYPE_ACK response was received.
  * @return false if any other response type was received.
  */
-bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
-                 void *pd_out, size_t num, rdm_ack_t *ack);
+bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
+                      const void *pd_in, void *pd_out, size_t num,
+                      rdm_ack_t *ack);
 
 /**
  * @brief Registers a response callback to be called when a request is received

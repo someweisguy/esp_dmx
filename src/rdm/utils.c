@@ -454,8 +454,9 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   return written;
 }
 
-bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
-                 void *pd_out, size_t num, rdm_ack_t *ack) {
+bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
+                      const void *pd_in, void *pd_out, size_t num,
+                      rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(!uid_is_null(&header->dest_uid), 0, "dest_uid is invalid");
