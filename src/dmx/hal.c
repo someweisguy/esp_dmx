@@ -7,6 +7,12 @@
 #include "esp_private/esp_clk.h"
 #endif
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 void dmx_uart_init(uart_dev_t *uart) {
   uart_ll_set_sclk(uart, UART_SCLK_APB);
 #if ESP_IDF_VERSION_MAJOR >= 5

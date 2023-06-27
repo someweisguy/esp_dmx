@@ -79,7 +79,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Allocate the instruction stack. The max binary tree depth is 49
-#ifdef RDM_STACK_ALLOCATE_DISCOVERY
+#ifdef CONFIG_RDM_STACK_ALLOCATE_DISCOVERY
   rdm_disc_unique_branch_t stack[49];  // 588 bytes - use with caution!
 #else
   rdm_disc_unique_branch_t *stack;
@@ -144,7 +144,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
       if (ack.type != RDM_RESPONSE_TYPE_NONE) {
         bool devices_remaining = true;
 
-#ifndef RDM_DEBUG_DEVICE_DISCOVERY
+#ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
         /*
         Stop the RDM controller from branching all the way down to the
         individual address if it is not necessary. When debugging, this code

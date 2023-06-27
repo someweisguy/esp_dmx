@@ -15,6 +15,12 @@
 #include "esp_mac.h"
 #endif
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static bool rdm_is_identifying = false;
 static rdm_uid_t rdm_binding_uid = {};
@@ -597,7 +603,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Check if there is space for callbacks
-  if (i == RDM_RESPONDER_MAX_PIDS) {
+  if (i == RDM_RESPONDER_PIDS_MAX) {
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }

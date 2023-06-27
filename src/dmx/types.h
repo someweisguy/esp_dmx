@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-/** @brief DMX port max. Used for error checking.*/
-#define DMX_NUM_MAX SOC_UART_NUM
-
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 /** @brief The default interrupt flags for the DMX driver. Places the interrupts
  * in IRAM.*/
@@ -275,7 +272,7 @@ typedef struct dmx_config_t {
   struct {
     uint16_t footprint;
     const char *description;
-  } personalities[DMX_MAX_PERSONALITIES];
+  } personalities[DMX_PERSONALITIES_MAX];
   /** @brief The number of personalities supported by the device. The
      personality is the configured arrangement of DMX slots used by the device.
      Many devices may have multiple personalities from which to choose. These

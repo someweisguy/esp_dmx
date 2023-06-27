@@ -19,6 +19,12 @@
 #include "driver/timer.h"
 #endif
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
+#endif
+
 #define DMX_UART_FULL_DEFAULT 1
 #define DMX_UART_EMPTY_DEFAULT 8
 
@@ -356,7 +362,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize device info
   if (config->personality_count == 0 ||
-      config->personality_count > DMX_MAX_PERSONALITIES) {
+      config->personality_count > DMX_PERSONALITIES_MAX) {
     ESP_LOGW(TAG, "Personality count is invalid, using default personality");
     config->personalities[0].footprint = 1;
     config->personalities[0].description = "Default Personality";

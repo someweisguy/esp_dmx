@@ -116,7 +116,7 @@ typedef struct dmx_driver_t {
   struct dmx_personality_t {
     uint16_t footprint;
     const char *description;
-  } personalities[DMX_MAX_PERSONALITIES];
+  } personalities[DMX_PERSONALITIES_MAX];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 
@@ -127,7 +127,7 @@ typedef struct dmx_driver_t {
     rdm_response_cb_t cb;
     void *param;
     void *context;
-  } rdm_cbs[RDM_RESPONDER_MAX_PIDS];
+  } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
 
   // DMX sniffer configuration
   dmx_metadata_t metadata;       // The metadata received by the DMX sniffer.
