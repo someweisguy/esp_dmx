@@ -362,7 +362,7 @@ bool rdm_request(dmx_port_t dmx_num, rdm_header_t *header, const void *pd_in,
  * may not be deleted. The pointers to the parameter and context are copied by
  * reference and must be valid throughout the lifetime of the DMX driver. The
  * maximum number of response callbacks that may be registered are defined by
- * CONFIG_RDM_RESPONDER_MAX_PARAMETERS found in the kconfig.
+ * "Max RDM responder PIDs" found in the kconfig.
  *
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device to which to register the response callback.

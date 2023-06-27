@@ -41,14 +41,14 @@ void DMX_ISR_ATTR uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   taskENTER_CRITICAL(&rdm_spinlock);
   if (uid_is_null(&rdm_binding_uid)) {
     uint32_t dev_id;
-#if CONFIG_RDM_DEVICE_UID_DEV_ID == 0xffffffff
+#if RDM_UID_DEVICE_ID == 0xffffffff
     uint8_t mac[8];
     esp_efuse_mac_get_default(mac);
     dev_id = bswap32(*(uint32_t *)(mac + 2));
 #else
-    dev_id = CONFIG_RDM_DEVICE_UID_DEV_ID;
+    dev_id = RDM_UID_DEVICE_UID;
 #endif
-    rdm_binding_uid.man_id = CONFIG_RDM_DEVICE_UID_MAN_ID;
+    rdm_binding_uid.man_id = RDM_UID_MANUFACTURER_ID;
     rdm_binding_uid.dev_id = dev_id;
   }
   taskEXIT_CRITICAL(&rdm_spinlock);

@@ -275,7 +275,7 @@ typedef struct dmx_config_t {
   struct {
     uint16_t footprint;
     const char *description;
-  } personalities[CONFIG_DMX_MAX_PERSONALITIES];
+  } personalities[DMX_MAX_PERSONALITIES];
   /** @brief The number of personalities supported by the device. The
      personality is the configured arrangement of DMX slots used by the device.
      Many devices may have multiple personalities from which to choose. These

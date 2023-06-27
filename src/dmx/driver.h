@@ -116,7 +116,7 @@ typedef struct dmx_driver_t {
   struct dmx_personality_t {
     uint16_t footprint;
     const char *description;
-  } personalities[CONFIG_DMX_MAX_PERSONALITIES];
+  } personalities[DMX_MAX_PERSONALITIES];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
 

@@ -356,7 +356,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Initialize device info
   if (config->personality_count == 0 ||
-      config->personality_count > CONFIG_DMX_MAX_PERSONALITIES) {
+      config->personality_count > DMX_MAX_PERSONALITIES) {
     ESP_LOGW(TAG, "Personality count is invalid, using default personality");
     config->personalities[0].footprint = 1;
     config->personalities[0].description = "Default Personality";
