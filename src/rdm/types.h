@@ -18,7 +18,7 @@ extern "C" {
 
 /** @brief Macro for creating a manufacturer broadcast UID based on the desired
  * manufacturer ID.*/
-#define RDM_UID_BROADCAST_MAN(man_id) ((rdm_uid_t){(man_id), 0xffffffff})
+#define rdm_uid_broadcast_man(man_id) ((rdm_uid_t){(man_id), 0xffffffff})
 
 /** @brief The recommended method for representing the UID in text by separating
  * the manufacturer ID and the device ID. For use with printf-like functions.*/

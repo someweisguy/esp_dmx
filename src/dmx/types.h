@@ -22,36 +22,36 @@ extern "C" {
   defined by the standard or by the E1 Accredited Standards Committee.
   Manufacturers shall not advertise or sell products or devices that use
   alternate start codes 0xF0-0xF7.*/
-#define DMX_START_CODE_IS_VALID(sc)                              \
+#define dmx_start_code_is_valid(sc)                              \
   (!((sc >= 0x92 && sc <= 0xa9) || (sc >= 0xab && sc <= 0xcb) || \
      (sc == 0xcd) || (sc >= 0xf0 && sc <= 0xf7)))
 
 /** @brief Evaluates to true if the baud rate is within DMX specification.*/
-#define DMX_BAUD_RATE_IS_VALID(baud) \
+#define dmx_baud_rate_is_valid(baud) \
   (baud >= DMX_BAUD_RATE_MIN && baud <= DMX_BAUD_RATE_MAX)
 
 /** @brief Evaluates to true if the received break duration is within DMX
  * specification.*/
-#define DMX_BREAK_LEN_IS_VALID(brk) \
+#define dmx_break_len_is_valid(brk) \
   (brk >= DMX_BREAK_LEN_MIN_US && brk <= DMX_BREAK_LEN_MAX_US)
 
 /** @brief Evaluates to true if the received mark-after-break duration is within
  * DMX specification.*/
-#define DMX_MAB_LEN_IS_VALID(mab) \
+#define dmx_mab_len_is_valid(mab) \
   (mab >= DMX_MAB_LEN_MIN_US && mab <= DMX_MAB_LEN_MAX_US)
 
 /** @brief Evaluates to true if the baud rate is within RDM specification.*/
-#define RDM_BAUD_RATE_IS_VALID(baud) \
+#define rdm_baud_rate_is_valid(baud) \
   (baud >= DMX_BAUD_RATE_MIN && baud <= DMX_BAUD_RATE_MAX)
 
 /** @brief Evaluates to true if the received break duration is within RDM
  * specification.*/
-#define RDM_BREAK_LEN_IS_VALID(brk) \
+#define rdm_break_len_is_valid(brk) \
   (brk >= RDM_BREAK_LEN_MIN_US && brk <= RDM_BREAK_LEN_MAX_US)
 
 /** @brief Evaluates to true if the received mark-after-break duration is within
  * RDM specification.*/
-#define RDM_MAB_LEN_IS_VALID(mab) \
+#define rdm_mab_len_is_valid(mab) \
   (mab >= RDM_MAB_LEN_MIN_US && mab <= RDM_MAB_LEN_MAX_US)
 
 /** @brief DMX port constants.*/
