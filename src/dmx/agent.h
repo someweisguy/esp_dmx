@@ -30,6 +30,15 @@ extern "C" {
     .personality_count = 1, .dmx_start_address = 0                            \
   }
 
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+/** @brief The default interrupt flags for the DMX driver. Places the interrupts
+ * in IRAM.*/
+#define DMX_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_IRAM)
+#else
+/** @brief The default interrupt flags for the DMX driver.*/
+#define DMX_INTR_FLAGS_DEFAULT (0)
+#endif
+
 /**
  * @brief Installs the DMX driver and sets the default configuration. To
  * generate the DMX reset sequence, users may choose to use either the hardware

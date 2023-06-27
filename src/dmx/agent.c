@@ -67,8 +67,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Read data into the DMX buffer if there is enough space
       const bool is_in_break = (intr_flags & DMX_INTR_RX_BREAK);
       taskENTER_CRITICAL_ISR(spinlock);
-      if (driver->head >= 0 && driver->head < DMX_MAX_PACKET_SIZE) {
-        int read_len = DMX_MAX_PACKET_SIZE - driver->head - is_in_break;
+      if (driver->head >= 0 && driver->head < DMX_PACKET_SIZE_MAX) {
+        int read_len = DMX_PACKET_SIZE_MAX - driver->head - is_in_break;
         dmx_uart_read_rxfifo(uart, &driver->data[driver->head], &read_len);
         driver->head += read_len;
         if (driver->head > driver->rx_size) {
@@ -88,7 +88,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         taskENTER_CRITICAL_ISR(spinlock);
         // Handle receiveing a valid packet with smaller than expected size
         if (!(driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) && driver->head > 0 &&
-            driver->head < DMX_MAX_PACKET_SIZE) {
+            driver->head < DMX_PACKET_SIZE_MAX) {
           driver->rx_size = driver->head - 1;
         }
 
@@ -358,7 +358,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
   }
-  bzero(data, DMX_MAX_PACKET_SIZE);
+  bzero(data, DMX_PACKET_SIZE_MAX);
 
   // Initialize device info
   if (config->personality_count == 0 ||
@@ -405,8 +405,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   // Data buffer
   driver->head = -1;
   driver->data = data;
-  driver->tx_size = DMX_MAX_PACKET_SIZE;
-  driver->rx_size = DMX_MAX_PACKET_SIZE;
+  driver->tx_size = DMX_PACKET_SIZE_MAX;
+  driver->rx_size = DMX_PACKET_SIZE_MAX;
 
   // Driver state
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
@@ -637,10 +637,10 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
 
   // Clamp the baud rate to within DMX specification
-  if (baud_rate < DMX_MIN_BAUD_RATE) {
-    baud_rate = DMX_MIN_BAUD_RATE;
-  } else if (baud_rate > DMX_MAX_BAUD_RATE) {
-    baud_rate = DMX_MAX_BAUD_RATE;
+  if (baud_rate < DMX_BAUD_RATE_MIN) {
+    baud_rate = DMX_BAUD_RATE_MIN;
+  } else if (baud_rate > DMX_BAUD_RATE_MAX) {
+    baud_rate = DMX_BAUD_RATE_MAX;
   }
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -667,10 +667,10 @@ uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp the break length to within DMX specification
-  if (break_len < DMX_MIN_BREAK_LEN_US) {
-    break_len = DMX_MIN_BREAK_LEN_US;
-  } else if (break_len > DMX_MAX_BREAK_LEN_US) {
-    break_len = DMX_MAX_BREAK_LEN_US;
+  if (break_len < DMX_BREAK_LEN_MIN_US) {
+    break_len = DMX_BREAK_LEN_MIN_US;
+  } else if (break_len > DMX_BREAK_LEN_MAX_US) {
+    break_len = DMX_BREAK_LEN_MAX_US;
   }
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -698,10 +698,10 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp the mark-after-break length to within DMX specification
-  if (mab_len < DMX_MIN_MAB_LEN_US) {
-    mab_len = DMX_MIN_MAB_LEN_US;
-  } else if (mab_len > DMX_MAX_MAB_LEN_US) {
-    mab_len = DMX_MAX_MAB_LEN_US;
+  if (mab_len < DMX_MAB_LEN_MIN_US) {
+    mab_len = DMX_MAB_LEN_MIN_US;
+  } else if (mab_len > DMX_MAB_LEN_MAX_US) {
+    mab_len = DMX_MAB_LEN_MAX_US;
   }
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -752,8 +752,8 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num) {
   taskEXIT_CRITICAL(spinlock);
 
   if (footprint > 0 &&
-      dmx_get_dmx_start_address(dmx_num) + footprint > DMX_MAX_PACKET_SIZE) {
-    dmx_set_dmx_start_address(dmx_num, DMX_MAX_PACKET_SIZE - footprint);
+      dmx_get_dmx_start_address(dmx_num) + footprint > DMX_PACKET_SIZE_MAX) {
+    dmx_set_dmx_start_address(dmx_num, DMX_PACKET_SIZE_MAX - footprint);
   }
 
   // TODO: use NVS
@@ -791,7 +791,7 @@ void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
   uint16_t f = dmx_get_footprint(dmx_num, dmx_get_current_personality(dmx_num));
   DMX_CHECK(
-      dmx_start_address > 0 && dmx_start_address + f <= DMX_MAX_PACKET_SIZE, ,
+      dmx_start_address > 0 && dmx_start_address + f <= DMX_PACKET_SIZE_MAX, ,
       "dmx_start_address is invalid");
   DMX_CHECK(f > 0, , "cannot set DMX start address of this personality");
 

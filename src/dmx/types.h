@@ -14,20 +14,6 @@
 extern "C" {
 #endif
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-/** @brief The default interrupt flags for the DMX driver. Places the interrupts
- * in IRAM.*/
-#define DMX_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_IRAM)
-/** @brief The default interrupt flags for the DMX sniffer. Places the
- * interrupts in IRAM.*/
-#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM)
-#else
-/** @brief The default interrupt flags for the DMX driver.*/
-#define DMX_INTR_FLAGS_DEFAULT (0)
-/** @brief The default interrupt flags for the DMX sniffer.*/
-#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE)
-#endif
-
 /** @brief Evaluates to true if the start code is a start code permitted in a
   non-prototype DMX device.
   Several alternate start codes are reserved for special purposes or for
@@ -42,31 +28,31 @@ extern "C" {
 
 /** @brief Evaluates to true if the baud rate is within DMX specification.*/
 #define DMX_BAUD_RATE_IS_VALID(baud) \
-  (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
+  (baud >= DMX_BAUD_RATE_MIN && baud <= DMX_BAUD_RATE_MAX)
 
 /** @brief Evaluates to true if the received break duration is within DMX
  * specification.*/
 #define DMX_BREAK_LEN_IS_VALID(brk) \
-  (brk >= DMX_MIN_BREAK_LEN_US && brk <= DMX_MAX_BREAK_LEN_US)
+  (brk >= DMX_BREAK_LEN_MIN_US && brk <= DMX_BREAK_LEN_MAX_US)
 
 /** @brief Evaluates to true if the received mark-after-break duration is within
  * DMX specification.*/
 #define DMX_MAB_LEN_IS_VALID(mab) \
-  (mab >= DMX_MIN_MAB_LEN_US && mab <= DMX_MAX_MAB_LEN_US)
+  (mab >= DMX_MAB_LEN_MIN_US && mab <= DMX_MAB_LEN_MAX_US)
 
 /** @brief Evaluates to true if the baud rate is within RDM specification.*/
 #define RDM_BAUD_RATE_IS_VALID(baud) \
-  (baud >= DMX_MIN_BAUD_RATE && baud <= DMX_MAX_BAUD_RATE)
+  (baud >= DMX_BAUD_RATE_MIN && baud <= DMX_BAUD_RATE_MAX)
 
 /** @brief Evaluates to true if the received break duration is within RDM
  * specification.*/
 #define RDM_BREAK_LEN_IS_VALID(brk) \
-  (brk >= RDM_MIN_BREAK_LEN_US && brk <= RDM_MAX_BREAK_LEN_US)
+  (brk >= RDM_BREAK_LEN_MIN_US && brk <= RDM_BREAK_LEN_MAX_US)
 
 /** @brief Evaluates to true if the received mark-after-break duration is within
  * RDM specification.*/
 #define RDM_MAB_LEN_IS_VALID(mab) \
-  (mab >= RDM_MIN_MAB_LEN_US && mab <= RDM_MAX_MAB_LEN_US)
+  (mab >= RDM_MAB_LEN_MIN_US && mab <= RDM_MAB_LEN_MAX_US)
 
 /** @brief DMX port constants.*/
 enum dmx_num_t {
@@ -93,28 +79,28 @@ enum dmx_requirements_t {
   /** @brief The typical packet size of DMX.*/
   DMX_PACKET_SIZE = 513,
   /** @brief The maximum packet size of DMX.*/
-  DMX_MAX_PACKET_SIZE = 513,
+  DMX_PACKET_SIZE_MAX = 513,
 
   /** @brief The typical baud rate of DMX.*/
   DMX_BAUD_RATE = 250000,
   /** @brief The minimum baud rate of DMX.*/
-  DMX_MIN_BAUD_RATE = 245000,
+  DMX_BAUD_RATE_MIN = 245000,
   /** @brief The maximum baud rate of DMX.*/
-  DMX_MAX_BAUD_RATE = 255000,
+  DMX_BAUD_RATE_MAX = 255000,
 
   /** @brief The typical break length of DMX in microseconds.*/
   DMX_BREAK_LEN_US = 176,
   /** @brief The minimum DMX break length in microseconds.*/
-  DMX_MIN_BREAK_LEN_US = 92,
+  DMX_BREAK_LEN_MIN_US = 92,
   /** @brief The maximum DMX break length in microseconds.*/
-  DMX_MAX_BREAK_LEN_US = 1000000,
+  DMX_BREAK_LEN_MAX_US = 1000000,
 
   /** @brief The typical mark-after-break length of DMX in microseconds.*/
   DMX_MAB_LEN_US = 12,
   /** @brief The minimum DMX mark-after-break length in microseconds.*/
-  DMX_MIN_MAB_LEN_US = 12,
+  DMX_MAB_LEN_MIN_US = 12,
   /** @brief The maximum DMX mark-after-break length in microseconds.*/
-  DMX_MAX_MAB_LEN_US = 999999,
+  DMX_MAB_LEN_MAX_US = 999999,
 
   /** @brief The DMX receive timeout length in FreeRTOS ticks. If it takes
      longer than this amount of time to receive the next DMX packet the signal
@@ -124,16 +110,16 @@ enum dmx_requirements_t {
   /** @brief The typical RDM break length in microseconds.*/
   RDM_BREAK_LEN_US = 176,
   /** @brief The minimum RDM break length in microseconds.*/
-  RDM_MIN_BREAK_LEN_US = 176,
+  RDM_BREAK_LEN_MIN_US = 176,
   /** @brief The maximum RDM break length in microseconds.*/
-  RDM_MAX_BREAK_LEN_US = 352,
+  RDM_BREAK_LEN_MAX_US = 352,
 
   /** @brief The typical RDM mark-after-break length in microseconds.*/
   RDM_MAB_LEN_US = 12,
   /** @brief The minimum RDM mark-after-break length in microseconds.*/
-  RDM_MIN_MAB_LEN_US = 12,
+  RDM_MAB_LEN_MIN_US = 12,
   /** @brief The maximum RDM mark-after-break length in microseconds.*/
-  RDM_MAX_MAB_LEN_US = 88,
+  RDM_MAB_LEN_MAX_US = 88,
 };
 
 /** @brief DMX start codes. These are the start codes used within the DMX

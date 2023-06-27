@@ -25,13 +25,13 @@ extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
                        size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
+  DMX_CHECK(offset < DMX_PACKET_SIZE_MAX, 0, "offset error");
   DMX_CHECK(destination, 0, "destination is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp size to the maximum DMX packet size
-  if (size + offset > DMX_MAX_PACKET_SIZE) {
-    size = DMX_MAX_PACKET_SIZE - offset;
+  if (size + offset > DMX_PACKET_SIZE_MAX) {
+    size = DMX_PACKET_SIZE_MAX - offset;
   } else if (size == 0) {
     return 0;
   }
@@ -54,7 +54,7 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
 
 int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
-  DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
+  DMX_CHECK(slot_num < DMX_PACKET_SIZE_MAX, -1, "slot_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
 
   uint8_t slot;
@@ -66,13 +66,13 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
 size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
                         size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
+  DMX_CHECK(offset < DMX_PACKET_SIZE_MAX, 0, "offset error");
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp size to the maximum DMX packet size
-  if (size + offset > DMX_MAX_PACKET_SIZE) {
-    size = DMX_MAX_PACKET_SIZE - offset;
+  if (size + offset > DMX_PACKET_SIZE_MAX) {
+    size = DMX_PACKET_SIZE_MAX - offset;
   } else if (size == 0) {
     return 0;
   }
@@ -109,7 +109,7 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
 
 int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
-  DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
+  DMX_CHECK(slot_num < DMX_PACKET_SIZE_MAX, -1, "slot_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
 
   dmx_write_offset(dmx_num, slot_num, &value, 1);
@@ -452,8 +452,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Update the transmit size if desired
   if (size > 0) {
-    if (size > DMX_MAX_PACKET_SIZE) {
-      size = DMX_MAX_PACKET_SIZE;
+    if (size > DMX_PACKET_SIZE_MAX) {
+      size = DMX_PACKET_SIZE_MAX;
     }
     taskENTER_CRITICAL(spinlock);
     driver->tx_size = size;
