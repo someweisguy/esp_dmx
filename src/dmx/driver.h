@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 
+#include "dmx/caps.h"
 #include "dmx/types.h"
 #include "esp_check.h"
 #include "esp_intr_alloc.h"
@@ -26,23 +27,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
-#ifndef CONFIG_RDM_RESPONDER_MAX_PARAMETERS
-#define CONFIG_RDM_RESPONDER_MAX_PARAMETERS 16
-#endif
-/** @brief The maximum number of parameters that the RDM responder can
- * support. This value is editable in the Kconfig.*/
-#define RDM_RESPONDER_MAX_PIDS (8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS)
-
-#ifndef CONFIG_DMX_MAX_PERSONALITIES
-#define CONFIG_DMX_MAX_PERSONALITIES 16
 #endif
 
 /** @brief Used for argument checking at the beginning of each function.*/

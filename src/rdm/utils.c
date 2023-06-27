@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "dmx/caps.h"
 #include "dmx/driver.h"
 #include "dmx/hal.h"
 #include "endian.h"
@@ -12,22 +13,6 @@
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"
-#endif
-
-/**
- * @brief This is the RDM Manufacturer ID that was registered with ESTA for use
- * with this software. Any device that uses this ID is associated with this
- * library. Users of this library are welcome to use this manufacturer ID (as
- * long as it is used responsibly) or may choose to register their own
- * manufacturer ID.
- */
-#define RDM_MAN_ID_DEFAULT (0x05e0)
-
-#ifndef CONFIG_RDM_DEVICE_UID_MAN_ID
-#define CONFIG_RDM_DEVICE_UID_MAN_ID RDM_MAN_ID_DEFAULT
-#endif
-#ifndef CONFIG_RDM_DEVICE_UID_DEV_ID
-#define CONFIG_RDM_DEVICE_UID_DEV_ID 0xffffffff
 #endif
 
 static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;

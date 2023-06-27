@@ -1,5 +1,6 @@
 #include "hal.h"
 
+#include "dmx/caps.h"
 #include "dmx/driver.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5

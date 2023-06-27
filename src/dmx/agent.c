@@ -1,5 +1,6 @@
 #include "dmx/agent.h"
 
+#include "dmx/caps.h"
 #include "dmx/driver.h"
 #include "dmx/hal.h"
 #include "dmx/sniffer.h"
@@ -276,7 +277,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
-  
+
   // Initialize RDM UID
   uid_get(dmx_num, NULL);
 

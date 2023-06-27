@@ -1,5 +1,6 @@
 #include "sniffer.h"
 
+#include "dmx/caps.h"
 #include "dmx/hal.h"
 #include "driver/gpio.h"
 #include "esp_dmx.h"
