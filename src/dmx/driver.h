@@ -71,11 +71,11 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_BOOT_LOADER = BIT8,  // An error occurred with the driver.
   DMX_FLAGS_TIMER_IS_RUNNING = BIT9,    // The driver hardware timer is running.
 
-  DMX_FLAGS_RDM_IS_VALID = BIT0,
-  DMX_FLAGS_RDM_IS_REQUEST = BIT1,
-  DMX_FLAGS_RDM_IS_BROADCAST = BIT2,
-  DMX_FLAGS_RDM_IS_RECIPIENT = BIT3,  // is addressed to me
-  DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,
+  DMX_FLAGS_RDM_IS_VALID = BIT0,      // The RDM packet is valid.
+  DMX_FLAGS_RDM_IS_REQUEST = BIT1,    // The RDM packet is a request.
+  DMX_FLAGS_RDM_IS_BROADCAST = BIT2,  // The RDM packet is a broadcast.
+  DMX_FLAGS_RDM_IS_RECIPIENT =BIT3,   // The RDM packet is addressed to this device.
+  DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
