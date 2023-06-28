@@ -276,7 +276,6 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
 
   size_t read = 0;
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Get pointers to driver data buffer locations and declare checksum
@@ -284,12 +283,9 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
   const uint8_t *header_ptr = driver->data;
   const void *pd_ptr = header_ptr + 24;
 
-  taskENTER_CRITICAL(spinlock);
-
   // Verify start code and sub-start code are correct
   if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8)) &&
       *header_ptr != RDM_PREAMBLE && *header_ptr != RDM_DELIMITER) {
-    taskEXIT_CRITICAL(spinlock);
     return read;
   }
 
@@ -300,7 +296,6 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
       if (header_ptr[preamble_len] == RDM_DELIMITER) break;
     }
     if (preamble_len > 7) {
-      taskEXIT_CRITICAL(spinlock);
       return read;
     }
   }
@@ -313,13 +308,21 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
       checksum += header_ptr[i];
     }
     if (checksum != bswap16(*(uint16_t *)(header_ptr + message_len))) {
-      taskEXIT_CRITICAL(spinlock);
       return read;
     }
 
     // Copy the header and pd from the driver
     if (header != NULL) {
-      pd_emplace(header, "#cc01hbuubbbwbwb", header_ptr, sizeof(*header), true);
+      // Copy header without emplace so this function can be used in IRAM ISR
+      for (int i = 0; i < sizeof(rdm_header_t); ++i) {
+        ((uint8_t *)header)[i] = header_ptr[i];
+      }
+      header->dest_uid.man_id = bswap16(header->dest_uid.man_id);
+      header->dest_uid.dev_id = bswap32(header->dest_uid.dev_id);
+      header->src_uid.man_id = bswap16(header->src_uid.man_id);
+      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
+      header->sub_device = bswap16(header->sub_device);
+      header->pid = bswap16(header->pid);
     }
     if (pd != NULL) {
       const uint8_t pdl = header_ptr[23];
@@ -338,7 +341,6 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
     }
     if (checksum != (((header_ptr[12] & header_ptr[13]) << 8) |
                      (header_ptr[14] & header_ptr[15]))) {
-      taskEXIT_CRITICAL(spinlock);
       return read;
     }
 
@@ -350,7 +352,12 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
 
     // Copy the data into the header
     if (header != NULL) {
-      uidcpy(&header->src_uid, buf);
+      // Copy header without emplace so this function can be used in IRAM ISR
+      for (int i = 0; i < sizeof(rdm_uid_t); ++i) {
+        ((uint8_t *)&header->src_uid)[i] = buf[i];
+      }
+      header->src_uid.man_id = bswap16(header->src_uid.man_id);
+      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
       header->dest_uid = (rdm_uid_t){0, 0};
       header->tn = 0;
       header->response_type = RDM_RESPONSE_TYPE_ACK;
@@ -364,8 +371,6 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
     // Update the read size
     read = preamble_len + 1 + 16;
   }
-
-  taskEXIT_CRITICAL(spinlock);
 
   return read;
 }
