@@ -24,11 +24,9 @@ extern "C" {
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
  */
-typedef rdm_response_type_t (*rdm_response_cb_t)(dmx_port_t dmx_num,
-                                                 const rdm_header_t *header,
-                                                 void *pd, uint8_t *pdl_out,
-                                                 void *param, size_t param_size,
-                                                 void *context);
+typedef int (*rdm_response_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
+                                 void *pd, uint8_t *pdl_out, void *param,
+                                 size_t param_size, void *context);
 
 /**
  * @brief Copies RDM UID from a source buffer directly into a destination
