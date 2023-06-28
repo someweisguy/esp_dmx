@@ -91,10 +91,11 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
     dmx_uart_set_rts(uart, 0);
   }
   driver->tx_size = offset + size;  // Update driver transmit size
-  taskEXIT_CRITICAL(spinlock);
 
   // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data + offset, source, size);
+  
+  taskEXIT_CRITICAL(spinlock);
 
   return size;
 }
