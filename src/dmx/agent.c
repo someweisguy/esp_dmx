@@ -125,6 +125,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                   : ESP_FAIL;             // Missing stop bits
       } else if (driver->head > 16 &&
                  driver->head == rdm_read(driver->dmx_num, &header, NULL, 0)) {
+        rdm_type |= DMX_FLAGS_RDM_IS_VALID;
         rdm_uid_t my_uid;
         uid_get(driver->dmx_num, &my_uid);
         if (header.cc == RDM_CC_DISC_COMMAND ||
