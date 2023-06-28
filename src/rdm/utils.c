@@ -391,9 +391,8 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   uint8_t *header_ptr = driver->data;
   void *pd_ptr = header_ptr + 24;
 
-  taskENTER_CRITICAL(spinlock);
-
   // RDM writes must be synchronous to prevent data corruption
+  taskENTER_CRITICAL(spinlock);
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
     taskEXIT_CRITICAL(spinlock);
     return written;
@@ -453,7 +452,6 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
 
   // Update driver transmission size
   driver->tx_size = written;
-
   taskEXIT_CRITICAL(spinlock);
 
   return written;
