@@ -492,10 +492,23 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   taskEXIT_CRITICAL(spinlock);
   header->message_count = 0;
 
-  // Write and sdn the response and determind if a response is expected
+  // Determine if a response is expected
   const bool response_expected = !uid_is_broadcast(&header->dest_uid) ||
                                  (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
                                   header->cc == RDM_CC_DISC_COMMAND);
+
+  // Block until the mutex can be taken
+  if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
+    return 0;
+  }
+
+  // Block until the driver is done sending
+  if (!dmx_wait_sent(dmx_num, portMAX_DELAY)) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return 0;
+  }
+
+  // Write and send the request
   size_t size = rdm_write(dmx_num, header, pd_in);
   dmx_send(dmx_num, size);
 
@@ -514,6 +527,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
         ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_INVALID;
       }
+      xSemaphoreGiveRecursive(driver->mux);
       return false;
     } else if (size == 0) {
       // TODO: remove this else if when refactoring dmx_receive()
@@ -522,6 +536,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
         ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_NONE;
       }
+      xSemaphoreGiveRecursive(driver->mux);
       return false;
     }
   } else {
@@ -533,6 +548,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
       ack->type = RDM_RESPONSE_TYPE_NONE;
     }
     dmx_wait_sent(dmx_num, 2);
+    xSemaphoreGiveRecursive(driver->mux);
     return false;
   }
 
@@ -580,6 +596,8 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     ack->timer = decoded;
   }
 
+  // Give the mutex back
+  xSemaphoreGiveRecursive(driver->mux);
   return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
 
