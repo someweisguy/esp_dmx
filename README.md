@@ -43,6 +43,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Hardware Specifications](#hardware-specifications)
 - [To Do](#to-do)
 - [Appendix](#appendix)
+  - [Product Categories](#product-categories)
   - [NACK Reason Codes](#nack-reason-codes)
 
 ## Library Installation
@@ -253,7 +254,7 @@ dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
 The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
 
 - `model_id` identifies the device model ID. This is an arbitrary value set by the user. Users should not use the same model ID to represent more than one unique model type. The default value is `0`.
-- `product_category` is the primary function of the device. A list of product categories can be found in the `rdm_product_category_t` enum. The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
+- `product_category` is the primary function of the device. A list of product categories are enumerated in the appendix under [product categories](#product-categories). The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
 - `software_version_id` indicates the software version ID for the device. This is a 32-bit value determined by the user. The default is a value returned by a function of this library's version number.
 - `current_personality` is the current selected DMX personality of the device. These personalities shall be consecutively numbered starting from 1. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the current personality to the value found in NVS, or 1 if no value is found in NVS.
 - `personalities` is a table defining the footprints of the device and a description of each personality. An example showing how to use this field is below. Unless the `Kconfig` is adjusted, the maximum number of footprints supported is 16.
@@ -759,6 +760,23 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 For a list of planned features, see the [esp_dmx GitHub Projects](https://github.com/users/someweisguy/projects/5) page.
 
 ## Appendix
+
+### Product Categories
+
+- `RDM_PRODUCT_CATEGORY_NOT_DECLARED` The product category is not declared.
+- `RDM_PRODUCT_CATEGORY_FIXTURE` The product is a fixture intended to create illumination.
+- `RDM_PRODUCT_CATEGORY_FIXTURE_ACCESSORY` The product is an add-on to a fixture or projector.
+- `RDM_PRODUCT_CATEGORY_PROJECTOR`The product is a light source capable of producing realistic images from another media.
+- `RDM_PRODUCT_CATEGORY_ATMOSPHERIC` The product creates atmospheric effects such as haze, fog, or pyrotechnics.
+- `RDM_PRODUCT_CATEGORY_DIMMER` The product is for intensity control, specifically dimming equipment.
+- `RDM_PRODUCT_CATEGORY_POWER` The product is for power control, other than dimming equipment.
+- `RDM_PRODUCT_CATEGORY_SCENIC` The product is a scenic device unrelated to lighting equipment.
+- `RDM_PRODUCT_CATEGORY_DATA` The product is a DMX converter, interface, or otherwise part of DMX infrastructure.
+- `RDM_PRODUCT_CATEGORY_AV` The product is audio-visual equipment.
+- `RDM_PRODUCT_CATEGORY_MONITOR` The product is monitoring equipment.
+- `RDM_PRODUCT_CATEGORY_CONTROL` The product is a controller or backup device.
+- `RDM_PRODUCT_CATEGORY_TEST` The product is test equipment.
+- `RDM_PRODUCT_CATEGORY_OTHER` The product isn't described by any of the other product categories.
 
 ### NACK Reason Codes
 
