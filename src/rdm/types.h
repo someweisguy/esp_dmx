@@ -276,7 +276,7 @@ typedef enum rdm_pid_cc_t {
 } rdm_pid_cc_t;
 
 /** @brief Devices shall report a product category based on the product's
- * primary function*/
+ * primary function.*/
 typedef enum rdm_product_category_t {
   /** @brief The product category is not declared.*/
   RDM_PRODUCT_CATEGORY_NOT_DECLARED = 0x0000,

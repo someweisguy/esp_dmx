@@ -763,6 +763,8 @@ For a list of planned features, see the [esp_dmx GitHub Projects](https://github
 
 ### Product Categories
 
+Devices shall report a product category based on the product's primary function.
+
 - `RDM_PRODUCT_CATEGORY_NOT_DECLARED` The product category is not declared.
 - `RDM_PRODUCT_CATEGORY_FIXTURE` The product is a fixture intended to create illumination.
 - `RDM_PRODUCT_CATEGORY_FIXTURE_ACCESSORY` The product is an add-on to a fixture or projector.
