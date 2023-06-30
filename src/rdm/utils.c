@@ -639,3 +639,20 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   return true;
 }
+
+void *rdm_alloc(dmx_port_t dmx_num, size_t size) {
+  // TODO: arg check
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  void *ret = NULL;
+  taskENTER_CRITICAL(spinlock);
+  if (driver->alloc_head + size <= driver->alloc_head) {
+    ret = &(driver->alloc_buf[driver->alloc_head]);
+    driver->alloc_head += size;
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  return ret;
+}

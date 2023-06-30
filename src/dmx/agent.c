@@ -361,6 +361,14 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
   bzero(data, DMX_PACKET_SIZE_MAX);
 
+  // Allocate the RDM parameter buffer
+  uint8_t *alloc_data = heap_caps_malloc(config->alloc_size, MALLOC_CAP_8BIT);
+  if (alloc_data == NULL) {
+    ESP_LOGE(TAG, "DMX driver RDM buffer malloc error");
+    dmx_driver_delete(dmx_num);
+    return ESP_ERR_NO_MEM;
+  }
+
   // Initialize device info
   if (config->personality_count == 0 ||
       config->personality_count > DMX_PERSONALITIES_MAX) {
@@ -435,6 +443,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   // RDM responder configuration
   driver->num_rdm_cbs = 0;
   // The driver->rdm_cbs field is left uninitialized
+
+  driver->alloc_size = config->alloc_size;
+  driver->alloc_buf = alloc_data;
+  driver->alloc_head = 0;
 
   // DMX sniffer configuration
   // The driver->metadata field is left uninitialized

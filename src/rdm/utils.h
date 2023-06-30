@@ -379,6 +379,8 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            rdm_response_cb_t callback, void *param,
                            void *context);
 
+void *rdm_alloc(dmx_port_t dmx_num, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

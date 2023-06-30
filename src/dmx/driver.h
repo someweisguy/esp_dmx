@@ -129,6 +129,10 @@ typedef struct dmx_driver_t {
     void *context;
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
 
+  size_t alloc_size;
+  uint8_t *alloc_buf;
+  size_t alloc_head;
+
   // DMX sniffer configuration
   dmx_metadata_t metadata;       // The metadata received by the DMX sniffer.
   QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
