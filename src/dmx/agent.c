@@ -377,7 +377,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   device_info.model_id = config->model_id;
   device_info.product_category = config->product_category;
   device_info.software_version_id = config->software_version_id;
-
   if (config->personality_count > DMX_PERSONALITIES_MAX) {
     ESP_LOGW(TAG, "Personality count is invalid, using default personality");
     driver->personalities[0].footprint = 1;
@@ -388,26 +387,25 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     memcpy(driver->personalities, config->personalities, size);
     device_info.personality_count = config->personality_count;
   }
-
   if (config->current_personality > device_info.personality_count) {
     ESP_LOGW(TAG, "Current personality is invalid, using personality 1");
     device_info.current_personality = 1;
   } else {
     device_info.current_personality = config->current_personality;
   }
-
   if (device_info.current_personality == 0) {
     device_info.footprint = 0;
   } else {
     const int footprint_num = device_info.current_personality - 1;
     device_info.footprint = driver->personalities[footprint_num].footprint;
   }
-
   if (device_info.footprint == 0) {
     device_info.dmx_start_address = 0xffff;
   } else {
     device_info.dmx_start_address = config->dmx_start_address;
   }
+  device_info.sub_device_count = 0;  // Sub-devices must be registered
+  device_info.sensor_count = 0;      // Sensors must be registered
 
   // UART configuration
   driver->dmx_num = dmx_num;
@@ -781,7 +779,7 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   // return dmx_driver[dmx_num]->device_info.personality_count;
   // FIXME
-  return 0 ;
+  return 0;
 }
 
 uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num) {
