@@ -301,9 +301,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       }
       size_t param_len = driver->rdm_cbs[cb_num].desc.pdl_size;
       void *param = driver->rdm_cbs[cb_num].param;
+      const char *param_str = driver->rdm_cbs[cb_num].param_str;
       void *const context = driver->rdm_cbs[cb_num].context;
-      response_type = driver->rdm_cbs[cb_num].cb(dmx_num, &header, pd, &pdl_out,
-                                                 param, param_len, context);
+      rdm_responder_cb_t user_cb = driver->rdm_cbs[cb_num].user_cb;
+      response_type = driver->rdm_cbs[cb_num].driver_cb(
+          dmx_num, &header, pd, &pdl_out, param, param_str, param_len, user_cb,
+          context);
       break;
     }
   }

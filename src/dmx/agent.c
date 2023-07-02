@@ -269,14 +269,16 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   return task_awoken;
 }
 
-static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
-                                    void *context) {
+static void rdm_default_identify_cb(dmx_port_t dmx_num,
+                                    const rdm_header_t *header, void *context) {
+  if (header->cc == RDM_CC_SET_COMMAND) {
+    const uint8_t *identify = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE);
 #ifdef ARDUINO
-  printf("RDM identify device is %s\n", identify ? "on" : "off");
+    printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else
-  ESP_LOGI("rdm_responder", "RDM identify device is %s",
-           identify ? "on" : "off");
+    ESP_LOGI(TAG, "RDM identify device is %s", *identify ? "on" : "off");
 #endif
+  }
 }
 
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
@@ -491,17 +493,16 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 #endif
 
   // Add required RDM response callbacks
-  rdm_register_disc_unique_branch(dmx_num);
-  rdm_register_disc_un_mute(dmx_num);
-  rdm_register_disc_mute(dmx_num);
-  rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->device_info);
+  rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
+  rdm_register_disc_un_mute(dmx_num, NULL, NULL);
+  rdm_register_disc_mute(dmx_num, NULL, NULL);
+  rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->device_info, NULL, NULL);
   const char *software_version_label =
       "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
           ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
-  rdm_register_software_version_label(dmx_num, software_version_label);
+  rdm_register_software_version_label(dmx_num, software_version_label, NULL, NULL);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-  void *dmx_start_address = &dmx_driver[dmx_num]->device_info.dmx_start_address;
-  rdm_register_dmx_start_address(dmx_num, dmx_start_address);
+  rdm_register_dmx_start_address(dmx_num, 0, NULL, NULL);
   // TODO: rdm_register_supported_parameters()
 
   // Enable reading on the DMX port

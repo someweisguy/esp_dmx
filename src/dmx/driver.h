@@ -18,6 +18,7 @@
 #include "hal/uart_hal.h"
 #include "rdm/types.h"
 #include "rdm/utils.h"
+#include "rdm/responder.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -124,8 +125,10 @@ typedef struct dmx_driver_t {
   uint16_t num_rdm_cbs;
   struct rdm_cb_table_t {
     rdm_pid_description_t desc;
-    rdm_response_cb_t cb;
     void *param;
+    const char *param_str;
+    rdm_driver_cb_t driver_cb;
+    rdm_responder_cb_t user_cb;
     void *context;
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
 

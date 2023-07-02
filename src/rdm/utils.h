@@ -15,6 +15,7 @@
 
 #include "dmx/types.h"
 #include "rdm/types.h"
+#include "rdm/responder.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,9 +25,10 @@ extern "C" {
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
  */
-typedef int (*rdm_response_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
-                                 void *pd, uint8_t *pdl_out, void *param,
-                                 size_t param_size, void *context);
+typedef int (*rdm_driver_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
+                               void *pd, uint8_t *pdl_out, void *param,
+                               const char *param_str, size_t param_size,
+                               rdm_responder_cb_t user_cb, void *context);
 
 /**
  * @brief Copies RDM UID from a source buffer directly into a destination
@@ -355,10 +357,12 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
  * @param[in] context A pointer to a user-defined context.
  * @return true if the response was successfully registered.
  * @return false if the response was not registered.
+ * // TODO: update docs
  */
 bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *desc,
-                           rdm_response_cb_t callback, void *param,
+                           const char *param_str, rdm_driver_cb_t driver_cb,
+                           void *param, rdm_responder_cb_t user_cb,
                            void *context);
 
 // TODO: docs

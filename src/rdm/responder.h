@@ -19,6 +19,10 @@ extern "C" {
 typedef void (*rdm_identify_cb_t)(dmx_port_t dmx_num, bool identify,
                                   void *context);
 
+// TODO: docs
+typedef void (*rdm_responder_cb_t)(dmx_port_t dmx_num,
+                                   const rdm_header_t *header, void *context);
+
 /**
  * @brief Registers the default response to RDM_PID_DISC_UNIQUE_BRANCH requests.
  * This response is required by all RDM-capable devices. It is called when the
@@ -27,8 +31,10 @@ typedef void (*rdm_identify_cb_t)(dmx_port_t dmx_num, bool identify,
  * @param dmx_num The DMX port number.
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
+ * // TODO: docs
  */
-bool rdm_register_disc_unique_branch(dmx_port_t dmx_num);
+bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                     void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_DISC_MUTE requests. This
@@ -39,7 +45,8 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num);
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
  */
-bool rdm_register_disc_mute(dmx_port_t dmx_num);
+bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                            void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_DISC_UN_MUTE requests. This
@@ -50,7 +57,8 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num);
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
  */
-bool rdm_register_disc_un_mute(dmx_port_t dmx_num);
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                               void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_DEVICE_INFO requests. This
@@ -64,7 +72,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num);
  * @return false if there is not enough memory to register additional responses.
  */
 bool rdm_register_device_info(dmx_port_t dmx_num,
-                              rdm_device_info_t *device_info);
+                              rdm_device_info_t *device_info,
+                              rdm_responder_cb_t cb, void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_SOFTWARE_VERSION_LABEL
@@ -78,7 +87,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
  * @return false if there is not enough memory to register additional responses.
  */
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         const char *software_version_label);
+                                         const char *software_version_label,
+                                         rdm_responder_cb_t cb, void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_IDENTIFY_DEVICE requests.
@@ -93,7 +103,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
  */
-bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_identify_cb_t cb,
+bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                   void *context);
 
 /**
@@ -108,7 +118,8 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_identify_cb_t cb,
  * @return false if there is not enough memory to register additional responses.
  */
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
-                                    uint16_t *dmx_start_address);
+                                    uint16_t dmx_start_address,
+                                    rdm_responder_cb_t cb, void *context);
 
 #ifdef __cplusplus
 }

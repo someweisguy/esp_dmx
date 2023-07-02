@@ -572,12 +572,13 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
 
 bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *desc,
-                           rdm_response_cb_t callback, void *param,
+                           const char *param_str, rdm_driver_cb_t driver_cb,
+                           void *param, rdm_responder_cb_t user_cb,
                            void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(sub_device < 513, false, "sub_device error");
   DMX_CHECK(desc != NULL, false, "desc is null");
-  DMX_CHECK(callback != NULL, false, "callback is null");
+  DMX_CHECK(driver_cb != NULL, false, "driver_cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   if (sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -600,9 +601,11 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Add the requested callback to the callback list
+  driver->rdm_cbs[i].param_str = param_str;
   driver->rdm_cbs[i].param = param;
   driver->rdm_cbs[i].context = context;
-  driver->rdm_cbs[i].cb = callback;
+  driver->rdm_cbs[i].user_cb = user_cb;
+  driver->rdm_cbs[i].driver_cb = driver_cb;
   driver->rdm_cbs[i].desc = *desc;
   ++driver->num_rdm_cbs;
 
