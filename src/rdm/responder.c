@@ -9,9 +9,9 @@ static const char *TAG = "rdm_responder";  // The log tagline for the file.
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *pd,
-                                    uint8_t *pdl_out, void *param, const char *param_str, 
-                                    size_t param_len, rdm_responder_cb_t cb,
-                                    void *context) {
+                                    uint8_t *pdl_out, void *param,
+                                    const char *param_str, size_t param_len,
+                                    rdm_responder_cb_t cb, void *context) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     // Cannot respond to RDM_CC_DISC_COMMAND with NACK
@@ -162,10 +162,10 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 }
 
 static int rdm_simple_response_cb(dmx_port_t dmx_num,
-                                    const rdm_header_t *header, void *pd,
-                                    uint8_t *pdl_out, void *param, const char *param_str,
-                                    size_t param_len, rdm_responder_cb_t cb,
-                                    void *context) {
+                                  const rdm_header_t *header, void *pd,
+                                  uint8_t *pdl_out, void *param,
+                                  const char *param_str, size_t param_len,
+                                  rdm_responder_cb_t cb, void *context) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
