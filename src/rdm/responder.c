@@ -279,22 +279,26 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                rdm_simple_response_cb, param, cb, context);
 }
 
-
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                     uint16_t dmx_start_address,
                                     rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  // DMX_CHECK(dmx_start_address != NULL, false, "dmx_start_address is null");  // FIXME: check bounds
+  DMX_CHECK(
+      dmx_start_address < DMX_PACKET_SIZE_MAX || dmx_start_address == 0xffff,
+      false, "dmx_start_address is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO) != NULL, false,
+            "RDM_PID_DEVICE_INFO must be registered first");
 
-  // FIXME: check for device_info
-  uint16_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_DMX_START_ADDRESS)) == NULL) {
-    param = rdm_alloc(dmx_num, sizeof(*param));
-    if (param == NULL) {
-      return false;
-    }
-    *param = 0;
+  // DMX start address is stored within device info
+  rdm_device_info_t *device_info = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO);
+  void *const void_param = &device_info->dmx_start_address;  // silence warning
+  uint16_t *param = void_param;
+  if (dmx_start_address == 0 && *param == 0) {
+    // TODO: check NVS for value
+    *param = 1;
+  } else if (dmx_start_address > 0) {
+    *param = dmx_start_address;
   }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
@@ -309,7 +313,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                       .description = "DMX Start Address"};
   const char *param_str = "w$";
 
-  // FIXME: replace NULL with malloc'd value
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
                                rdm_simple_response_cb, param, cb, context);
 }
