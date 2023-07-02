@@ -20,7 +20,11 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
   int response_type;
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Ignore this message if discovery is muted
-    if (rdm_disc_mute_get(dmx_num)) {
+    const uint8_t *is_muted = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE);
+    if (is_muted == NULL) {
+      // TODO: set boot-loader flag
+      return RDM_RESPONSE_TYPE_NONE;
+    } else if (*is_muted) {
       return RDM_RESPONSE_TYPE_NONE;
     }
 
@@ -40,7 +44,8 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
     }
   } else {
     // Mute or un-mute the discovery responses
-    rdm_disc_mute_set(dmx_num, (header->pid == RDM_PID_DISC_MUTE));
+    uint8_t *is_muted = param;
+    *is_muted = (header->pid == RDM_PID_DISC_MUTE);
 
     // Get the binding UID of this device
     int num_ports = 0;
@@ -93,6 +98,15 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
+  uint8_t *param;
+  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE)) == NULL &&
+      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE)) == NULL) {
+    param = rdm_alloc(dmx_num, sizeof(uint8_t));
+  }
+  if (param == NULL) {
+    return false;
+  }
+
   const rdm_pid_description_t desc = {.pid = RDM_PID_DISC_MUTE,
                                       .pdl_size = sizeof(rdm_disc_mute_t),
                                       .data_type = RDM_DS_BIT_FIELD,
@@ -105,12 +119,21 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num) {
                                       .description = "Discovery Mute"};
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_default_discovery_cb, NULL, NULL);
+                               rdm_default_discovery_cb, param, NULL);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  uint8_t *param;
+  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE)) == NULL &&
+      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE)) == NULL) {
+    param = rdm_alloc(dmx_num, sizeof(uint8_t));
+  }
+  if (param == NULL) {
+    return false;
+  }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DISC_UN_MUTE,
                                       .pdl_size = sizeof(rdm_disc_mute_t),
@@ -124,7 +147,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num) {
                                       .description = "Discovery Un-Mute"};
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_default_discovery_cb, NULL, NULL);
+                               rdm_default_discovery_cb, param, NULL);
 }
 
 static int rdm_simple_response_cb(dmx_port_t dmx_num,
@@ -152,6 +175,16 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   DMX_CHECK(device_info != NULL, false, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
+  rdm_device_info_t *param;
+  if ((param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO)) == NULL) {
+    param = rdm_alloc(dmx_num, sizeof(rdm_device_info_t));
+  }
+  if (param == NULL) {
+    return false;
+  }
+  // TODO: check NVS for dmx_start_address and current_personality
+  memcpy(param, device_info, sizeof(rdm_device_info_t));
+
   const rdm_pid_description_t desc = {.pid = RDM_PID_DEVICE_INFO,
                                       .pdl_size = sizeof(rdm_device_info_t),
                                       .data_type = RDM_DS_BIT_FIELD,
@@ -165,7 +198,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   const char *param_str = "#0100hwwdwbbwwb$";
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc,
-                               rdm_simple_response_cb, device_info,
+                               rdm_simple_response_cb, param,
                                (void *)param_str);
 }
 

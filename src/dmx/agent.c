@@ -362,6 +362,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   bzero(data, DMX_PACKET_SIZE_MAX);
 
   // Allocate the RDM parameter buffer
+  // TODO: if alloc_size is too small, don't allocate anything
   uint8_t *alloc_data = heap_caps_malloc(config->alloc_size, MALLOC_CAP_8BIT);
   if (alloc_data == NULL) {
     ESP_LOGE(TAG, "DMX driver RDM buffer malloc error");

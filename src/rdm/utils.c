@@ -223,37 +223,6 @@ size_t pd_emplace_word(void *destination, uint16_t word) {
   return sizeof(word);
 }
 
-bool rdm_disc_mute_get(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  bool is_muted;
-  taskENTER_CRITICAL(spinlock);
-  is_muted = driver->flags & DMX_FLAGS_DRIVER_DISC_MUTED;
-  taskEXIT_CRITICAL(spinlock);
-
-  return is_muted;
-}
-
-void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  taskENTER_CRITICAL(spinlock);
-  if (mute) {
-    driver->flags |= DMX_FLAGS_DRIVER_DISC_MUTED;
-  } else {
-    driver->flags &= ~DMX_FLAGS_DRIVER_DISC_MUTED;
-  }
-  taskEXIT_CRITICAL(spinlock);
-}
-
 bool rdm_identify_get() {
   bool identify;
   taskENTER_CRITICAL(&rdm_spinlock);
@@ -651,6 +620,25 @@ void *rdm_alloc(dmx_port_t dmx_num, size_t size) {
   if (driver->alloc_head + size <= driver->alloc_head) {
     ret = &(driver->alloc_buf[driver->alloc_head]);
     driver->alloc_head += size;
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  return ret;
+}
+
+void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid) {
+  // TODO: arg check
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  void *ret = NULL;
+  taskENTER_CRITICAL(spinlock);
+  for (int i = 0; i < driver->num_rdm_cbs; ++i) {
+    if (driver->rdm_cbs[i].desc.pid == pid) {
+      ret = driver->rdm_cbs[i].param;
+      break;
+    }
   }
   taskEXIT_CRITICAL(spinlock);
 
