@@ -68,9 +68,8 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_IN_BREAK = BIT4,  // The driver is in a DMX break.
   DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
   DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
-  DMX_FLAGS_DRIVER_DISC_MUTED = BIT7,   // The driver discovery is muted.
-  DMX_FLAGS_DRIVER_BOOT_LOADER = BIT8,  // An error occurred with the driver.
-  DMX_FLAGS_TIMER_IS_RUNNING = BIT9,    // The driver hardware timer is running.
+  DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
+  DMX_FLAGS_TIMER_IS_RUNNING = BIT8,    // The driver hardware timer is running.
 
   DMX_FLAGS_RDM_IS_VALID = BIT0,      // The RDM packet is valid.
   DMX_FLAGS_RDM_IS_REQUEST = BIT1,    // The RDM packet is a request.
