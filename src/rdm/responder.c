@@ -97,7 +97,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .default_value = 0,
                                       .description = "Discovery Unique Branch"};
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, "",
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
                                rdm_default_discovery_cb, NULL, cb, context);
 }
 
@@ -157,7 +157,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .default_value = 0,
                                       .description = "Discovery Un-Mute"};
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, "",
+  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
                                rdm_default_discovery_cb, param, cb, context);
 }
 
