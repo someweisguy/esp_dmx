@@ -447,7 +447,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   // The driver->rdm_cbs field is left uninitialized
 
   driver->alloc_size = config->alloc_size;
-  driver->alloc_buf = alloc_data;
+  driver->alloc_data = alloc_data;
   driver->alloc_head = 0;
 
   // DMX sniffer configuration

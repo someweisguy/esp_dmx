@@ -131,7 +131,7 @@ typedef struct dmx_driver_t {
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
 
   size_t alloc_size;
-  uint8_t *alloc_buf;
+  uint8_t *alloc_data;
   size_t alloc_head;
 
   // DMX sniffer configuration
