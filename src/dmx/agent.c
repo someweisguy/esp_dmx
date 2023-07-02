@@ -373,28 +373,40 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
 
   // Initialize device info
-  if (config->personality_count == 0 ||
-      config->personality_count > DMX_PERSONALITIES_MAX) {
+  rdm_device_info_t device_info;
+  device_info.model_id = config->model_id;
+  device_info.product_category = config->product_category;
+  device_info.software_version_id = config->software_version_id;
+
+  if (config->personality_count > DMX_PERSONALITIES_MAX) {
     ESP_LOGW(TAG, "Personality count is invalid, using default personality");
-    config->personalities[0].footprint = 1;
-    config->personalities[0].description = "Default Personality";
-    config->current_personality = 1;
-    config->personality_count = 1;
+    driver->personalities[0].footprint = 1;
+    driver->personalities[0].description = "Default Personality";
+    device_info.personality_count = 1;
+  } else {
+    size_t size = sizeof(config->personalities[0]) * config->personality_count;
+    memcpy(driver->personalities, config->personalities, size);
+    device_info.personality_count = config->personality_count;
   }
-  if (config->current_personality == 0) {
-    config->current_personality = 1;  // TODO: Check NVS for value
-  }
-  if (config->current_personality > config->personality_count) {
+
+  if (config->current_personality > device_info.personality_count) {
     ESP_LOGW(TAG, "Current personality is invalid, using personality 1");
-    config->current_personality = 1;
+    device_info.current_personality = 1;
+  } else {
+    device_info.current_personality = config->current_personality;
   }
-  const int footprint_num = config->current_personality - 1;
-  uint16_t footprint = config->personalities[footprint_num].footprint;
-  if (footprint == 0) {
-    config->dmx_start_address = 0xffff;
+
+  if (device_info.current_personality == 0) {
+    device_info.footprint = 0;
+  } else {
+    const int footprint_num = device_info.current_personality - 1;
+    device_info.footprint = driver->personalities[footprint_num].footprint;
   }
-  if (config->dmx_start_address == 0) {
-    config->dmx_start_address = 1;  // TODO: Check NVS for value
+
+  if (device_info.footprint == 0) {
+    device_info.dmx_start_address = 0xffff;
+  } else {
+    device_info.dmx_start_address = config->dmx_start_address;
   }
 
   // UART configuration
@@ -427,19 +439,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->last_slot_ts = 0;
 
   // DMX configuration
-  driver->device_info = (rdm_device_info_t){
-      .model_id = config->model_id,
-      .product_category = config->product_category,
-      .software_version_id = config->software_version_id,
-      .footprint = footprint,
-      .current_personality = config->current_personality,
-      .personality_count = config->personality_count,
-      .dmx_start_address = config->dmx_start_address,
-      .sub_device_count = 0,  // Sub-devices must be registered
-      .sensor_count = 0       // Sensors must be registered
-  };
-  size_t size = sizeof(config->personalities[0]) * config->personality_count;
-  memcpy(driver->personalities, config->personalities, size);
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
 
@@ -496,11 +495,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
   rdm_register_disc_un_mute(dmx_num, NULL, NULL);
   rdm_register_disc_mute(dmx_num, NULL, NULL);
-  rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->device_info, NULL, NULL);
+  rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
   const char *software_version_label =
       "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
           ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
-  rdm_register_software_version_label(dmx_num, software_version_label, NULL, NULL);
+  rdm_register_software_version_label(dmx_num, software_version_label, NULL,
+                                      NULL);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
   rdm_register_dmx_start_address(dmx_num, 0, NULL, NULL);
   // TODO: rdm_register_supported_parameters()
@@ -744,9 +744,10 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  const uint8_t current_personality = 0;
   taskENTER_CRITICAL(spinlock);
-  const uint8_t current_personality =
-      dmx_driver[dmx_num]->device_info.current_personality;
+  // FIXME
+  // current_personality = dmx_driver[dmx_num]->device_info.current_personality;
   taskEXIT_CRITICAL(spinlock);
 
   return current_personality;
@@ -762,8 +763,9 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   const uint16_t footprint = dmx_get_footprint(dmx_num, num);
   taskENTER_CRITICAL(spinlock);
-  driver->device_info.footprint = footprint;
-  driver->device_info.current_personality = num;
+  // FIXME
+  // driver->device_info.footprint = footprint;
+  // driver->device_info.current_personality = num;
   taskEXIT_CRITICAL(spinlock);
 
   if (footprint > 0 &&
@@ -777,7 +779,9 @@ void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num) {
 uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  return dmx_driver[dmx_num]->device_info.personality_count;
+  // return dmx_driver[dmx_num]->device_info.personality_count;
+  // FIXME
+  return 0 ;
 }
 
 uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num) {
@@ -793,9 +797,10 @@ uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  uint16_t dmx_start_address;
+  uint16_t dmx_start_address = 0;
   taskENTER_CRITICAL(spinlock);
-  dmx_start_address = dmx_driver[dmx_num]->device_info.dmx_start_address;
+  // FIXME
+  // dmx_start_address = dmx_driver[dmx_num]->device_info.dmx_start_address;
   taskEXIT_CRITICAL(spinlock);
 
   return dmx_start_address;
@@ -812,7 +817,8 @@ void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   taskENTER_CRITICAL(spinlock);
-  dmx_driver[dmx_num]->device_info.dmx_start_address = dmx_start_address;
+  // FIXME
+  // dmx_driver[dmx_num]->device_info.dmx_start_address = dmx_start_address;
   taskEXIT_CRITICAL(spinlock);
 
   // TODO: use NVS
@@ -823,9 +829,10 @@ uint16_t dmx_get_sub_device_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  uint16_t sub_device_count;
+  uint16_t sub_device_count = 0;
   taskENTER_CRITICAL(spinlock);
-  sub_device_count = dmx_driver[dmx_num]->device_info.sub_device_count;
+  // FIXME
+  // sub_device_count = dmx_driver[dmx_num]->device_info.sub_device_count;
   taskEXIT_CRITICAL(spinlock);
 
   return sub_device_count;
@@ -836,9 +843,10 @@ uint8_t dmx_get_sensor_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  uint16_t sensor_count;
+  uint16_t sensor_count = 0;
   taskENTER_CRITICAL(spinlock);
-  sensor_count = dmx_driver[dmx_num]->device_info.sensor_count;
+  // FIXME
+  // sensor_count = dmx_driver[dmx_num]->device_info.sensor_count;
   taskEXIT_CRITICAL(spinlock);
 
   return sensor_count;

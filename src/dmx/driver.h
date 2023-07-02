@@ -113,7 +113,6 @@ typedef struct dmx_driver_t {
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
   // DMX configuration
-  rdm_device_info_t device_info;    // The RDM device info of this device.
   struct dmx_personality_t {
     uint16_t footprint;
     const char *description;
