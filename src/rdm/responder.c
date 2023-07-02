@@ -87,8 +87,8 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DISC_UNIQUE_BRANCH,
-                                      .pdl_size = sizeof(rdm_uid_t),
-                                      .data_type = RDM_DS_BIT_FIELD,
+                                      .pdl_size = 0,
+                                      .data_type = RDM_DS_NOT_DEFINED,
                                       .cc = RDM_CC_DISC,
                                       .unit = RDM_UNITS_NONE,
                                       .prefix = RDM_PREFIX_NONE,
@@ -117,8 +117,8 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DISC_MUTE,
-                                      .pdl_size = sizeof(rdm_disc_mute_t),
-                                      .data_type = RDM_DS_BIT_FIELD,
+                                      .pdl_size = sizeof(*param),
+                                      .data_type = RDM_DS_UNSIGNED_BYTE,
                                       .cc = RDM_CC_DISC,
                                       .unit = RDM_UNITS_NONE,
                                       .prefix = RDM_PREFIX_NONE,
@@ -147,8 +147,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DISC_UN_MUTE,
-                                      .pdl_size = sizeof(rdm_disc_mute_t),
-                                      .data_type = RDM_DS_BIT_FIELD,
+                                      .pdl_size = sizeof(*param),
+                                      .data_type = RDM_DS_UNSIGNED_BYTE,
                                       .cc = RDM_CC_DISC,
                                       .unit = RDM_UNITS_NONE,
                                       .prefix = RDM_PREFIX_NONE,
