@@ -281,7 +281,7 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num,
   }
 }
 
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
                              int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
