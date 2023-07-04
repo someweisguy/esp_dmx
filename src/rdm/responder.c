@@ -4,6 +4,8 @@
 #include "dmx/driver.h"
 #include "endian.h"
 #include "rdm/utils.h"
+#include "rdm/pids.h"
+#include "nvs_flash.h"
 
 static const char *TAG = "rdm_responder";  // The log tagline for the file.
 
@@ -295,8 +297,26 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
   void *const void_param = &device_info->dmx_start_address;  // silence warning
   uint16_t *param = void_param;
   if (dmx_start_address == 0 && *param == 0) {
-    // TODO: check NVS for value
-    *param = 1;
+
+    // Initialize the partition and declare the namespace
+    nvs_flash_init_partition("nvs");
+    char namespace[] = "esp_dmx?";
+    namespace[strlen(namespace) - 1] = dmx_num + '0';
+
+    // Open the NVS handle
+    nvs_handle_t nvs;
+    nvs_open(namespace, NVS_READONLY, &nvs);
+
+    // Initialize the NVS key - a string of the hex value of the PID
+    char key[5];
+    itoa(RDM_PID_DMX_START_ADDRESS, key, 16);
+
+    // Get the DMX start address and close the NVS handle
+    esp_err_t err = nvs_get_u16(nvs, key, param);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+      *param = 1;
+    }
+    nvs_close(nvs);
   } else if (dmx_start_address > 0) {
     *param = dmx_start_address;
   }

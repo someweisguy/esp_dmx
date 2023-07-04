@@ -8,6 +8,7 @@
 #include "driver/uart.h"
 #include "endian.h"
 #include "rdm/responder.h"
+#include "nvs_flash.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -377,6 +378,43 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   device_info.model_id = config->model_id;
   device_info.product_category = config->product_category;
   device_info.software_version_id = config->software_version_id;
+
+  if (config->dmx_start_address == 0 || config->current_personality == 0) {
+      // Initialize the partition and declare the namespace
+    nvs_flash_init_partition("nvs");
+    char namespace[] = "esp_dmx?";
+    namespace[strlen(namespace) - 1] = dmx_num + '0';
+
+    // Open the NVS handle
+    nvs_handle_t nvs;
+    nvs_open(namespace, NVS_READONLY, &nvs);
+
+    if (device_info.dmx_start_address == 0) {
+      // Initialize the NVS key - a string of the hex value of the PID
+      char key[5];
+      itoa(RDM_PID_DMX_START_ADDRESS, key, 16);
+
+      // Get the DMX start address and close the NVS handle
+      esp_err_t err = nvs_get_u16(nvs, key, &device_info.dmx_start_address);
+      if (err == ESP_ERR_NVS_NOT_FOUND) {
+        device_info.dmx_start_address = 1;
+      }
+    }
+    if (device_info.current_personality == 0) {
+      // Initialize the NVS key - a string of the hex value of the PID
+      char key[5];
+      itoa(RDM_PID_DMX_PERSONALITY, key, 16);
+
+      // Get the DMX start address and close the NVS handle
+      esp_err_t err = nvs_get_u16(nvs, key, &device_info.current_personality);
+      if (err == ESP_ERR_NVS_NOT_FOUND) {
+        device_info.current_personality = 1;
+      }
+    }
+
+    nvs_close(nvs);
+  }
+
   if (config->personality_count > DMX_PERSONALITIES_MAX) {
     ESP_LOGW(TAG, "Personality count is invalid, using default personality");
     driver->personalities[0].footprint = 1;
@@ -393,12 +431,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   } else {
     device_info.current_personality = config->current_personality;
   }
-  if (device_info.current_personality == 0) {
-    device_info.footprint = 0;
-  } else {
-    const int footprint_num = device_info.current_personality - 1;
-    device_info.footprint = driver->personalities[footprint_num].footprint;
-  }
+  const int footprint_num = device_info.current_personality - 1;
+  device_info.footprint = driver->personalities[footprint_num].footprint;
   if (device_info.footprint == 0) {
     device_info.dmx_start_address = 0xffff;
   } else {
