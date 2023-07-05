@@ -330,9 +330,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
   } else if (response_type == RDM_RESPONSE_TYPE_NONE ||
              response_type == RDM_RESPONSE_TYPE_INVALID) {
-    ESP_LOGW(TAG,
-             "PID 0x%04x callback returned RDM_RESPONSE_TYPE_NONE or "
-             "RDM_RESPONSE_TYPE_INVALID",
+    ESP_LOGW(TAG, "PID 0x%04x callback returned invalid response type",
              header.pid);
     pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     // TODO: set mute boot-loader flag
@@ -350,8 +348,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Write the RDM response and send it
   size_t response_size = rdm_write(dmx_num, &header, pd);
-  dmx_send(dmx_num, response_size);
+  if (dmx_send(dmx_num, response_size)) {
+    dmx_wait_sent(dmx_num, 10);
+  } else {
+    ESP_LOGW(TAG, "did not send response to pid %x", header.pid);
+  }
 
+  // TODO: write values to NVS here
+  
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
   return packet_size;
