@@ -279,13 +279,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   }
 
-  // TODO: Verify the packet format is valid
+  // Verify the packet format is valid
+  if (header.message_len < 24 || header.pdl > 231 || header.port_id == 0 ||
+      uid_is_broadcast(&header.src_uid)) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
+  }
+
   /*
-  message_len >= 24
-  !uid_is_broadcast(&header->src_uid)
-  port_id > 0 (should this be enforced? Maybe turn on/off in sdkconfig?)
+  TODO
   sub_device <= 512 || (sub_device == 0xffff && header.cc != RDM_CC_GET_COMMAND)
-  pdl <= 231
   // Check if PID supports the CC (check this later)
   */
 
@@ -335,6 +338,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     // TODO: set mute boot-loader flag
   }
+
+  const rdm_header_t request_header = header;
 
   // Rewrite the header for the response packet
   header.dest_uid = header.src_uid;
