@@ -39,7 +39,6 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
 - [Additional Considerations](#additional-considerations)
   - [Using Flash or Disabling Cache](#using-flash-or-disabling-cache)
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
-  - [Currently Supported RDM PIDs](#currently-supported-rdm-pids)
   - [Hardware Specifications](#hardware-specifications)
 - [To Do](#to-do)
 - [Appendix](#appendix)
@@ -195,7 +194,7 @@ RDM requests must be able to fetch and update parameters. The RDM standard speci
 
 Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. This library provides constants for each PID. Each PID in this library is prefixed with `RDM_PID_`. Therefore, `DISC_UNIQUE_BRANCH` would become `RDM_PID_DISC_UNIQUE_BRANCH`. This document will refer to PIDs by their prefixed names for consistency of documentation.
 
-RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the required PIDs can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section.
+RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the required PIDs can be found in the [appendix](#parameter-ids).
 
 GET requests may not be sent to all sub-devices of a root devices. It is therefore not permitted to send a GET request to `RDM_SUB_DEVICE_ALL`.
 
@@ -608,7 +607,7 @@ if (rdm_register_software_version_label(DMX_NUM_2, new_software_label)) {
 
 If a request for a PID that does not have a registered callback is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
 
-The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of these automatically registered functions can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section.
+The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification.
 
 ## Error Handling
 
@@ -737,20 +736,6 @@ R2, the 120 ohm resistor, is a terminating resistor. It is required only when us
 
 Many RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips may require 5v data to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
 
-### Currently Supported RDM PIDs
-
-The PIDs currently implemented by this library are listed below. PIDs marked as "required" are required by the RDM specification and are automatically registered upon installing the DMX driver. `RDM_PID_DMX_START_ADDRESS` is also automatically registered but this may be disabled in the `Kconfig`.
-
-Parameter                        | GET | SET | Notes
-:--------------------------------|:---:|:---:|:------
-`RDM_PID_DEVICE_INFO`            |  X  |     | Required.
-`RDM_PID_DISC_MUTE`              |     |     | Required.
-`RDM_PID_DISC_UN_MUTE`           |     |     | Required.
-`RDM_PID_DISC_UNIQUE_BRANCH`     |     |     | Required.
-`RDM_PID_DMX_START_ADDRESS`      |  X  |  X  | Required if a DMX address is used.
-`RDM_PID_IDENTIFY_DEVICE`        |  X  |  X  | Required.
-`RDM_PID_SOFTWARE_VERSION_LABEL` |  X  |     | Required.
-
 ### Hardware Specifications
 
 ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated from other devices on the DMX bus. In the event of a power surge, the likely worse-case scenario would mean the failure of the RS-485 circuitry and not the entire DMX device. Some DMX devices may function without isolation, but using non-isolated equipment is not recommended.
@@ -765,60 +750,60 @@ For a list of planned features, see the [esp_dmx GitHub Projects](https://github
 
 The table below lists the Parameter IDs specified by the RDM standard. Parameters which support GET or SET are indicated accordingly. Parameters which are required are indicated in the "req" column. Parameters which are automatically placed in non-volatile storage are indicated in the "NVS" column. PIDs which are currently supported by this library are indicated in the "supported" column by the earliest version of this library which supported the PID. The "root" column indicates if a PID may be sent to the root sub-device of an RDM device. A "❕" indicates that a PID may only be sent to the root device. A "❌" indicates that a PID may not be sent to the root device.
 
-Parameter                                   |GET|SET| Value|Req|Root|NVS|Supported|Notes
-:-------------------------------------------|:-:|:-:|:----:|:-:|:--:|:-:|:-------:|:-----
-`RDM_PID_DISC_UNIQUE_BRANCH`                |   |   |0x0001|✔️|  ❕ |   |   v3.1.0|
-`RDM_PID_DISC_MUTE`                         |   |   |0x0002|✔️|  ❕ |   |   v3.1.0|
-`RDM_PID_DISC_UN_MUTE`                      |   |   |0x0003|✔️|  ❕ |   |   v3.1.0|
-`RDM_PID_PROXIED_DEVICES`                   |✔️|   |0x0010|   |  ❕ |   |         |
-`RDM_PID_PROXIED_DEVICE_COUNT`              |✔️|   |0x0011|   |  ❕ |   |         |
-`RDM_PID_COMMS_STATUS`                      |✔️|✔️|0x0015|   |  ❕ |   |         |
-`RDM_PID_QUEUED_MESSAGE`                    |✔️|   |0x0020|   |  ❕ |   |         |
-`RDM_PID_STATUS_MESSAGE`                    |✔️|   |0x0030|   |  ❕ |   |         |
-`RDM_PID_STATUS_ID_DESCRIPTION`             |✔️|   |0x0031|   |  ❕ |   |         |
-`RDM_PID_CLEAR_STATUS_ID`                   |   |✔️|0x0032|   |    |   |         |
-`RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD`|✔️|✔️|0x0033|   | ❌|    |        |
-`RDM_PID_SUPPORTED_PARAMETERS`              |✔️|   |0x0050|✔️|    |    |        |Support required only if supporting parameters beyond the minimum required set.
-`RDM_PID_PARAMETER_DESCRIPTION`             |✔️|   |0x0051|✔️|  ❕ |   |         |Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.
-`RDM_PID_DEVICE_INFO`                       |✔️|   |0x0060|✔️|    |    |  v3.1.0|
-`RDM_PID_PRODUCT_DETAIL_ID_LIST`            |✔️|   |0x0070|   |    |   |         |
-`RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️|   |0x0080|   |    |   |         |
-`RDM_PID_MANUFACTURER_LABEL`                |✔️|   |0x0081|   |    |   |         |
-`RDM_PID_DEVICE_LABEL`                      |✔️|✔️|0x0082|   |    |✔️|         |
-`RDM_PID_FACTORY_DEFAULTS`                  |✔️|✔️|0x0090|   |    |   |         |
-`RDM_PID_LANGUAGE_CAPABILITIES`             |✔️|   |0x00a0|   |    |   |         |
-`RDM_PID_LANGUAGE`                          |✔️|✔️|0x00b0|   |    |✔️|         |
-`RDM_PID_SOFTWARE_VERSION_LABEL`            |✔️|   |0x00c0|✔️|    |   |  v3.1.0|
-`RDM_PID_BOOT_SOFTWARE_VERSION_ID`          |✔️|   |0x00c1|   |    |   |         |
-`RDM_PID_BOOT_SOFTWARE_VERSION_LABEL`       |✔️|   |0x00c2|   |    |   |         |
-`RDM_PID_DMX_PERSONALITY`                   |✔️|✔️|0x00e0|   |    |✔️|         |
-`RDM_PID_DMX_PERSONALITY_DESCRIPTION`       |✔️|   |0x00e1|   |    |   |         |
-`RDM_PID_DMX_START_ADDRESS`                 |✔️|✔️|0x00f0|✔️|    |✔️|  v3.1.0|Support required if device uses a DMX slot.
-`RDM_PID_SLOT_INFO`                         |✔️|   |0x0120|   |    |   |         |
-`RDM_PID_SLOT_DESCRIPTION`                  |✔️|   |0x0121|   |    |   |         |
-`RDM_PID_DEFAULT_SLOT_VALUE`                |✔️|   |0x0122|   |    |   |         |
-`RDM_PID_SENSOR_DEFINITION`                 |✔️|   |0x0200|   |    |   |         |
-`RDM_PID_SENSOR_VALUE`                      |✔️|✔️|0x0201|   |    |   |         |
-`RDM_PID_RECORD_SENSORS`                    |   |✔️|0x0202|   |    |   |         |
-`RDM_PID_DEVICE_HOURS`                      |✔️|✔️|0x0400|   |    |✔️|         |
-`RDM_PID_LAMP_HOURS`                        |✔️|✔️|0x0401|   |    |✔️|         |
-`RDM_PID_LAMP_STRIKES`                      |✔️|✔️|0x0402|   |    |✔️|         |
-`RDM_PID_LAMP_STATE`                        |✔️|✔️|0x0403|   |    |✔️|         |
-`RDM_PID_LAMP_ON_MODE`                      |✔️|✔️|0x0404|   |    |✔️|         |
-`RDM_PID_DEVICE_POWER_CYCLES`               |✔️|✔️|0x0405|   |    |✔️|         |
-`RDM_PID_DISPLAY_INVERT`                    |✔️|✔️|0x0500|   |    |✔️|         |
-`RDM_PID_DISPLAY_LEVEL`                     |✔️|✔️|0x0501|   |    |✔️|         |
-`RDM_PID_PAN_INVERT`                        |✔️|✔️|0x0600|   |    |✔️|         |
-`RDM_PID_TILT_INVERT`                       |✔️|✔️|0x0601|   |    |✔️|         |
-`RDM_PID_PAN_TILT_SWAP`                     |✔️|✔️|0x0602|   |    |✔️|         |
-`RDM_PID_REAL_TIME_CLOCK`                   |✔️|✔️|0x0603|   |    |   |         |
-`RDM_PID_IDENTIFY_DEVICE`                   |✔️|✔️|0x1000|✔️|    |   |  v3.1.0|
-`RDM_PID_RESET_DEVICE`                      |   |✔️|0x1001|   |    |   |         |
-`RDM_PID_POWER_STATE`                       |✔️|✔️|0x1010|   |    |   |         |
-`RDM_PID_PERFORM_SELF_TEST`                 |✔️|✔️|0x1020|   |    |   |         |
-`RDM_PID_SELF_TEST_DESCRIPTION`             |✔️|   |0x1021|   |    |   |         |
-`RDM_PID_CAPTURE_PRESET`                    |   |✔️|0x1030|   |    |   |         |
-`RDM_PID_PRESET_PLAYBACK`                   |✔️|✔️|0x1031|   |    |   |         |
+Parameter                                   |GET|SET|Req|Root|NVS|Supported|Notes
+:-------------------------------------------|:-:|:-:|:-:|:--:|:-:|:-------:|:-----
+`RDM_PID_DISC_UNIQUE_BRANCH`                |   |   |✔️|  ❕ |   |   v3.1.0|May only be sent to `RDM_UID_BROADCAST_ALL`.
+`RDM_PID_DISC_MUTE`                         |   |   |✔️|  ❕ |   |   v3.1.0|
+`RDM_PID_DISC_UN_MUTE`                      |   |   |✔️|  ❕ |   |   v3.1.0|
+`RDM_PID_PROXIED_DEVICES`                   |✔️|   |   |  ❕ |   |         |
+`RDM_PID_PROXIED_DEVICE_COUNT`              |✔️|   |   |  ❕ |   |         |
+`RDM_PID_COMMS_STATUS`                      |✔️|✔️|   |  ❕ |   |         |
+`RDM_PID_QUEUED_MESSAGE`                    |✔️|   |   |  ❕ |   |         |
+`RDM_PID_STATUS_MESSAGE`                    |✔️|   |   |  ❕ |   |         |
+`RDM_PID_STATUS_ID_DESCRIPTION`             |✔️|   |   |  ❕ |   |         |
+`RDM_PID_CLEAR_STATUS_ID`                   |   |✔️|   |    |   |         |
+`RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD`|✔️|✔️|   | ❌|    |        |
+`RDM_PID_SUPPORTED_PARAMETERS`              |✔️|   |✔️|    |    |        |Support required only if supporting parameters beyond the minimum required set.
+`RDM_PID_PARAMETER_DESCRIPTION`             |✔️|   |✔️|  ❕ |   |         |Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.
+`RDM_PID_DEVICE_INFO`                       |✔️|   |✔️|    |    |  v3.1.0|
+`RDM_PID_PRODUCT_DETAIL_ID_LIST`            |✔️|   |   |    |   |         |
+`RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️|   |   |    |   |         |
+`RDM_PID_MANUFACTURER_LABEL`                |✔️|   |   |    |   |         |
+`RDM_PID_DEVICE_LABEL`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_FACTORY_DEFAULTS`                  |✔️|✔️|   |    |   |         |
+`RDM_PID_LANGUAGE_CAPABILITIES`             |✔️|   |   |    |   |         |
+`RDM_PID_LANGUAGE`                          |✔️|✔️|   |    |✔️|         |
+`RDM_PID_SOFTWARE_VERSION_LABEL`            |✔️|   |✔️|    |   |  v3.1.0|
+`RDM_PID_BOOT_SOFTWARE_VERSION_ID`          |✔️|   |   |    |   |         |
+`RDM_PID_BOOT_SOFTWARE_VERSION_LABEL`       |✔️|   |   |    |   |         |
+`RDM_PID_DMX_PERSONALITY`                   |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DMX_PERSONALITY_DESCRIPTION`       |✔️|   |   |    |   |         |
+`RDM_PID_DMX_START_ADDRESS`                 |✔️|✔️|✔️|    |✔️|  v3.1.0|Support required if device uses a DMX slot.
+`RDM_PID_SLOT_INFO`                         |✔️|   |   |    |   |         |
+`RDM_PID_SLOT_DESCRIPTION`                  |✔️|   |   |    |   |         |
+`RDM_PID_DEFAULT_SLOT_VALUE`                |✔️|   |   |    |   |         |
+`RDM_PID_SENSOR_DEFINITION`                 |✔️|   |   |    |   |         |
+`RDM_PID_SENSOR_VALUE`                      |✔️|✔️|   |    |   |         |
+`RDM_PID_RECORD_SENSORS`                    |   |✔️|   |    |   |         |
+`RDM_PID_DEVICE_HOURS`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_HOURS`                        |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_STRIKES`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_STATE`                        |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_ON_MODE`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DEVICE_POWER_CYCLES`               |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DISPLAY_INVERT`                    |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DISPLAY_LEVEL`                     |✔️|✔️|   |    |✔️|         |
+`RDM_PID_PAN_INVERT`                        |✔️|✔️|   |    |✔️|         |
+`RDM_PID_TILT_INVERT`                       |✔️|✔️|   |    |✔️|         |
+`RDM_PID_PAN_TILT_SWAP`                     |✔️|✔️|   |    |✔️|         |
+`RDM_PID_REAL_TIME_CLOCK`                   |✔️|✔️|   |    |   |         |
+`RDM_PID_IDENTIFY_DEVICE`                   |✔️|✔️|✔️|    |   |  v3.1.0|
+`RDM_PID_RESET_DEVICE`                      |   |✔️|   |    |   |         |
+`RDM_PID_POWER_STATE`                       |✔️|✔️|   |    |   |         |
+`RDM_PID_PERFORM_SELF_TEST`                 |✔️|✔️|   |    |   |         |
+`RDM_PID_SELF_TEST_DESCRIPTION`             |✔️|   |   |    |   |         |
+`RDM_PID_CAPTURE_PRESET`                    |   |✔️|   |    |   |         |
+`RDM_PID_PRESET_PLAYBACK`                   |✔️|✔️|   |    |   |         |
 
 ### Product Categories
 
