@@ -416,68 +416,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Update NVS values
   if (must_update_nvs) {
-    char namespace[] = "esp_dmx?";
-    namespace[sizeof(namespace) - 2] = dmx_num + '0';
-    char key[5];
-    itoa(header.pid, key, 16);
-
-    nvs_handle_t nvs;
-    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs);
-    if (!err) {
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
-      // Track which drivers are currently enabled and disable those which are
-      bool driver_is_enabled[DMX_NUM_MAX];
-      for (int i = 0; i < DMX_NUM_MAX; ++i) {
-        driver_is_enabled[i] = dmx_driver_is_enabled(i);
-        if (dmx_driver_is_installed(i)) {
-          dmx_driver_disable(i);
-        }
-      }
-#endif
-
-      // Write the parameter to NVS depending on its type
-      switch (desc->data_type) {
-        case RDM_DS_ASCII:
-          err = nvs_set_str(nvs, key, param);
-          break;
-        case RDM_DS_UNSIGNED_BYTE:
-          err = nvs_set_u8(nvs, key, *(uint8_t *)param);
-          break;
-        case RDM_DS_SIGNED_BYTE:
-          err = nvs_set_i8(nvs, key, *(int8_t *)param);
-          break;
-        case RDM_DS_UNSIGNED_WORD:
-          err = nvs_set_u16(nvs, key, *(uint16_t *)param);
-          break;
-        case RDM_DS_SIGNED_WORD:
-          err = nvs_set_i16(nvs, key, *(int16_t *)param);
-          break;
-        case RDM_DS_UNSIGNED_DWORD:
-          err = nvs_set_u32(nvs, key, *(uint32_t *)param);
-          break;
-        case RDM_DS_SIGNED_DWORD:
-          err = nvs_set_i32(nvs, key, *(int32_t *)param);
-          break;
-        default:
-          err = nvs_set_blob(nvs, key, param, desc->pdl_size);
-      }
-      if (!err) {
-        nvs_commit(nvs);
-      }
-
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
-      for (int i = 0; i < DMX_NUM_MAX; ++i) {
-        if (driver_is_enabled[i]) {
-          dmx_driver_enable(i);
-        }
-      }
-#endif
-
-      nvs_close(nvs);
-    } else {
+    esp_err_t err = rdm_set_nvs(dmx_num, header.pid, desc->data_type, param,
+                                desc->pdl_size);
+    if (err) {
       ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
       // TODO: set boot-loader flag
-    }
+    }                                
   }
 
   // Give the mutex back and return
