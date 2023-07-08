@@ -42,6 +42,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Hardware Specifications](#hardware-specifications)
 - [To Do](#to-do)
 - [Appendix](#appendix)
+  - [Parameter IDs](#parameter-ids)
   - [Product Categories](#product-categories)
   - [NACK Reason Codes](#nack-reason-codes)
 
