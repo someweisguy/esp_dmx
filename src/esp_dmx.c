@@ -94,7 +94,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data + offset, source, size);
-  
+
   taskEXIT_CRITICAL(spinlock);
 
   return size;
@@ -324,6 +324,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   } else {
     // Call the appropriate driver-side RDM callback to process the request
     pdl_out = 0;
+    rdm_read(dmx_num, NULL, pd, sizeof(pd));
     void *param = driver->rdm_cbs[cb_num].param;
     const char *param_str = driver->rdm_cbs[cb_num].param_str;
     response_type = driver->rdm_cbs[cb_num].driver_cb(
@@ -335,15 +336,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // TODO: set the boot-loader flag
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
       pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
-    } else if ((response_type == RDM_RESPONSE_TYPE_NONE &&
-         header.pid != RDM_PID_DISC_UNIQUE_BRANCH &&
-         !uid_is_broadcast(&header.dest_uid)) ||
-        (response_type != RDM_RESPONSE_TYPE_ACK &&
-         header.cc == RDM_CC_DISC_COMMAND) ||
-        (response_type != RDM_RESPONSE_TYPE_ACK &&
-         response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-         response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
-         response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW)) {
+    } else if ((response_type != RDM_RESPONSE_TYPE_NONE &&
+                response_type != RDM_RESPONSE_TYPE_ACK &&
+                response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+                response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+                response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) ||
+               (response_type == RDM_RESPONSE_TYPE_NONE &&
+                (header.pid != RDM_PID_DISC_UNIQUE_BRANCH ||
+                 !uid_is_broadcast(&header.dest_uid))) ||
+               ((response_type != RDM_RESPONSE_TYPE_ACK &&
+                 response_type != RDM_RESPONSE_TYPE_NONE) &&
+                header.cc == RDM_CC_DISC_COMMAND)) {
       ESP_LOGW(TAG, "PID 0x%04x returned invalid response type", header.pid);
       // TODO: set the boot-loader flag to indicate an error with this device
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
@@ -351,8 +354,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
   }
 
-  // Do not respond to broadcast packets nor send NACK to DISC commands
-  if (uid_is_broadcast(&header.dest_uid) ||
+  // Don't respond to non-discovery broadcasts nor send NACK to DISC packets
+  if ((uid_is_broadcast(&header.dest_uid) &&
+       header.pid != RDM_PID_DISC_UNIQUE_BRANCH) ||
       (response_type == RDM_RESPONSE_TYPE_NACK_REASON &&
        header.cc == RDM_CC_DISC_COMMAND)) {
     response_type = RDM_RESPONSE_TYPE_NONE;
@@ -377,7 +381,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // TODO set the boot-loader flag
     }
   }
-  
+
   // Call the user-side callback
   if (driver->rdm_cbs[cb_num].user_cb != NULL) {
     void *context = driver->rdm_cbs[cb_num].context;
@@ -387,12 +391,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (header.cc == RDM_CC_SET_COMMAND_RESPONSE) {
     // TODO: write values to NVS here
   }
-  
+
   // Wait for the response packet to be finished sending
   if (response_size > 0) {
     dmx_wait_sent(dmx_num, 10);
   }
-  
+
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
   return packet_size;
