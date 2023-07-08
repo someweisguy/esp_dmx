@@ -271,87 +271,95 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     packet->is_rdm = true;
   }
 
-  // Verify the packet format is valid and for this device
+  // Ignore the packet if it does not target this device
   rdm_uid_t my_uid;
   uid_get(dmx_num, &my_uid);
-  if (header.message_len < 24 || header.pdl > 231 || header.port_id == 0 ||
-      uid_is_broadcast(&header.src_uid) ||
-      !uid_is_target(&my_uid, &header.dest_uid)) {
+  if (!uid_is_target(&my_uid, &header.dest_uid)) {
     // The packet should be ignored
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
 
-  // Prepare the response packet parameter data
+  // Prepare the response packet parameter data and find the correct callback
   rdm_response_type_t response_type;
   uint8_t pdl_out;
   uint8_t pd[231];
-
-  // Iterate the registered PIDs and find the index of the correct PID
   int cb_num = 0;
   for (; cb_num < driver->num_rdm_cbs; ++cb_num) {
     if (driver->rdm_cbs[cb_num].desc.pid == header.pid) {
       break;
     }
   }
-  if (cb_num == driver->num_rdm_cbs) {
+
+  // Determine how this device should respond to the request
+  const rdm_pid_description_t *desc;
+  if (header.pdl > sizeof(pd) || header.port_id == 0 ||
+      uid_is_broadcast(&header.src_uid)) {
+    // The packet format is invalid
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+  } else if (cb_num == driver->num_rdm_cbs) {
+    // The requested PID is unknown
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-    goto send_response;
-  }
-
-  // Ensure the PID supports the requested command class
-  const rdm_pid_description_t *desc = &driver->rdm_cbs[cb_num].desc;
-  if ((header.cc == RDM_CC_DISC_COMMAND && desc->cc != RDM_CC_DISC) ||
-      (header.cc == RDM_CC_GET_COMMAND &&
-       (desc->cc != RDM_CC_GET || desc->cc != RDM_CC_GET_SET)) ||
-      (header.cc == RDM_CC_SET_COMMAND &&
-       (desc->cc != RDM_CC_SET || desc->cc != RDM_CC_GET_SET))) {
-    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
-    goto send_response;
-  }
-
-  // Ensure the sub-device is within range
-  if ((header.sub_device > 512 && header.sub_device != RDM_SUB_DEVICE_ALL) ||
-      (header.sub_device == RDM_SUB_DEVICE_ALL &&
-       header.cc == RDM_CC_GET_COMMAND)) {
-    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
-    goto send_response;
-  }
-
-  // Call the appropriate driver-side RDM callback to process the request
-  pdl_out = 0;
-  void *param = driver->rdm_cbs[cb_num].param;
-  const char *param_str = driver->rdm_cbs[cb_num].param_str;
-  response_type = driver->rdm_cbs[cb_num].driver_cb(
-      dmx_num, &header, pd, &pdl_out, param, desc, param_str);
-
-  // TODO: driver cb can return response_type_none if the dest_uid is broadcast
-  // Verify that the driver-side callback returned correctly
-  if ((response_type == RDM_RESPONSE_TYPE_NONE &&
-       header.pid != RDM_PID_DISC_UNIQUE_BRANCH) ||
-      (response_type != RDM_RESPONSE_TYPE_ACK &&
-       response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW &&
-       response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-       response_type != RDM_RESPONSE_TYPE_NACK_REASON)) {
-    ESP_LOGW(TAG, "PID 0x%04x callback returned invalid response type",
-             header.pid);
-    // TODO: set the boot-loader flag to indicate an error with this device
+  } else if ((desc = &driver->rdm_cbs[cb_num].desc) == NULL) {
+    // The PID's descriptor is null - this condition should never be true
+    ESP_LOGW(TAG, "PID 0x%04x has a null descriptor", header.pid);
+    // TODO: set the boot-loader flag
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+  } else if ((header.cc == RDM_CC_DISC_COMMAND && desc->cc != RDM_CC_DISC) ||
+             (header.cc == RDM_CC_GET_COMMAND && !(desc->cc & RDM_CC_GET)) ||
+             (header.cc == RDM_CC_SET_COMMAND && !(desc->cc & RDM_CC_SET))) {
+    // The PID does not support the request command class
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+  } else if ((header.sub_device > 512 &&
+              header.sub_device != RDM_SUB_DEVICE_ALL) ||
+             (header.sub_device == RDM_SUB_DEVICE_ALL &&
+              header.cc == RDM_CC_GET_COMMAND)) {
+    // The sub-device is out of range
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+  } else {
+    // Call the appropriate driver-side RDM callback to process the request
+    pdl_out = 0;
+    void *param = driver->rdm_cbs[cb_num].param;
+    const char *param_str = driver->rdm_cbs[cb_num].param_str;
+    response_type = driver->rdm_cbs[cb_num].driver_cb(
+        dmx_num, &header, pd, &pdl_out, param, desc, param_str);
+
+    // Verify that the driver-side callback returned correctly
+    if (pdl_out > sizeof(pd)) {
+      ESP_LOGW(TAG, "PID 0x%04x pdl is too large", header.pid);
+      // TODO: set the boot-loader flag
+      response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+      pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    } else if ((response_type == RDM_RESPONSE_TYPE_NONE &&
+         header.pid != RDM_PID_DISC_UNIQUE_BRANCH &&
+         !uid_is_broadcast(&header.dest_uid)) ||
+        (response_type != RDM_RESPONSE_TYPE_ACK &&
+         header.cc == RDM_CC_DISC_COMMAND) ||
+        (response_type != RDM_RESPONSE_TYPE_ACK &&
+         response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+         response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+         response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW)) {
+      ESP_LOGW(TAG, "PID 0x%04x returned invalid response type", header.pid);
+      // TODO: set the boot-loader flag to indicate an error with this device
+      response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+      pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    }
   }
 
-send_response:
-
-  // Update the response type if the request was a broadcast packet
-  if (uid_is_broadcast(&header.dest_uid)) {
+  // Do not respond to broadcast packets nor send NACK to DISC commands
+  if (uid_is_broadcast(&header.dest_uid) ||
+      (response_type == RDM_RESPONSE_TYPE_NACK_REASON &&
+       header.cc == RDM_CC_DISC_COMMAND)) {
     response_type = RDM_RESPONSE_TYPE_NONE;
   }
 
   // Rewrite the header for the response packet
-  header.message_len = 24 + pdl_out;
+  header.message_len = 24 + pdl_out;  // Set for user callback
   header.dest_uid = header.src_uid;
   header.src_uid = my_uid;
   header.response_type = response_type;
@@ -365,7 +373,7 @@ send_response:
   if (response_type != RDM_RESPONSE_TYPE_NONE) {
     response_size = rdm_write(dmx_num, &header, pd);
     if (!dmx_send(dmx_num, response_size)) {
-      ESP_LOGW(TAG, "did not send response to pid %x", header.pid);
+      ESP_LOGW(TAG, "PID 0x%04x did not send a response", header.pid);
       // TODO set the boot-loader flag
     }
   }
