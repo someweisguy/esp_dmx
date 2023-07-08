@@ -424,11 +424,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     nvs_handle_t nvs;
     esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs);
     if (!err) {
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR == 5
+#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
       // Track which drivers are currently enabled and disable those which are
-      if (response_size > 0) {
-        dmx_wait_sent(dmx_num, 10);
-      }
       bool driver_is_enabled[DMX_NUM_MAX];
       for (int i = 0; i < DMX_NUM_MAX; ++i) {
         driver_is_enabled[i] = dmx_driver_is_enabled(i);
@@ -468,7 +465,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         nvs_commit(nvs);
       }
 
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR == 5
+#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
       for (int i = 0; i < DMX_NUM_MAX; ++i) {
         if (driver_is_enabled[i]) {
           dmx_driver_enable(i);
@@ -481,11 +478,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
       // TODO: set boot-loader flag
     }
-  }
-
-  // Wait for the response packet to be finished sending
-  if (response_size > 0) {
-    dmx_wait_sent(dmx_num, 10);
   }
 
   // Give the mutex back and return
