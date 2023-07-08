@@ -271,77 +271,87 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     packet->is_rdm = true;
   }
 
-  // Check that this device is targeted by the RDM packet
+  // Verify the packet format is valid and for this device
   rdm_uid_t my_uid;
   uid_get(dmx_num, &my_uid);
-  if (!uid_is_target(&my_uid, &header.dest_uid)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
-  }
-
-  // Verify the packet format is valid
   if (header.message_len < 24 || header.pdl > 231 || header.port_id == 0 ||
-      uid_is_broadcast(&header.src_uid)) {
+      uid_is_broadcast(&header.src_uid) ||
+      !uid_is_target(&my_uid, &header.dest_uid)) {
+    // The packet should be ignored
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
 
-  /*
-  TODO
-  sub_device <= 512 || (sub_device == 0xffff && header.cc != RDM_CC_GET_COMMAND)
-  // Check if PID supports the CC (check this later)
-  */
-
-  // Iterate through the registered RDM callbacks
-  int cb_num = 0;
+  // Prepare the response packet parameter data
+  rdm_response_type_t response_type;
+  uint8_t pdl_out;
   uint8_t pd[231];
-  uint8_t pdl_out = 0;
-  rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
+
+  // Iterate the registered PIDs and find the index of the correct PID
+  int cb_num = 0;
   for (; cb_num < driver->num_rdm_cbs; ++cb_num) {
     if (driver->rdm_cbs[cb_num].desc.pid == header.pid) {
-      if (header.pdl > 0) {
-        rdm_read(dmx_num, NULL, pd, sizeof(pd));
-      }
-      size_t param_len = driver->rdm_cbs[cb_num].desc.pdl_size;
-      void *param = driver->rdm_cbs[cb_num].param;
-      const char *param_str = driver->rdm_cbs[cb_num].param_str;
-      void *const context = driver->rdm_cbs[cb_num].context;
-      rdm_responder_cb_t user_cb = driver->rdm_cbs[cb_num].user_cb;
-      response_type = driver->rdm_cbs[cb_num].driver_cb(
-          dmx_num, &header, pd, &pdl_out, param, param_str, param_len, user_cb,
-          context);
       break;
     }
   }
-
-  // Do not send a response if the packet was a non-discovery broadcast request
-  if (uid_is_broadcast(&header.dest_uid) &&
-      !(header.cc == RDM_CC_DISC_COMMAND &&
-        header.pid == RDM_PID_DISC_UNIQUE_BRANCH)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
+  if (cb_num == driver->num_rdm_cbs) {
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+    goto send_response;
   }
 
-  // Responses must be sent to all non-broadcast, non-discovery requests
-  if (response_type == RDM_RESPONSE_TYPE_NONE &&
-      header.cc == RDM_CC_DISC_COMMAND) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
-  } else if (cb_num == driver->num_rdm_cbs &&
-             header.cc != RDM_CC_DISC_COMMAND) {
-    // If a PID callback wasn't found, send a NR_UNKNOWN_PID response
-    pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-  } else if (response_type == RDM_RESPONSE_TYPE_NONE ||
-             response_type == RDM_RESPONSE_TYPE_INVALID) {
+  // Ensure the PID supports the requested command class
+  const rdm_pid_description_t *desc = &driver->rdm_cbs[cb_num].desc;
+  if ((header.cc == RDM_CC_DISC_COMMAND && desc->cc != RDM_CC_DISC) ||
+      (header.cc == RDM_CC_GET_COMMAND &&
+       (desc->cc != RDM_CC_GET || desc->cc != RDM_CC_GET_SET)) ||
+      (header.cc == RDM_CC_SET_COMMAND &&
+       (desc->cc != RDM_CC_SET || desc->cc != RDM_CC_GET_SET))) {
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    goto send_response;
+  }
+
+  // Ensure the sub-device is within range
+  if ((header.sub_device > 512 && header.sub_device != RDM_SUB_DEVICE_ALL) ||
+      (header.sub_device == RDM_SUB_DEVICE_ALL &&
+       header.cc == RDM_CC_GET_COMMAND)) {
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    goto send_response;
+  }
+
+  // Call the appropriate driver-side RDM callback to process the request
+  pdl_out = 0;
+  void *param = driver->rdm_cbs[cb_num].param;
+  const char *param_str = driver->rdm_cbs[cb_num].param_str;
+  response_type = driver->rdm_cbs[cb_num].driver_cb(
+      dmx_num, &header, pd, &pdl_out, param, desc, param_str);
+
+  // TODO: driver cb can return response_type_none if the dest_uid is broadcast
+  // Verify that the driver-side callback returned correctly
+  if ((response_type == RDM_RESPONSE_TYPE_NONE &&
+       header.pid != RDM_PID_DISC_UNIQUE_BRANCH) ||
+      (response_type != RDM_RESPONSE_TYPE_ACK &&
+       response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW &&
+       response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+       response_type != RDM_RESPONSE_TYPE_NACK_REASON)) {
     ESP_LOGW(TAG, "PID 0x%04x callback returned invalid response type",
              header.pid);
+    // TODO: set the boot-loader flag to indicate an error with this device
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
-    // TODO: set mute boot-loader flag
   }
 
-  const rdm_header_t request_header = header;
+send_response:
+
+  // Update the response type if the request was a broadcast packet
+  if (uid_is_broadcast(&header.dest_uid)) {
+    response_type = RDM_RESPONSE_TYPE_NONE;
+  }
 
   // Rewrite the header for the response packet
+  header.message_len = 24 + pdl_out;
   header.dest_uid = header.src_uid;
   header.src_uid = my_uid;
   header.response_type = response_type;
@@ -349,17 +359,31 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.cc += 1;            // Set to RCM_CC_x_COMMAND_RESPONSE
   header.pdl = pdl_out;
   // These fields should not change: tn, sub_device, and pid
-  // The message_len field will be updated in rdm_write()
 
-  // Write the RDM response and send it
-  size_t response_size = rdm_write(dmx_num, &header, pd);
-  if (dmx_send(dmx_num, response_size)) {
-    dmx_wait_sent(dmx_num, 10);
-  } else {
-    ESP_LOGW(TAG, "did not send response to pid %x", header.pid);
+  // Send the response packet
+  size_t response_size = 0;
+  if (response_type != RDM_RESPONSE_TYPE_NONE) {
+    response_size = rdm_write(dmx_num, &header, pd);
+    if (!dmx_send(dmx_num, response_size)) {
+      ESP_LOGW(TAG, "did not send response to pid %x", header.pid);
+      // TODO set the boot-loader flag
+    }
+  }
+  
+  // Call the user-side callback
+  if (driver->rdm_cbs[cb_num].user_cb != NULL) {
+    void *context = driver->rdm_cbs[cb_num].context;
+    driver->rdm_cbs[cb_num].user_cb(dmx_num, &header, context);
   }
 
-  // TODO: write values to NVS here
+  if (header.cc == RDM_CC_SET_COMMAND_RESPONSE) {
+    // TODO: write values to NVS here
+  }
+  
+  // Wait for the response packet to be finished sending
+  if (response_size > 0) {
+    dmx_wait_sent(dmx_num, 10);
+  }
   
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);

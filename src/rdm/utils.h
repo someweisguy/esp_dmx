@@ -27,8 +27,8 @@ extern "C" {
  */
 typedef int (*rdm_driver_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
                                void *pd, uint8_t *pdl_out, void *param,
-                               const char *param_str, size_t param_size,
-                               rdm_responder_cb_t user_cb, void *context);
+                               const rdm_pid_description_t *desc,
+                               const char *param_str);
 
 /**
  * @brief Copies RDM UID from a source buffer directly into a destination

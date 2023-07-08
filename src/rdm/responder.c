@@ -12,8 +12,8 @@ static const char *TAG = "rdm_responder";  // The log tagline for the file.
 static int rdm_default_discovery_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *pd,
                                     uint8_t *pdl_out, void *param,
-                                    const char *param_str, size_t param_len,
-                                    rdm_responder_cb_t cb, void *context) {
+                                    const rdm_pid_description_t *desc,
+                                    const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     // Cannot respond to RDM_CC_DISC_COMMAND with NACK
@@ -74,10 +74,6 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
 
     *pdl_out = pd_emplace(pd, "wv$", &mute, sizeof(mute), false);
     response_type = RDM_RESPONSE_TYPE_ACK;
-  }
-
-  if (cb != NULL) {
-    cb(dmx_num, header, context);
   }
 
   return response_type;
@@ -166,8 +162,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 static int rdm_simple_response_cb(dmx_port_t dmx_num,
                                   const rdm_header_t *header, void *pd,
                                   uint8_t *pdl_out, void *param,
-                                  const char *param_str, size_t param_len,
-                                  rdm_responder_cb_t cb, void *context) {
+                                  const rdm_pid_description_t *desc,
+                                  const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -175,13 +171,9 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num,
   }
 
   if (header->cc == RDM_CC_GET_COMMAND) {
-    *pdl_out = pd_emplace(pd, param_str, param, param_len, false);
+    *pdl_out = pd_emplace(pd, param_str, param, desc->pdl_size, false);
   } else {
     pd_emplace(param, param_str, pd, header->pdl, true);
-  }
-
-  if (cb != NULL) {
-    cb(dmx_num, header, context);
   }
 
   return RDM_RESPONSE_TYPE_ACK;
