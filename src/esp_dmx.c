@@ -6,6 +6,7 @@
 #include "dmx/hal.h"
 #include "dmx/types.h"
 #include "endian.h"
+#include "nvs_flash.h"
 #include "rdm/controller.h"
 #include "rdm/responder.h"
 #include "rdm/utils.h"
@@ -290,9 +291,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       break;
     }
   }
+  const rdm_pid_description_t *desc;
+  void *param;
+  if (cb_num < driver->num_rdm_cbs) {
+    desc = &driver->rdm_cbs[cb_num].desc;
+    param = driver->rdm_cbs[cb_num].param;
+  } else {
+    desc = NULL;
+    param = NULL;
+  }
 
   // Determine how this device should respond to the request
-  const rdm_pid_description_t *desc;
   if (header.pdl > sizeof(pd) || header.port_id == 0 ||
       uid_is_broadcast(&header.src_uid)) {
     // The packet format is invalid
@@ -302,12 +311,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // The requested PID is unknown
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-  } else if ((desc = &driver->rdm_cbs[cb_num].desc) == NULL) {
-    // The PID's descriptor is null - this condition should never be true
-    ESP_LOGW(TAG, "PID 0x%04x has a null descriptor", header.pid);
-    // TODO: set the boot-loader flag
-    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
   } else if ((header.cc == RDM_CC_DISC_COMMAND && desc->cc != RDM_CC_DISC) ||
              (header.cc == RDM_CC_GET_COMMAND && !(desc->cc & RDM_CC_GET)) ||
              (header.cc == RDM_CC_SET_COMMAND && !(desc->cc & RDM_CC_SET))) {
@@ -325,7 +328,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Call the appropriate driver-side RDM callback to process the request
     pdl_out = 0;
     rdm_read(dmx_num, NULL, pd, sizeof(pd));
-    void *param = driver->rdm_cbs[cb_num].param;
     const char *param_str = driver->rdm_cbs[cb_num].param_str;
     response_type = driver->rdm_cbs[cb_num].driver_cb(
         dmx_num, &header, pd, &pdl_out, param, desc, param_str);
@@ -351,6 +353,28 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // TODO: set the boot-loader flag to indicate an error with this device
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
       pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    }
+  }
+
+  // Check if NVS needs to be updated
+  bool must_update_nvs = false;
+  if (header.cc == RDM_CC_SET_COMMAND &&
+      (response_type == RDM_RESPONSE_TYPE_ACK ||
+       response_type == RDM_RESPONSE_TYPE_NONE)) {
+    const uint16_t nvs_pids[] = {
+        RDM_PID_DEVICE_LABEL,    RDM_PID_LANGUAGE,
+        RDM_PID_DMX_PERSONALITY, RDM_PID_DMX_START_ADDRESS,
+        RDM_PID_DEVICE_HOURS,    RDM_PID_LAMP_HOURS,
+        RDM_PID_LAMP_STRIKES,    RDM_PID_LAMP_STATE,
+        RDM_PID_LAMP_ON_MODE,    RDM_PID_DEVICE_POWER_CYCLES,
+        RDM_PID_DISPLAY_INVERT,  RDM_PID_DISPLAY_LEVEL,
+        RDM_PID_PAN_INVERT,      RDM_PID_TILT_INVERT,
+        RDM_PID_PAN_TILT_SWAP};
+    for (int i = 0; i < sizeof(nvs_pids) / sizeof(uint16_t); ++i){ 
+      if (nvs_pids[i] == header.pid) {
+        must_update_nvs = true;
+        break;
+      }
     }
   }
 
@@ -388,8 +412,73 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     driver->rdm_cbs[cb_num].user_cb(dmx_num, &header, context);
   }
 
-  if (header.cc == RDM_CC_SET_COMMAND_RESPONSE) {
-    // TODO: write values to NVS here
+  // Update NVS values
+  if (must_update_nvs) {
+    char namespace[] = "esp_dmx?";
+    namespace[sizeof(namespace) - 2] = dmx_num + '0';
+    char key[5];
+    itoa(header.pid, key, 16);
+
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs);
+    if (!err) {
+#if !defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR == 5
+      // Track which drivers are currently enabled and disable those which are
+      if (response_size > 0) {
+        dmx_wait_sent(dmx_num, 10);
+      }
+      bool driver_is_enabled[DMX_NUM_MAX];
+      for (int i = 0; i < DMX_NUM_MAX; ++i) {
+        driver_is_enabled[i] = dmx_driver_is_enabled(i);
+        if (dmx_driver_is_installed(i)) {
+          dmx_driver_disable(i);
+        }
+      }
+#endif
+
+      // Write the parameter to NVS depending on its type
+      switch (desc->data_type) {
+        case RDM_DS_ASCII:
+          err = nvs_set_str(nvs, key, param);
+          break;
+        case RDM_DS_UNSIGNED_BYTE:
+          err = nvs_set_u8(nvs, key, *(uint8_t *)param);
+          break;
+        case RDM_DS_SIGNED_BYTE:
+          err = nvs_set_i8(nvs, key, *(int8_t *)param);
+          break;
+        case RDM_DS_UNSIGNED_WORD:
+          err = nvs_set_u16(nvs, key, *(uint16_t *)param);
+          break;
+        case RDM_DS_SIGNED_WORD:
+          err = nvs_set_i16(nvs, key, *(int16_t *)param);
+          break;
+        case RDM_DS_UNSIGNED_DWORD:
+          err = nvs_set_u32(nvs, key, *(uint32_t *)param);
+          break;
+        case RDM_DS_SIGNED_DWORD:
+          err = nvs_set_i32(nvs, key, *(int32_t *)param);
+          break;
+        default:
+          err = nvs_set_blob(nvs, key, param, desc->pdl_size);
+      }
+      if (!err) {
+        nvs_commit(nvs);
+      }
+
+#if !defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR == 5
+      for (int i = 0; i < DMX_NUM_MAX; ++i) {
+        if (driver_is_enabled[i]) {
+          dmx_driver_enable(i);
+        }
+      }
+#endif
+
+      nvs_close(nvs);
+    } else {
+      ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
+      // TODO: set boot-loader flag
+    }
   }
 
   // Wait for the response packet to be finished sending
