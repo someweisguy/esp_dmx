@@ -397,12 +397,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // These fields should not change: tn, sub_device, and pid
 
   // Send the response packet
-  size_t response_size = 0;
   if (response_type != RDM_RESPONSE_TYPE_NONE) {
-    response_size = rdm_write(dmx_num, &header, pd);
+    const size_t response_size = rdm_write(dmx_num, &header, pd);
     if (!dmx_send(dmx_num, response_size)) {
       ESP_LOGW(TAG, "PID 0x%04x did not send a response", header.pid);
       // TODO set the boot-loader flag
+    } else if (response_size > 0) {
+      dmx_wait_sent(dmx_num, 10);
+      dmx_uart_set_rts(uart, 1);
     }
   }
 
