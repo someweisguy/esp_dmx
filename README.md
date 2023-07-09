@@ -218,7 +218,7 @@ Responding devices shall respond to requests only if the request was a non-broad
 - `RDM_RESPONSE_TYPE_ACK_TIMER` indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time. When sending this response, responding devices include an estimated response time that must elapse before the responder can provide the required information.
 - `RDM_RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response. NACK reason codes are enumerated in the [appendix](#nack-reason-codes).
 
-Two additional response types are defined for this library. Responders will not send packets with these response types. These response types are included to assist users with processing RDM data.
+Two additional response types are defined for this library. These response types are included to assist users with processing RDM data.
 
 - `RDM_RESPONSE_TYPE_NONE` indicates that no response was received.
 - `RDM_RESPONSE_TYPE_INVALID` indicates that a response was received, but the response was invalid. This can occur for several reasons including an invalid checksum, or an invalid packet format.
@@ -253,6 +253,7 @@ dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
 
 The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
 
+- `alloc_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `alloc_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 21 will disable the RDM responder.
 - `model_id` identifies the device model ID. This is an arbitrary value set by the user. Users should not use the same model ID to represent more than one unique model type. The default value is `0`.
 - `product_category` is the primary function of the device. A list of product categories are enumerated in the appendix under [product categories](#product-categories). The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
 - `software_version_id` indicates the software version ID for the device. This is a 32-bit value determined by the user. The default is a value returned by a function of this library's version number.
@@ -263,6 +264,7 @@ The `dmx_config_t` sets permanent configuration values within the DMX driver. Th
 
 ```c
 dmx_config_t config = {
+  .alloc_size = 512,
   .model_id = 0xabcd,
   .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,
   .software_version_id = 0x100,
@@ -447,8 +449,8 @@ Using only the functions listed above it is possible to send and receive RDM pac
 ```c
 // This is a hard-coded discovery response packet.
 const uint8_t discovery_response[] = {
- 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xaa, 0xaf, 0x55, 0xea, 0xf5, 0xba, 
- 0x57, 0xbb, 0xdd, 0xbf, 0x55, 0xba, 0xdf, 0xaa, 0x5d, 0xbb, 0x7d 
+  0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xaa, 0xaf, 0x55, 0xea, 0xf5, 0xba, 
+  0x57, 0xbb, 0xdd, 0xbf, 0x55, 0xba, 0xdf, 0xaa, 0x5d, 0xbb, 0x7d 
 };
 dmx_write(DMX_NUM_2, discovery_response, sizeof(discovery_response));
 
@@ -597,11 +599,26 @@ An RDM responder must respond to every non-discovery, non-broadcast packet addre
 
 The DMX driver will parse RDM requests and send responses within the `dmx_receive()` function. It is therefore required for RDM requests to be received with `dmx_receive()` to ensure that a response is sent. If `dmx_receive()` is not called, an RDM response will not be sent.
 
-This library provides the ability to attach parameter pointers to RDM response callbacks. This allows users to set their own variables which will be read from and written to during RDM responses. The functions used to register RDM responses are prefixed with `rdm_register_`. A new `RDM_PID_SOFTWARE_VERSION_LABEL` may be registered with `rdm_register_software_version_label()`.
+RDM parameters can be registered with the DMX driver using functions prefixed with `rdm_register_`. The parameter `RDM_PID_SOFTWARE_VERSION_LABEL` may therefore be registered with `rdm_register_software_version_label()`. Parameter data is owned and initialized by the DMX driver, but users may set the default value for parameters using the arguments to the `rdm_register_` functions.
+
+The `rdm_register_` functions allow allow users to attach callback functions to PIDs. When a valid request for a parameter is received, the DMX driver will call the callback function after a request is processed. When a callback is called it does not necessarily mean that a response packet has been sent.
 
 ```c
+void custom_callback(dmx_port_t dmx_num, const rdm_header_t *header, 
+                     void *context) {
+  if (header->pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
+    printf("A RDM_PID_SOFTWARE_VERSION_LABEL request was received!\n");
+  }
+}
+```
+
+Fields in the `rdm_header_t` pointer will reflect the values sent in the response to the RDM request. For example, if a `RDM_CC_GET_COMMAND` is received, the `header->cc` field will evaluate to `RDM_CC_GET_COMMAND_RESPONSE` in the callback function. This can be used to determine if a response packet was sent as the `header->response_type` field will evaluate to `RDM_RESPONSE_TYPE_NONE`.
+
+```c
+void *context = NULL;  // Context not needed for the above callback 
 const char *new_software_label = "My Custom Software";
-if (rdm_register_software_version_label(DMX_NUM_2, new_software_label)) {
+if (rdm_register_software_version_label(DMX_NUM_2, new_software_label, 
+                                        custom_callback, context)) {
   printf("A new software version label has been registered!\n");
 }
 ```
