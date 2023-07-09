@@ -91,5 +91,7 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
     // TODO: set boot-loader flag
   }
 
+  // TODO: add queued message
+
   return true;
 }
