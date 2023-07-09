@@ -32,8 +32,11 @@ static const char *TAG = "main";
 
 static const char *software_version_label = "My Custom Software!";
 
-void custom_rdm_identify_cb(dmx_port_t dmx_num, bool identify, void *context) {
+void custom_rdm_identify_cb(dmx_port_t dmx_num, const rdm_header_t *header,
+                            void *context) {
   // Illuminate the LED if the identify state is set to true
+  uint8_t identify;
+  rdm_get_identify_device(dmx_num, &identify);
   gpio_set_level(LED_PIN, identify);
 }
 
@@ -44,7 +47,8 @@ void app_main() {
   ESP_ERROR_CHECK(dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT));
 
   // Register software version label response
-  if (!rdm_register_software_version_label(dmx_num, software_version_label)) {
+  if (!rdm_register_software_version_label(dmx_num, software_version_label,
+                                           NULL, NULL)) {
     ESP_LOGE(TAG, "Unable to register new software version label response!");
   }
 
