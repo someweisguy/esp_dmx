@@ -191,11 +191,11 @@ The constants `RDM_SUB_DEVICE_ROOT` and `RDM_SUB_DEVICE_ALL` are provided to imp
 
 ### Parameters
 
-RDM requests must be able to fetch and update parameters. The RDM standard specifies more than 50 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/).
+RDM requests must be able to fetch and update parameters. The RDM standard specifies more than 50 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices.
 
 Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. This library provides constants for each PID. Each PID in this library is prefixed with `RDM_PID_`. Therefore, `DISC_UNIQUE_BRANCH` would become `RDM_PID_DISC_UNIQUE_BRANCH`. This document will refer to PIDs by their prefixed names for consistency of documentation.
 
-RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the required PIDs can be found in the [appendix](#parameter-ids).
+RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the supported and the required PIDs can be found in the [appendix](#parameter-ids).
 
 GET requests may not be sent to all sub-devices of a root devices. It is therefore not permitted to send a GET request to `RDM_SUB_DEVICE_ALL`.
 
@@ -626,6 +626,22 @@ if (rdm_register_software_version_label(DMX_NUM_2, new_software_label,
 If a request for a PID that does not have a registered callback is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
 
 The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification.
+
+Parameters which are registered may be get or set using getter and setter functions. Parameters which support the `RDM_CC_GET_COMMAND` command class have a getter function prefixed prefixed with `rdm_get_` and parameters which support `RDM_CC_SET_COMMAND` have a setter function prefixed with `rdm_set_`. These getters and setters return true if the value was successfully gotten or set.
+
+Some parameters, such as `RDM_PID_DMX_START_ADDRESS` are copied to non-volatile storage to ensure the values are saved after the ESP32 is power-cycled. <!--TODO: how are NVS parameters initialized to their default values?-->
+
+```c
+uint16_t dmx_start_address;
+if (!rdm_get_dmx_start_address(DMX_NUM_2, &dmx_start_address)) {
+  printf("An error occurred getting the DMX start address.\n");
+}
+
+dmx_start_address = 123;
+if (!rdm_set_dmx_start_address(DMX_NUM_2, dmx_start_address)) {
+  printf("An error occurred setting the DMX start address.\n");
+}
+```
 
 ## Error Handling
 
