@@ -48,8 +48,11 @@ const char *softwareVersionLabel = "My Custom Software!";
   LED when identify is inactive. Don't forget to also declare which pin your LED
   is using! */
 int ledPin = 13;
-void rdmIdentifyCallback(dmx_port_t dmxPort, bool identify, void *context) {
+void rdmIdentifyCallback(dmx_port_t dmxPort, const rdm_header_t *header,
+                         void *context) {
   // Illuminate the LED if the identify state is set to true
+  uint8_t identify;
+  rdm_get_identify_device(dmx_num, &identify);
   digitalWrite(ledPin, identify);
   Serial.printf("Identify mode is %s.\n", identify ? "on" : "off");
 }
@@ -71,8 +74,11 @@ void setup() {
   dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
 
   /* Register the custom RDM_PID_SOFTWARE_VERSION_LABEL callback. This
-    overwrites the default response. */
-  rdm_register_software_version_label(dmxPort, softwareVersionLabel);
+    overwrites the default response. If you would like you may add a callback
+    function and a context which will be called when receiving this request. For
+    now, we will leave these NULL. */
+  rdm_register_software_version_label(dmxPort, softwareVersionLabel, NULL,
+                                      NULL);
 
   /* Register the custom RDM_PID_IDENTIFY_DEVICE callback. This overwrites the
     default response. Since we aren't using a user context in the callback, we
