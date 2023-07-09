@@ -85,5 +85,11 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
   }
   *param = dmx_start_address;
 
+  esp_err_t err = rdm_set_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                              RDM_DS_UNSIGNED_BYTE, param, 2);
+  if (err) {
+    // TODO: set boot-loader flag
+  }
+
   return true;
 }
