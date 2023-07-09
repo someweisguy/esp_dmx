@@ -10,16 +10,6 @@
 extern "C" {
 #endif
 
-/**
- * @brief Callback function type for use with rdm_register_identify_device().
- *
- * @param dmx_num The DMX port number.
- * @param identify The state to which the identify mode was set.
- * @param[inout] context A pointer to a user context.
- */
-typedef void (*rdm_identify_cb_t)(dmx_port_t dmx_num, bool identify,
-                                  void *context);
-
 // TODO: docs
 typedef void (*rdm_responder_cb_t)(dmx_port_t dmx_num,
                                    const rdm_header_t *header, void *context);
