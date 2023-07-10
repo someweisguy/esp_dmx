@@ -374,7 +374,7 @@ void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid,
 
 // TODO: docs
 esp_err_t rdm_set_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                      void *param, size_t size);
+                      const void *param, size_t size);
 
 #ifdef __cplusplus
 }
