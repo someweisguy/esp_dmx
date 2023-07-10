@@ -658,7 +658,7 @@ esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
     }
 #endif
 
-    // Read the parameter to NVS depending on its type
+    // Read the parameter from NVS depending on its type
     switch (ds) {
       case RDM_DS_ASCII:
         err = nvs_get_str(nvs, key, param, size);
@@ -697,7 +697,6 @@ esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   }
 
   return err;
-
 }
 
 esp_err_t rdm_set_pid_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
