@@ -8,9 +8,6 @@ extern "C" {
 #endif
 
 // TODO: docs
-bool rdm_get_disc_mute(dmx_port_t dmx_num, uint8_t *mute);
-
-// TODO: docs
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info);
 
 // TODO: docs

@@ -2,18 +2,6 @@
 
 #include "rdm/utils.h"
 
-bool rdm_get_disc_mute(dmx_port_t dmx_num, uint8_t *mute) {
-  // TODO: arg checks
-  
-  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE);
-  if (param == NULL) {
-    return false;
-  }
-  *mute = *param;
-
-  return true;
-}
-
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   // TODO: arg checks
 
