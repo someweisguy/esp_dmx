@@ -273,7 +273,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 static void rdm_default_identify_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *context) {
   if (header->cc == RDM_CC_SET_COMMAND) {
-    const uint8_t *identify = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE);
+    const uint8_t *identify = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL);
 #ifdef ARDUINO
     printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else

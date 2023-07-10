@@ -23,7 +23,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
   int response_type;
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Ignore this message if discovery is muted
-    const uint8_t *is_muted = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE);
+    const uint8_t *is_muted = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL);
     if (is_muted == NULL) {
       // TODO: set boot-loader flag
       return RDM_RESPONSE_TYPE_NONE;
@@ -105,8 +105,8 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   uint8_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE)) == NULL &&
-      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE)) == NULL) {
+  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL)) == NULL &&
+      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE, NULL)) == NULL) {
     param = rdm_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
@@ -135,8 +135,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   uint8_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE)) == NULL &&
-      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE)) == NULL) {
+  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL)) == NULL &&
+      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE, NULL)) == NULL) {
     param = rdm_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
@@ -187,7 +187,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   rdm_device_info_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO)) == NULL) {
+  if ((param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL)) == NULL) {
     param = rdm_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
@@ -249,7 +249,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   uint8_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE)) == NULL) {
+  if ((param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL)) == NULL) {
     param = rdm_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
@@ -281,11 +281,12 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
       dmx_start_address < DMX_PACKET_SIZE_MAX || dmx_start_address == 0xffff,
       false, "dmx_start_address is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO) != NULL, false,
+  DMX_CHECK(rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL) != NULL, false,
             "RDM_PID_DEVICE_INFO must be registered first");
 
   // DMX start address is stored within device info
-  rdm_device_info_t *device_info = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *device_info =
+      rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL);
   void *const void_param = &device_info->dmx_start_address;  // silence warning
   uint16_t *param = void_param;
   if (dmx_start_address == 0 && *param == 0) {

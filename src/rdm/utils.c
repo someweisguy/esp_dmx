@@ -630,7 +630,8 @@ void *rdm_alloc(dmx_port_t dmx_num, size_t size) {
   return ret;
 }
 
-void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid) {
+void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid,
+                  const rdm_pid_description_t **desc) {
   // TODO: arg check
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -641,6 +642,9 @@ void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid) {
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       ret = driver->rdm_cbs[i].param;
+      if (desc != NULL) {
+        *desc = &driver->rdm_cbs[i].desc;
+      }
       break;
     }
   }

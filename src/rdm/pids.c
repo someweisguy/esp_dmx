@@ -5,7 +5,7 @@
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   // TODO: arg checks
 
-  rdm_device_info_t *param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL);
   if (param == NULL) {
     return false;
   }
@@ -18,7 +18,7 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num,
                                     const char **software_version_label) {
   // TODO: arg check
 
-  const char *param = rdm_get_pid(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL);
+  const char *param = rdm_get_pid(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL, NULL);
   if (param == NULL) {
     return false;
   }
@@ -30,7 +30,7 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num,
 bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify) {
   // TODO: arg check
 
-  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE);
+  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL);
   if (param == NULL) {
     return false;
   }
@@ -42,7 +42,7 @@ bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify) {
 bool rdm_set_identify_device(dmx_port_t dmx_num, const uint8_t identify) {
   // TODO: arg check
 
-  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE);
+  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL);
   if (param == NULL) {
     return false;
   }
@@ -54,7 +54,7 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, const uint8_t identify) {
 bool rdm_get_dmx_start_address(dmx_port_t dmx_num, uint16_t *dmx_start_address) {
   // TODO: arg check
 
-  uint16_t *param = rdm_get_pid(dmx_num, RDM_PID_DMX_START_ADDRESS);
+  uint16_t *param = rdm_get_pid(dmx_num, RDM_PID_DMX_START_ADDRESS, NULL);
   if (param == NULL) {
     return false;
   }
@@ -67,7 +67,7 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
                                const uint16_t dmx_start_address) {
   // TODO: arg check
 
-  uint16_t *param = rdm_get_pid(dmx_num, RDM_PID_DMX_START_ADDRESS);
+  uint16_t *param = rdm_get_pid(dmx_num, RDM_PID_DMX_START_ADDRESS, NULL);
   if (param == NULL) {
     return false;
   }
