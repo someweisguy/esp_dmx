@@ -40,7 +40,8 @@ static bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid,
       memcpy(pd, param, size);
     }
     if (nvs) {
-      esp_err_t err = rdm_set_nvs(dmx_num, pid, desc->data_type, param, size);
+      esp_err_t err =
+          rdm_set_pid_to_nvs(dmx_num, pid, desc->data_type, param, size);
       if (err) {
         // TODO: set boot-loader flag
       }

@@ -637,8 +637,71 @@ void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid,
   return ret;
 }
 
-esp_err_t rdm_set_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                      const void *param, size_t size) {
+esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                               void *param, size_t *size) {
+  char namespace[] = "esp_dmx?";
+  namespace[sizeof(namespace) - 2] = dmx_num + '0';
+  char key[5];
+  itoa(pid, key, 16);
+
+  nvs_handle_t nvs;
+  esp_err_t err = nvs_open(namespace, NVS_READONLY, &nvs);
+  if (!err) {
+#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
+    // Track which drivers are currently enabled and disable those which are
+    bool driver_is_enabled[DMX_NUM_MAX];
+    for (int i = 0; i < DMX_NUM_MAX; ++i) {
+      driver_is_enabled[i] = dmx_driver_is_enabled(i);
+      if (dmx_driver_is_installed(i)) {
+        dmx_driver_disable(i);
+      }
+    }
+#endif
+
+    // Write the parameter to NVS depending on its type
+    switch (ds) {
+      case RDM_DS_ASCII:
+        err = nvs_get_str(nvs, key, param, size);
+        break;
+      case RDM_DS_UNSIGNED_BYTE:
+        err = nvs_get_u8(nvs, key, param);
+        break;
+      case RDM_DS_SIGNED_BYTE:
+        err = nvs_get_i8(nvs, key, param);
+        break;
+      case RDM_DS_UNSIGNED_WORD:
+        err = nvs_get_u16(nvs, key, param);
+        break;
+      case RDM_DS_SIGNED_WORD:
+        err = nvs_get_i16(nvs, key, param);
+        break;
+      case RDM_DS_UNSIGNED_DWORD:
+        err = nvs_get_u32(nvs, key, param);
+        break;
+      case RDM_DS_SIGNED_DWORD:
+        err = nvs_get_i32(nvs, key, param);
+        break;
+      default:
+        err = nvs_get_blob(nvs, key, param, size);
+    }
+
+#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
+    for (int i = 0; i < DMX_NUM_MAX; ++i) {
+      if (driver_is_enabled[i]) {
+        dmx_driver_enable(i);
+      }
+    }
+#endif
+
+    nvs_close(nvs);
+  }
+
+  return err;
+
+}
+
+esp_err_t rdm_set_pid_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                             const void *param, size_t size) {
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];

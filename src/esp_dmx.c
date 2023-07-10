@@ -416,8 +416,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Update NVS values
   if (must_update_nvs) {
-    esp_err_t err = rdm_set_nvs(dmx_num, header.pid, desc->data_type, param,
-                                desc->pdl_size);
+    esp_err_t err = rdm_set_pid_to_nvs(dmx_num, header.pid, desc->data_type,
+                                       param, desc->pdl_size);
     if (err) {
       ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
       // TODO: set boot-loader flag

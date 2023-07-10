@@ -379,17 +379,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   device_info.product_category = config->product_category;
   device_info.software_version_id = config->software_version_id;
 
-  nvs_handle_t nvs;
-  if (config->dmx_start_address == 0 || config->current_personality == 0) {
-    // Initialize the partition and declare the namespace
-    nvs_flash_init_partition("nvs");
-    char namespace[] = "esp_dmx?";
-    namespace[strlen(namespace) - 1] = dmx_num + '0';
-
-    // Open the NVS handle
-    nvs_open(namespace, NVS_READONLY, &nvs);
-  }
-
   if (config->personality_count > DMX_PERSONALITIES_MAX) {
     ESP_LOGW(TAG, "Personality count is invalid, using default personality");
     driver->personalities[0].footprint = 1;
@@ -404,15 +393,21 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     ESP_LOGW(TAG, "Current personality is invalid, using personality 1");
     device_info.current_personality = 1;
   } else if (config->current_personality == 0) {
-    // Initialize the NVS key - a string of the hex value of the PID
-    char key[5];
-    itoa(RDM_PID_DMX_PERSONALITY, key, 16);
+    // FIXME: get personality from NVS
+    /*
+    typedef struct rdm_dmx_personality_t {
+      uint8_t current_personality;
+      uint8_t personality_count;
+    } rdm_dmx_personality_t;
 
-    // Get the DMX start address and close the NVS handle
-    esp_err_t err = nvs_get_u8(nvs, key, &device_info.current_personality);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-      device_info.current_personality = 1;
-    }
+    if no current personality struct found in NVS or if personality count in NVS
+     does not match the set personality count:
+      set current_personality to 1
+    else:
+      set current_personality to value from NVS 
+
+    */
+    device_info.current_personality = 1;
   } else {
     device_info.current_personality = config->current_personality;
   }
@@ -421,13 +416,10 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   if (device_info.footprint == 0) {
     device_info.dmx_start_address = 0xffff;
   } else if (config->dmx_start_address == 0) {
-    // Initialize the NVS key - a string of the hex value of the PID
-    char key[5];
-    itoa(RDM_PID_DMX_START_ADDRESS, key, 16);
-
-    // Get the DMX start address and close the NVS handle
     uint16_t dmx_start_address;
-    esp_err_t err = nvs_get_u16(nvs, key, &dmx_start_address);
+    esp_err_t err = rdm_get_pid_from_nvs(
+        dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+        &dmx_start_address, sizeof(dmx_start_address));
     if (err == ESP_ERR_NVS_NOT_FOUND) {
       dmx_start_address = 1;
     }
