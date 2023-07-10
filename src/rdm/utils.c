@@ -23,7 +23,6 @@
 #endif
 
 static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
-static bool rdm_is_identifying = false;
 static rdm_uid_t rdm_binding_uid = {};
 
 static const char *TAG = "rdm_utils";
@@ -222,21 +221,6 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
 size_t pd_emplace_word(void *destination, uint16_t word) {
   *(uint16_t *)destination = bswap16(word);
   return sizeof(word);
-}
-
-bool rdm_identify_get() {
-  bool identify;
-  taskENTER_CRITICAL(&rdm_spinlock);
-  identify = rdm_is_identifying;
-  taskEXIT_CRITICAL(&rdm_spinlock);
-
-  return identify;
-}
-
-void rdm_identify_set(const bool identify) {
-  taskENTER_CRITICAL(&rdm_spinlock);
-  rdm_is_identifying = identify;
-  taskEXIT_CRITICAL(&rdm_spinlock);
 }
 
 size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,

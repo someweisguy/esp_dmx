@@ -251,21 +251,6 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
 size_t pd_emplace_word(void *destination, uint16_t word);
 
 /**
- * @brief Returns true if the identify state on this device is active.
- *
- * @return true if the identify state is active.
- * @return false if the identify state is inactive.
- */
-bool rdm_identify_get();
-
-/**
- * @brief Sets the identify state of this device.
- *
- * @param identify True to set the identify state, false to unset.
- */
-void rdm_identify_set(const bool identify);
-
-/**
  * @brief Reads an RDM packet from the DMX driver buffer. Header information is
  * emplaced into a header pointer so that it may be read by the caller.
  * Parameter data information needs to be emplaced before it can be properly
