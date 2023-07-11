@@ -430,10 +430,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   device_info.sub_device_count = 0;  // Sub-devices must be registered
   device_info.sensor_count = 0;      // Sensors must be registered
 
-  if (config->dmx_start_address == 0 || config->current_personality == 0) {
-    nvs_close(nvs);
-  }
-
   // UART configuration
   driver->dmx_num = dmx_num;
   driver->uart = UART_LL_GET_HW(dmx_num);
@@ -526,8 +522,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
           ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
   rdm_register_software_version_label(dmx_num, software_version_label, NULL,
                                       NULL);
-  rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-  rdm_register_dmx_start_address(dmx_num, 0, NULL, NULL);
+  rdm_register_identify_device(dmx_num, NULL, rdm_default_identify_cb, NULL);
+  rdm_register_dmx_start_address(dmx_num, NULL, NULL, NULL);
   // TODO: rdm_register_supported_parameters()
 
   // Enable reading on the DMX port
