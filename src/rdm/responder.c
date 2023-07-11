@@ -287,7 +287,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
     if (strnlen(software_version_label, 33) > 32) {
       ESP_LOGW(TAG, "software_version_label will be truncated.");
     }
-    param = rdm_alloc(dmx_num, 33);  // TODO: verify behavior
+    param = rdm_alloc(dmx_num, 32);
     if (param == NULL) {
       return false;
     }
@@ -295,8 +295,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   }
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                               rdm_simple_response_cb,
-                               (void *)software_version_label, cb, context);
+                               rdm_simple_response_cb, param, cb, context);
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num,
