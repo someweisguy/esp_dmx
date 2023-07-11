@@ -192,15 +192,14 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   rdm_device_info_t *param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL);
   if (param == NULL) {
     DMX_CHECK(device_info != NULL, false, "device_info is null");
-    DMX_CHECK((device_info->dmx_start_address > 0 &&
-               device_info->dmx_start_address < DMX_PACKET_SIZE_MAX) ||
-                  device_info->dmx_start_address == -1,
+    DMX_CHECK((device_info->dmx_start_address < DMX_PACKET_SIZE_MAX ||
+               device_info->dmx_start_address == -1),
               false, "dmx_start_address is invalid");
-    DMX_CHECK(
-        (device_info->footprint == 0 && device_info->dmx_start_address == -1) ||
-            (device_info->footprint > 0 &&
-             device_info->footprint < DMX_PACKET_SIZE_MAX),
-        false, "footprint is invalid");
+    DMX_CHECK((device_info->footprint == 0 &&
+               device_info->dmx_start_address == 0xffff) ||
+                  (device_info->footprint > 0 &&
+                   device_info->footprint < DMX_PACKET_SIZE_MAX),
+              false, "footprint is invalid");
     DMX_CHECK((device_info->personality_count == 0 &&
                device_info->dmx_start_address == 0xffff) ||
                   (device_info->personality_count > 0 &&
