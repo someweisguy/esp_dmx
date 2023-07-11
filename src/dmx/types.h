@@ -244,6 +244,10 @@ typedef struct dmx_config_t {
   /** @brief This field indicates the software version ID for the device. The
      software version ID is a 32-bit value determined by the manufacturer.*/
   uint32_t software_version_id;
+  /** @brief This RDM parameter is used to get a descriptive ASCII text label
+     for the device's operating software version. The descriptive text returned
+     by this parameter is intended for display to the user.*/
+  char software_version_label[33];
   /** @brief The current selected DMX personality of the device. The personality
      is the configured arrangement of DMX slots used by the device. Many devices
      may have multiple personalities from which to choose. These personalities

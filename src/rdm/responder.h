@@ -78,7 +78,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
  * @return false if there is not enough memory to register additional responses.
  */
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         char *software_version_label,
+                                         const char *software_version_label,
                                          rdm_responder_cb_t cb, void *context);
 
 /**

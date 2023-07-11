@@ -26,6 +26,9 @@ extern "C" {
     .alloc_size = 512, .model_id = 0, .product_category = 0x0100,             \
     .software_version_id = ESP_IDF_VERSION_VAL(                               \
         ESP_DMX_VERSION_MAJOR, ESP_DMX_VERSION_MINOR, ESP_DMX_VERSION_PATCH), \
+    .software_version_label =                                                 \
+        "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(           \
+            ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH),      \
     .current_personality = 1, .personalities = {{1, "Default Personality"}},  \
     .personality_count = 1, .dmx_start_address = 0                            \
   }

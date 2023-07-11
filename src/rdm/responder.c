@@ -262,7 +262,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         char *software_version_label,
+                                         const char *software_version_label,
                                          rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -277,19 +277,15 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                       .max_value = 0,
                                       .default_value = 0,
                                       .description = "Software Version Label"};
-  const char *param_str = "a";  // TODO: change to "a$"
+  const char *param_str = "a$";
 
   char *param = rdm_get_pid(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL, NULL);
   if (param == NULL) {
-    if (software_version_label == NULL) {
-      // Set the default value
-      software_version_label =
-          "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
-              ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
-    }
+    DMX_CHECK(software_version_label != NULL, false,
+              "software_version_label is null");
     // Get the string length and clamp it to 32 chars
     if (strnlen(software_version_label, 33) > 32) {
-      ESP_LOGW(TAG, "Software version label will be truncated.");
+      ESP_LOGW(TAG, "software_version_label will be truncated.");
     }
     param = rdm_alloc(dmx_num, 33);  // TODO: verify behavior
     if (param == NULL) {

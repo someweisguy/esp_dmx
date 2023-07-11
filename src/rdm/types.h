@@ -112,7 +112,7 @@ typedef enum rdm_pid_t {
   RDM_PID_LANGUAGE_CAPABILITIES = 0x00a0,
   RDM_PID_LANGUAGE = 0x00b0,
   /** @brief This parameter is used to get a descriptive ASCII text label for 
-     the device‘s operating software version. The descriptive text returned by
+     the device's operating software version. The descriptive text returned by
      this parameter is intended for display to the user. @note Supports GET.*/
   RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,  
   RDM_PID_BOOT_SOFTWARE_VERSION_ID = 0x00c1,
