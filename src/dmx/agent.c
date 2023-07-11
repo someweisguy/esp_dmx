@@ -287,10 +287,20 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
-  // TODO: arg check config - ensure personality_count < DMX_PERSONALITIES_MAX
-  // TODO: config->current_personality <= config->personality_count
-  // TODO: config->dmx_start_address < DMX_PACKET_SIZE_MAX
-  // TODO: ensure all footprints are < DMX_PACKET_SIZE_MAX
+  DMX_CHECK(config->dmx_start_address < DMX_PACKET_SIZE_MAX ||
+                config->dmx_start_address == 0xffff,
+            ESP_ERR_INVALID_ARG, "dmx_start_address error");
+  DMX_CHECK(
+      (config->personality_count == 0 && config->dmx_start_address == 0xffff) ||
+          (config->personality_count > 0 &&
+           config->personality_count < DMX_PERSONALITIES_MAX),
+      false, "personality_count error");
+  DMX_CHECK(config->current_personality <= config->personality_count,
+            ESP_ERR_INVALID_ARG, "current_personality error");
+  for (int i = 0; i < config->personality_count; ++i) {
+    DMX_CHECK(config->personalities[i].footprint < DMX_PACKET_SIZE_MAX,
+              ESP_ERR_INVALID_ARG, "footprint error");
+  }
 
   // Initialize NVS
   nvs_flash_init_partition("nvs");  // TODO: allow rename partition in Kconfig

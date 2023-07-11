@@ -193,21 +193,21 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   if (param == NULL) {
     DMX_CHECK(device_info != NULL, false, "device_info is null");
     DMX_CHECK((device_info->dmx_start_address < DMX_PACKET_SIZE_MAX ||
-               device_info->dmx_start_address == -1),
-              false, "dmx_start_address is invalid");
+               device_info->dmx_start_address == 0xffff),
+              false, "dmx_start_address error");
     DMX_CHECK((device_info->footprint == 0 &&
                device_info->dmx_start_address == 0xffff) ||
                   (device_info->footprint > 0 &&
                    device_info->footprint < DMX_PACKET_SIZE_MAX),
-              false, "footprint is invalid");
+              false, "footprint error");
     DMX_CHECK((device_info->personality_count == 0 &&
                device_info->dmx_start_address == 0xffff) ||
                   (device_info->personality_count > 0 &&
                    device_info->personality_count < DMX_PERSONALITIES_MAX),
-              false, "personality_count is invalid");
+              false, "personality_count error");
     DMX_CHECK(
         device_info->current_personality <= device_info->personality_count,
-        false, "current_personality is invalid");
+        false, "current_personality error");
 
     // Load the DMX start address from NVS
     if (device_info->dmx_start_address == 0) {
