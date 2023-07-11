@@ -193,15 +193,15 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   if (param == NULL) {
     DMX_CHECK(device_info != NULL, false, "device_info is null");
     DMX_CHECK((device_info->dmx_start_address < DMX_PACKET_SIZE_MAX ||
-               device_info->dmx_start_address == 0xffff),
+               device_info->dmx_start_address == DMX_START_ADDRESS_NONE),
               false, "dmx_start_address error");
     DMX_CHECK((device_info->footprint == 0 &&
-               device_info->dmx_start_address == 0xffff) ||
+               device_info->dmx_start_address == DMX_START_ADDRESS_NONE) ||
                   (device_info->footprint > 0 &&
                    device_info->footprint < DMX_PACKET_SIZE_MAX),
               false, "footprint error");
     DMX_CHECK((device_info->personality_count == 0 &&
-               device_info->dmx_start_address == 0xffff) ||
+               device_info->dmx_start_address == DMX_START_ADDRESS_NONE) ||
                   (device_info->personality_count > 0 &&
                    device_info->personality_count < DMX_PERSONALITIES_MAX),
               false, "personality_count error");
@@ -222,7 +222,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 
     // Load the current DMX personality from NVS
     if (device_info->current_personality == 0 &&
-        device_info->dmx_start_address != 0xffff) {
+        device_info->dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
       esp_err_t err =

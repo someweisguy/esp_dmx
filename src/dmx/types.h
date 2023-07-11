@@ -294,6 +294,10 @@ typedef struct dmx_packet_t {
   bool is_rdm;
 } dmx_packet_t;
 
+/** @brief DMX start address which indicates the device does not have a DMX
+ * start address.*/
+static const uint16_t DMX_START_ADDRESS_NONE = 0xffff;
+
 #ifdef __cplusplus
 }
 #endif

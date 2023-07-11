@@ -7,8 +7,8 @@
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "endian.h"
-#include "rdm/responder.h"
 #include "nvs_flash.h"
+#include "rdm/responder.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -273,7 +273,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 static void rdm_default_identify_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *context) {
   if (header->cc == RDM_CC_SET_COMMAND) {
-    const uint8_t *identify = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL);
+    const uint8_t *identify =
+        rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL);
 #ifdef ARDUINO
     printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else
@@ -288,13 +289,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
   DMX_CHECK(config->dmx_start_address < DMX_PACKET_SIZE_MAX ||
-                config->dmx_start_address == 0xffff,
+                config->dmx_start_address == DMX_START_ADDRESS_NONE,
             ESP_ERR_INVALID_ARG, "dmx_start_address error");
-  DMX_CHECK(
-      (config->personality_count == 0 && config->dmx_start_address == 0xffff) ||
-          (config->personality_count > 0 &&
-           config->personality_count < DMX_PERSONALITIES_MAX),
-      false, "personality_count error");
+  DMX_CHECK((config->personality_count == 0 &&
+             config->dmx_start_address == DMX_START_ADDRESS_NONE) ||
+                (config->personality_count > 0 &&
+                 config->personality_count < DMX_PERSONALITIES_MAX),
+            false, "personality_count error");
   DMX_CHECK(config->current_personality <= config->personality_count,
             ESP_ERR_INVALID_ARG, "current_personality error");
   for (int i = 0; i < config->personality_count; ++i) {
@@ -475,7 +476,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
     rdm_register_software_version_label(dmx_num, NULL, NULL, NULL);
     rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-    if (device_info.dmx_start_address != 0xffff) {
+    if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_register_dmx_start_address(dmx_num, NULL, NULL);
     }
     // TODO: rdm_register_supported_parameters()
@@ -487,9 +488,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     uint16_t dmx_start_address;
     if (config->dmx_start_address == 0) {
       size_t size = sizeof(dmx_start_address);
-      esp_err_t err = rdm_get_pid_from_nvs(
-          dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-          &dmx_start_address, &size);
+      esp_err_t err =
+          rdm_get_pid_from_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                               RDM_DS_UNSIGNED_WORD, &dmx_start_address, &size);
       if (err) {
         dmx_start_address = 1;
       }
@@ -499,7 +500,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
     // Load the current DMX personality from NVS
     uint8_t current_personality;
-    if (config->current_personality == 0 && dmx_start_address != 0xffff) {
+    if (config->current_personality == 0 &&
+        dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
       esp_err_t err =
@@ -788,11 +790,11 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num) {
 }
 
 uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
-  return 0; // TODO 
+  return 0;  // TODO
 }
 
 bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
-  return false; // TODO
+  return false;  // TODO
 }
 
 uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
@@ -823,13 +825,13 @@ size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {
 
 const char *dmx_get_personality_description(dmx_port_t dmx_num,
                                             uint8_t personality_num) {
-  return NULL; // TODO
+  return NULL;  // TODO
 }
 
 uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
-  return 0; // TODO
+  return 0;  // TODO
 }
 
 bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
-  return false; // TODO
+  return false;  // TODO
 }
