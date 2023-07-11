@@ -418,7 +418,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
     rdm_register_software_version_label(dmx_num, NULL, NULL, NULL);
     rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-    rdm_register_dmx_start_address(dmx_num, NULL, NULL);
+    if (device_info->dmx_start_address != 0xffff) {
+      rdm_register_dmx_start_address(dmx_num, NULL, NULL);
+    }
     // TODO: rdm_register_supported_parameters()
   } else {
     dmx_driver_personality_t *dmx = rdm_alloc(dmx_num, alloc_size);
