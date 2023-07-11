@@ -242,8 +242,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                (void *)software_version_label, cb, context);
 }
 
-bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
-                                  void *context) {
+bool rdm_register_identify_device(dmx_port_t dmx_num, uint8_t *identify_device,
+                                  rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -274,44 +274,19 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
-                                    uint16_t dmx_start_address,
+                                    uint16_t *dmx_start_address,
                                     rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(
-      dmx_start_address < DMX_PACKET_SIZE_MAX || dmx_start_address == 0xffff,
-      false, "dmx_start_address is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   DMX_CHECK(rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL) != NULL, false,
             "RDM_PID_DEVICE_INFO must be registered first");
 
   // DMX start address is stored within device info
-  rdm_device_info_t *device_info =
-      rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL);
-  void *const void_param = &device_info->dmx_start_address;  // silence warning
-  uint16_t *param = void_param;
-  if (dmx_start_address == 0 && *param == 0) {
-
-    // Initialize the partition and declare the namespace
-    nvs_flash_init_partition("nvs");
-    char namespace[] = "esp_dmx?";
-    namespace[strlen(namespace) - 1] = dmx_num + '0';
-
-    // Open the NVS handle
-    nvs_handle_t nvs;
-    nvs_open(namespace, NVS_READONLY, &nvs);
-
-    // Initialize the NVS key - a string of the hex value of the PID
-    char key[5];
-    itoa(RDM_PID_DMX_START_ADDRESS, key, 16);
-
-    // Get the DMX start address and close the NVS handle
-    esp_err_t err = nvs_get_u16(nvs, key, param);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-      *param = 1;
-    }
-    nvs_close(nvs);
-  } else if (dmx_start_address > 0) {
-    *param = dmx_start_address;
+  rdm_device_info_t *di = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL);
+  uint16_t *param = (void *)di + offsetof(rdm_device_info_t, dmx_start_address);
+  if (rdm_get_pid(dmx_num, RDM_PID_DMX_START_ADDRESS) == NULL &&
+      *param != 0xffff) {
+    *param = 
   }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
