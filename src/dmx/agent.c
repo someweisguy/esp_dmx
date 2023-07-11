@@ -425,8 +425,40 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   } else {
     dmx_driver_personality_t *dmx = rdm_alloc(dmx_num, alloc_size);
     assert(dmx != NULL);
-    dmx->dmx_start_address = config->dmx_start_address;
-    dmx->current_personality = config->current_personality;
+
+    // Load the DMX start address from NVS
+    uint16_t dmx_start_address;
+    if (config->dmx_start_address == 0) {
+      size_t size = sizeof(dmx_start_address);
+      esp_err_t err = rdm_get_pid_from_nvs(
+          dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+          &dmx_start_address, &size);
+      if (err) {
+        dmx_start_address = 1;
+      }
+    } else {
+      dmx_start_address = config->dmx_start_address;
+    }
+
+    // Load the current DMX personality from NVS
+    uint8_t current_personality;
+    if (config->current_personality == 0 && dmx_start_address != 0xffff) {
+      rdm_dmx_personality_t personality;
+      size_t size = sizeof(personality);
+      esp_err_t err =
+          rdm_get_pid_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
+                               RDM_DS_BIT_FIELD, &personality, &size);
+      if (err || personality.personality_count != config->personality_count) {
+        current_personality = 1;
+      } else {
+        current_personality = personality.current_personality;
+      }
+    } else {
+      current_personality = config->current_personality;
+    }
+
+    dmx->dmx_start_address = dmx_start_address;
+    dmx->current_personality = current_personality;
     dmx->personality_count = config->personality_count;
   }
 
