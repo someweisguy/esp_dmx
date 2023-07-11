@@ -78,6 +78,13 @@ enum dmx_flags_t {
   DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
 
+// TODO: docs
+typedef struct dmx_driver_personality_t {
+  uint16_t dmx_start_address;
+  uint8_t current_personality;
+  uint8_t personality_count;
+} dmx_driver_personality_t;
+
 /** @brief The DMX driver object used to handle reading and writing DMX data on
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.*/
@@ -117,7 +124,11 @@ typedef struct dmx_driver_t {
     const char *description;
   } personalities[DMX_PERSONALITIES_MAX];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
-  uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
+  uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break.
+
+  uint8_t *alloc_data;
+  size_t alloc_size;
+  size_t alloc_head;
 
   // RDM responder configuration
   uint16_t num_rdm_cbs;
@@ -129,10 +140,6 @@ typedef struct dmx_driver_t {
     rdm_responder_cb_t user_cb;
     void *context;
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
-
-  size_t alloc_size;
-  uint8_t *alloc_data;
-  size_t alloc_head;
 
   // DMX sniffer configuration
   dmx_metadata_t metadata;       // The metadata received by the DMX sniffer.
