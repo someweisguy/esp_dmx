@@ -292,6 +292,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   // TODO: config->dmx_start_address < DMX_PACKET_SIZE_MAX
   // TODO: ensure all footprints are < DMX_PACKET_SIZE_MAX
 
+  // Initialize NVS
+  nvs_flash_init_partition("nvs");  // TODO: allow rename partition in Kconfig
+
   // Initialize RDM UID
   uid_get(dmx_num, NULL);
 
@@ -383,15 +386,59 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     return ESP_ERR_NO_MEM;
   }
 
+  // UART configuration
+  driver->dmx_num = dmx_num;
+  driver->uart = UART_LL_GET_HW(dmx_num);
+  // The uart_isr_handle field is left uninitialized
+
+// Hardware timer configuration
+#if ESP_IDF_VERSION_MAJOR >= 5
+  driver->gptimer_handle = gptimer_handle;
+#else
+  driver->timer_group = timer_group;
+  driver->timer_idx = timer_idx;
+#endif
+
+  // Synchronization state
+  driver->mux = mux;
+  driver->task_waiting = NULL;
+
+  // Data buffer
+  driver->head = -1;
+  driver->data = data;
+  driver->tx_size = DMX_PACKET_SIZE_MAX;
+  driver->rx_size = DMX_PACKET_SIZE_MAX;
+
+  // Driver state
+  driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
+  driver->rdm_type = 0;
+  driver->tn = 0;
+  driver->last_slot_ts = 0;
+
+  // DMX configuration
+  driver->break_len = RDM_BREAK_LEN_US;
+  driver->mab_len = RDM_MAB_LEN_US;
+
   driver->alloc_size = alloc_size;
   driver->alloc_data = alloc_data;
   driver->alloc_head = 0;
+
+  // RDM responder configuration
+  driver->num_rdm_cbs = 0;
+  // The driver->rdm_cbs field is left uninitialized
+
+  // DMX sniffer configuration
+  // The driver->metadata field is left uninitialized
+  driver->metadata_queue = NULL;
+  driver->sniffer_pin = -1;
+  driver->last_pos_edge_ts = -1;
+  driver->last_neg_edge_ts = -1;
 
   // Copy the personality table to the driver
   memcpy(driver->personalities, config->personalities,
          sizeof(*config->personalities) * config->personality_count);
 
-  // Configure device info and add required RDM response callbacks
+  // Configure required variables for RDM or DMX-only
   const bool enable_rdm = (alloc_size >= 54);
   if (enable_rdm) {
     uint16_t footprint;
@@ -461,50 +508,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     dmx->current_personality = current_personality;
     dmx->personality_count = config->personality_count;
   }
-
-  // UART configuration
-  driver->dmx_num = dmx_num;
-  driver->uart = UART_LL_GET_HW(dmx_num);
-  // The uart_isr_handle field is left uninitialized
-
-// Hardware timer configuration
-#if ESP_IDF_VERSION_MAJOR >= 5
-  driver->gptimer_handle = gptimer_handle;
-#else
-  driver->timer_group = timer_group;
-  driver->timer_idx = timer_idx;
-#endif
-
-  // Synchronization state
-  driver->mux = mux;
-  driver->task_waiting = NULL;
-
-  // Data buffer
-  driver->head = -1;
-  driver->data = data;
-  driver->tx_size = DMX_PACKET_SIZE_MAX;
-  driver->rx_size = DMX_PACKET_SIZE_MAX;
-
-  // Driver state
-  driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
-  driver->rdm_type = 0;
-  driver->tn = 0;
-  driver->last_slot_ts = 0;
-
-  // DMX configuration
-  driver->break_len = RDM_BREAK_LEN_US;
-  driver->mab_len = RDM_MAB_LEN_US;
-
-  // RDM responder configuration
-  driver->num_rdm_cbs = 0;
-  // The driver->rdm_cbs field is left uninitialized
-
-  // DMX sniffer configuration
-  // The driver->metadata field is left uninitialized
-  driver->metadata_queue = NULL;
-  driver->sniffer_pin = -1;
-  driver->last_pos_edge_ts = -1;
-  driver->last_neg_edge_ts = -1;
 
   // Enable the UART peripheral
   taskENTER_CRITICAL(spinlock);
