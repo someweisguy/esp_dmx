@@ -593,6 +593,22 @@ typedef struct __attribute__((packed)) rdm_pid_description_t {
   char description[33];  
 } rdm_pid_description_t;
 
+/** @brief This parameter is used to set the responder's DMX personality. Many 
+ * devices such as moving lights have different DMX personalities. Many RDM 
+ * parameters may be affected by changing personality. */
+typedef struct __attribute__((packed)) rdm_dmx_personality_t {
+  /** @brief The current selected DMX personality of the device. The personality
+     is the configured arrangement of DMX slots used by the device. Many devices
+     may have multiple personalities from which to choose. These personalities
+     shall be consecutively numbered starting from 1.*/
+  uint8_t current_personality;
+  /** @brief The number of personalities supported by the device. The
+     personality is the configured arrangement of DMX slots used by the device.
+     Many devices may have multiple personalities from which to choose. These
+     personalities shall be consecutively numbered starting from 1.*/
+  uint8_t personality_count;
+} rdm_dmx_personality_t;
+
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
  * messages.*/
