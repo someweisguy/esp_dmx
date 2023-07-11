@@ -104,14 +104,16 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  uint8_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL)) == NULL &&
-      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE, NULL)) == NULL) {
-    param = rdm_alloc(dmx_num, sizeof(*param));
+  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL);
+  if (param == NULL) {
+    param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE, NULL);
     if (param == NULL) {
-      return false;
+      param = rdm_alloc(dmx_num, sizeof(*param));
+      if (param == NULL) {
+        return false;
+      }
+      *param = 0;
     }
-    *param = 0;
   }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DISC_MUTE,
@@ -134,14 +136,16 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  uint8_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL)) == NULL &&
-      (param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE, NULL)) == NULL) {
-    param = rdm_alloc(dmx_num, sizeof(*param));
+  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE, NULL);
+  if (param == NULL) {
+    param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL);
     if (param == NULL) {
-      return false;
+      param = rdm_alloc(dmx_num, sizeof(*param));
+      if (param == NULL) {
+        return false;
+      }
+      *param = 0;
     }
-    *param = 0;
   }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DISC_UN_MUTE,
@@ -183,21 +187,67 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info,
                               rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(device_info != NULL, false, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  rdm_device_info_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL)) == NULL) {
+  rdm_device_info_t *param = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL);
+  if (param == NULL) {
+    DMX_CHECK(device_info != NULL, false, "device_info is null");
+    DMX_CHECK((device_info->dmx_start_address > 0 &&
+               device_info->dmx_start_address < DMX_PACKET_SIZE_MAX) ||
+                  device_info->dmx_start_address == -1,
+              false, "dmx_start_address is invalid");
+    DMX_CHECK(
+        (device_info->footprint == 0 && device_info->dmx_start_address == -1) ||
+            (device_info->footprint > 0 &&
+             device_info->footprint < DMX_PACKET_SIZE_MAX),
+        false, "footprint is invalid");
+    DMX_CHECK((device_info->personality_count == 0 &&
+               device_info->dmx_start_address == 0xffff) ||
+                  (device_info->personality_count > 0 &&
+                   device_info->personality_count < DMX_PERSONALITIES_MAX),
+              false, "personality_count is invalid");
+    DMX_CHECK(
+        device_info->current_personality <= device_info->personality_count,
+        false, "current_personality is invalid");
+
+    // Load the DMX start address from NVS
+    if (device_info->dmx_start_address == 0) {
+      size_t size = sizeof(device_info->dmx_start_address);
+      esp_err_t err = rdm_get_pid_from_nvs(
+          dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+          &device_info->dmx_start_address, &size);
+      if (err) {
+        device_info->dmx_start_address = 1;
+      }
+    }
+
+    // Load the current DMX personality from NVS
+    if (device_info->current_personality == 0 &&
+        device_info->dmx_start_address != 0xffff) {
+      rdm_dmx_personality_t personality;
+      size_t size = sizeof(personality);
+      esp_err_t err =
+          rdm_get_pid_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
+                               RDM_DS_BIT_FIELD, &personality, &size);
+      if (err ||
+          personality.personality_count != device_info->personality_count) {
+        device_info->current_personality = 1;
+      } else {
+        device_info->current_personality = personality.current_personality;
+      }
+      device_info->footprint =
+          dmx_get_footprint(dmx_num, device_info->current_personality);
+    }
+
     param = rdm_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
     }
+    memcpy(param, device_info, sizeof(*param));
   }
-  memcpy(param, device_info, sizeof(rdm_device_info_t));
-  // TODO: check NVS for dmx_start_address and current_personality
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_DEVICE_INFO,
-                                      .pdl_size = sizeof(rdm_device_info_t),
+                                      .pdl_size = sizeof(*param),
                                       .data_type = RDM_DS_BIT_FIELD,
                                       .cc = RDM_CC_GET,
                                       .unit = RDM_UNITS_NONE,
@@ -213,17 +263,10 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         const char *software_version_label,
+                                         char *software_version_label,
                                          rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(software_version_label != NULL, false,
-            "software_version_label is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  // Get the string length and clamp it to 32 chars
-  if (strlen(software_version_label) > 32) {
-    ESP_LOGW(TAG, "Software version label will be truncated to 32 characters.");
-  }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_SOFTWARE_VERSION_LABEL,
                                       .pdl_size = 32,
@@ -235,21 +278,40 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                       .max_value = 0,
                                       .default_value = 0,
                                       .description = "Software Version Label"};
-  const char *param_str = "a";
+  const char *param_str = "a";  // TODO: change to "a$"
+
+  char *param = rdm_get_pid(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL, NULL);
+  if (param == NULL) {
+    if (software_version_label == NULL) {
+      // Set the default value
+      software_version_label =
+          "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
+              ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
+    }
+    // Get the string length and clamp it to 32 chars
+    if (strnlen(software_version_label, 33) > 32) {
+      ESP_LOGW(TAG, "Software version label will be truncated.");
+    }
+    param = rdm_alloc(dmx_num, 33);  // TODO: verify behavior
+    if (param == NULL) {
+      return false;
+    }
+    strncpy(param, software_version_label, 32);
+  }
 
   return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
                                rdm_simple_response_cb,
                                (void *)software_version_label, cb, context);
 }
 
-bool rdm_register_identify_device(dmx_port_t dmx_num, uint8_t *identify_device,
+bool rdm_register_identify_device(dmx_port_t dmx_num,
                                   rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  uint8_t *param;
-  if ((param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL)) == NULL) {
+  uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL);
+  if (param == NULL) {
     param = rdm_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
@@ -258,7 +320,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, uint8_t *identify_device,
   }
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_IDENTIFY_DEVICE,
-                                      .pdl_size = sizeof(uint8_t),
+                                      .pdl_size = sizeof(*param),
                                       .data_type = RDM_DS_UNSIGNED_BYTE,
                                       .cc = RDM_CC_GET_SET,
                                       .unit = RDM_UNITS_NONE,
@@ -274,23 +336,17 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, uint8_t *identify_device,
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
-                                    uint16_t *dmx_start_address,
                                     rdm_responder_cb_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL) != NULL, false,
-            "RDM_PID_DEVICE_INFO must be registered first");
 
   // DMX start address is stored within device info
   rdm_device_info_t *di = rdm_get_pid(dmx_num, RDM_PID_DEVICE_INFO, NULL);
+  DMX_CHECK(di != NULL, false, "RDM_PID_DEVICE_INFO must be registered first");
   uint16_t *param = (void *)di + offsetof(rdm_device_info_t, dmx_start_address);
-  if (rdm_get_pid(dmx_num, RDM_PID_DMX_START_ADDRESS) == NULL &&
-      *param != 0xffff) {
-    *param = 
-  }
-
+  
   const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
-                                      .pdl_size = sizeof(uint16_t),
+                                      .pdl_size = sizeof(*param),
                                       .data_type = RDM_DS_UNSIGNED_WORD,
                                       .cc = RDM_CC_GET_SET,
                                       .unit = RDM_UNITS_NONE,

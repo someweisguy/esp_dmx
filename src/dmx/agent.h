@@ -223,6 +223,28 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
  */
 uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 
+// TODO: docs
+uint8_t dmx_get_current_personality(dmx_port_t dmx_num);
+
+// TODO docs
+bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num);
+
+// TODO: docs
+uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
+
+// TODO: Docs
+size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num);
+
+// TODO: docs
+const char *dmx_get_personality_description(dmx_port_t dmx_num,
+                                            uint8_t personality_num);
+
+// TODO: docs
+uint16_t dmx_get_start_address(dmx_port_t dmx_num);
+
+// TODO: docs
+bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address);
+
 #ifdef __cplusplus
 }
 #endif

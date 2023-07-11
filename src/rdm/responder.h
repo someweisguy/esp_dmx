@@ -78,7 +78,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
  * @return false if there is not enough memory to register additional responses.
  */
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         const char *software_version_label,
+                                         char *software_version_label,
                                          rdm_responder_cb_t cb, void *context);
 
 /**
@@ -95,7 +95,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
  * @return false if there is not enough memory to register additional responses.
  * // TODO update docs
  */
-bool rdm_register_identify_device(dmx_port_t dmx_num, uint8_t *identify_device,
+bool rdm_register_identify_device(dmx_port_t dmx_num, 
                                   rdm_responder_cb_t cb, void *context);
 
 /**
@@ -109,8 +109,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, uint8_t *identify_device,
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
  */
-bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
-                                    uint16_t *dmx_start_address,
+bool rdm_register_dmx_start_address(dmx_port_t dmx_num, 
                                     rdm_responder_cb_t cb, void *context);
 
 #ifdef __cplusplus
