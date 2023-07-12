@@ -560,11 +560,11 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
 
-bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           const rdm_pid_description_t *desc,
-                           const char *param_str, rdm_driver_cb_t driver_cb,
-                           void *param, rdm_responder_cb_t user_cb,
-                           void *context) {
+bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            const rdm_pid_description_t *desc,
+                            const char *param_str, rdm_driver_cb_t driver_cb,
+                            void *param, rdm_responder_cb_t user_cb,
+                            void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(sub_device < 513, false, "sub_device error");
   DMX_CHECK(desc != NULL, false, "desc is null");
@@ -638,8 +638,8 @@ void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
   return ret;
 }
 
-esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                               void *param, size_t *size) {
+esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                          void *param, size_t *size) {
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
@@ -700,8 +700,8 @@ esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   return err;
 }
 
-esp_err_t rdm_set_pid_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                             const void *param, size_t size) {
+esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                        const void *param, size_t size) {
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
@@ -765,8 +765,8 @@ esp_err_t rdm_set_pid_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   return err;
 }
 
-bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                     size_t size) {
+bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
+                       size_t size) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -799,8 +799,8 @@ bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
   return ret;
 }
 
-bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                     size_t size, bool nvs) {
+bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+                       size_t size, bool nvs) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -824,8 +824,7 @@ bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
       memcpy(pd, param, size);
     }
     if (nvs) {
-      esp_err_t err =
-          rdm_set_pid_to_nvs(dmx_num, pid, desc->data_type, param, size);
+      esp_err_t err = pd_set_to_nvs(dmx_num, pid, desc->data_type, param, size);
       if (err) {
         // TODO: set boot-loader flag
       }

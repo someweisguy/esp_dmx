@@ -3,9 +3,9 @@
 #include "dmx/agent.h"
 #include "dmx/driver.h"
 #include "endian.h"
-#include "rdm/utils.h"
-#include "rdm/pids.h"
 #include "nvs_flash.h"
+#include "rdm/pids.h"
+#include "rdm/utils.h"
 
 static const char *TAG = "rdm_responder";  // The log tagline for the file.
 
@@ -95,8 +95,8 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .default_value = 0,
                                       .description = "Discovery Unique Branch"};
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                               rdm_default_discovery_cb, NULL, cb, context);
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
+                                rdm_default_discovery_cb, NULL, cb, context);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
@@ -127,8 +127,8 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .default_value = 0,
                                       .description = "Discovery Mute"};
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                               rdm_default_discovery_cb, param, cb, context);
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
+                                rdm_default_discovery_cb, param, cb, context);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
@@ -159,8 +159,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .default_value = 0,
                                       .description = "Discovery Un-Mute"};
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                               rdm_default_discovery_cb, param, cb, context);
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
+                                rdm_default_discovery_cb, param, cb, context);
 }
 
 static int rdm_simple_response_cb(dmx_port_t dmx_num,
@@ -212,9 +212,9 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     // Load the DMX start address from NVS
     if (device_info->dmx_start_address == 0) {
       size_t size = sizeof(device_info->dmx_start_address);
-      esp_err_t err = rdm_get_pid_from_nvs(
-          dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-          &device_info->dmx_start_address, &size);
+      esp_err_t err = pd_get_from_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                                      RDM_DS_UNSIGNED_WORD,
+                                      &device_info->dmx_start_address, &size);
       if (err) {
         device_info->dmx_start_address = 1;
       }
@@ -225,9 +225,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
         device_info->dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
-      esp_err_t err =
-          rdm_get_pid_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
-                               RDM_DS_BIT_FIELD, &personality, &size);
+      esp_err_t err = pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
+                                      RDM_DS_BIT_FIELD, &personality, &size);
       if (err ||
           personality.personality_count != device_info->personality_count) {
         device_info->current_personality = 1;
@@ -257,8 +256,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
                                       .description = "Device Info"};
   const char *param_str = "#0100hwwdwbbwwb$";
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                               rdm_simple_response_cb, param, cb, context);
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
+                                rdm_simple_response_cb, param, cb, context);
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
@@ -294,12 +293,12 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
     strncpy(param, software_version_label, 32);
   }
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                               rdm_simple_response_cb, param, cb, context);
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
+                                rdm_simple_response_cb, param, cb, context);
 }
 
-bool rdm_register_identify_device(dmx_port_t dmx_num,
-                                  rdm_responder_cb_t cb, void *context) {
+bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                  void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -325,12 +324,12 @@ bool rdm_register_identify_device(dmx_port_t dmx_num,
                                       .description = "Identify Device"};
   const char *param_str = "b$";
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                               rdm_simple_response_cb, param, cb, context);
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
+                                rdm_simple_response_cb, param, cb, context);
 }
 
-bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
-                                    rdm_responder_cb_t cb, void *context) {
+bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                    void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -338,7 +337,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
   rdm_device_info_t *di = pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   DMX_CHECK(di != NULL, false, "RDM_PID_DEVICE_INFO must be registered first");
   uint16_t *param = (void *)di + offsetof(rdm_device_info_t, dmx_start_address);
-  
+
   const rdm_pid_description_t desc = {.pid = RDM_PID_DMX_START_ADDRESS,
                                       .pdl_size = sizeof(*param),
                                       .data_type = RDM_DS_UNSIGNED_WORD,
@@ -351,6 +350,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num,
                                       .description = "DMX Start Address"};
   const char *param_str = "w$";
 
-  return rdm_register_response(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                               rdm_simple_response_cb, param, cb, context);
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
+                                rdm_simple_response_cb, param, cb, context);
 }

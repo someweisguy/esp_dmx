@@ -491,8 +491,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     if (config->dmx_start_address == 0) {
       size_t size = sizeof(dmx_start_address);
       esp_err_t err =
-          rdm_get_pid_from_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
-                               RDM_DS_UNSIGNED_WORD, &dmx_start_address, &size);
+          pd_get_from_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                          RDM_DS_UNSIGNED_WORD, &dmx_start_address, &size);
       if (err) {
         dmx_start_address = 1;
       }
@@ -506,9 +506,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
         dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
-      esp_err_t err =
-          rdm_get_pid_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
-                               RDM_DS_BIT_FIELD, &personality, &size);
+      esp_err_t err = pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
+                                      RDM_DS_BIT_FIELD, &personality, &size);
       if (err || personality.personality_count != config->personality_count) {
         current_personality = 1;
       } else {
@@ -803,9 +802,9 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
   if (device_info == NULL) {
     const dmx_driver_personality_t *personality =
         (void *)dmx_driver[dmx_num]->alloc_data;
-    current_personality =  personality->current_personality;
+    current_personality = personality->current_personality;
   } else {
-    current_personality =  device_info->current_personality;
+    current_personality = device_info->current_personality;
   }
   taskEXIT_CRITICAL(spinlock);
 
@@ -842,7 +841,6 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
     *footprint = dmx_get_footprint(dmx_num, personality_num);
   }
   taskEXIT_CRITICAL(spinlock);
-
 
   return true;
 }

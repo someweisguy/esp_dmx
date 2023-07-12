@@ -14,8 +14,8 @@
 #include <string.h>
 
 #include "dmx/types.h"
-#include "rdm/types.h"
 #include "rdm/responder.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -345,11 +345,11 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
  * @return false if the response was not registered.
  * // TODO: update docs
  */
-bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           const rdm_pid_description_t *desc,
-                           const char *param_str, rdm_driver_cb_t driver_cb,
-                           void *param, rdm_responder_cb_t user_cb,
-                           void *context);
+bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            const rdm_pid_description_t *desc,
+                            const char *param_str, rdm_driver_cb_t driver_cb,
+                            void *param, rdm_responder_cb_t user_cb,
+                            void *context);
 
 // TODO: docs
 void *pd_alloc(dmx_port_t dmx_num, size_t size);
@@ -358,18 +358,18 @@ void *pd_alloc(dmx_port_t dmx_num, size_t size);
 void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
 
 // TODO: docs
-esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                               void *param, size_t *size);
+esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                          void *param, size_t *size);
 
 // TODO: docs
-esp_err_t rdm_set_pid_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                             const void *param, size_t size);
+esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                        const void *param, size_t size);
 
-bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                     size_t size);
+bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
+                       size_t size);
 
-bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                     size_t size, bool nvs);
+bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+                       size_t size, bool nvs);
 
 #ifdef __cplusplus
 }

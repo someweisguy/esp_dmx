@@ -370,7 +370,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         RDM_PID_DISPLAY_INVERT,  RDM_PID_DISPLAY_LEVEL,
         RDM_PID_PAN_INVERT,      RDM_PID_TILT_INVERT,
         RDM_PID_PAN_TILT_SWAP};
-    for (int i = 0; i < sizeof(nvs_pids) / sizeof(uint16_t); ++i){ 
+    for (int i = 0; i < sizeof(nvs_pids) / sizeof(uint16_t); ++i) {
       if (nvs_pids[i] == header.pid) {
         must_update_nvs = true;
         break;
@@ -416,12 +416,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Update NVS values
   if (must_update_nvs) {
-    esp_err_t err = rdm_set_pid_to_nvs(dmx_num, header.pid, desc->data_type,
-                                       param, desc->pdl_size);
+    esp_err_t err = pd_set_to_nvs(dmx_num, header.pid, desc->data_type, param,
+                                  desc->pdl_size);
     if (err) {
       ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
       // TODO: set boot-loader flag
-    }                                
+    }
   }
 
   // Give the mutex back and return
