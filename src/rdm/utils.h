@@ -340,7 +340,7 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
  * @return false if any other response type was received.
  */
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-                      const void *pd_in, void *pd_out, size_t *num,
+                      const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack);
 
 #ifdef __cplusplus
