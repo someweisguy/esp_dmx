@@ -2,9 +2,6 @@
 
 #include "dmx/agent.h"
 #include "dmx/driver.h"
-#include "endian.h"
-#include "nvs_flash.h"
-#include "rdm/pids.h"
 #include "rdm/utils.h"
 
 static const char *TAG = "rdm_responder";  // The log tagline for the file.
