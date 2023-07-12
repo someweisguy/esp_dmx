@@ -31,12 +31,16 @@ extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 void *uidcpy(void *restrict destination, const void *restrict source) {
+  assert(destination != NULL);
+  assert(source != NULL);
   *(uint16_t *)destination = bswap16(*(uint16_t *)source);
   *(uint32_t *)(destination + 2) = bswap32(*(uint32_t *)(source + 2));
   return destination;
 }
 
 void *uidmove(void *destination, const void *source) {
+  assert(destination != NULL);
+  assert(source != NULL);
   const rdm_uid_t temp = {.man_id = ((rdm_uid_t *)source)->man_id,
                           .dev_id = ((rdm_uid_t *)source)->dev_id};
   return uidcpy(destination, &temp);
@@ -141,6 +145,10 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
 
 size_t pd_emplace(void *destination, const char *format, const void *source,
                   size_t num, bool emplace_nulls) {
+  assert(destination != NULL);
+  assert(format != NULL);
+  assert(source != NULL);
+
   // Clamp the size to the maximum parameter data length
   if (num > 231) {
     num = 231;
@@ -219,12 +227,19 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
 }
 
 size_t pd_emplace_word(void *destination, uint16_t word) {
+  assert(destination != NULL);
+
   *(uint16_t *)destination = bswap16(word);
   return sizeof(word);
 }
 
 void *pd_alloc(dmx_port_t dmx_num, size_t size) {
-  // TODO: arg check
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  if (size == 0) {
+    return NULL;
+  }
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -241,7 +256,8 @@ void *pd_alloc(dmx_port_t dmx_num, size_t size) {
 }
 
 void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
-  // TODO: arg check
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -261,6 +277,15 @@ void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
 
 esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
                           void *param, size_t *size) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(param != NULL);
+  assert(size != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  if (*size == 0) {
+    return ESP_OK;
+  }
+
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
@@ -323,6 +348,14 @@ esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
 
 esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
                         const void *param, size_t size) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(param != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  if (size == 0) {
+    return ESP_OK;
+  }
+
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
@@ -391,11 +424,11 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             const char *param_str, rdm_driver_cb_t driver_cb,
                             void *param, rdm_responder_cb_t user_cb,
                             void *context) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(sub_device < 513, false, "sub_device error");
-  DMX_CHECK(desc != NULL, false, "desc is null");
-  DMX_CHECK(driver_cb != NULL, false, "driver_cb is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(desc != NULL);
+  assert(driver_cb != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
 
   if (sub_device != RDM_SUB_DEVICE_ROOT) {
     ESP_LOGE(TAG, "Responses for multiple sub-devices are not yet supported.");
@@ -506,21 +539,18 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(!uid_is_null(&header->dest_uid), 0, "dest_uid is invalid");
-  DMX_CHECK(!uid_is_broadcast(&header->src_uid), 0, "src_uid is invalid");
-  DMX_CHECK(header->cc == RDM_CC_DISC_COMMAND ||
-                header->cc == RDM_CC_GET_COMMAND ||
-                header->cc == RDM_CC_SET_COMMAND,
-            0, "cc is invalid");
-  DMX_CHECK(
-      header->sub_device < 513 || (header->sub_device == RDM_SUB_DEVICE_ALL &&
-                                   header->cc != RDM_CC_GET_COMMAND),
-      0, "sub_device is invalid");
-  DMX_CHECK(header->pdl <= 231, 0, "pdl is invalid");
-  DMX_CHECK(pdl != NULL, 0, "pdl is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(header != NULL);
+  assert(!uid_is_null(&header->dest_uid));
+  assert(!uid_is_broadcast(&header->src_uid));
+  assert(header->cc == RDM_CC_DISC_COMMAND ||
+         header->cc == RDM_CC_GET_COMMAND || header->cc == RDM_CC_SET_COMMAND);
+  assert(header->sub_device < 513 ||
+         (header->sub_device == RDM_SUB_DEVICE_ALL &&
+          header->cc != RDM_CC_GET_COMMAND));
+  assert(header->pdl <= 231);
+  assert(pdl != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
