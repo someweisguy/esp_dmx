@@ -484,7 +484,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     }
     // TODO: rdm_register_supported_parameters()
   } else {
-    dmx_driver_personality_t *dmx = rdm_alloc(dmx_num, alloc_size);
+    dmx_driver_personality_t *dmx = pd_alloc(dmx_num, alloc_size);
     assert(dmx != NULL);
 
     // Load the DMX start address from NVS

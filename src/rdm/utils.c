@@ -602,7 +602,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-void *rdm_alloc(dmx_port_t dmx_num, size_t size) {
+void *pd_alloc(dmx_port_t dmx_num, size_t size) {
   // TODO: arg check
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];

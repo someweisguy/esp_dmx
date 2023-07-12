@@ -108,7 +108,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   if (param == NULL) {
     param = rdm_get_pid(dmx_num, RDM_PID_DISC_UN_MUTE, NULL);
     if (param == NULL) {
-      param = rdm_alloc(dmx_num, sizeof(*param));
+      param = pd_alloc(dmx_num, sizeof(*param));
       if (param == NULL) {
         return false;
       }
@@ -140,7 +140,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   if (param == NULL) {
     param = rdm_get_pid(dmx_num, RDM_PID_DISC_MUTE, NULL);
     if (param == NULL) {
-      param = rdm_alloc(dmx_num, sizeof(*param));
+      param = pd_alloc(dmx_num, sizeof(*param));
       if (param == NULL) {
         return false;
       }
@@ -238,7 +238,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
           dmx_get_footprint(dmx_num, device_info->current_personality);
     }
 
-    param = rdm_alloc(dmx_num, sizeof(*param));
+    param = pd_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
     }
@@ -287,7 +287,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
     if (strnlen(software_version_label, 33) > 32) {
       ESP_LOGW(TAG, "software_version_label will be truncated.");
     }
-    param = rdm_alloc(dmx_num, 32);
+    param = pd_alloc(dmx_num, 32);
     if (param == NULL) {
       return false;
     }
@@ -306,7 +306,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num,
 
   uint8_t *param = rdm_get_pid(dmx_num, RDM_PID_IDENTIFY_DEVICE, NULL);
   if (param == NULL) {
-    param = rdm_alloc(dmx_num, sizeof(*param));
+    param = pd_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
     }

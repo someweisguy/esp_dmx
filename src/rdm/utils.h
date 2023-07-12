@@ -352,7 +352,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            void *context);
 
 // TODO: docs
-void *rdm_alloc(dmx_port_t dmx_num, size_t size);
+void *pd_alloc(dmx_port_t dmx_num, size_t size);
 
 // TODO: docs
 void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid,
