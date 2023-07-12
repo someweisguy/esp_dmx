@@ -292,7 +292,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
 // TODO: docs
 bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                       size_t size);
+                       size_t *size);
 
 // TODO: docs
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,

@@ -12,7 +12,7 @@ bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info);
 
 // TODO: docs
 bool rdm_get_software_version_label(dmx_port_t dmx_num,
-                                    char *software_version_label, size_t size);
+                                    char *software_version_label, size_t *size);
 
 // TODO: docs
 bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify);

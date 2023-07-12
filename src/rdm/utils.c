@@ -429,13 +429,14 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                       size_t size) {
+                       size_t *size) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *pd = NULL;
   const rdm_pid_description_t *desc;
   taskENTER_CRITICAL(spinlock);
+  // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       pd = driver->rdm_cbs[i].param;
@@ -443,23 +444,20 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
       break;
     }
   }
+
+  // Copy the parameter data to the user's variable
+  if (pd != NULL) {
+    if (desc->data_type == RDM_DS_ASCII) {
+      *size = strnlen(pd, *size);
+      strncpy(param, pd, *size);
+    } else {
+      *size = *size < desc->pdl_size ? *size : desc->pdl_size;
+      memcpy(param, pd, *size);
+    }
+  }
   taskEXIT_CRITICAL(spinlock);
 
-  bool ret;
-  if (pd != NULL) {
-    size = size < desc->pdl_size ? size : desc->pdl_size;
-    if (desc->data_type == RDM_DS_ASCII) {
-      strncpy(param, pd, size);
-      // FIXME: make size a pointer and have it return size of string
-    } else {
-      memcpy(param, pd, size);
-    }
-    ret = true;
-  } else {
-    ret = false;
-  }
-
-  return ret;
+  return (pd != NULL);
 }
 
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
@@ -467,9 +465,11 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
+  bool ret;
   void *pd = NULL;
-  const rdm_pid_description_t *desc;
+  const rdm_pid_description_t *desc = NULL;
   taskENTER_CRITICAL(spinlock);
+  // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       pd = driver->rdm_cbs[i].param;
@@ -477,28 +477,30 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
       break;
     }
   }
-  taskEXIT_CRITICAL(spinlock);
 
-  if (pd != NULL) {
+  // Copy the user's variable to the parameter data
+  if (pd != NULL && (desc->cc & RDM_CC_SET)) {
     size = size < desc->pdl_size ? size : desc->pdl_size;
     if (desc->data_type == RDM_DS_ASCII) {
       strncpy(pd, param, size);
     } else {
       memcpy(pd, param, size);
     }
-    if (nvs) {
-      esp_err_t err = pd_set_to_nvs(dmx_num, pid, desc->data_type, param, size);
-      if (err) {
-        // TODO: set boot-loader flag
-      }
+    ret = true;
+  } else {
+    ret = false;
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  // Copy the user's variable to NVS if desired
+  if (ret && nvs) {
+    esp_err_t err = pd_set_to_nvs(dmx_num, pid, desc->data_type, param, size);
+    if (err) {
+      // TODO: set boot-loader flag
     }
-
-    // TODO: add queued message
-
-    return true;
   }
 
-  return false;
+  return ret;
 }
 
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
