@@ -30,7 +30,7 @@ static const char *TAG = "rdm_utils";
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
-void *uidcpy(void *restrict destination, const void *restrict source) {
+void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);
   assert(source != NULL);
   *(uint16_t *)destination = bswap16(*(uint16_t *)source);
@@ -38,18 +38,18 @@ void *uidcpy(void *restrict destination, const void *restrict source) {
   return destination;
 }
 
-void *uidmove(void *destination, const void *source) {
+void *rdm_uidmove(void *destination, const void *source) {
   assert(destination != NULL);
   assert(source != NULL);
   const rdm_uid_t temp = {.man_id = ((rdm_uid_t *)source)->man_id,
                           .dev_id = ((rdm_uid_t *)source)->dev_id};
-  return uidcpy(destination, &temp);
+  return rdm_uidcpy(destination, &temp);
 }
 
-void DMX_ISR_ATTR uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
+void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
   taskENTER_CRITICAL(&rdm_spinlock);
-  if (uid_is_null(&rdm_binding_uid)) {
+  if (rdm_uid_is_null(&rdm_binding_uid)) {
     uint32_t dev_id;
 #if RDM_UID_DEVICE_ID == 0xffffffff
     uint8_t mac[8];
@@ -143,8 +143,8 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
   return param_size;
 }
 
-size_t pd_emplace(void *destination, const char *format, const void *source,
-                  size_t num, bool emplace_nulls) {
+size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
+                      size_t num, bool emplace_nulls) {
   assert(destination != NULL);
   assert(format != NULL);
   assert(source != NULL);
@@ -185,11 +185,11 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
         n += sizeof(uint32_t);
       } else if (*f == 'u' || *f == 'U' || *f == 'v' || *f == 'V') {
         if ((*f == 'v' || *f == 'V') && !emplace_nulls && source != NULL &&
-            uid_is_null(source + n)) {
+            rdm_uid_is_null(source + n)) {
           break;  // Optional UIDs will be at end of parameter string
         }
         if (destination != NULL && source != NULL) {
-          uidmove(destination + n, source + n);
+          rdm_uidmove(destination + n, source + n);
         }
         n += sizeof(rdm_uid_t);
       } else if (*f == 'a' || *f == 'A') {
@@ -226,14 +226,14 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
   return n;
 }
 
-size_t pd_emplace_word(void *destination, uint16_t word) {
+size_t rdm_pd_emplace_word(void *destination, uint16_t word) {
   assert(destination != NULL);
 
   *(uint16_t *)destination = bswap16(word);
   return sizeof(word);
 }
 
-void *pd_alloc(dmx_port_t dmx_num, size_t size) {
+void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -255,7 +255,7 @@ void *pd_alloc(dmx_port_t dmx_num, size_t size) {
   return ret;
 }
 
-void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
+void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -275,8 +275,8 @@ void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
   return ret;
 }
 
-esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                          void *param, size_t *size) {
+esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                              void *param, size_t *size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(param != NULL);
   assert(size != NULL);
@@ -346,8 +346,8 @@ esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   return err;
 }
 
-esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                        const void *param, size_t size) {
+esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                            const void *param, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(param != NULL);
   assert(dmx_driver_is_installed(dmx_num));
@@ -527,7 +527,8 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
 
   // Copy the user's variable to NVS if desired
   if (ret && nvs) {
-    esp_err_t err = pd_set_to_nvs(dmx_num, pid, desc->data_type, param, size);
+    esp_err_t err =
+        rdm_pd_set_to_nvs(dmx_num, pid, desc->data_type, param, size);
     if (err) {
       // TODO: set boot-loader flag
     }
@@ -541,8 +542,8 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       rdm_ack_t *ack) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(header != NULL);
-  assert(!uid_is_null(&header->dest_uid));
-  assert(!uid_is_broadcast(&header->src_uid));
+  assert(!rdm_uid_is_null(&header->dest_uid));
+  assert(!rdm_uid_is_broadcast(&header->src_uid));
   assert(header->cc == RDM_CC_DISC_COMMAND ||
          header->cc == RDM_CC_GET_COMMAND || header->cc == RDM_CC_SET_COMMAND);
   assert(header->sub_device < 513 ||
@@ -559,8 +560,8 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   if (header->port_id == 0) {
     header->port_id = dmx_num + 1;
   }
-  if (uid_is_null(&header->src_uid)) {
-    uid_get(dmx_num, &header->src_uid);
+  if (rdm_uid_is_null(&header->src_uid)) {
+    rdm_uid_get(dmx_num, &header->src_uid);
   }
 
   // Set header values that the user cannot set themselves
@@ -570,7 +571,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   header->message_count = 0;
 
   // Determine if a response is expected
-  const bool response_expected = !uid_is_broadcast(&header->dest_uid) ||
+  const bool response_expected = !rdm_uid_is_broadcast(&header->dest_uid) ||
                                  (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
                                   header->cc == RDM_CC_DISC_COMMAND);
 
@@ -643,8 +644,8 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   } else if (header->pid != RDM_PID_DISC_UNIQUE_BRANCH &&
              (header->cc != (resp.cc - 1) || header->pid != resp.pid ||
               header->tn != resp.tn ||
-              !uid_is_target(&resp.src_uid, &header->dest_uid) ||
-              !uid_is_eq(&resp.dest_uid, &header->src_uid))) {
+              !rdm_uid_is_target(&resp.src_uid, &header->dest_uid) ||
+              !rdm_uid_is_eq(&resp.dest_uid, &header->src_uid))) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
   } else {
     response_type = resp.response_type;  // Response is ok

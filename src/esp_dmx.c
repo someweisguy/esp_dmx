@@ -261,7 +261,8 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
     // Copy the header, pd, message_len, and pdl into the driver
     const size_t copy_size = header->pdl <= 231 ? header->pdl : 231;
     header->message_len = copy_size + 24;
-    pd_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header), false);
+    rdm_pd_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header),
+                   false);
     memcpy(pd_ptr, pd, copy_size);
 
     // Calculate and copy the checksum
@@ -287,7 +288,7 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
     if (header == NULL) {
       memcpy(uid, pd, sizeof(rdm_uid_t));
     } else {
-      uidcpy(uid, &header->src_uid);
+      rdm_uidcpy(uid, &header->src_uid);
     }
     for (int i = 0, j = 0; j < sizeof(rdm_uid_t); i += 2, ++j) {
       header_ptr[i] = uid[j] | 0xaa;
@@ -468,8 +469,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Ignore the packet if it does not target this device
   rdm_uid_t my_uid;
-  uid_get(dmx_num, &my_uid);
-  if (!uid_is_target(&my_uid, &header.dest_uid)) {
+  rdm_uid_get(dmx_num, &my_uid);
+  if (!rdm_uid_is_target(&my_uid, &header.dest_uid)) {
     // The packet should be ignored
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
@@ -497,27 +498,27 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Determine how this device should respond to the request
   if (header.pdl > sizeof(pd) || header.port_id == 0 ||
-      uid_is_broadcast(&header.src_uid)) {
+      rdm_uid_is_broadcast(&header.src_uid)) {
     // The packet format is invalid
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
   } else if (cb_num == driver->num_rdm_cbs) {
     // The requested PID is unknown
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
   } else if ((header.cc == RDM_CC_DISC_COMMAND && desc->cc != RDM_CC_DISC) ||
              (header.cc == RDM_CC_GET_COMMAND && !(desc->cc & RDM_CC_GET)) ||
              (header.cc == RDM_CC_SET_COMMAND && !(desc->cc & RDM_CC_SET))) {
     // The PID does not support the request command class
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
   } else if ((header.sub_device > 512 &&
               header.sub_device != RDM_SUB_DEVICE_ALL) ||
              (header.sub_device == RDM_SUB_DEVICE_ALL &&
               header.cc == RDM_CC_GET_COMMAND)) {
     // The sub-device is out of range
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
   } else {
     // Call the appropriate driver-side RDM callback to process the request
     pdl_out = 0;
@@ -531,7 +532,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       ESP_LOGW(TAG, "PID 0x%04x pdl is too large", header.pid);
       // TODO: set the boot-loader flag
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-      pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     } else if ((response_type != RDM_RESPONSE_TYPE_NONE &&
                 response_type != RDM_RESPONSE_TYPE_ACK &&
                 response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
@@ -539,14 +540,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                 response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) ||
                (response_type == RDM_RESPONSE_TYPE_NONE &&
                 (header.pid != RDM_PID_DISC_UNIQUE_BRANCH ||
-                 !uid_is_broadcast(&header.dest_uid))) ||
+                 !rdm_uid_is_broadcast(&header.dest_uid))) ||
                ((response_type != RDM_RESPONSE_TYPE_ACK &&
                  response_type != RDM_RESPONSE_TYPE_NONE) &&
                 header.cc == RDM_CC_DISC_COMMAND)) {
       ESP_LOGW(TAG, "PID 0x%04x returned invalid response type", header.pid);
       // TODO: set the boot-loader flag to indicate an error with this device
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-      pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     }
   }
 
@@ -573,7 +574,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Don't respond to non-discovery broadcasts nor send NACK to DISC packets
-  if ((uid_is_broadcast(&header.dest_uid) &&
+  if ((rdm_uid_is_broadcast(&header.dest_uid) &&
        header.pid != RDM_PID_DISC_UNIQUE_BRANCH) ||
       (response_type == RDM_RESPONSE_TYPE_NACK_REASON &&
        header.cc == RDM_CC_DISC_COMMAND)) {
@@ -610,8 +611,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Update NVS values
   if (must_update_nvs) {
-    esp_err_t err = pd_set_to_nvs(dmx_num, header.pid, desc->data_type, param,
-                                  desc->pdl_size);
+    esp_err_t err = rdm_pd_set_to_nvs(dmx_num, header.pid, desc->data_type,
+                                      param, desc->pdl_size);
     if (err) {
       ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
       // TODO: set boot-loader flag
@@ -737,7 +738,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Record the outgoing packet type
   const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data[21]);
   rdm_uid_t dest_uid;
-  uidcpy(&dest_uid, &driver->data[3]);
+  rdm_uidcpy(&dest_uid, &driver->data[3]);
   int rdm_type = 0;
   if (*(uint16_t *)driver->data == (RDM_SC | (RDM_SUB_SC << 8))) {
     rdm_type |= DMX_FLAGS_RDM_IS_VALID;
@@ -745,7 +746,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
         cc == RDM_CC_SET_COMMAND) {
       rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
     }
-    if (uid_is_broadcast(&dest_uid)) {
+    if (rdm_uid_is_broadcast(&dest_uid)) {
       rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
     }
     if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {

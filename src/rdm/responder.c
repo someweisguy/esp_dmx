@@ -20,7 +20,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
   int response_type;
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Ignore this message if discovery is muted
-    const uint8_t *is_muted = pd_find(dmx_num, RDM_PID_DISC_MUTE);
+    const uint8_t *is_muted = rdm_pd_find(dmx_num, RDM_PID_DISC_MUTE);
     if (is_muted == NULL) {
       // TODO: set boot-loader flag
       return RDM_RESPONSE_TYPE_NONE;
@@ -30,14 +30,14 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
 
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
-    pd_emplace(&branch, "uu$", pd, sizeof(branch), true);
+    rdm_pd_emplace(&branch, "uu$", pd, sizeof(branch), true);
 
     // Respond if lower_bound <= my_uid <= upper_bound
     rdm_uid_t my_uid;
-    uid_get(dmx_num, &my_uid);
-    if (uid_is_ge(&my_uid, &branch.lower_bound) &&
-        uid_is_le(&my_uid, &branch.upper_bound)) {
-      *pdl_out = pd_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
+    rdm_uid_get(dmx_num, &my_uid);
+    if (rdm_uid_is_ge(&my_uid, &branch.lower_bound) &&
+        rdm_uid_is_le(&my_uid, &branch.upper_bound)) {
+      *pdl_out = rdm_pd_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
       response_type = RDM_RESPONSE_TYPE_ACK;
     } else {
       response_type = RDM_RESPONSE_TYPE_NONE;
@@ -53,7 +53,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
     for (int i = 0; i < DMX_NUM_MAX; ++i) {
       if (dmx_driver_is_installed(i)) {
         if (num_ports == 0) {
-          uid_get(i, &binding_uid);
+          rdm_uid_get(i, &binding_uid);
         }
         ++num_ports;
       }
@@ -69,7 +69,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
         .binding_uid = binding_uid,
     };
 
-    *pdl_out = pd_emplace(pd, "wv$", &mute, sizeof(mute), false);
+    *pdl_out = rdm_pd_emplace(pd, "wv$", &mute, sizeof(mute), false);
     response_type = RDM_RESPONSE_TYPE_ACK;
   }
 
@@ -101,11 +101,11 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  uint8_t *param = pd_find(dmx_num, RDM_PID_DISC_MUTE);
+  uint8_t *param = rdm_pd_find(dmx_num, RDM_PID_DISC_MUTE);
   if (param == NULL) {
-    param = pd_find(dmx_num, RDM_PID_DISC_UN_MUTE);
+    param = rdm_pd_find(dmx_num, RDM_PID_DISC_UN_MUTE);
     if (param == NULL) {
-      param = pd_alloc(dmx_num, sizeof(*param));
+      param = rdm_pd_alloc(dmx_num, sizeof(*param));
       if (param == NULL) {
         return false;
       }
@@ -133,11 +133,11 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  uint8_t *param = pd_find(dmx_num, RDM_PID_DISC_UN_MUTE);
+  uint8_t *param = rdm_pd_find(dmx_num, RDM_PID_DISC_UN_MUTE);
   if (param == NULL) {
-    param = pd_find(dmx_num, RDM_PID_DISC_MUTE);
+    param = rdm_pd_find(dmx_num, RDM_PID_DISC_MUTE);
     if (param == NULL) {
-      param = pd_alloc(dmx_num, sizeof(*param));
+      param = rdm_pd_alloc(dmx_num, sizeof(*param));
       if (param == NULL) {
         return false;
       }
@@ -167,14 +167,14 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num,
                                   const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
   if (header->cc == RDM_CC_GET_COMMAND) {
-    *pdl_out = pd_emplace(pd, param_str, param, desc->pdl_size, false);
+    *pdl_out = rdm_pd_emplace(pd, param_str, param, desc->pdl_size, false);
   } else {
-    pd_emplace(param, param_str, pd, header->pdl, true);
+    rdm_pd_emplace(param, param_str, pd, header->pdl, true);
   }
 
   return RDM_RESPONSE_TYPE_ACK;
@@ -186,7 +186,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  rdm_device_info_t *param = pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *param = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   if (param == NULL) {
     DMX_CHECK(device_info != NULL, false, "device_info is null");
     DMX_CHECK((device_info->dmx_start_address < DMX_PACKET_SIZE_MAX ||
@@ -209,9 +209,9 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     // Load the DMX start address from NVS
     if (device_info->dmx_start_address == 0) {
       size_t size = sizeof(device_info->dmx_start_address);
-      esp_err_t err = pd_get_from_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
-                                      RDM_DS_UNSIGNED_WORD,
-                                      &device_info->dmx_start_address, &size);
+      esp_err_t err = rdm_pd_get_from_nvs(
+          dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+          &device_info->dmx_start_address, &size);
       if (err) {
         device_info->dmx_start_address = 1;
       }
@@ -222,8 +222,9 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
         device_info->dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
-      esp_err_t err = pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
-                                      RDM_DS_BIT_FIELD, &personality, &size);
+      esp_err_t err =
+          rdm_pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
+                              RDM_DS_BIT_FIELD, &personality, &size);
       if (err ||
           personality.personality_count != device_info->personality_count) {
         device_info->current_personality = 1;
@@ -234,7 +235,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
           dmx_get_footprint(dmx_num, device_info->current_personality);
     }
 
-    param = pd_alloc(dmx_num, sizeof(*param));
+    param = rdm_pd_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
     }
@@ -275,7 +276,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                       .description = "Software Version Label"};
   const char *param_str = "a$";
 
-  char *param = pd_find(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL);
+  char *param = rdm_pd_find(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL);
   if (param == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
@@ -283,7 +284,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
     if (strnlen(software_version_label, 33) > 32) {
       ESP_LOGW(TAG, "software_version_label will be truncated.");
     }
-    param = pd_alloc(dmx_num, 32);
+    param = rdm_pd_alloc(dmx_num, 32);
     if (param == NULL) {
       return false;
     }
@@ -300,9 +301,9 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  uint8_t *param = pd_find(dmx_num, RDM_PID_IDENTIFY_DEVICE);
+  uint8_t *param = rdm_pd_find(dmx_num, RDM_PID_IDENTIFY_DEVICE);
   if (param == NULL) {
-    param = pd_alloc(dmx_num, sizeof(*param));
+    param = rdm_pd_alloc(dmx_num, sizeof(*param));
     if (param == NULL) {
       return false;
     }
@@ -331,7 +332,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   // DMX start address is stored within device info
-  rdm_device_info_t *di = pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *di = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   DMX_CHECK(di != NULL, false, "RDM_PID_DEVICE_INFO must be registered first");
   uint16_t *param = (void *)di + offsetof(rdm_device_info_t, dmx_start_address);
 

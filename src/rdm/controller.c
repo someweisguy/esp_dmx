@@ -15,7 +15,7 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(branch != NULL, 0, "branch is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->dest_uid = RDM_UID_BROADCAST_ALL;
   header->port_id = dmx_num + 1;
   header->sub_device = RDM_SUB_DEVICE_ROOT;
@@ -25,7 +25,7 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
 
   rdm_disc_unique_branch_t pd;
   size_t pdl = 0;
-  pd_emplace(&pd, "uu$", branch, sizeof(pd), false);
+  rdm_pd_emplace(&pd, "uu$", branch, sizeof(pd), false);
   return rdm_send_request(dmx_num, header, &pd, NULL, &pdl, ack);
 }
 
@@ -35,7 +35,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
@@ -46,7 +46,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
-    pd_emplace(mute, "wv$", &pd, sizeof(*mute), true);
+    rdm_pd_emplace(mute, "wv$", &pd, sizeof(*mute), true);
   }
 
   return ret;
@@ -58,7 +58,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->sub_device = RDM_SUB_DEVICE_ROOT;
   header->cc = RDM_CC_DISC_COMMAND;
@@ -69,7 +69,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
-    pd_emplace(mute, "wv$", &pd, sizeof(*mute), true);
+    rdm_pd_emplace(mute, "wv$", &pd, sizeof(*mute), true);
   }
 
   return ret;
@@ -116,7 +116,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
     const rdm_disc_unique_branch_t *branch = &stack[--stack_size];
 
     size_t attempts = 0;
-    if (uid_is_eq(&branch->lower_bound, &branch->upper_bound)) {
+    if (rdm_uid_is_eq(&branch->lower_bound, &branch->upper_bound)) {
       // Can't branch further so attempt to mute the device
       header.dest_uid = branch->lower_bound;
       do {
@@ -247,7 +247,7 @@ bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(device_info != NULL, 0, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_DEVICE_INFO;
@@ -257,8 +257,8 @@ bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret) {
-    pd_emplace(device_info, "#0100hwwdwbbwwb$", &pd, sizeof(*device_info),
-               true);
+    rdm_pd_emplace(device_info, "#0100hwwdwbbwwb$", &pd, sizeof(*device_info),
+                   true);
   }
 
   return ret;
@@ -274,7 +274,7 @@ bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
             "software_version_label is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
@@ -296,7 +296,7 @@ bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(identify != NULL, 0, "identify is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_IDENTIFY_DEVICE;
@@ -304,8 +304,7 @@ bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
 
   // Single-byte responses don't need to be emplaced
   size_t pdl = sizeof(*identify);
-  return rdm_send_request(dmx_num, header, NULL, identify, &pdl,
-                          ack);
+  return rdm_send_request(dmx_num, header, NULL, identify, &pdl, ack);
 }
 
 bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
@@ -315,7 +314,7 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(identify == 0 || identify == 1, 0, "identify is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_IDENTIFY_DEVICE;
@@ -334,7 +333,7 @@ bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_GET_COMMAND;
   header->pid = RDM_PID_DMX_START_ADDRESS;
@@ -344,7 +343,8 @@ bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret) {
-    pd_emplace(dmx_start_address, "w$", &pd, sizeof(*dmx_start_address), true);
+    rdm_pd_emplace(dmx_start_address, "w$", &pd, sizeof(*dmx_start_address),
+                   true);
   }
 
   return ret;
@@ -358,7 +358,7 @@ bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_start_address < 513, 0, "dmx_start_address is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  uid_get(dmx_num, &header->src_uid);
+  rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
   header->cc = RDM_CC_SET_COMMAND;
   header->pid = RDM_PID_DMX_START_ADDRESS;
@@ -366,6 +366,6 @@ bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint16_t pd;
   size_t pdl = sizeof(pd);
-  pd_emplace(&pd, "w$", &dmx_start_address, pdl, false);
+  rdm_pd_emplace(&pd, "w$", &dmx_start_address, pdl, false);
   return rdm_send_request(dmx_num, header, &pd, NULL, &pdl, ack);
 }

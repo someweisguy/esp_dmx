@@ -43,7 +43,7 @@ typedef int (*rdm_driver_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
  * @param[in] source A pointer to the source buffer of the UID.
  * @return A pointer to the destination buffer.
  */
-void *uidcpy(void *restrict destination, const void *restrict source);
+void *rdm_uidcpy(void *restrict destination, const void *restrict source);
 
 /**
  * @brief Copies RDM UID from a source buffer into a destination buffer. Copying
@@ -59,7 +59,7 @@ void *uidcpy(void *restrict destination, const void *restrict source);
  * @param[in] source A pointer to the source buffer of the UID.
  * @return A pointer to the destination buffer.
  */
-void *uidmove(void *destination, const void *source);
+void *rdm_uidmove(void *destination, const void *source);
 
 /**
  * @brief Returns the 48-bit unique ID of the desired DMX port.
@@ -67,7 +67,7 @@ void *uidmove(void *destination, const void *source);
  * @param dmx_num The DMX port number.
  * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
  */
-void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
+void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
 
 /**
  * @brief Returns true if the UIDs are equal to each other. Is equivalent to
@@ -78,7 +78,7 @@ void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
  * @return true if the UIDs are equal.
  * @return false if the UIDs are not equal.
  */
-static inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
+static inline bool rdm_uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
   return a->man_id == b->man_id && a->dev_id == b->dev_id;
 }
 
@@ -91,7 +91,7 @@ static inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is less than b.
  * @return false if a is not less than b.
  */
-static inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
+static inline bool rdm_uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
   return a->man_id < b->man_id ||
          (a->man_id == b->man_id && a->dev_id < b->dev_id);
 }
@@ -105,7 +105,7 @@ static inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is greater than b.
  * @return false if a is not greater than b.
  */
-static inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
+static inline bool rdm_uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
   return a->man_id > b->man_id ||
          (a->man_id == b->man_id && a->dev_id > b->dev_id);
 }
@@ -119,8 +119,8 @@ static inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is less than or equal to b.
  * @return false if a is not less than or equal to b.
  */
-static inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return !uid_is_gt(a, b);
+static inline bool rdm_uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !rdm_uid_is_gt(a, b);
 }
 
 /**
@@ -132,8 +132,8 @@ static inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is greater than or equal to b.
  * @return false if a is not greater than or equal to b.
  */
-static inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return !uid_is_lt(a, b);
+static inline bool rdm_uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !rdm_uid_is_lt(a, b);
 }
 
 /**
@@ -143,7 +143,7 @@ static inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
-static inline bool uid_is_broadcast(const rdm_uid_t *uid) {
+static inline bool rdm_uid_is_broadcast(const rdm_uid_t *uid) {
   return uid->dev_id == 0xffffffff;
 }
 
@@ -154,7 +154,7 @@ static inline bool uid_is_broadcast(const rdm_uid_t *uid) {
  * @return true if the UID is null.
  * @return false if the UID is not null.
  */
-static inline bool uid_is_null(const rdm_uid_t *uid) {
+static inline bool rdm_uid_is_null(const rdm_uid_t *uid) {
   return uid->man_id == 0 && uid->dev_id == 0;
 }
 
@@ -168,10 +168,11 @@ static inline bool uid_is_null(const rdm_uid_t *uid) {
  * @return true if the UID is targeted by the alias UID.
  * @return false if the UID is not targeted by the alias UID.
  */
-static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
+static inline bool rdm_uid_is_target(const rdm_uid_t *uid,
+                                     const rdm_uid_t *alias) {
   return ((alias->man_id == 0xffff || alias->man_id == uid->man_id) &&
           alias->dev_id == 0xffffffff) ||
-         uid_is_eq(uid, alias);
+         rdm_uid_is_eq(uid, alias);
 }
 
 /**
@@ -237,8 +238,8 @@ static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
  * the source buffer.
  * @return The size of the data that was emplaced.
  */
-size_t pd_emplace(void *destination, const char *format, const void *source,
-                  size_t num, bool emplace_nulls);
+size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
+                      size_t num, bool emplace_nulls);
 
 /**
  * @brief Emplaces a 16-bit word into a destination. Used as a convenience
@@ -248,21 +249,21 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
  * @param word The word to emplace.
  * @return The size of the word which was emplaced. Is always 2.
  */
-size_t pd_emplace_word(void *destination, uint16_t word);
+size_t rdm_pd_emplace_word(void *destination, uint16_t word);
 
 // TODO: docs
-void *pd_alloc(dmx_port_t dmx_num, size_t size);
+void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
 
 // TODO: docs
-void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
+void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
 
 // TODO: docs
-esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                          void *param, size_t *size);
+esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                              void *param, size_t *size);
 
 // TODO: docs
-esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                        const void *param, size_t size);
+esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                            const void *param, size_t size);
 
 /**
  * @brief Registers a response callback to be called when a request is received
