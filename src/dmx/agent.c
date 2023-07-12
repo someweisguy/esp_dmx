@@ -383,12 +383,15 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   bzero(data, DMX_PACKET_SIZE_MAX);
 
   // Allocate the RDM parameter buffer
+  bool enable_rdm;
   size_t alloc_size;
-  if (config->alloc_size < 54) {  // FIXME: figure out what value this should be
+  if (config->alloc_size < 53) {
     // Allocate space for DMX start address and personality info
     alloc_size = sizeof(dmx_driver_personality_t);
+    enable_rdm = false;
   } else {
     alloc_size = config->alloc_size;
+    enable_rdm = false;
   }
   uint8_t *alloc_data = heap_caps_malloc(alloc_size, MALLOC_CAP_8BIT);
   if (alloc_data == NULL) {
@@ -450,7 +453,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
          sizeof(*config->personalities) * config->personality_count);
 
   // Configure required variables for RDM or DMX-only
-  const bool enable_rdm = (alloc_size >= 54);
   if (enable_rdm) {
     uint16_t footprint;
     if (config->personality_count > 0 && config->current_personality > 0) {
