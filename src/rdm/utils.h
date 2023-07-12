@@ -251,36 +251,6 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
 size_t pd_emplace_word(void *destination, uint16_t word);
 
 /**
- * @brief Reads an RDM packet from the DMX driver buffer. Header information is
- * emplaced into a header pointer so that it may be read by the caller.
- * Parameter data information needs to be emplaced before it can be properly
- * read by the caller. This function does not perform any data error checking to
- * ensure that the RDM packet is within specification.
- *
- * @param dmx_num The DMX port number.
- * @param[out] header A pointer which stores RDM header information.
- * @param[out] pd A pointer to store parameter data from the RDM packet.
- * @param num The size of the pd pointer. Used to prevent buffer overflows.
- * @return The size of the RDM packet that was read or 0 on error.
- */
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
-
-/**
- * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
- * dmx_send(). Header information is emplaced into the DMX driver buffer but
- * parameter data information must be emplaced before calling this function to
- * ensure that the RDM packet is properly formatted. This function does not
- * perform any data error checking to ensure that the RDM packet is within
- * specification.
- *
- * @param dmx_num The DMX port number.
- * @param[in] header A pointer which stores RDM header information.
- * @param[in] pd A pointer which stores parameter data to be written.
- * @return The size of the RDM packet that was written or 0 on error.
- */
-size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
-
-/**
  * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
  * packet. It performs error checking on the written packet to ensure that it

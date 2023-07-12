@@ -7,6 +7,7 @@
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "endian.h"
+#include "esp_dmx.h"
 #include "nvs_flash.h"
 #include "rdm/responder.h"
 
@@ -125,7 +126,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                   ? ESP_ERR_NOT_FINISHED  // UART overflow
                   : ESP_FAIL;             // Missing stop bits
       } else if (driver->head > 16 &&
-                 driver->head == rdm_read(driver->dmx_num, &header, NULL, 0)) {
+                 driver->head == dmx_read_rdm(driver->dmx_num, &header, NULL, 0)) {
         rdm_type |= DMX_FLAGS_RDM_IS_VALID;
         rdm_uid_t my_uid;
         uid_get(driver->dmx_num, &my_uid);
