@@ -314,14 +314,15 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
  * @param[in] pd_in A pointer which stores parameter data to be written.
  * @param[out] pd_out A pointer which stores parameter data which was read, if a
  * response was received.
- * @param num The size of the pd_out buffer. Used to prevent buffer overflows.
+ * @param[inout] pdl The size of the pd_out buffer. When receiving data, this is
+ * set to the PDL of the received data. Used to prevent buffer overflows.
  * @param[out] ack A pointer to an rdm_ack_t which stores information about the
  * RDM response.
  * @return true if an RDM_RESPONSE_TYPE_ACK response was received.
  * @return false if any other response type was received.
  */
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-                      const void *pd_in, void *pd_out, size_t num,
+                      const void *pd_in, void *pd_out, size_t *num,
                       rdm_ack_t *ack);
 
 /**

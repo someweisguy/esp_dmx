@@ -412,7 +412,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
 }
 
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-                      const void *pd_in, void *pd_out, size_t num,
+                      const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
@@ -427,6 +427,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                                    header->cc != RDM_CC_GET_COMMAND),
       0, "sub_device is invalid");
   DMX_CHECK(header->pdl <= 231, 0, "pdl is invalid");
+  DMX_CHECK(pdl != NULL, 0, "pdl is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -469,7 +470,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   // Return early if a packet error occurred or if no response was expected
   if (response_expected) {
     dmx_packet_t packet;
-    // TODO: setting the wait_ticks <= 3 causes instability on Arduino
+    // FIXME: setting the wait_ticks <= 3 causes instability on Arduino
     size = dmx_receive(dmx_num, &packet, 10);
     if (ack != NULL) {
       ack->err = packet.err;
@@ -509,8 +510,9 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   // Handle the RDM response packet
   rdm_header_t resp;
   rdm_response_type_t response_type;
-  if (!rdm_read(dmx_num, &resp, pd_out, num)) {
+  if (!rdm_read(dmx_num, &resp, pd_out, *pdl)) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
+    resp.pdl = 0;
   } else if (resp.response_type != RDM_RESPONSE_TYPE_ACK &&
              resp.response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
              resp.response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
@@ -524,6 +526,9 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
   } else {
     response_type = resp.response_type;  // Response is ok
+  }
+  if (pdl != NULL) {
+    *pdl = resp.pdl;
   }
 
   uint32_t decoded;
