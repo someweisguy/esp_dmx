@@ -1,4 +1,4 @@
-#include "pids.h"
+#include "parameters.h"
 
 #include "dmx/agent.h"
 #include "dmx/driver.h"

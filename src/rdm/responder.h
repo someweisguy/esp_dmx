@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "dmx/types.h"
-#include "rdm/pids.h"
+#include "rdm/parameters.h"
 #include "rdm/types.h"
 
 #ifdef __cplusplus
