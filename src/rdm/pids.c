@@ -2,56 +2,6 @@
 
 #include "rdm/utils.h"
 
-static bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                            size_t size) {
-  const rdm_pid_description_t *desc;
-  void *pd = rdm_get_pid(dmx_num, pid, &desc);
-
-  bool ret;
-  if (pd != NULL) {
-    size = size < desc->pdl_size ? size : desc->pdl_size;
-    if (desc->data_type == RDM_DS_ASCII) {
-      strncpy(param, pd, size);
-      // FIXME: make size a pointer and have it return size of string
-    } else {
-      memcpy(param, pd, size);
-    }
-    ret = true;
-  } else {
-    ret = false;
-  }
-
-  return ret;
-}
-
-static bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid,
-                            const void *param, size_t size, bool nvs) {
-  const rdm_pid_description_t *desc;
-  void *pd = rdm_get_pid(dmx_num, pid, &desc);
-
-  if (pd != NULL) {
-    size = size < desc->pdl_size ? size : desc->pdl_size;
-    if (desc->data_type == RDM_DS_ASCII) {
-      strncpy(pd, param, size);
-    } else {
-      memcpy(pd, param, size);
-    }
-    if (nvs) {
-      esp_err_t err =
-          rdm_set_pid_to_nvs(dmx_num, pid, desc->data_type, param, size);
-      if (err) {
-        // TODO: set boot-loader flag
-      }
-    }
-
-    // TODO: add queued message
-
-    return true;
-  }
-
-  return false;
-}
-
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   // TODO: arg checks
 

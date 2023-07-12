@@ -355,8 +355,7 @@ bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 void *pd_alloc(dmx_port_t dmx_num, size_t size);
 
 // TODO: docs
-void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid,
-                  const rdm_pid_description_t **desc);
+void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
 
 // TODO: docs
 esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
@@ -365,6 +364,12 @@ esp_err_t rdm_get_pid_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
 // TODO: docs
 esp_err_t rdm_set_pid_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
                              const void *param, size_t size);
+
+bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
+                     size_t size);
+
+bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+                     size_t size, bool nvs);
 
 #ifdef __cplusplus
 }

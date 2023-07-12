@@ -619,8 +619,7 @@ void *pd_alloc(dmx_port_t dmx_num, size_t size) {
   return ret;
 }
 
-void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid,
-                  const rdm_pid_description_t **desc) {
+void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
   // TODO: arg check
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -631,9 +630,6 @@ void *rdm_get_pid(dmx_port_t dmx_num, rdm_pid_t pid,
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       ret = driver->rdm_cbs[i].param;
-      if (desc != NULL) {
-        *desc = &driver->rdm_cbs[i].desc;
-      }
       break;
     }
   }
@@ -767,4 +763,78 @@ esp_err_t rdm_set_pid_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   }
 
   return err;
+}
+
+bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
+                     size_t size) {
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  void *pd = NULL;
+  const rdm_pid_description_t *desc;
+  taskENTER_CRITICAL(spinlock);
+  for (int i = 0; i < driver->num_rdm_cbs; ++i) {
+    if (driver->rdm_cbs[i].desc.pid == pid) {
+      pd = driver->rdm_cbs[i].param;
+      desc = &driver->rdm_cbs[i].desc;
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  bool ret;
+  if (pd != NULL) {
+    size = size < desc->pdl_size ? size : desc->pdl_size;
+    if (desc->data_type == RDM_DS_ASCII) {
+      strncpy(param, pd, size);
+      // FIXME: make size a pointer and have it return size of string
+    } else {
+      memcpy(param, pd, size);
+    }
+    ret = true;
+  } else {
+    ret = false;
+  }
+
+  return ret;
+}
+
+bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+                     size_t size, bool nvs) {
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  void *pd = NULL;
+  const rdm_pid_description_t *desc;
+  taskENTER_CRITICAL(spinlock);
+  for (int i = 0; i < driver->num_rdm_cbs; ++i) {
+    if (driver->rdm_cbs[i].desc.pid == pid) {
+      pd = driver->rdm_cbs[i].param;
+      desc = &driver->rdm_cbs[i].desc;
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  if (pd != NULL) {
+    size = size < desc->pdl_size ? size : desc->pdl_size;
+    if (desc->data_type == RDM_DS_ASCII) {
+      strncpy(pd, param, size);
+    } else {
+      memcpy(pd, param, size);
+    }
+    if (nvs) {
+      esp_err_t err =
+          rdm_set_pid_to_nvs(dmx_num, pid, desc->data_type, param, size);
+      if (err) {
+        // TODO: set boot-loader flag
+      }
+    }
+
+    // TODO: add queued message
+
+    return true;
+  }
+
+  return false;
 }
