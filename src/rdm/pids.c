@@ -9,10 +9,10 @@ static bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
 
   bool ret;
   if (pd != NULL) {
-    // TODO: check param bounds
     size = size < desc->pdl_size ? size : desc->pdl_size;
     if (desc->data_type == RDM_DS_ASCII) {
       strncpy(param, pd, size);
+      // FIXME: make size a pointer and have it return size of string
     } else {
       memcpy(param, pd, size);
     }
@@ -20,8 +20,6 @@ static bool rdm_get_generic(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
   } else {
     ret = false;
   }
-
-  // TODO: add queued message
 
   return ret;
 }
@@ -31,7 +29,6 @@ static bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid,
   const rdm_pid_description_t *desc;
   void *pd = rdm_get_pid(dmx_num, pid, &desc);
 
-  bool ret;
   if (pd != NULL) {
     size = size < desc->pdl_size ? size : desc->pdl_size;
     if (desc->data_type == RDM_DS_ASCII) {
@@ -46,12 +43,13 @@ static bool rdm_set_generic(dmx_port_t dmx_num, rdm_pid_t pid,
         // TODO: set boot-loader flag
       }
     }
-    ret = true;
-  } else {
-    ret = false;
+
+    // TODO: add queued message
+
+    return true;
   }
 
-  return ret;
+  return false;
 }
 
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
