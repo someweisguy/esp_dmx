@@ -223,197 +223,6 @@ size_t pd_emplace_word(void *destination, uint16_t word) {
   return sizeof(word);
 }
 
-bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-                      const void *pd_in, void *pd_out, size_t *pdl,
-                      rdm_ack_t *ack) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(!uid_is_null(&header->dest_uid), 0, "dest_uid is invalid");
-  DMX_CHECK(!uid_is_broadcast(&header->src_uid), 0, "src_uid is invalid");
-  DMX_CHECK(header->cc == RDM_CC_DISC_COMMAND ||
-                header->cc == RDM_CC_GET_COMMAND ||
-                header->cc == RDM_CC_SET_COMMAND,
-            0, "cc is invalid");
-  DMX_CHECK(
-      header->sub_device < 513 || (header->sub_device == RDM_SUB_DEVICE_ALL &&
-                                   header->cc != RDM_CC_GET_COMMAND),
-      0, "sub_device is invalid");
-  DMX_CHECK(header->pdl <= 231, 0, "pdl is invalid");
-  DMX_CHECK(pdl != NULL, 0, "pdl is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Update the optional components of the header to allowed values
-  if (header->port_id == 0) {
-    header->port_id = dmx_num + 1;
-  }
-  if (uid_is_null(&header->src_uid)) {
-    uid_get(dmx_num, &header->src_uid);
-  }
-
-  // Set header values that the user cannot set themselves
-  taskENTER_CRITICAL(spinlock);
-  header->tn = driver->tn;
-  taskEXIT_CRITICAL(spinlock);
-  header->message_count = 0;
-
-  // Determine if a response is expected
-  const bool response_expected = !uid_is_broadcast(&header->dest_uid) ||
-                                 (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
-                                  header->cc == RDM_CC_DISC_COMMAND);
-
-  // Block until the mutex can be taken
-  if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
-    return 0;
-  }
-
-  // Block until the driver is done sending
-  if (!dmx_wait_sent(dmx_num, portMAX_DELAY)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return 0;
-  }
-
-  // Write and send the request
-  size_t size = dmx_write_rdm(dmx_num, header, pd_in);
-  dmx_send(dmx_num, size);
-
-  // Return early if a packet error occurred or if no response was expected
-  if (response_expected) {
-    dmx_packet_t packet;
-    // FIXME: setting the wait_ticks <= 3 causes instability on Arduino
-    size = dmx_receive(dmx_num, &packet, 10);
-    if (ack != NULL) {
-      ack->err = packet.err;
-      ack->size = size;
-    }
-    if (packet.err && packet.err != ESP_ERR_TIMEOUT) {
-      if (ack != NULL) {
-        ack->src_uid = (rdm_uid_t){0, 0};
-        ack->message_count = 0;
-        ack->type = RDM_RESPONSE_TYPE_INVALID;
-      }
-      xSemaphoreGiveRecursive(driver->mux);
-      return false;
-    } else if (size == 0) {
-      // TODO: remove this else if when refactoring dmx_receive()
-      if (ack != NULL) {
-        ack->src_uid = (rdm_uid_t){0, 0};
-        ack->message_count = 0;
-        ack->type = RDM_RESPONSE_TYPE_NONE;
-      }
-      xSemaphoreGiveRecursive(driver->mux);
-      return false;
-    }
-  } else {
-    if (ack != NULL) {
-      ack->err = ESP_OK;
-      ack->size = size;
-      ack->src_uid = (rdm_uid_t){0, 0};
-      ack->message_count = 0;
-      ack->type = RDM_RESPONSE_TYPE_NONE;
-    }
-    dmx_wait_sent(dmx_num, 2);
-    xSemaphoreGiveRecursive(driver->mux);
-    return false;
-  }
-
-  // Handle the RDM response packet
-  rdm_header_t resp;
-  rdm_response_type_t response_type;
-  if (!dmx_read_rdm(dmx_num, &resp, pd_out, *pdl)) {
-    response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
-    resp.pdl = 0;
-  } else if (resp.response_type != RDM_RESPONSE_TYPE_ACK &&
-             resp.response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
-             resp.response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
-             resp.response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response_type
-  } else if (header->pid != RDM_PID_DISC_UNIQUE_BRANCH &&
-             (header->cc != (resp.cc - 1) || header->pid != resp.pid ||
-              header->tn != resp.tn ||
-              !uid_is_target(&resp.src_uid, &header->dest_uid) ||
-              !uid_is_eq(&resp.dest_uid, &header->src_uid))) {
-    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
-  } else {
-    response_type = resp.response_type;  // Response is ok
-  }
-  if (pdl != NULL) {
-    *pdl = resp.pdl;
-  }
-
-  uint32_t decoded;
-  // Handle the response based on the response type
-  if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
-    // Get and convert the estimated response time to FreeRTOS ticks
-    decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
-  } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
-    // Get and report the received NACK reason
-    decoded = bswap16(*(uint16_t *)pd_out);
-  } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-    ESP_LOGW(TAG, "RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");
-    decoded = 0;
-  } else {
-    // Do nothing when response_type is RDM_RESPONSE_TYPE_ACK
-    decoded = 0;
-  }
-
-  // Report the results back to the caller
-  if (ack != NULL) {
-    ack->type = response_type;
-    ack->src_uid = resp.src_uid;
-    ack->message_count = resp.message_count;
-    ack->timer = decoded;
-  }
-
-  // Give the mutex back
-  xSemaphoreGiveRecursive(driver->mux);
-  return (response_type == RDM_RESPONSE_TYPE_ACK);
-}
-
-bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            const rdm_pid_description_t *desc,
-                            const char *param_str, rdm_driver_cb_t driver_cb,
-                            void *param, rdm_responder_cb_t user_cb,
-                            void *context) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(sub_device < 513, false, "sub_device error");
-  DMX_CHECK(desc != NULL, false, "desc is null");
-  DMX_CHECK(driver_cb != NULL, false, "driver_cb is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  if (sub_device != RDM_SUB_DEVICE_ROOT) {
-    ESP_LOGE(TAG, "Responses for multiple sub-devices are not yet supported.");
-    return false;
-  }
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Iterate the callback list to see if a callback with this PID exists
-  int i = 0;
-  for (; i < driver->num_rdm_cbs; ++i) {
-    if (driver->rdm_cbs[i].desc.pid == desc->pid) break;
-  }
-
-  // Check if there is space for callbacks
-  if (i == RDM_RESPONDER_PIDS_MAX) {
-    ESP_LOGE(TAG, "No more space for RDM callbacks");
-    return false;
-  }
-
-  // Add the requested callback to the callback list
-  driver->rdm_cbs[i].param_str = param_str;
-  driver->rdm_cbs[i].param = param;
-  driver->rdm_cbs[i].context = context;
-  driver->rdm_cbs[i].user_cb = user_cb;
-  driver->rdm_cbs[i].driver_cb = driver_cb;
-  driver->rdm_cbs[i].desc = *desc;
-  ++driver->num_rdm_cbs;
-
-  return true;
-}
-
 void *pd_alloc(dmx_port_t dmx_num, size_t size) {
   // TODO: arg check
 
@@ -577,6 +386,48 @@ esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   return err;
 }
 
+bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            const rdm_pid_description_t *desc,
+                            const char *param_str, rdm_driver_cb_t driver_cb,
+                            void *param, rdm_responder_cb_t user_cb,
+                            void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < 513, false, "sub_device error");
+  DMX_CHECK(desc != NULL, false, "desc is null");
+  DMX_CHECK(driver_cb != NULL, false, "driver_cb is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  if (sub_device != RDM_SUB_DEVICE_ROOT) {
+    ESP_LOGE(TAG, "Responses for multiple sub-devices are not yet supported.");
+    return false;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Iterate the callback list to see if a callback with this PID exists
+  int i = 0;
+  for (; i < driver->num_rdm_cbs; ++i) {
+    if (driver->rdm_cbs[i].desc.pid == desc->pid) break;
+  }
+
+  // Check if there is space for callbacks
+  if (i == RDM_RESPONDER_PIDS_MAX) {
+    ESP_LOGE(TAG, "No more space for RDM callbacks");
+    return false;
+  }
+
+  // Add the requested callback to the callback list
+  driver->rdm_cbs[i].param_str = param_str;
+  driver->rdm_cbs[i].param = param;
+  driver->rdm_cbs[i].context = context;
+  driver->rdm_cbs[i].user_cb = user_cb;
+  driver->rdm_cbs[i].driver_cb = driver_cb;
+  driver->rdm_cbs[i].desc = *desc;
+  ++driver->num_rdm_cbs;
+
+  return true;
+}
+
 bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
                        size_t size) {
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
@@ -648,4 +499,153 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   }
 
   return false;
+}
+
+bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
+                      const void *pd_in, void *pd_out, size_t *pdl,
+                      rdm_ack_t *ack) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(!uid_is_null(&header->dest_uid), 0, "dest_uid is invalid");
+  DMX_CHECK(!uid_is_broadcast(&header->src_uid), 0, "src_uid is invalid");
+  DMX_CHECK(header->cc == RDM_CC_DISC_COMMAND ||
+                header->cc == RDM_CC_GET_COMMAND ||
+                header->cc == RDM_CC_SET_COMMAND,
+            0, "cc is invalid");
+  DMX_CHECK(
+      header->sub_device < 513 || (header->sub_device == RDM_SUB_DEVICE_ALL &&
+                                   header->cc != RDM_CC_GET_COMMAND),
+      0, "sub_device is invalid");
+  DMX_CHECK(header->pdl <= 231, 0, "pdl is invalid");
+  DMX_CHECK(pdl != NULL, 0, "pdl is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Update the optional components of the header to allowed values
+  if (header->port_id == 0) {
+    header->port_id = dmx_num + 1;
+  }
+  if (uid_is_null(&header->src_uid)) {
+    uid_get(dmx_num, &header->src_uid);
+  }
+
+  // Set header values that the user cannot set themselves
+  taskENTER_CRITICAL(spinlock);
+  header->tn = driver->tn;
+  taskEXIT_CRITICAL(spinlock);
+  header->message_count = 0;
+
+  // Determine if a response is expected
+  const bool response_expected = !uid_is_broadcast(&header->dest_uid) ||
+                                 (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
+                                  header->cc == RDM_CC_DISC_COMMAND);
+
+  // Block until the mutex can be taken
+  if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
+    return 0;
+  }
+
+  // Block until the driver is done sending
+  if (!dmx_wait_sent(dmx_num, portMAX_DELAY)) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return 0;
+  }
+
+  // Write and send the request
+  size_t size = dmx_write_rdm(dmx_num, header, pd_in);
+  dmx_send(dmx_num, size);
+
+  // Return early if a packet error occurred or if no response was expected
+  if (response_expected) {
+    dmx_packet_t packet;
+    // FIXME: setting the wait_ticks <= 3 causes instability on Arduino
+    size = dmx_receive(dmx_num, &packet, 10);
+    if (ack != NULL) {
+      ack->err = packet.err;
+      ack->size = size;
+    }
+    if (packet.err && packet.err != ESP_ERR_TIMEOUT) {
+      if (ack != NULL) {
+        ack->src_uid = (rdm_uid_t){0, 0};
+        ack->message_count = 0;
+        ack->type = RDM_RESPONSE_TYPE_INVALID;
+      }
+      xSemaphoreGiveRecursive(driver->mux);
+      return false;
+    } else if (size == 0) {
+      // TODO: remove this else if when refactoring dmx_receive()
+      if (ack != NULL) {
+        ack->src_uid = (rdm_uid_t){0, 0};
+        ack->message_count = 0;
+        ack->type = RDM_RESPONSE_TYPE_NONE;
+      }
+      xSemaphoreGiveRecursive(driver->mux);
+      return false;
+    }
+  } else {
+    if (ack != NULL) {
+      ack->err = ESP_OK;
+      ack->size = size;
+      ack->src_uid = (rdm_uid_t){0, 0};
+      ack->message_count = 0;
+      ack->type = RDM_RESPONSE_TYPE_NONE;
+    }
+    dmx_wait_sent(dmx_num, 2);
+    xSemaphoreGiveRecursive(driver->mux);
+    return false;
+  }
+
+  // Handle the RDM response packet
+  rdm_header_t resp;
+  rdm_response_type_t response_type;
+  if (!dmx_read_rdm(dmx_num, &resp, pd_out, *pdl)) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
+    resp.pdl = 0;
+  } else if (resp.response_type != RDM_RESPONSE_TYPE_ACK &&
+             resp.response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+             resp.response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+             resp.response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response_type
+  } else if (header->pid != RDM_PID_DISC_UNIQUE_BRANCH &&
+             (header->cc != (resp.cc - 1) || header->pid != resp.pid ||
+              header->tn != resp.tn ||
+              !uid_is_target(&resp.src_uid, &header->dest_uid) ||
+              !uid_is_eq(&resp.dest_uid, &header->src_uid))) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
+  } else {
+    response_type = resp.response_type;  // Response is ok
+  }
+  if (pdl != NULL) {
+    *pdl = resp.pdl;
+  }
+
+  uint32_t decoded;
+  // Handle the response based on the response type
+  if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+    // Get and convert the estimated response time to FreeRTOS ticks
+    decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
+  } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+    // Get and report the received NACK reason
+    decoded = bswap16(*(uint16_t *)pd_out);
+  } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+    ESP_LOGW(TAG, "RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");
+    decoded = 0;
+  } else {
+    // Do nothing when response_type is RDM_RESPONSE_TYPE_ACK
+    decoded = 0;
+  }
+
+  // Report the results back to the caller
+  if (ack != NULL) {
+    ack->type = response_type;
+    ack->src_uid = resp.src_uid;
+    ack->message_count = resp.message_count;
+    ack->timer = decoded;
+  }
+
+  // Give the mutex back
+  xSemaphoreGiveRecursive(driver->mux);
+  return (response_type == RDM_RESPONSE_TYPE_ACK);
 }

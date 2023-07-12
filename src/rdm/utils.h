@@ -250,6 +250,54 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
  */
 size_t pd_emplace_word(void *destination, uint16_t word);
 
+// TODO: docs
+void *pd_alloc(dmx_port_t dmx_num, size_t size);
+
+// TODO: docs
+void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
+
+// TODO: docs
+esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                          void *param, size_t *size);
+
+// TODO: docs
+esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                        const void *param, size_t size);
+
+/**
+ * @brief Registers a response callback to be called when a request is received
+ * for a specified PID for this device. Callbacks may be overwritten, but they
+ * may not be deleted. The pointers to the parameter and context are copied by
+ * reference and must be valid throughout the lifetime of the DMX driver. The
+ * maximum number of response callbacks that may be registered are defined by
+ * "Max RDM responder PIDs" found in the kconfig.
+ *
+ * @param dmx_num The DMX port number.
+ * @param sub_device The sub-device to which to register the response callback.
+ * @param[in] desc A pointer to a descriptor for the PID to be registered.
+ * @param[in] callback A pointer to a callback function which is called when a
+ * request for the specified PID is received.
+ * @param[in] param A pointer to the parameter which can be used in the response
+ * callback.
+ * @param[in] context A pointer to a user-defined context.
+ * @return true if the response was successfully registered.
+ * @return false if the response was not registered.
+ * // TODO: update docs
+ */
+bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            const rdm_pid_description_t *desc,
+                            const char *param_str, rdm_driver_cb_t driver_cb,
+                            void *param, rdm_responder_cb_t user_cb,
+                            void *context);
+
+// TODO: docs
+bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
+                       size_t size);
+
+// TODO: docs
+bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+                       size_t size, bool nvs);
+
 /**
  * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
@@ -294,52 +342,6 @@ size_t pd_emplace_word(void *destination, uint16_t word);
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *num,
                       rdm_ack_t *ack);
-
-/**
- * @brief Registers a response callback to be called when a request is received
- * for a specified PID for this device. Callbacks may be overwritten, but they
- * may not be deleted. The pointers to the parameter and context are copied by
- * reference and must be valid throughout the lifetime of the DMX driver. The
- * maximum number of response callbacks that may be registered are defined by
- * "Max RDM responder PIDs" found in the kconfig.
- *
- * @param dmx_num The DMX port number.
- * @param sub_device The sub-device to which to register the response callback.
- * @param[in] desc A pointer to a descriptor for the PID to be registered.
- * @param[in] callback A pointer to a callback function which is called when a
- * request for the specified PID is received.
- * @param[in] param A pointer to the parameter which can be used in the response
- * callback.
- * @param[in] context A pointer to a user-defined context.
- * @return true if the response was successfully registered.
- * @return false if the response was not registered.
- * // TODO: update docs
- */
-bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            const rdm_pid_description_t *desc,
-                            const char *param_str, rdm_driver_cb_t driver_cb,
-                            void *param, rdm_responder_cb_t user_cb,
-                            void *context);
-
-// TODO: docs
-void *pd_alloc(dmx_port_t dmx_num, size_t size);
-
-// TODO: docs
-void *pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
-
-// TODO: docs
-esp_err_t pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                          void *param, size_t *size);
-
-// TODO: docs
-esp_err_t pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                        const void *param, size_t size);
-
-bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                       size_t size);
-
-bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                       size_t size, bool nvs);
 
 #ifdef __cplusplus
 }
