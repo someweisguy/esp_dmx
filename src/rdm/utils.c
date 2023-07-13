@@ -286,9 +286,11 @@ esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
     return ESP_OK;
   }
 
+  // Get the NVS namespace and key value
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
+  // FIXME: pid &= 0xffff;
   itoa(pid, key, 16);
 
   nvs_handle_t nvs;
@@ -356,9 +358,11 @@ esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
     return ESP_OK;
   }
 
+  // Get the NVS namespace and key value
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
+  // FIXME: pid &= 0xffff;
   itoa(pid, key, 16);
 
   nvs_handle_t nvs;

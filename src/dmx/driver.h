@@ -78,11 +78,13 @@ enum dmx_flags_t {
   DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
 
-// TODO: docs
+/**
+ * @brief Stores the DMX personality information of the DMX driver when RDM is 
+ * not enabled.*/
 typedef struct dmx_driver_personality_t {
-  uint16_t dmx_start_address;
-  uint8_t current_personality;
-  uint8_t personality_count;
+  uint16_t dmx_start_address;   // The driver's DMX start address.
+  uint8_t current_personality;  // The current personality of the DMX driver.
+  uint8_t personality_count;    // The number of personalities supported.
 } dmx_driver_personality_t;
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
@@ -120,15 +122,15 @@ typedef struct dmx_driver_t {
 
   // DMX configuration
   struct dmx_personality_t {
-    uint16_t footprint;
-    const char *description;
+    uint16_t footprint;       // The DMX footprint of the personality.
+    const char *description;  // A description of the personality.
   } personalities[DMX_PERSONALITIES_MAX];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break.
 
-  uint8_t *alloc_data;
-  size_t alloc_size;
-  size_t alloc_head;
+  uint8_t *alloc_data;  // Allocated memory for DMX/RDM parameter data.
+  size_t alloc_size;    // The size of the allocated memory.
+  size_t alloc_head;    // The amount of memory currently used for parameters.
 
   // RDM responder configuration
   uint16_t num_rdm_cbs;

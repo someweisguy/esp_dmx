@@ -251,17 +251,55 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
  */
 size_t rdm_pd_emplace_word(void *destination, uint16_t word);
 
-// TODO: docs
+/**
+ * @brief Allocates memory in the DMX driver for RDM parameter data. When the
+ * DMX driver is installed a chunk of heap memory is allocated for parameter
+ * data use. This function reserves a segment of this memory if there is enough
+ * available. Therefore, this function does not call malloc().
+ *
+ * @note Once parameter data memory is allocated it cannot be freed. It is
+ * important to ensure that this function is called only when it is certain that
+ * memory will be used.
+ *
+ * @param dmx_num The DMX port number.
+ * @param size The size of memory to allocate.
+ * @return A pointer to the allocated memory or NULL on failure.
+ */
 void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
 
-// TODO: docs
+/**
+ * @brief Finds the pointer to the parameter data for a registered parameter.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to find.
+ * @return A pointer to the parameter data or NULL on failure.
+ */
 void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
 
-// TODO: docs
+/**
+ * @brief Gets parameter data from non-volatile storage.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to get.
+ * @param ds The parameter data type.
+ * @param[out] param A pointer into which to copy the parameter data.
+ * @param[inout] size The size of the param pointer. Upon getting the parameter
+ * data, this value is set to the size of the gotten parameter.
+ * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
+ */
 esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
                               void *param, size_t *size);
 
-// TODO: docs
+/**
+ * @brief Sets the parameter data to non-volatile storage.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to set.
+ * @param ds The parameter data type.
+ * @param[in] param A pointer to the parameter data to copy to NVS.
+ * @param size The size of the parameter data.
+ * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
+ */
 esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
                             const void *param, size_t size);
 
@@ -276,14 +314,17 @@ esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device to which to register the response callback.
  * @param[in] desc A pointer to a descriptor for the PID to be registered.
- * @param[in] callback A pointer to a callback function which is called when a
- * request for the specified PID is received.
+ * @param[in] param_str A parameter string which defines how the parameter data
+ * is emplaced into the RDM packet.
+ * @param driver_cb A driver-side callback function which is called when a
+ * request for this PID is received.
  * @param[in] param A pointer to the parameter which can be used in the response
- * callback.
+ * callback. 
+ * @param user_cb A user-side callback function which is called after a request
+ * for this PID is handled.
  * @param[in] context A pointer to a user-defined context.
  * @return true if the response was successfully registered.
  * @return false if the response was not registered.
- * // TODO: update docs
  */
 bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             const rdm_pid_description_t *desc,
@@ -291,11 +332,34 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             void *param, rdm_responder_cb_t user_cb,
                             void *context);
 
-// TODO: docs
+/**
+ * @brief Copies a specified RDM parameter to a buffer.
+ *
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to get.
+ * @param[out] param A pointer to a buffer into which to copy the parameter
+ * data.
+ * @param[inout] size The size of the parameter data. Upon getting the parameter
+ * data, this value is set to the size of the parameter.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
                        size_t *size);
 
-// TODO: docs
+/**
+ * @brief Sets the value of a specified RDM parameter. This function will set
+ * the value of an RDM parameter even if the parameter does not support SET
+ * requests.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to set.
+ * @param[in] param A pointer to the new value to which to set the parameter.
+ * @param size The size of the new value of the parameter.
+ * @param nvs Set to true if this parameter should also be updated in NVS.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
                        size_t size, bool nvs);
 
