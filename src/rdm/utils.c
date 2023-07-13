@@ -290,8 +290,7 @@ esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
-  pid &= 0xffff;
-  itoa(pid, key, 16);
+  itoa((uint16_t)pid, key, 16);
 
   nvs_handle_t nvs;
   esp_err_t err = nvs_open(namespace, NVS_READONLY, &nvs);
@@ -362,8 +361,7 @@ esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   char namespace[] = "esp_dmx?";
   namespace[sizeof(namespace) - 2] = dmx_num + '0';
   char key[5];
-  pid &= 0xffff;
-  itoa(pid, key, 16);
+  itoa((uint16_t)pid, key, 16);
 
   nvs_handle_t nvs;
   esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs);
