@@ -27,6 +27,10 @@
 #define DMX_ISR_ATTR
 #endif
 
+#ifndef CONFIG_RDM_NVS_PARTITION_NAME
+#define RDM_NVS_PARTITION_NAME "nvs"
+#endif
+
 #define DMX_UART_FULL_DEFAULT 1
 #define DMX_UART_EMPTY_DEFAULT 8
 
@@ -305,7 +309,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
 
   // Initialize NVS
-  nvs_flash_init_partition("nvs");  // TODO: allow rename partition in Kconfig
+  nvs_flash_init_partition(CONFIG_RDM_NVS_PARTITION_NAME);
 
   // Initialize RDM UID
   rdm_uid_get(dmx_num, NULL);
