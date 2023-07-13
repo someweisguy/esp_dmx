@@ -858,6 +858,10 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   }
   taskEXIT_CRITICAL(spinlock);
 
+  if (device_info != NULL) {
+    // TODO: send message to RDM queue
+  }
+
   return true;
 }
 
@@ -947,6 +951,10 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
     device_info->dmx_start_address = dmx_start_address;
   }
   taskEXIT_CRITICAL(spinlock);
+
+  if (device_info != NULL) {
+    // TODO: send message to RDM queue
+  }
 
   return true;
 }
