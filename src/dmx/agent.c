@@ -332,6 +332,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     return ESP_ERR_NO_MEM;
   }
   dmx_driver[dmx_num] = driver;
+  driver->mux = NULL;
+  driver->data = NULL;
+  driver->alloc_data = NULL;
 
   // Initialize hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -603,6 +606,11 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // Free driver data buffer
   if (driver->data != NULL) {
     heap_caps_free(driver->data);
+  }
+
+  // Free RDM parameter data buffer
+  if (driver->alloc_data != NULL) {
+    heap_caps_free(driver->alloc_data);
   }
 
   // Free hardware timer ISR
