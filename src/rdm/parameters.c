@@ -51,11 +51,9 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   
-  // FIXME: also call dmx_get_start_address()
-
-  size_t size = sizeof(*dmx_start_address);
-  return rdm_get_parameter(dmx_num, RDM_PID_DMX_START_ADDRESS,
-                           dmx_start_address, &size);
+  // DMX getter can be called and should always return true
+  *dmx_start_address = dmx_get_start_address(dmx_num);
+  return (dmx_start_address != 0);
 }
 
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
@@ -65,8 +63,6 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
             "dmx_start_address error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // FIXME: also call dmx_set_start_address()
-
-  return rdm_set_parameter(dmx_num, RDM_PID_DMX_START_ADDRESS,
-                           &dmx_start_address, sizeof(dmx_start_address), true);
+  // DMX setter can be called
+  return dmx_set_start_address(dmx_num, dmx_start_address);
 }
