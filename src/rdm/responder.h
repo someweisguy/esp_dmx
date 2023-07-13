@@ -67,10 +67,10 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
  * driver is initially installed.
  *
  * @param dmx_num The DMX port number.
- * @param[in] device_info A pointer to the device info parameter to use in RDM
- * responses.  This value is used to set the parameter to a default value when
- * this function is called for the first time and is ignored (and therefore may
- * be set to NULL) on subsequent calls.
+ * @param[inout] device_info A pointer to the device info parameter to use in
+ * RDM responses.  This value is used to set the parameter to a default value
+ * when this function is called for the first time and is ignored (and therefore
+ * may be set to NULL) on subsequent calls.
  * @param cb A callback which is called upon receiving a request for this PID.
  * @param[inout] context A pointer to context which is used in the user
  * callback.
@@ -78,7 +78,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
  * @return false if there is not enough memory to register additional responses.
  */
 bool rdm_register_device_info(dmx_port_t dmx_num,
-                              rdm_device_info_t *device_info,  // FIXME: const?
+                              rdm_device_info_t *device_info,
                               rdm_responder_cb_t cb, void *context);
 
 /**
