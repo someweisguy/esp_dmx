@@ -536,6 +536,8 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
     }
   }
 
+  // TODO: Send the update to the RDM queue
+
   return ret;
 }
 
