@@ -3,11 +3,11 @@
   RDM Responder
 
   Configure this device to act as an RDM responder. This example registers a
-  two custom RDM response callbacks: one for RDM_PID_SOFTWARE_VERSION_LABEL and
-  one for RDM_PID_IDENTIFY_DEVICE. These PIDs are already registered when
-  installing the DMX driver, but are overwritten for demonstration purposes.
-  Afterwards, this example loops continuously in a simple DMX receive loop which
-  allows for processing and responding to RDM requests.
+  custom RDM response callback for RDM_PID_IDENTIFY_DEVICE. This PID is already
+  registered when installing the DMX driver, but is overwritten for
+  demonstration purposes. Afterwards, this example loops continuously in a
+  simple DMX receive loop which allows for processing and responding to RDM
+  requests.
 
   Created 20 June 2023
   By Mitch Weisbrod
@@ -35,13 +35,9 @@ int enablePin = 21;
   so we shouldn't use that port. Lets use port 1! */
 dmx_port_t dmxPort = 1;
 
-/* The two RDM responses we will register are RDM_PID_SOFTWARE_VERSION_LABEL and
-  RDM_PID_IDENTIFY_DEVICE. These responses are already registered when calling
-  dmx_driver_install() but we can overwrite them. */
-
-/* To overwrite RDM_PID_SOFTWARE_VERSION_LABEL we must, of course, define a new
-  software version label! We will define it below. */
-const char *softwareVersionLabel = "My Custom Software!";
+/* The RDM response we will register is RDM_PID_IDENTIFY_DEVICE. This response
+  is already registered when calling dmx_driver_install() but we can overwrite
+  it. */
 
 /* To overwrite RDM_PID_IDENTIFY_DEVICE, we will define a callback which will
   illuminate an LED when the identify device mode is active, and extinguish the
@@ -50,11 +46,14 @@ const char *softwareVersionLabel = "My Custom Software!";
 int ledPin = 13;
 void rdmIdentifyCallback(dmx_port_t dmxPort, const rdm_header_t *header,
                          void *context) {
-  // Illuminate the LED if the identify state is set to true
-  uint8_t identify;
-  rdm_get_identify_device(dmx_num, &identify);
-  digitalWrite(ledPin, identify);
-  Serial.printf("Identify mode is %s.\n", identify ? "on" : "off");
+  /* We should only turn the LED on and off when we send a SET response message.
+    This prevents extra work from being done when a GET request is received. */
+  if (header->cc == RDM_CC_SET_COMMAND_RESPONSE) {
+    uint8_t identify;
+    rdm_get_identify_device(dmx_num, &identify);
+    digitalWrite(ledPin, identify);
+    Serial.printf("Identify mode is %s.\n", identify ? "on" : "off");
+  }
 }
 
 void setup() {
@@ -72,13 +71,6 @@ void setup() {
     configuration and interrupt to their default settings. */
   dmx_config_t config = DMX_CONFIG_DEFAULT;
   dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
-
-  /* Register the custom RDM_PID_SOFTWARE_VERSION_LABEL callback. This
-    overwrites the default response. If you would like you may add a callback
-    function and a context which will be called when receiving this request. For
-    now, we will leave these NULL. */
-  rdm_register_software_version_label(dmxPort, softwareVersionLabel, NULL,
-                                      NULL);
 
   /* Register the custom RDM_PID_IDENTIFY_DEVICE callback. This overwrites the
     default response. Since we aren't using a user context in the callback, we
