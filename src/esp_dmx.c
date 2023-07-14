@@ -410,12 +410,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Wait for a task notification
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
     taskENTER_CRITICAL(spinlock);
-    packet_size = driver->head;
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(spinlock);
     if (packet_size == -1) {
       packet_size = 0;
     }
+    
     if (!notified) {
       if (driver_flags & DMX_FLAGS_TIMER_IS_RUNNING) {
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -432,12 +432,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
     }
+    taskENTER_CRITICAL(spinlock);
+    driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
+    packet_size = driver->head;
+    taskEXIT_CRITICAL(spinlock);
   } else if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA)) {
     // Fail early if there is no data available and this function cannot block
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
-
+  
   // Parse DMX data packet
   if (packet != NULL) {
     taskENTER_CRITICAL(spinlock);
@@ -599,7 +603,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // TODO set the boot-loader flag
     } else if (response_size > 0) {
       dmx_wait_sent(dmx_num, 10);
+      taskENTER_CRITICAL(spinlock);
+      driver->head = -1;  // Wait for DMX break before reading data
       dmx_uart_set_rts(uart, 1);
+      taskEXIT_CRITICAL(spinlock);
     }
   }
 
