@@ -399,7 +399,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     enable_rdm = false;
   } else {
     alloc_size = config->alloc_size;
-    enable_rdm = false;
+    enable_rdm = true;
   }
   uint8_t *alloc_data = heap_caps_malloc(alloc_size, MALLOC_CAP_8BIT);
   if (alloc_data == NULL) {
