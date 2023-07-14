@@ -39,10 +39,10 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
 - [Additional Considerations](#additional-considerations)
   - [Using Flash or Disabling Cache](#using-flash-or-disabling-cache)
   - [Wiring an RS-485 Circuit](#wiring-an-rs-485-circuit)
-  - [Currently Supported RDM PIDs](#currently-supported-rdm-pids)
   - [Hardware Specifications](#hardware-specifications)
 - [To Do](#to-do)
 - [Appendix](#appendix)
+  - [Parameter IDs](#parameter-ids)
   - [Product Categories](#product-categories)
   - [NACK Reason Codes](#nack-reason-codes)
 
@@ -191,11 +191,11 @@ The constants `RDM_SUB_DEVICE_ROOT` and `RDM_SUB_DEVICE_ALL` are provided to imp
 
 ### Parameters
 
-RDM requests must be able to fetch and update parameters. The RDM standard specifies more than 50 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices. The list of supported PIDs can be found [here](https://www.rdmprotocol.org/rdm/developers/developer-resources/).
+RDM requests must be able to fetch and update parameters. The RDM standard specifies more than 50 different Parameter IDs (PIDs) which a device may support. The standard also specifies that manufacturers may define custom PIDs for their devices.
 
 Most PIDs can be either GET or SET if the responding device supports the requested PID. Some PIDs may support GET but do not support SET, and vice versa. Some PIDs may support both GET and SET. Three PIDs cannot be GET nor SET. These three PIDs are used for the RDM discovery algorithm. They are `DISC_UNIQUE_BRANCH`, `DISC_MUTE`, and `DISC_UN_MUTE`. This library provides constants for each PID. Each PID in this library is prefixed with `RDM_PID_`. Therefore, `DISC_UNIQUE_BRANCH` would become `RDM_PID_DISC_UNIQUE_BRANCH`. This document will refer to PIDs by their prefixed names for consistency of documentation.
 
-RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the required PIDs can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section.
+RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the supported and the required PIDs can be found in the [appendix](#parameter-ids).
 
 GET requests may not be sent to all sub-devices of a root devices. It is therefore not permitted to send a GET request to `RDM_SUB_DEVICE_ALL`.
 
@@ -218,7 +218,7 @@ Responding devices shall respond to requests only if the request was a non-broad
 - `RDM_RESPONSE_TYPE_ACK_TIMER` indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time. When sending this response, responding devices include an estimated response time that must elapse before the responder can provide the required information.
 - `RDM_RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response. NACK reason codes are enumerated in the [appendix](#nack-reason-codes).
 
-Two additional response types are defined for this library. Responders will not send packets with these response types. These response types are included to assist users with processing RDM data.
+Two additional response types are defined for this library. These response types are included to assist users with processing RDM data.
 
 - `RDM_RESPONSE_TYPE_NONE` indicates that no response was received.
 - `RDM_RESPONSE_TYPE_INVALID` indicates that a response was received, but the response was invalid. This can occur for several reasons including an invalid checksum, or an invalid packet format.
@@ -253,16 +253,19 @@ dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
 
 The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
 
+- `alloc_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `alloc_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 21 will disable the RDM responder.
 - `model_id` identifies the device model ID. This is an arbitrary value set by the user. Users should not use the same model ID to represent more than one unique model type. The default value is `0`.
 - `product_category` is the primary function of the device. A list of product categories are enumerated in the appendix under [product categories](#product-categories). The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
 - `software_version_id` indicates the software version ID for the device. This is a 32-bit value determined by the user. The default is a value returned by a function of this library's version number.
-- `current_personality` is the current selected DMX personality of the device. These personalities shall be consecutively numbered starting from 1. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the current personality to the value found in NVS, or 1 if no value is found in NVS.
+- `software_version_label` sets the default value for the `RDM_PID_SOFTWARE_VERSION_LABEL` parameter. The default value is a string indicating the current version number of this library.
+- `current_personality` is the current selected DMX personality of the device. These personalities shall be consecutively numbered starting from 1. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the current personality to the value found in NVS, or 1 if no value is found in NVS or if the personality count found in NVS does not match the personality count passed to the DMX driver.
 - `personalities` is a table defining the footprints of the device and a description of each personality. An example showing how to use this field is below. Unless the `Kconfig` is adjusted, the maximum number of footprints supported is 16.
 - `personality_count` is the number of personalities described in the `personalities` field.
 - `dmx_start_address` is the DMX start address of this device. If the footprint, current personality, or personality count of this device is 0 then this field shall be set to 0xffff. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the DMX start address to the value found in NVS, or 1 if no value is found in NVS.
 
 ```c
 dmx_config_t config = {
+  .alloc_size = 255,
   .model_id = 0xabcd,
   .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,
   .software_version_id = 0x100,
@@ -447,8 +450,8 @@ Using only the functions listed above it is possible to send and receive RDM pac
 ```c
 // This is a hard-coded discovery response packet.
 const uint8_t discovery_response[] = {
- 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xaa, 0xaf, 0x55, 0xea, 0xf5, 0xba, 
- 0x57, 0xbb, 0xdd, 0xbf, 0x55, 0xba, 0xdf, 0xaa, 0x5d, 0xbb, 0x7d 
+  0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xaa, 0xaf, 0x55, 0xea, 0xf5, 0xba, 
+  0x57, 0xbb, 0xdd, 0xbf, 0x55, 0xba, 0xdf, 0xaa, 0x5d, 0xbb, 0x7d 
 };
 dmx_write(DMX_NUM_2, discovery_response, sizeof(discovery_response));
 
@@ -597,18 +600,51 @@ An RDM responder must respond to every non-discovery, non-broadcast packet addre
 
 The DMX driver will parse RDM requests and send responses within the `dmx_receive()` function. It is therefore required for RDM requests to be received with `dmx_receive()` to ensure that a response is sent. If `dmx_receive()` is not called, an RDM response will not be sent.
 
-This library provides the ability to attach parameter pointers to RDM response callbacks. This allows users to set their own variables which will be read from and written to during RDM responses. The functions used to register RDM responses are prefixed with `rdm_register_`. A new `RDM_PID_SOFTWARE_VERSION_LABEL` may be registered with `rdm_register_software_version_label()`.
+RDM parameters can be registered with the DMX driver using functions prefixed with `rdm_register_`. The parameter `RDM_PID_DMX_START_ADDRESS` may therefore be registered with `rdm_register_dmx_start_address()`. Parameter data is owned and initialized by the DMX driver, but users may set the default value for parameters using the arguments to the `rdm_register_` functions.
+
+RDM parameters which support GET but do not support SET allow users to set the parameter's default value as the second argument of the `rdm_register_` function. The default value is set the first time the `rdm_register_` function is called and then the default value argument is subsequently ignored and may be left `NULL`. RDM parameters which support GET and SET will be set to a predefined default value upon registration and must be manually changed using their corresponding `rdm_set_` function. RDM parameters which support NVS will be set to the value found in NVS.
+
+The `rdm_register_` functions allow allow users to attach callback functions to PIDs. When a valid request for a parameter is received, the DMX driver will call the callback function after a request is processed. When a callback is called it does not necessarily mean that a response packet has been sent.
 
 ```c
+void custom_callback(dmx_port_t dmx_num, const rdm_header_t *header, 
+                     void *context) {
+  if (header->pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
+    printf("A RDM_PID_SOFTWARE_VERSION_LABEL request was received!\n");
+  }
+}
+```
+
+Fields in the `rdm_header_t` pointer will reflect the values sent in the response to the RDM request. For example, if a `RDM_CC_GET_COMMAND` is received, the `header->cc` field will evaluate to `RDM_CC_GET_COMMAND_RESPONSE` in the callback function. This can be used to determine if a response packet was sent as the `header->response_type` field will evaluate to `RDM_RESPONSE_TYPE_NONE`.
+
+```c
+void *context = NULL;  // Context not needed for the above callback 
 const char *new_software_label = "My Custom Software";
-if (rdm_register_software_version_label(DMX_NUM_2, new_software_label)) {
+if (rdm_register_software_version_label(DMX_NUM_2, new_software_label, 
+                                        custom_callback, context)) {
   printf("A new software version label has been registered!\n");
 }
 ```
 
 If a request for a PID that does not have a registered callback is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
 
-The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of these automatically registered functions can be found in the [Currently Supported RDM PIDs](#currently-supported-rdm-pids) section.
+The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of the RDM-required parameters can be found in the [appendix](#parameter-ids).
+
+Parameters which are registered may be get or set using getter and setter functions. Parameters which support the `RDM_CC_GET_COMMAND` command class have a getter function prefixed prefixed with `rdm_get_` and parameters which support `RDM_CC_SET_COMMAND` have a setter function prefixed with `rdm_set_`. These getters and setters return true if the value was successfully gotten or set.
+
+Some parameters, such as `RDM_PID_DMX_START_ADDRESS` are copied to non-volatile storage to ensure the values are saved after the ESP32 is power-cycled. The values are copied to NVS when set using the parameter's `rdm_set_` function or when receiving a valid SET request.
+
+```c
+uint16_t dmx_start_address;
+if (!rdm_get_dmx_start_address(DMX_NUM_2, &dmx_start_address)) {
+  printf("An error occurred getting the DMX start address.\n");
+}
+
+dmx_start_address = 123;
+if (!rdm_set_dmx_start_address(DMX_NUM_2, dmx_start_address)) {
+  printf("An error occurred setting the DMX start address.\n");
+}
+```
 
 ## Error Handling
 
@@ -737,20 +773,6 @@ R2, the 120 ohm resistor, is a terminating resistor. It is required only when us
 
 Many RS-485 chips, such as the [Maxim MAX485](https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf) are 3.3v tolerant. This means that it can be controlled with the ESP32 without any additional electrical components. Other RS-485 chips may require 5v data to transmit DMX. In this case, it is required to convert the output of the ESP32 to 5v using a logic level converter.
 
-### Currently Supported RDM PIDs
-
-The PIDs currently implemented by this library are listed below. PIDs marked as "required" are required by the RDM specification and are automatically registered upon installing the DMX driver. `RDM_PID_DMX_START_ADDRESS` is also automatically registered but this may be disabled in the `Kconfig`.
-
-Parameter                        | GET | SET | Notes
-:--------------------------------|:---:|:---:|:------
-`RDM_PID_DEVICE_INFO`            |  X  |     | Required.
-`RDM_PID_DISC_MUTE`              |     |     | Required.
-`RDM_PID_DISC_UN_MUTE`           |     |     | Required.
-`RDM_PID_DISC_UNIQUE_BRANCH`     |     |     | Required.
-`RDM_PID_DMX_START_ADDRESS`      |  X  |  X  | Required if a DMX address is used.
-`RDM_PID_IDENTIFY_DEVICE`        |  X  |  X  | Required.
-`RDM_PID_SOFTWARE_VERSION_LABEL` |  X  |     | Required.
-
 ### Hardware Specifications
 
 ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated from other devices on the DMX bus. In the event of a power surge, the likely worse-case scenario would mean the failure of the RS-485 circuitry and not the entire DMX device. Some DMX devices may function without isolation, but using non-isolated equipment is not recommended.
@@ -760,6 +782,65 @@ ANSI-ESTA E1.11 DMX512-A specifies that DMX devices be electrically isolated fro
 For a list of planned features, see the [esp_dmx GitHub Projects](https://github.com/users/someweisguy/projects/5) page.
 
 ## Appendix
+
+### Parameter IDs
+
+The table below lists the Parameter IDs specified by the RDM standard. Parameters which support GET or SET are indicated accordingly. Parameters which are required are indicated in the "req" column. Parameters which are automatically placed in non-volatile storage are indicated in the "NVS" column. PIDs which are currently supported by this library are indicated in the "supported" column by the earliest version of this library which supported the PID. The "root" column indicates if a PID may be sent to the root sub-device of an RDM device. A "❕" indicates that a PID may only be sent to the root device. A "❌" indicates that a PID may not be sent to the root device.
+
+Parameter                                   |GET|SET|Req|Root|NVS|Supported|Notes
+:-------------------------------------------|:-:|:-:|:-:|:--:|:-:|:-------:|:-----
+`RDM_PID_DISC_UNIQUE_BRANCH`                |   |   |✔️|  ❕ |   |   v3.1.0|May only be sent to `RDM_UID_BROADCAST_ALL`.
+`RDM_PID_DISC_MUTE`                         |   |   |✔️|  ❕ |   |   v3.1.0|
+`RDM_PID_DISC_UN_MUTE`                      |   |   |✔️|  ❕ |   |   v3.1.0|
+`RDM_PID_PROXIED_DEVICES`                   |✔️|   |   |  ❕ |   |         |
+`RDM_PID_PROXIED_DEVICE_COUNT`              |✔️|   |   |  ❕ |   |         |
+`RDM_PID_COMMS_STATUS`                      |✔️|✔️|   |  ❕ |   |         |
+`RDM_PID_QUEUED_MESSAGE`                    |✔️|   |   |  ❕ |   |         |
+`RDM_PID_STATUS_MESSAGE`                    |✔️|   |   |  ❕ |   |         |
+`RDM_PID_STATUS_ID_DESCRIPTION`             |✔️|   |   |  ❕ |   |         |
+`RDM_PID_CLEAR_STATUS_ID`                   |   |✔️|   |    |   |         |
+`RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD`|✔️|✔️|   | ❌|    |        |
+`RDM_PID_SUPPORTED_PARAMETERS`              |✔️|   |✔️|    |    |        |Support required only if supporting parameters beyond the minimum required set.
+`RDM_PID_PARAMETER_DESCRIPTION`             |✔️|   |✔️|  ❕ |   |         |Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.
+`RDM_PID_DEVICE_INFO`                       |✔️|   |✔️|    |    |  v3.1.0|
+`RDM_PID_PRODUCT_DETAIL_ID_LIST`            |✔️|   |   |    |   |         |
+`RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️|   |   |    |   |         |
+`RDM_PID_MANUFACTURER_LABEL`                |✔️|   |   |    |   |         |
+`RDM_PID_DEVICE_LABEL`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_FACTORY_DEFAULTS`                  |✔️|✔️|   |    |   |         |
+`RDM_PID_LANGUAGE_CAPABILITIES`             |✔️|   |   |    |   |         |
+`RDM_PID_LANGUAGE`                          |✔️|✔️|   |    |✔️|         |
+`RDM_PID_SOFTWARE_VERSION_LABEL`            |✔️|   |✔️|    |   |  v3.1.0|
+`RDM_PID_BOOT_SOFTWARE_VERSION_ID`          |✔️|   |   |    |   |         |
+`RDM_PID_BOOT_SOFTWARE_VERSION_LABEL`       |✔️|   |   |    |   |         |
+`RDM_PID_DMX_PERSONALITY`                   |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DMX_PERSONALITY_DESCRIPTION`       |✔️|   |   |    |   |         |
+`RDM_PID_DMX_START_ADDRESS`                 |✔️|✔️|✔️|    |✔️|  v3.1.0|Support required if device uses a DMX slot.
+`RDM_PID_SLOT_INFO`                         |✔️|   |   |    |   |         |
+`RDM_PID_SLOT_DESCRIPTION`                  |✔️|   |   |    |   |         |
+`RDM_PID_DEFAULT_SLOT_VALUE`                |✔️|   |   |    |   |         |
+`RDM_PID_SENSOR_DEFINITION`                 |✔️|   |   |    |   |         |
+`RDM_PID_SENSOR_VALUE`                      |✔️|✔️|   |    |   |         |
+`RDM_PID_RECORD_SENSORS`                    |   |✔️|   |    |   |         |
+`RDM_PID_DEVICE_HOURS`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_HOURS`                        |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_STRIKES`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_STATE`                        |✔️|✔️|   |    |✔️|         |
+`RDM_PID_LAMP_ON_MODE`                      |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DEVICE_POWER_CYCLES`               |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DISPLAY_INVERT`                    |✔️|✔️|   |    |✔️|         |
+`RDM_PID_DISPLAY_LEVEL`                     |✔️|✔️|   |    |✔️|         |
+`RDM_PID_PAN_INVERT`                        |✔️|✔️|   |    |✔️|         |
+`RDM_PID_TILT_INVERT`                       |✔️|✔️|   |    |✔️|         |
+`RDM_PID_PAN_TILT_SWAP`                     |✔️|✔️|   |    |✔️|         |
+`RDM_PID_REAL_TIME_CLOCK`                   |✔️|✔️|   |    |   |         |
+`RDM_PID_IDENTIFY_DEVICE`                   |✔️|✔️|✔️|    |   |  v3.1.0|
+`RDM_PID_RESET_DEVICE`                      |   |✔️|   |    |   |         |
+`RDM_PID_POWER_STATE`                       |✔️|✔️|   |    |   |         |
+`RDM_PID_PERFORM_SELF_TEST`                 |✔️|✔️|   |    |   |         |
+`RDM_PID_SELF_TEST_DESCRIPTION`             |✔️|   |   |    |   |         |
+`RDM_PID_CAPTURE_PRESET`                    |   |✔️|   |    |   |         |
+`RDM_PID_PRESET_PLAYBACK`                   |✔️|✔️|   |    |   |         |
 
 ### Product Categories
 

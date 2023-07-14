@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "dmx/types.h"
+#include "rdm/responder.h"
 #include "rdm/types.h"
 
 #ifdef __cplusplus
@@ -24,9 +25,10 @@ extern "C" {
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
  */
-typedef int (*rdm_response_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
-                                 void *pd, uint8_t *pdl_out, void *param,
-                                 size_t param_size, void *context);
+typedef int (*rdm_driver_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
+                               void *pd, uint8_t *pdl_out, void *param,
+                               const rdm_pid_description_t *desc,
+                               const char *param_str);
 
 /**
  * @brief Copies RDM UID from a source buffer directly into a destination
@@ -41,7 +43,7 @@ typedef int (*rdm_response_cb_t)(dmx_port_t dmx_num, const rdm_header_t *header,
  * @param[in] source A pointer to the source buffer of the UID.
  * @return A pointer to the destination buffer.
  */
-void *uidcpy(void *restrict destination, const void *restrict source);
+void *rdm_uidcpy(void *restrict destination, const void *restrict source);
 
 /**
  * @brief Copies RDM UID from a source buffer into a destination buffer. Copying
@@ -57,7 +59,7 @@ void *uidcpy(void *restrict destination, const void *restrict source);
  * @param[in] source A pointer to the source buffer of the UID.
  * @return A pointer to the destination buffer.
  */
-void *uidmove(void *destination, const void *source);
+void *rdm_uidmove(void *destination, const void *source);
 
 /**
  * @brief Returns the 48-bit unique ID of the desired DMX port.
@@ -65,7 +67,7 @@ void *uidmove(void *destination, const void *source);
  * @param dmx_num The DMX port number.
  * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
  */
-void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
+void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
 
 /**
  * @brief Returns true if the UIDs are equal to each other. Is equivalent to
@@ -76,7 +78,7 @@ void uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
  * @return true if the UIDs are equal.
  * @return false if the UIDs are not equal.
  */
-static inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
+static inline bool rdm_uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
   return a->man_id == b->man_id && a->dev_id == b->dev_id;
 }
 
@@ -89,7 +91,7 @@ static inline bool uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is less than b.
  * @return false if a is not less than b.
  */
-static inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
+static inline bool rdm_uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
   return a->man_id < b->man_id ||
          (a->man_id == b->man_id && a->dev_id < b->dev_id);
 }
@@ -103,7 +105,7 @@ static inline bool uid_is_lt(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is greater than b.
  * @return false if a is not greater than b.
  */
-static inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
+static inline bool rdm_uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
   return a->man_id > b->man_id ||
          (a->man_id == b->man_id && a->dev_id > b->dev_id);
 }
@@ -117,8 +119,8 @@ static inline bool uid_is_gt(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is less than or equal to b.
  * @return false if a is not less than or equal to b.
  */
-static inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return !uid_is_gt(a, b);
+static inline bool rdm_uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !rdm_uid_is_gt(a, b);
 }
 
 /**
@@ -130,8 +132,8 @@ static inline bool uid_is_le(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if a is greater than or equal to b.
  * @return false if a is not greater than or equal to b.
  */
-static inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
-  return !uid_is_lt(a, b);
+static inline bool rdm_uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
+  return !rdm_uid_is_lt(a, b);
 }
 
 /**
@@ -141,7 +143,7 @@ static inline bool uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
-static inline bool uid_is_broadcast(const rdm_uid_t *uid) {
+static inline bool rdm_uid_is_broadcast(const rdm_uid_t *uid) {
   return uid->dev_id == 0xffffffff;
 }
 
@@ -152,7 +154,7 @@ static inline bool uid_is_broadcast(const rdm_uid_t *uid) {
  * @return true if the UID is null.
  * @return false if the UID is not null.
  */
-static inline bool uid_is_null(const rdm_uid_t *uid) {
+static inline bool rdm_uid_is_null(const rdm_uid_t *uid) {
   return uid->man_id == 0 && uid->dev_id == 0;
 }
 
@@ -166,10 +168,11 @@ static inline bool uid_is_null(const rdm_uid_t *uid) {
  * @return true if the UID is targeted by the alias UID.
  * @return false if the UID is not targeted by the alias UID.
  */
-static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
+static inline bool rdm_uid_is_target(const rdm_uid_t *uid,
+                                     const rdm_uid_t *alias) {
   return ((alias->man_id == 0xffff || alias->man_id == uid->man_id) &&
           alias->dev_id == 0xffffffff) ||
-         uid_is_eq(uid, alias);
+         rdm_uid_is_eq(uid, alias);
 }
 
 /**
@@ -235,8 +238,8 @@ static inline bool uid_is_target(const rdm_uid_t *uid, const rdm_uid_t *alias) {
  * the source buffer.
  * @return The size of the data that was emplaced.
  */
-size_t pd_emplace(void *destination, const char *format, const void *source,
-                  size_t num, bool emplace_nulls);
+size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
+                      size_t num, bool emplace_nulls);
 
 /**
  * @brief Emplaces a 16-bit word into a destination. Used as a convenience
@@ -246,70 +249,119 @@ size_t pd_emplace(void *destination, const char *format, const void *source,
  * @param word The word to emplace.
  * @return The size of the word which was emplaced. Is always 2.
  */
-size_t pd_emplace_word(void *destination, uint16_t word);
+size_t rdm_pd_emplace_word(void *destination, uint16_t word);
 
 /**
- * @brief Returns true if RDM discovery responses are be muted on the desired
- * port.
+ * @brief Allocates memory in the DMX driver for RDM parameter data. When the
+ * DMX driver is installed a chunk of heap memory is allocated for parameter
+ * data use. This function reserves a segment of this memory if there is enough
+ * available. Therefore, this function does not call malloc().
+ *
+ * @note Once parameter data memory is allocated it cannot be freed. It is
+ * important to ensure that this function is called only when it is certain that
+ * memory will be used.
  *
  * @param dmx_num The DMX port number.
- * @return true if RDM discovery is muted.
- * @return false if RDM discovery is not muted.
+ * @param size The size of memory to allocate.
+ * @return A pointer to the allocated memory or NULL on failure.
  */
-bool rdm_disc_mute_get(dmx_port_t dmx_num);
+void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
 
 /**
- * @brief Mutes or un-mutes discovery on the desired port.
+ * @brief Finds the pointer to the parameter data for a registered parameter.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to find.
+ * @return A pointer to the parameter data or NULL on failure.
+ */
+void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
+
+/**
+ * @brief Gets parameter data from non-volatile storage.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to get.
+ * @param ds The parameter data type.
+ * @param[out] param A pointer into which to copy the parameter data.
+ * @param[inout] size The size of the param pointer. Upon getting the parameter
+ * data, this value is set to the size of the gotten parameter.
+ * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
+ */
+esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                              void *param, size_t *size);
+
+/**
+ * @brief Sets the parameter data to non-volatile storage.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to set.
+ * @param ds The parameter data type.
+ * @param[in] param A pointer to the parameter data to copy to NVS.
+ * @param size The size of the parameter data.
+ * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
+ */
+esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                            const void *param, size_t size);
+
+/**
+ * @brief Registers a response callback to be called when a request is received
+ * for a specified PID for this device. Callbacks may be overwritten, but they
+ * may not be deleted. The pointers to the parameter and context are copied by
+ * reference and must be valid throughout the lifetime of the DMX driver. The
+ * maximum number of response callbacks that may be registered are defined by
+ * "Max RDM responder PIDs" found in the kconfig.
  *
  * @param dmx_num The DMX port number.
- * @param mute True to mute discovery on the port, false to un-mute.
+ * @param sub_device The sub-device to which to register the response callback.
+ * @param[in] desc A pointer to a descriptor for the PID to be registered.
+ * @param[in] param_str A parameter string which defines how the parameter data
+ * is emplaced into the RDM packet.
+ * @param driver_cb A driver-side callback function which is called when a
+ * request for this PID is received.
+ * @param[in] param A pointer to the parameter which can be used in the response
+ * callback. 
+ * @param user_cb A user-side callback function which is called after a request
+ * for this PID is handled.
+ * @param[in] context A pointer to a user-defined context.
+ * @return true if the response was successfully registered.
+ * @return false if the response was not registered.
  */
-void rdm_disc_mute_set(dmx_port_t dmx_num, const bool mute);
+bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            const rdm_pid_description_t *desc,
+                            const char *param_str, rdm_driver_cb_t driver_cb,
+                            void *param, rdm_responder_cb_t user_cb,
+                            void *context);
 
 /**
- * @brief Returns true if the identify state on this device is active.
- *
- * @return true if the identify state is active.
- * @return false if the identify state is inactive.
- */
-bool rdm_identify_get();
-
-/**
- * @brief Sets the identify state of this device.
- *
- * @param identify True to set the identify state, false to unset.
- */
-void rdm_identify_set(const bool identify);
-
-/**
- * @brief Reads an RDM packet from the DMX driver buffer. Header information is
- * emplaced into a header pointer so that it may be read by the caller.
- * Parameter data information needs to be emplaced before it can be properly
- * read by the caller. This function does not perform any data error checking to
- * ensure that the RDM packet is within specification.
+ * @brief Copies a specified RDM parameter to a buffer.
  *
  * @param dmx_num The DMX port number.
- * @param[out] header A pointer which stores RDM header information.
- * @param[out] pd A pointer to store parameter data from the RDM packet.
- * @param num The size of the pd pointer. Used to prevent buffer overflows.
- * @return The size of the RDM packet that was read or 0 on error.
+ * @param pid The parameter ID to get.
+ * @param[out] param A pointer to a buffer into which to copy the parameter
+ * data.
+ * @param[inout] size The size of the parameter data. Upon getting the parameter
+ * data, this value is set to the size of the parameter.
+ * @return true on success.
+ * @return false on failure.
  */
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
+bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
+                       size_t *size);
 
 /**
- * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
- * dmx_send(). Header information is emplaced into the DMX driver buffer but
- * parameter data information must be emplaced before calling this function to
- * ensure that the RDM packet is properly formatted. This function does not
- * perform any data error checking to ensure that the RDM packet is within
- * specification.
- *
+ * @brief Sets the value of a specified RDM parameter. This function will set
+ * the value of an RDM parameter even if the parameter does not support SET
+ * requests.
+ * 
  * @param dmx_num The DMX port number.
- * @param[in] header A pointer which stores RDM header information.
- * @param[in] pd A pointer which stores parameter data to be written.
- * @return The size of the RDM packet that was written or 0 on error.
+ * @param pid The parameter ID to set.
+ * @param[in] param A pointer to the new value to which to set the parameter.
+ * @param size The size of the new value of the parameter.
+ * @param nvs Set to true if this parameter should also be updated in NVS.
+ * @return true on success.
+ * @return false on failure.
  */
-size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
+bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+                       size_t size, bool nvs);
 
 /**
  * @brief Sends an RDM controller request and processes the response. This
@@ -345,39 +397,16 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
  * @param[in] pd_in A pointer which stores parameter data to be written.
  * @param[out] pd_out A pointer which stores parameter data which was read, if a
  * response was received.
- * @param num The size of the pd_out buffer. Used to prevent buffer overflows.
+ * @param[inout] pdl The size of the pd_out buffer. When receiving data, this is
+ * set to the PDL of the received data. Used to prevent buffer overflows.
  * @param[out] ack A pointer to an rdm_ack_t which stores information about the
  * RDM response.
  * @return true if an RDM_RESPONSE_TYPE_ACK response was received.
  * @return false if any other response type was received.
  */
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-                      const void *pd_in, void *pd_out, size_t num,
+                      const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack);
-
-/**
- * @brief Registers a response callback to be called when a request is received
- * for a specified PID for this device. Callbacks may be overwritten, but they
- * may not be deleted. The pointers to the parameter and context are copied by
- * reference and must be valid throughout the lifetime of the DMX driver. The
- * maximum number of response callbacks that may be registered are defined by
- * "Max RDM responder PIDs" found in the kconfig.
- *
- * @param dmx_num The DMX port number.
- * @param sub_device The sub-device to which to register the response callback.
- * @param[in] desc A pointer to a descriptor for the PID to be registered.
- * @param[in] callback A pointer to a callback function which is called when a
- * request for the specified PID is received.
- * @param[in] param A pointer to the parameter which can be used in the response
- * callback.
- * @param[in] context A pointer to a user-defined context.
- * @return true if the response was successfully registered.
- * @return false if the response was not registered.
- */
-bool rdm_register_response(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           const rdm_pid_description_t *desc,
-                           rdm_response_cb_t callback, void *param,
-                           void *context);
 
 #ifdef __cplusplus
 }

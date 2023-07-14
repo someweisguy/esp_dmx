@@ -18,6 +18,7 @@
 #include "hal/uart_hal.h"
 #include "rdm/types.h"
 #include "rdm/utils.h"
+#include "rdm/responder.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -67,9 +68,8 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_IN_BREAK = BIT4,  // The driver is in a DMX break.
   DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
   DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
-  DMX_FLAGS_DRIVER_DISC_MUTED = BIT7,   // The driver discovery is muted.
-  DMX_FLAGS_DRIVER_BOOT_LOADER = BIT8,  // An error occurred with the driver.
-  DMX_FLAGS_TIMER_IS_RUNNING = BIT9,    // The driver hardware timer is running.
+  DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
+  DMX_FLAGS_TIMER_IS_RUNNING = BIT8,    // The driver hardware timer is running.
 
   DMX_FLAGS_RDM_IS_VALID = BIT0,      // The RDM packet is valid.
   DMX_FLAGS_RDM_IS_REQUEST = BIT1,    // The RDM packet is a request.
@@ -77,6 +77,15 @@ enum dmx_flags_t {
   DMX_FLAGS_RDM_IS_RECIPIENT =BIT3,   // The RDM packet is addressed to this device.
   DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
+
+/**
+ * @brief Stores the DMX personality information of the DMX driver when RDM is 
+ * not enabled.*/
+typedef struct dmx_driver_personality_t {
+  uint16_t dmx_start_address;   // The driver's DMX start address.
+  uint8_t current_personality;  // The current personality of the DMX driver.
+  uint8_t personality_count;    // The number of personalities supported.
+} dmx_driver_personality_t;
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
  * the UART port. It storese all the information needed to run and analyze DMX
@@ -112,20 +121,25 @@ typedef struct dmx_driver_t {
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
   // DMX configuration
-  rdm_device_info_t device_info;    // The RDM device info of this device.
   struct dmx_personality_t {
-    uint16_t footprint;
-    const char *description;
+    uint16_t footprint;       // The DMX footprint of the personality.
+    const char *description;  // A description of the personality.
   } personalities[DMX_PERSONALITIES_MAX];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
-  uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break;
+  uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break.
+
+  uint8_t *alloc_data;  // Allocated memory for DMX/RDM parameter data.
+  size_t alloc_size;    // The size of the allocated memory.
+  size_t alloc_head;    // The amount of memory currently used for parameters.
 
   // RDM responder configuration
   uint16_t num_rdm_cbs;
   struct rdm_cb_table_t {
     rdm_pid_description_t desc;
-    rdm_response_cb_t cb;
     void *param;
+    const char *param_str;
+    rdm_driver_cb_t driver_cb;
+    rdm_responder_cb_t user_cb;
     void *context;
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
 

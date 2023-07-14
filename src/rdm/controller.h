@@ -183,7 +183,7 @@ bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
 bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
                                          rdm_header_t *header,
                                          char *software_version_label,
-                                         size_t size, rdm_ack_t *ack);
+                                         size_t *size, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM GET identify device request and reads the response, if

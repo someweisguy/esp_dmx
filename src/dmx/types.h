@@ -233,6 +233,7 @@ typedef unsigned int dmx_port_t;
 
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_t {
+  size_t alloc_size;
   /** @brief This field identifies the device model ID of the root device or
      sub-device. The manufacturer shall not use the same ID to represent more
      than one unique model type.*/
@@ -243,6 +244,10 @@ typedef struct dmx_config_t {
   /** @brief This field indicates the software version ID for the device. The
      software version ID is a 32-bit value determined by the manufacturer.*/
   uint32_t software_version_id;
+  /** @brief This RDM parameter is used to get a descriptive ASCII text label
+     for the device's operating software version. The descriptive text returned
+     by this parameter is intended for display to the user.*/
+  char software_version_label[33];
   /** @brief The current selected DMX personality of the device. The personality
      is the configured arrangement of DMX slots used by the device. Many devices
      may have multiple personalities from which to choose. These personalities
@@ -292,6 +297,10 @@ typedef struct dmx_packet_t {
   /** @brief True if the received packet is RDM.*/
   bool is_rdm;
 } dmx_packet_t;
+
+/** @brief DMX start address which indicates the device does not have a DMX
+ * start address.*/
+static const uint16_t DMX_START_ADDRESS_NONE = 0xffff;
 
 #ifdef __cplusplus
 }

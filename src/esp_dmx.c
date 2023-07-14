@@ -6,6 +6,7 @@
 #include "dmx/hal.h"
 #include "dmx/types.h"
 #include "endian.h"
+#include "nvs_flash.h"
 #include "rdm/controller.h"
 #include "rdm/responder.h"
 #include "rdm/utils.h"
@@ -15,6 +16,12 @@
 #include "esp_timer.h"
 #else
 #include "driver/timer.h"
+#endif
+
+#ifdef CONFIG_DMX_ISR_IN_IRAM
+#define DMX_ISR_ATTR IRAM_ATTR
+#else
+#define DMX_ISR_ATTR
 #endif
 
 static const char *TAG = "dmx";
@@ -63,6 +70,112 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
   return slot;
 }
 
+size_t DMX_ISR_ATTR dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header,
+                                 void *pd, size_t num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  size_t read = 0;
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Get pointers to driver data buffer locations and declare checksum
+  uint16_t checksum = 0;
+  const uint8_t *header_ptr = driver->data;
+  const void *pd_ptr = header_ptr + 24;
+
+  // Verify start code and sub-start code are correct
+  if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8)) &&
+      *header_ptr != RDM_PREAMBLE && *header_ptr != RDM_DELIMITER) {
+    return read;
+  }
+
+  // Get and verify the preamble_len if packet is a discovery response
+  size_t preamble_len = 0;
+  if (*header_ptr == RDM_PREAMBLE || *header_ptr == RDM_DELIMITER) {
+    for (; preamble_len <= 7; ++preamble_len) {
+      if (header_ptr[preamble_len] == RDM_DELIMITER) break;
+    }
+    if (preamble_len > 7) {
+      return read;
+    }
+  }
+
+  // Handle packets differently if a DISC_UNIQUE_BRANCH packet was received
+  if (*header_ptr == RDM_SC) {
+    // Verify checksum is correct
+    const uint8_t message_len = header_ptr[2];
+    for (int i = 0; i < message_len; ++i) {
+      checksum += header_ptr[i];
+    }
+    if (checksum != bswap16(*(uint16_t *)(header_ptr + message_len))) {
+      return read;
+    }
+
+    // Copy the header and pd from the driver
+    if (header != NULL) {
+      // Copy header without emplace so this function can be used in IRAM ISR
+      for (int i = 0; i < sizeof(rdm_header_t); ++i) {
+        ((uint8_t *)header)[i] = header_ptr[i];
+      }
+      header->dest_uid.man_id = bswap16(header->dest_uid.man_id);
+      header->dest_uid.dev_id = bswap32(header->dest_uid.dev_id);
+      header->src_uid.man_id = bswap16(header->src_uid.man_id);
+      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
+      header->sub_device = bswap16(header->sub_device);
+      header->pid = bswap16(header->pid);
+    }
+    if (pd != NULL) {
+      const uint8_t pdl = header_ptr[23];
+      const size_t copy_size = pdl < num ? pdl : num;
+      memcpy(pd, pd_ptr, copy_size);
+    }
+
+    // Update the read size
+    read = message_len + 2;
+
+  } else {
+    // Verify the checksum is correct
+    header_ptr += preamble_len + 1;
+    for (int i = 0; i < 12; ++i) {
+      checksum += header_ptr[i];
+    }
+    if (checksum != (((header_ptr[12] & header_ptr[13]) << 8) |
+                     (header_ptr[14] & header_ptr[15]))) {
+      return read;
+    }
+
+    // Decode the EUID
+    uint8_t buf[6];
+    for (int i = 0, j = 0; i < 6; ++i, j += 2) {
+      buf[i] = header_ptr[j] & header_ptr[j + 1];
+    }
+
+    // Copy the data into the header
+    if (header != NULL) {
+      // Copy header without emplace so this function can be used in IRAM ISR
+      for (int i = 0; i < sizeof(rdm_uid_t); ++i) {
+        ((uint8_t *)&header->src_uid)[i] = buf[i];
+      }
+      header->src_uid.man_id = bswap16(header->src_uid.man_id);
+      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
+      header->dest_uid = (rdm_uid_t){0, 0};
+      header->tn = 0;
+      header->response_type = RDM_RESPONSE_TYPE_ACK;
+      header->message_count = 0;
+      header->sub_device = RDM_SUB_DEVICE_ROOT;
+      header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
+      header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
+      header->pdl = preamble_len + 1 + 16;
+    }
+
+    // Update the read size
+    read = preamble_len + 1 + 16;
+  }
+
+  return read;
+}
+
 size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
                         size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -94,7 +207,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   // Copy data from the source to the driver buffer asynchronously
   memcpy(driver->data + offset, source, size);
-  
+
   taskEXIT_CRITICAL(spinlock);
 
   return size;
@@ -116,6 +229,89 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   dmx_write_offset(dmx_num, slot_num, &value, 1);
 
   return value;
+}
+
+size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL || pd != NULL, 0,
+            "header is null and pd does not contain a UID");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  size_t written = 0;
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Get pointers to driver data buffer locations and declare checksum
+  uint16_t checksum = 0;
+  uint8_t *header_ptr = driver->data;
+  void *pd_ptr = header_ptr + 24;
+
+  // RDM writes must be synchronous to prevent data corruption
+  taskENTER_CRITICAL(spinlock);
+  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+    taskEXIT_CRITICAL(spinlock);
+    return written;
+  } else if (dmx_uart_get_rts(driver->uart) == 1) {
+    dmx_uart_set_rts(driver->uart, 0);  // Stops writes from being overwritten
+  }
+
+  if (header != NULL && !(header->cc == RDM_CC_DISC_COMMAND_RESPONSE &&
+                          header->pid == RDM_PID_DISC_UNIQUE_BRANCH)) {
+    // Copy the header, pd, message_len, and pdl into the driver
+    const size_t copy_size = header->pdl <= 231 ? header->pdl : 231;
+    header->message_len = copy_size + 24;
+    rdm_pd_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header),
+                   false);
+    memcpy(pd_ptr, pd, copy_size);
+
+    // Calculate and copy the checksum
+    checksum = RDM_SC + RDM_SUB_SC;
+    for (int i = 2; i < header->message_len; ++i) {
+      checksum += header_ptr[i];
+    }
+    *(uint16_t *)(header_ptr + header->message_len) = bswap16(checksum);
+
+    // Update written size
+    written = header->message_len + 2;
+  } else {
+    // Encode the preamble bytes
+    const size_t preamble_len = 7;
+    for (int i = 0; i < preamble_len; ++i) {
+      header_ptr[i] = RDM_PREAMBLE;
+    }
+    header_ptr[preamble_len] = RDM_DELIMITER;
+    header_ptr += preamble_len + 1;
+
+    // Encode the UID and calculate the checksum
+    uint8_t uid[6];
+    if (header == NULL) {
+      memcpy(uid, pd, sizeof(rdm_uid_t));
+    } else {
+      rdm_uidcpy(uid, &header->src_uid);
+    }
+    for (int i = 0, j = 0; j < sizeof(rdm_uid_t); i += 2, ++j) {
+      header_ptr[i] = uid[j] | 0xaa;
+      header_ptr[i + 1] = uid[j] | 0x55;
+      checksum += uid[j] + (0xaa | 0x55);
+    }
+    header_ptr += sizeof(rdm_uid_t) * 2;
+
+    // Encode the checksum
+    header_ptr[0] = (uint8_t)(checksum >> 8) | 0xaa;
+    header_ptr[1] = (uint8_t)(checksum >> 8) | 0x55;
+    header_ptr[2] = (uint8_t)(checksum) | 0xaa;
+    header_ptr[3] = (uint8_t)(checksum) | 0x55;
+
+    // Update written size
+    written = preamble_len + 1 + 16;
+  }
+
+  // Update driver transmission size
+  driver->tx_size = written;
+  taskEXIT_CRITICAL(spinlock);
+
+  return written;
 }
 
 size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
@@ -261,7 +457,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Return early if the packet is neither RDM nor an RDM request
   rdm_header_t header;
-  if (!rdm_read(dmx_num, &header, NULL, 0) ||
+  if (!dmx_read_rdm(dmx_num, &header, NULL, 0) ||
       (header.cc != RDM_CC_DISC_COMMAND && header.cc != RDM_CC_GET_COMMAND &&
        header.cc != RDM_CC_SET_COMMAND)) {
     xSemaphoreGiveRecursive(driver->mux);
@@ -271,71 +467,122 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     packet->is_rdm = true;
   }
 
-  // Check that this device is targeted by the RDM packet
+  // Ignore the packet if it does not target this device
   rdm_uid_t my_uid;
-  uid_get(dmx_num, &my_uid);
-  if (!uid_is_target(&my_uid, &header.dest_uid)) {
+  rdm_uid_get(dmx_num, &my_uid);
+  if (!rdm_uid_is_target(&my_uid, &header.dest_uid)) {
+    // The packet should be ignored
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
 
-  // TODO: Verify the packet format is valid
-  /*
-  message_len >= 24
-  !uid_is_broadcast(&header->src_uid)
-  port_id > 0 (should this be enforced? Maybe turn on/off in sdkconfig?)
-  sub_device <= 512 || (sub_device == 0xffff && header.cc != RDM_CC_GET_COMMAND)
-  pdl <= 231
-  // Check if PID supports the CC (check this later)
-  */
-
-  // Iterate through the registered RDM callbacks
-  int cb_num = 0;
+  // Prepare the response packet parameter data and find the correct callback
+  rdm_response_type_t response_type;
+  uint8_t pdl_out;
   uint8_t pd[231];
-  uint8_t pdl_out = 0;
-  rdm_response_type_t response_type = RDM_RESPONSE_TYPE_NONE;
+  int cb_num = 0;
   for (; cb_num < driver->num_rdm_cbs; ++cb_num) {
     if (driver->rdm_cbs[cb_num].desc.pid == header.pid) {
-      if (header.pdl > 0) {
-        rdm_read(dmx_num, NULL, pd, sizeof(pd));
-      }
-      size_t param_len = driver->rdm_cbs[cb_num].desc.pdl_size;
-      void *param = driver->rdm_cbs[cb_num].param;
-      void *const context = driver->rdm_cbs[cb_num].context;
-      response_type = driver->rdm_cbs[cb_num].cb(dmx_num, &header, pd, &pdl_out,
-                                                 param, param_len, context);
       break;
     }
   }
-
-  // Do not send a response if the packet was a non-discovery broadcast request
-  if (uid_is_broadcast(&header.dest_uid) &&
-      !(header.cc == RDM_CC_DISC_COMMAND &&
-        header.pid == RDM_PID_DISC_UNIQUE_BRANCH)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
+  const rdm_pid_description_t *desc;
+  void *param;
+  if (cb_num < driver->num_rdm_cbs) {
+    desc = &driver->rdm_cbs[cb_num].desc;
+    param = driver->rdm_cbs[cb_num].param;
+  } else {
+    desc = NULL;
+    param = NULL;
   }
 
-  // Responses must be sent to all non-broadcast, non-discovery requests
-  if (response_type == RDM_RESPONSE_TYPE_NONE &&
-      header.cc == RDM_CC_DISC_COMMAND) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
-  } else if (cb_num == driver->num_rdm_cbs &&
-             header.cc != RDM_CC_DISC_COMMAND) {
-    // If a PID callback wasn't found, send a NR_UNKNOWN_PID response
-    pdl_out = pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-  } else if (response_type == RDM_RESPONSE_TYPE_NONE ||
-             response_type == RDM_RESPONSE_TYPE_INVALID) {
-    ESP_LOGW(TAG,
-             "PID 0x%04x callback returned RDM_RESPONSE_TYPE_NONE or "
-             "RDM_RESPONSE_TYPE_INVALID",
-             header.pid);
-    pdl_out = pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
-    // TODO: set mute boot-loader flag
+  // Determine how this device should respond to the request
+  if (header.pdl > sizeof(pd) || header.port_id == 0 ||
+      rdm_uid_is_broadcast(&header.src_uid)) {
+    // The packet format is invalid
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+  } else if (cb_num == driver->num_rdm_cbs) {
+    // The requested PID is unknown
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+  } else if ((header.cc == RDM_CC_DISC_COMMAND && desc->cc != RDM_CC_DISC) ||
+             (header.cc == RDM_CC_GET_COMMAND && !(desc->cc & RDM_CC_GET)) ||
+             (header.cc == RDM_CC_SET_COMMAND && !(desc->cc & RDM_CC_SET))) {
+    // The PID does not support the request command class
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+  } else if ((header.sub_device > 512 &&
+              header.sub_device != RDM_SUB_DEVICE_ALL) ||
+             (header.sub_device == RDM_SUB_DEVICE_ALL &&
+              header.cc == RDM_CC_GET_COMMAND)) {
+    // The sub-device is out of range
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+  } else {
+    // Call the appropriate driver-side RDM callback to process the request
+    pdl_out = 0;
+    dmx_read_rdm(dmx_num, NULL, pd, sizeof(pd));
+    const char *param_str = driver->rdm_cbs[cb_num].param_str;
+    response_type = driver->rdm_cbs[cb_num].driver_cb(
+        dmx_num, &header, pd, &pdl_out, param, desc, param_str);
+
+    // Verify that the driver-side callback returned correctly
+    if (pdl_out > sizeof(pd)) {
+      ESP_LOGW(TAG, "PID 0x%04x pdl is too large", header.pid);
+      // TODO: set the boot-loader flag
+      response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+      pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    } else if ((response_type != RDM_RESPONSE_TYPE_NONE &&
+                response_type != RDM_RESPONSE_TYPE_ACK &&
+                response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+                response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+                response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) ||
+               (response_type == RDM_RESPONSE_TYPE_NONE &&
+                (header.pid != RDM_PID_DISC_UNIQUE_BRANCH ||
+                 !rdm_uid_is_broadcast(&header.dest_uid))) ||
+               ((response_type != RDM_RESPONSE_TYPE_ACK &&
+                 response_type != RDM_RESPONSE_TYPE_NONE) &&
+                header.cc == RDM_CC_DISC_COMMAND)) {
+      ESP_LOGW(TAG, "PID 0x%04x returned invalid response type", header.pid);
+      // TODO: set the boot-loader flag to indicate an error with this device
+      response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+      pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    }
+  }
+
+  // Check if NVS needs to be updated
+  bool must_update_nvs = false;
+  if (header.cc == RDM_CC_SET_COMMAND &&
+      (response_type == RDM_RESPONSE_TYPE_ACK ||
+       response_type == RDM_RESPONSE_TYPE_NONE)) {
+    const uint16_t nvs_pids[] = {
+        RDM_PID_DEVICE_LABEL,    RDM_PID_LANGUAGE,
+        RDM_PID_DMX_PERSONALITY, RDM_PID_DMX_START_ADDRESS,
+        RDM_PID_DEVICE_HOURS,    RDM_PID_LAMP_HOURS,
+        RDM_PID_LAMP_STRIKES,    RDM_PID_LAMP_STATE,
+        RDM_PID_LAMP_ON_MODE,    RDM_PID_DEVICE_POWER_CYCLES,
+        RDM_PID_DISPLAY_INVERT,  RDM_PID_DISPLAY_LEVEL,
+        RDM_PID_PAN_INVERT,      RDM_PID_TILT_INVERT,
+        RDM_PID_PAN_TILT_SWAP};
+    for (int i = 0; i < sizeof(nvs_pids) / sizeof(uint16_t); ++i) {
+      if (nvs_pids[i] == header.pid) {
+        must_update_nvs = true;
+        break;
+      }
+    }
+  }
+
+  // Don't respond to non-discovery broadcasts nor send NACK to DISC packets
+  if ((rdm_uid_is_broadcast(&header.dest_uid) &&
+       header.pid != RDM_PID_DISC_UNIQUE_BRANCH) ||
+      (response_type == RDM_RESPONSE_TYPE_NACK_REASON &&
+       header.cc == RDM_CC_DISC_COMMAND)) {
+    response_type = RDM_RESPONSE_TYPE_NONE;
   }
 
   // Rewrite the header for the response packet
+  header.message_len = 24 + pdl_out;  // Set for user callback
   header.dest_uid = header.src_uid;
   header.src_uid = my_uid;
   header.response_type = response_type;
@@ -343,11 +590,34 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.cc += 1;            // Set to RCM_CC_x_COMMAND_RESPONSE
   header.pdl = pdl_out;
   // These fields should not change: tn, sub_device, and pid
-  // The message_len field will be updated in rdm_write()
 
-  // Write the RDM response and send it
-  size_t response_size = rdm_write(dmx_num, &header, pd);
-  dmx_send(dmx_num, response_size);
+  // Send the response packet
+  if (response_type != RDM_RESPONSE_TYPE_NONE) {
+    const size_t response_size = dmx_write_rdm(dmx_num, &header, pd);
+    if (!dmx_send(dmx_num, response_size)) {
+      ESP_LOGW(TAG, "PID 0x%04x did not send a response", header.pid);
+      // TODO set the boot-loader flag
+    } else if (response_size > 0) {
+      dmx_wait_sent(dmx_num, 10);
+      dmx_uart_set_rts(uart, 1);
+    }
+  }
+
+  // Call the user-side callback
+  if (driver->rdm_cbs[cb_num].user_cb != NULL) {
+    void *context = driver->rdm_cbs[cb_num].context;
+    driver->rdm_cbs[cb_num].user_cb(dmx_num, &header, context);
+  }
+
+  // Update NVS values
+  if (must_update_nvs) {
+    esp_err_t err = rdm_pd_set_to_nvs(dmx_num, header.pid, desc->data_type,
+                                      param, desc->pdl_size);
+    if (err) {
+      ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
+      // TODO: set boot-loader flag
+    }
+  }
 
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
@@ -468,7 +738,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Record the outgoing packet type
   const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data[21]);
   rdm_uid_t dest_uid;
-  uidcpy(&dest_uid, &driver->data[3]);
+  rdm_uidcpy(&dest_uid, &driver->data[3]);
   int rdm_type = 0;
   if (*(uint16_t *)driver->data == (RDM_SC | (RDM_SUB_SC << 8))) {
     rdm_type |= DMX_FLAGS_RDM_IS_VALID;
@@ -476,7 +746,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
         cc == RDM_CC_SET_COMMAND) {
       rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
     }
-    if (uid_is_broadcast(&dest_uid)) {
+    if (rdm_uid_is_broadcast(&dest_uid)) {
       rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
     }
     if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {

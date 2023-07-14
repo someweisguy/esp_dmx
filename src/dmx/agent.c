@@ -7,6 +7,8 @@
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "endian.h"
+#include "esp_dmx.h"
+#include "nvs_flash.h"
 #include "rdm/responder.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -23,6 +25,10 @@
 #define DMX_ISR_ATTR IRAM_ATTR
 #else
 #define DMX_ISR_ATTR
+#endif
+
+#ifndef CONFIG_RDM_NVS_PARTITION_NAME
+#define RDM_NVS_PARTITION_NAME "nvs"
 #endif
 
 #define DMX_UART_FULL_DEFAULT 1
@@ -124,22 +130,23 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                   ? ESP_ERR_NOT_FINISHED  // UART overflow
                   : ESP_FAIL;             // Missing stop bits
       } else if (driver->head > 16 &&
-                 driver->head == rdm_read(driver->dmx_num, &header, NULL, 0)) {
+                 driver->head ==
+                     dmx_read_rdm(driver->dmx_num, &header, NULL, 0)) {
         rdm_type |= DMX_FLAGS_RDM_IS_VALID;
         rdm_uid_t my_uid;
-        uid_get(driver->dmx_num, &my_uid);
+        rdm_uid_get(driver->dmx_num, &my_uid);
         if (header.cc == RDM_CC_DISC_COMMAND ||
             header.cc == RDM_CC_GET_COMMAND ||
             header.cc == RDM_CC_SET_COMMAND) {
           rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
         }
-        if (uid_is_broadcast(&header.dest_uid)) {
+        if (rdm_uid_is_broadcast(&header.dest_uid)) {
           rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
         }
         if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
           rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
         }
-        if (uid_is_target(&my_uid, &header.dest_uid)) {
+        if (rdm_uid_is_target(&my_uid, &header.dest_uid)) {
           rdm_type |= DMX_FLAGS_RDM_IS_RECIPIENT;
         }
       } else if (driver->head < driver->rx_size) {
@@ -269,24 +276,43 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   return task_awoken;
 }
 
-static void rdm_default_identify_cb(dmx_port_t dmx_num, bool identify,
-                                    void *context) {
+static void rdm_default_identify_cb(dmx_port_t dmx_num,
+                                    const rdm_header_t *header, void *context) {
+  if (header->cc == RDM_CC_SET_COMMAND) {
+    const uint8_t *identify = rdm_pd_find(dmx_num, RDM_PID_IDENTIFY_DEVICE);
 #ifdef ARDUINO
-  printf("RDM identify device is %s\n", identify ? "on" : "off");
+    printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else
-  ESP_LOGI("rdm_responder", "RDM identify device is %s",
-           identify ? "on" : "off");
+    ESP_LOGI(TAG, "RDM identify device is %s", *identify ? "on" : "off");
 #endif
+  }
 }
 
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
                              int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already installed");
+  DMX_CHECK(config->dmx_start_address < DMX_PACKET_SIZE_MAX ||
+                config->dmx_start_address == DMX_START_ADDRESS_NONE,
+            ESP_ERR_INVALID_ARG, "dmx_start_address error");
+  DMX_CHECK((config->personality_count == 0 &&
+             config->dmx_start_address == DMX_START_ADDRESS_NONE) ||
+                (config->personality_count > 0 &&
+                 config->personality_count < DMX_PERSONALITIES_MAX),
+            false, "personality_count error");
+  DMX_CHECK(config->current_personality <= config->personality_count,
+            ESP_ERR_INVALID_ARG, "current_personality error");
+  for (int i = 0; i < config->personality_count; ++i) {
+    DMX_CHECK(config->personalities[i].footprint < DMX_PACKET_SIZE_MAX,
+              ESP_ERR_INVALID_ARG, "footprint error");
+  }
+
+  // Initialize NVS
+  nvs_flash_init_partition(CONFIG_RDM_NVS_PARTITION_NAME);
 
   // Initialize RDM UID
-  uid_get(dmx_num, NULL);
+  rdm_uid_get(dmx_num, NULL);
 
 #ifdef CONFIG_DMX_ISR_IN_IRAM
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
@@ -306,6 +332,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     return ESP_ERR_NO_MEM;
   }
   dmx_driver[dmx_num] = driver;
+  driver->mux = NULL;
+  driver->data = NULL;
+  driver->alloc_data = NULL;
 
   // Initialize hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -361,29 +390,22 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
   bzero(data, DMX_PACKET_SIZE_MAX);
 
-  // Initialize device info
-  if (config->personality_count == 0 ||
-      config->personality_count > DMX_PERSONALITIES_MAX) {
-    ESP_LOGW(TAG, "Personality count is invalid, using default personality");
-    config->personalities[0].footprint = 1;
-    config->personalities[0].description = "Default Personality";
-    config->current_personality = 1;
-    config->personality_count = 1;
+  // Allocate the RDM parameter buffer
+  bool enable_rdm;
+  size_t alloc_size;
+  if (config->alloc_size < 53) {
+    // Allocate space for DMX start address and personality info
+    alloc_size = sizeof(dmx_driver_personality_t);
+    enable_rdm = false;
+  } else {
+    alloc_size = config->alloc_size;
+    enable_rdm = true;
   }
-  if (config->current_personality == 0) {
-    config->current_personality = 1;  // TODO: Check NVS for value
-  }
-  if (config->current_personality > config->personality_count) {
-    ESP_LOGW(TAG, "Current personality is invalid, using personality 1");
-    config->current_personality = 1;
-  }
-  const int footprint_num = config->current_personality - 1;
-  uint16_t footprint = config->personalities[footprint_num].footprint;
-  if (footprint == 0) {
-    config->dmx_start_address = 0xffff;
-  }
-  if (config->dmx_start_address == 0) {
-    config->dmx_start_address = 1;  // TODO: Check NVS for value
+  uint8_t *alloc_data = heap_caps_malloc(alloc_size, MALLOC_CAP_8BIT);
+  if (alloc_data == NULL) {
+    ESP_LOGE(TAG, "DMX driver RDM buffer malloc error");
+    dmx_driver_delete(dmx_num);
+    return ESP_ERR_NO_MEM;
   }
 
   // UART configuration
@@ -416,21 +438,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->last_slot_ts = 0;
 
   // DMX configuration
-  driver->device_info = (rdm_device_info_t){
-      .model_id = config->model_id,
-      .product_category = config->product_category,
-      .software_version_id = config->software_version_id,
-      .footprint = footprint,
-      .current_personality = config->current_personality,
-      .personality_count = config->personality_count,
-      .dmx_start_address = config->dmx_start_address,
-      .sub_device_count = 0,  // Sub-devices must be registered
-      .sensor_count = 0       // Sensors must be registered
-  };
-  size_t size = sizeof(config->personalities[0]) * config->personality_count;
-  memcpy(driver->personalities, config->personalities, size);
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
+
+  driver->alloc_size = alloc_size;
+  driver->alloc_data = alloc_data;
+  driver->alloc_head = 0;
 
   // RDM responder configuration
   driver->num_rdm_cbs = 0;
@@ -442,6 +455,82 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->sniffer_pin = -1;
   driver->last_pos_edge_ts = -1;
   driver->last_neg_edge_ts = -1;
+
+  // Copy the personality table to the driver
+  memcpy(driver->personalities, config->personalities,
+         sizeof(*config->personalities) * config->personality_count);
+
+  // Configure required variables for RDM or DMX-only
+  if (enable_rdm) {
+    uint16_t footprint;
+    if (config->personality_count > 0 && config->current_personality > 0) {
+      const uint8_t personality_idx = config->current_personality - 1;
+      footprint = driver->personalities[personality_idx].footprint;
+    } else {
+      footprint = 0;
+    }
+    rdm_device_info_t device_info = {
+        .model_id = config->model_id,
+        .product_category = config->product_category,
+        .software_version_id = config->software_version_id,
+        .footprint = footprint,
+        .current_personality = config->current_personality,
+        .personality_count = config->personality_count,
+        .dmx_start_address = config->dmx_start_address,
+        .sub_device_count = 0,  // Sub-devices must be registered
+        .sensor_count = 0,      // Sensors must be registered
+    };
+    rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
+    rdm_register_disc_un_mute(dmx_num, NULL, NULL);
+    rdm_register_disc_mute(dmx_num, NULL, NULL);
+    rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
+    rdm_register_software_version_label(dmx_num, config->software_version_label,
+                                        NULL, NULL);
+    rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
+    if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
+      rdm_register_dmx_start_address(dmx_num, NULL, NULL);
+    }
+    // TODO: rdm_register_supported_parameters()
+  } else {
+    dmx_driver_personality_t *dmx = rdm_pd_alloc(dmx_num, alloc_size);
+    assert(dmx != NULL);
+
+    // Load the DMX start address from NVS
+    uint16_t dmx_start_address;
+    if (config->dmx_start_address == 0) {
+      size_t size = sizeof(dmx_start_address);
+      esp_err_t err =
+          rdm_pd_get_from_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                              RDM_DS_UNSIGNED_WORD, &dmx_start_address, &size);
+      if (err) {
+        dmx_start_address = 1;
+      }
+    } else {
+      dmx_start_address = config->dmx_start_address;
+    }
+
+    // Load the current DMX personality from NVS
+    uint8_t current_personality;
+    if (config->current_personality == 0 &&
+        dmx_start_address != DMX_START_ADDRESS_NONE) {
+      rdm_dmx_personality_t personality;
+      size_t size = sizeof(personality);
+      esp_err_t err =
+          rdm_pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
+                              RDM_DS_BIT_FIELD, &personality, &size);
+      if (err || personality.personality_count != config->personality_count) {
+        current_personality = 1;
+      } else {
+        current_personality = personality.current_personality;
+      }
+    } else {
+      current_personality = config->current_personality;
+    }
+
+    dmx->dmx_start_address = dmx_start_address;
+    dmx->current_personality = current_personality;
+    dmx->personality_count = config->personality_count;
+  }
 
   // Enable the UART peripheral
   taskENTER_CRITICAL(spinlock);
@@ -476,20 +565,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   timer_isr_callback_add(driver->timer_group, driver->timer_idx, dmx_timer_isr,
                          driver, intr_flags);
 #endif
-
-  // Add required RDM response callbacks
-  rdm_register_disc_unique_branch(dmx_num);
-  rdm_register_disc_un_mute(dmx_num);
-  rdm_register_disc_mute(dmx_num);
-  rdm_register_device_info(dmx_num, &dmx_driver[dmx_num]->device_info);
-  const char *software_version_label =
-      "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(
-          ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH);
-  rdm_register_software_version_label(dmx_num, software_version_label);
-  rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-  void *dmx_start_address = &dmx_driver[dmx_num]->device_info.dmx_start_address;
-  rdm_register_dmx_start_address(dmx_num, dmx_start_address);
-  // TODO: rdm_register_supported_parameters()
 
   // Enable reading on the DMX port
   taskENTER_CRITICAL(spinlock);
@@ -531,6 +606,11 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   // Free driver data buffer
   if (driver->data != NULL) {
     heap_caps_free(driver->data);
+  }
+
+  // Free RDM parameter data buffer
+  if (driver->alloc_data != NULL) {
+    heap_caps_free(driver->alloc_data);
   }
 
   // Free hardware timer ISR
@@ -730,102 +810,154 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  uint8_t current_personality;
+
+  const rdm_device_info_t *device_info =
+      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   taskENTER_CRITICAL(spinlock);
-  const uint8_t current_personality =
-      dmx_driver[dmx_num]->device_info.current_personality;
+  if (device_info == NULL) {
+    const dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->alloc_data;
+    current_personality = personality->current_personality;
+  } else {
+    current_personality = device_info->current_personality;
+  }
   taskEXIT_CRITICAL(spinlock);
 
   return current_personality;
 }
 
-void dmx_set_current_personality(dmx_port_t dmx_num, uint8_t num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  DMX_CHECK(num > 0 && num <= dmx_get_personality_count(dmx_num), ,
-            "num error");
+bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            false, "personality_num error");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  const uint16_t footprint = dmx_get_footprint(dmx_num, num);
-  taskENTER_CRITICAL(spinlock);
-  driver->device_info.footprint = footprint;
-  driver->device_info.current_personality = num;
-  taskEXIT_CRITICAL(spinlock);
 
-  if (footprint > 0 &&
-      dmx_get_dmx_start_address(dmx_num) + footprint > DMX_PACKET_SIZE_MAX) {
-    dmx_set_dmx_start_address(dmx_num, DMX_PACKET_SIZE_MAX - footprint);
+  // Get the required personality values from RDM device info or DMX driver
+  uint8_t *current_personality;
+  uint16_t *footprint;
+  rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  if (device_info == NULL) {
+    dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->alloc_data;
+    current_personality = &personality->current_personality;
+    footprint = NULL;
+  } else {
+    current_personality = &device_info->current_personality;
+    footprint = (void *)device_info + offsetof(rdm_device_info_t, footprint);
   }
 
-  // TODO: use NVS
+  // Set the new personality
+  taskENTER_CRITICAL(spinlock);
+  *current_personality = personality_num;
+  if (footprint != NULL) {
+    *footprint = dmx_get_footprint(dmx_num, personality_num);
+  }
+  taskEXIT_CRITICAL(spinlock);
+
+  if (device_info != NULL) {
+    // TODO: send message to RDM queue
+  }
+
+  return true;
 }
 
 uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  return dmx_driver[dmx_num]->device_info.personality_count;
+
+  const rdm_device_info_t *device_info =
+      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  if (device_info == NULL) {
+    const dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->alloc_data;
+    return personality->personality_count;
+  } else {
+    return device_info->personality_count;
+  }
 }
 
-uint16_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t num) {
+size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  DMX_CHECK(num > 0 && num <= dmx_get_personality_count(dmx_num), 0,
-            "num error");
-  return dmx_driver[dmx_num]->personalities[num - 1].footprint;
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            0, "personality_num is invalid");
+
+  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+
+  --personality_num;  // Personalities are indexed starting at 1
+  taskENTER_CRITICAL(spinlock);
+  size_t fp = dmx_driver[dmx_num]->personalities[personality_num].footprint;
+  taskEXIT_CRITICAL(spinlock);
+
+  return fp;
 }
 
-uint16_t dmx_get_dmx_start_address(dmx_port_t dmx_num) {
+const char *dmx_get_personality_description(dmx_port_t dmx_num,
+                                            uint8_t personality_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, NULL, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), NULL, "driver is not installed");
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            NULL, "personality_num is invalid");
+
+  --personality_num;  // Personalities are indexed starting at 1
+  return dmx_driver[dmx_num]->personalities[personality_num].description;
+}
+
+uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   uint16_t dmx_start_address;
+
+  const rdm_device_info_t *device_info =
+      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   taskENTER_CRITICAL(spinlock);
-  dmx_start_address = dmx_driver[dmx_num]->device_info.dmx_start_address;
+  if (device_info == NULL) {
+    const dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->alloc_data;
+    dmx_start_address = personality->dmx_start_address;
+  } else {
+    dmx_start_address = device_info->dmx_start_address;
+  }
   taskEXIT_CRITICAL(spinlock);
 
   return dmx_start_address;
 }
 
-void dmx_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, , "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), , "driver is not installed");
-  uint16_t f = dmx_get_footprint(dmx_num, dmx_get_current_personality(dmx_num));
-  DMX_CHECK(
-      dmx_start_address > 0 && dmx_start_address + f <= DMX_PACKET_SIZE_MAX, ,
-      "dmx_start_address is invalid");
-  DMX_CHECK(f > 0, , "cannot set DMX start address of this personality");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  taskENTER_CRITICAL(spinlock);
-  dmx_driver[dmx_num]->device_info.dmx_start_address = dmx_start_address;
-  taskEXIT_CRITICAL(spinlock);
-
-  // TODO: use NVS
-}
-
-uint16_t dmx_get_sub_device_count(dmx_port_t dmx_num) {
+bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_start_address > 0 && dmx_start_address < DMX_PACKET_SIZE_MAX,
+            false, "dmx_start_address error");
+  DMX_CHECK(dmx_get_start_address(dmx_num) != DMX_START_ADDRESS_NONE, false,
+            "cannot set DMX start address");
 
   spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  uint16_t sub_device_count;
+
+  rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   taskENTER_CRITICAL(spinlock);
-  sub_device_count = dmx_driver[dmx_num]->device_info.sub_device_count;
+  if (device_info == NULL) {
+    dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->alloc_data;
+    personality->dmx_start_address = dmx_start_address;
+  } else {
+    device_info->dmx_start_address = dmx_start_address;
+  }
   taskEXIT_CRITICAL(spinlock);
 
-  return sub_device_count;
-}
+  if (device_info != NULL) {
+    // TODO: send message to RDM queue
+  }
 
-uint8_t dmx_get_sensor_count(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  rdm_pd_set_to_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+                    &dmx_start_address, sizeof(dmx_start_address));
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  uint16_t sensor_count;
-  taskENTER_CRITICAL(spinlock);
-  sensor_count = dmx_driver[dmx_num]->device_info.sensor_count;
-  taskEXIT_CRITICAL(spinlock);
-
-  return sensor_count;
+  return true;
 }

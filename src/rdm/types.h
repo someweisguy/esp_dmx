@@ -67,15 +67,15 @@ typedef enum rdm_cc_t {
 typedef enum rdm_pid_t {
   // Category: Network Management
 
-  /** @brief Discovery Unique Branch. This parameter is used for the device 
+  /** @brief Discovery Unique Branch. This parameter is used for the device
      discovery process. @note Does not support GET nor SET. Must only be sent to
      RDM_UID_BROADCAST_ALL. Must only be sent to RDM_SUB_DEVICE_ROOT.*/
-  RDM_PID_DISC_UNIQUE_BRANCH = 0x0001, 
-  /** @brief A responder port shall set its Mute flag when it receives this 
-     message containing its UID, or a broadcast address. @note Does not support 
+  RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,
+  /** @brief A responder port shall set its Mute flag when it receives this
+     message containing its UID, or a broadcast address. @note Does not support
      GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT.*/
-  RDM_PID_DISC_MUTE = 0x0002,  
-  /** @brief A responder port shall clear its Mute flag when it receives this 
+  RDM_PID_DISC_MUTE = 0x0002,
+  /** @brief A responder port shall clear its Mute flag when it receives this
      message containing its UID, or a broadcast address. @note Does not support
      GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT.*/
   RDM_PID_DISC_UN_MUTE = 0x0003,
@@ -90,20 +90,22 @@ typedef enum rdm_pid_t {
   RDM_PID_STATUS_MESSAGE = 0x0030,  // TODO: See rdm_status_t
   RDM_PID_STATUS_ID_DESCRIPTION = 0x0031,
   RDM_PID_CLEAR_STATUS_ID = 0x0032,
-  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,  // TODO: See rdm_status_t
+  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD =
+      0x0033,  // TODO: See rdm_status_t
 
   // Category: RDM Information
 
-  /** @brief This parameter is used to retrieve a list of supported PIDs. @note 
+  /** @brief This parameter is used to retrieve a list of supported PIDs. @note
      Supports GET.*/
   RDM_PID_SUPPORTED_PARAMETERS = 0x0050,
-  RDM_PID_PARAMETER_DESCRIPTION = 0x0051,  // TODO: req'd if using manufacturer specific PIDs
-  
+  RDM_PID_PARAMETER_DESCRIPTION =
+      0x0051,  // TODO: req'd if using manufacturer specific PIDs
+
   // Category: Product Information
 
-  /** @brief This parameter is used to retrieve a variety of information about 
+  /** @brief This parameter is used to retrieve a variety of information about
      the device that is normally required by a controller. @note Supports GET.*/
-  RDM_PID_DEVICE_INFO = 0x0060, 
+  RDM_PID_DEVICE_INFO = 0x0060,
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
   RDM_PID_DEVICE_MODEL_DESCRIPTION = 0x0080,
   RDM_PID_MANUFACTURER_LABEL = 0x0081,
@@ -111,19 +113,19 @@ typedef enum rdm_pid_t {
   RDM_PID_FACTORY_DEFAULTS = 0x0090,
   RDM_PID_LANGUAGE_CAPABILITIES = 0x00a0,
   RDM_PID_LANGUAGE = 0x00b0,
-  /** @brief This parameter is used to get a descriptive ASCII text label for 
-     the device‘s operating software version. The descriptive text returned by
+  /** @brief This parameter is used to get a descriptive ASCII text label for
+     the device's operating software version. The descriptive text returned by
      this parameter is intended for display to the user. @note Supports GET.*/
-  RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,  
+  RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,
   RDM_PID_BOOT_SOFTWARE_VERSION_ID = 0x00c1,
   RDM_PID_BOOT_SOFTWARE_VERSION_LABEL = 0x00c2,
 
   // Category: DMX512 Setup
   RDM_PID_DMX_PERSONALITY = 0x00e0,
   RDM_PID_DMX_PERSONALITY_DESCRIPTION = 0x00e1,
-  /** @brief This parameter is used to set or get the DMX512 start address. 
+  /** @brief This parameter is used to set or get the DMX512 start address.
      @note Supports GET and SET.*/
-  RDM_PID_DMX_START_ADDRESS = 0x00f0,  
+  RDM_PID_DMX_START_ADDRESS = 0x00f0,
   RDM_PID_SLOT_INFO = 0x0120,
   RDM_PID_SLOT_DESCRIPTION = 0x0121,
   RDM_PID_DEFAULT_SLOT_VALUE = 0x0122,
@@ -140,10 +142,10 @@ typedef enum rdm_pid_t {
   RDM_PID_DEVICE_HOURS = 0x0400,
   RDM_PID_LAMP_HOURS = 0x0401,
   RDM_PID_LAMP_STRIKES = 0x0402,
-  RDM_PID_LAMP_STATE = 0x0403,  // TODO: See rdm_lamp_state_t
+  RDM_PID_LAMP_STATE = 0x0403,    // TODO: See rdm_lamp_state_t
   RDM_PID_LAMP_ON_MODE = 0x0404,  // TODO: See rdm_lamp_on_mode_t
   RDM_PID_DEVICE_POWER_CYCLES = 0x0405,
-  
+
   // Category: Display Settings (0x05xx)
   RDM_PID_DISPLAY_INVERT = 0x0500,
   RDM_PID_DISPLAY_LEVEL = 0x0501,
@@ -156,11 +158,11 @@ typedef enum rdm_pid_t {
 
   // Category: Control (0x10xx)
 
-  /** @brief This parameter is used for the user to physically identify the 
+  /** @brief This parameter is used for the user to physically identify the
      device represented by the UID. @note Supports GET and SET.*/
   RDM_PID_IDENTIFY_DEVICE = 0x1000,
-  RDM_PID_RESET_DEVICE = 0x1001, 
-  RDM_PID_POWER_STATE = 0x1010,  // TODO: See rdm_power_state_t
+  RDM_PID_RESET_DEVICE = 0x1001,
+  RDM_PID_POWER_STATE = 0x1010,        // TODO: See rdm_power_state_t
   RDM_PID_PERFORM_SELF_TEST = 0x1020,  // TODO: See rdm_self_test_t
   RDM_PID_SELF_TEST_DESCRIPTION = 0x1021,
   RDM_PID_CAPTURE_PRESET = 0x1030,
@@ -282,48 +284,48 @@ typedef enum rdm_product_category_t {
   RDM_PRODUCT_CATEGORY_NOT_DECLARED = 0x0000,
 
   /** @brief The product is a fixture intended to create illumination.*/
-  RDM_PRODUCT_CATEGORY_FIXTURE = 0x0100, 
+  RDM_PRODUCT_CATEGORY_FIXTURE = 0x0100,
 
   /** @brief The product is an add-on to a fixture or projector.*/
-  RDM_PRODUCT_CATEGORY_FIXTURE_ACCESSORY = 0x0200,  
+  RDM_PRODUCT_CATEGORY_FIXTURE_ACCESSORY = 0x0200,
 
   /** @brief The product is a light source capable of producing realistic images
      from another media.*/
-  RDM_PRODUCT_CATEGORY_PROJECTOR = 0x0300,  
+  RDM_PRODUCT_CATEGORY_PROJECTOR = 0x0300,
 
-  /** @brief The product creates atmospheric effects such as haze, fog, or 
+  /** @brief The product creates atmospheric effects such as haze, fog, or
      pyrotechnics.*/
-  RDM_PRODUCT_CATEGORY_ATMOSPHERIC = 0x0400,  
+  RDM_PRODUCT_CATEGORY_ATMOSPHERIC = 0x0400,
 
-  /** @brief The product is for intensity control, specifically dimming 
+  /** @brief The product is for intensity control, specifically dimming
      equipment.*/
-  RDM_PRODUCT_CATEGORY_DIMMER = 0x0500,  
+  RDM_PRODUCT_CATEGORY_DIMMER = 0x0500,
 
   /** @brief The product is for power control, other than dimming equipment.*/
-  RDM_PRODUCT_CATEGORY_POWER = 0x0600,  
+  RDM_PRODUCT_CATEGORY_POWER = 0x0600,
 
   /** @brief The product is a scenic device unrelated to lighting equipment.*/
-  RDM_PRODUCT_CATEGORY_SCENIC = 0x0700,  
+  RDM_PRODUCT_CATEGORY_SCENIC = 0x0700,
 
   /** @brief The product is a DMX converter, interface, or otherwise part of DMX
      infrastructure.*/
   RDM_PRODUCT_CATEGORY_DATA = 0x0800,
 
   /** @brief The product is audio-visual equipment.*/
-  RDM_PRODUCT_CATEGORY_AV = 0x0900,  
+  RDM_PRODUCT_CATEGORY_AV = 0x0900,
 
   /** @brief The product is monitoring equipment.*/
-  RDM_PRODUCT_CATEGORY_MONITOR = 0x0a00,  
+  RDM_PRODUCT_CATEGORY_MONITOR = 0x0a00,
 
   /** @brief The product is a controller or backup device.*/
-  RDM_PRODUCT_CATEGORY_CONTROL = 0x7000,  
+  RDM_PRODUCT_CATEGORY_CONTROL = 0x7000,
 
   /** @brief The product is test equipment.*/
-  RDM_PRODUCT_CATEGORY_TEST = 0x7100,  
+  RDM_PRODUCT_CATEGORY_TEST = 0x7100,
 
-  /** @brief The product isn't described by any of the other product 
+  /** @brief The product isn't described by any of the other product
      categories.*/
-  RDM_PRODUCT_CATEGORY_OTHER = 0x7fff  
+  RDM_PRODUCT_CATEGORY_OTHER = 0x7fff
 
   // Manufacturer Specific Categories: 0x8000-0xdfff
 } rdm_product_category_t;
@@ -410,17 +412,17 @@ typedef struct __attribute__((packed)) rdm_header_t {
   uint8_t : 8;  // RDM start code.
   uint8_t : 8;  // RDM sub-start code.
   /** @brief The message length value is defined as the number of slots in the
-     RDM packet including the start code and excluding the Checksum. Each slot 
+     RDM packet including the start code and excluding the Checksum. Each slot
      is an 8-bit value.*/
   uint8_t message_len;
   /** @brief The UID of the target device(s).*/
-  rdm_uid_t dest_uid;  
+  rdm_uid_t dest_uid;
   /** @brief The UID of the device originating this packet.*/
   rdm_uid_t src_uid;
   /** @brief The RDM transaction number. Controllers increment this field every
      time an RDM packet is transmitted. Responders set their transaction number
      to the transaction number of the packet to which they are responding.*/
-  uint8_t tn;  
+  uint8_t tn;
   union {
     /** @brief The port ID field shall be set in the range 1-255 identifying the
        controller port being used, such that the combination of source UID and
@@ -429,24 +431,24 @@ typedef struct __attribute__((packed)) rdm_header_t {
     uint8_t port_id;
     /** @brief The response type field is used in messages from responders to
        indicate the acknowledgement type of the response.*/
-    uint8_t response_type;  
+    uint8_t response_type;
   };
   /** @brief The message count field is used by a responder to indicate that
      additional data is now available for collection by a controller. The
-     message count shall be set to 0 in all controller generated requests. The 
+     message count shall be set to 0 in all controller generated requests. The
      message count shall be incremented by a responder whenever there is a new
-     message pending collection by a controller. Thus a controller can 
+     message pending collection by a controller. Thus a controller can
      determine, from any response, the number of queued messages pending.*/
   uint8_t message_count;
-  /** @brief Sub-devices should be used in devices containing a repetitive 
-     number of similar modules, such as a dimmer rack.*/  
-  uint16_t sub_device;  
+  /** @brief Sub-devices should be used in devices containing a repetitive
+     number of similar modules, such as a dimmer rack.*/
+  uint16_t sub_device;
   /** @brief The command class (CC) specifies the action of the message.*/
-  uint8_t cc; 
-  /** @brief The parameter ID (PID) identifies a specific type of parameter 
+  uint8_t cc;
+  /** @brief The parameter ID (PID) identifies a specific type of parameter
      data.*/
   uint16_t pid;
-  /** @brief The parameter data length (PDL) is the number of slots included in 
+  /** @brief The parameter data length (PDL) is the number of slots included in
      the parameter data area that it precedes. When this field is set to 0x00 it
      indicates that there is no parameter data following.*/
   uint8_t pdl;
@@ -482,20 +484,20 @@ typedef struct __attribute__((packed)) rdm_disc_mute_t {
          responding to discovery on behalf of another device. This flag
          indicates that the response has come from a proxy rather than the
          actual device.*/
-      bool proxied_device : 1; 
+      bool proxied_device : 1;
     };
     /** @brief The control field contains bit flags. Bit 0 is the managed proxy
        flag, bit 1 is the sub-device flag, bit 2 is the boot-loader flag, bit 3
        is the proxied device flag. Bits 4 through 15 are reserved and shall be
        set to 0.*/
-    uint16_t control_field;  
+    uint16_t control_field;
   };
   /** @brief The binding UID field shall only be included when the responding
      device contains multiple responder ports. If the device does contain
      multiple ports then the binding UID field shall contain the UID for the
      primary port on the device. If the device does not contain multiple
      responder ports, this field is set to 0.*/
-  rdm_uid_t binding_uid;  
+  rdm_uid_t binding_uid;
 } rdm_disc_mute_t;
 
 /** @brief Parameter for use with RDM device info requests.*/
@@ -558,8 +560,8 @@ typedef struct __attribute__((packed)) rdm_pid_description_t {
   uint8_t data_type;
   /** @brief Command Class defines whether GET and or SET messages are
      implemented for the specified PID.*/
-  uint8_t cc;  
-  uint8_t : 8; // PID type. Should be set to 0.
+  uint8_t cc;
+  uint8_t : 8;  // PID type. Should be set to 0.
   /** @brief Unit is an unsigned 8-bit value enumerated by rdm_units_t. It
      defines the SI unit of the specified PID data.*/
   uint8_t unit;
@@ -590,8 +592,24 @@ typedef struct __attribute__((packed)) rdm_pid_description_t {
   /** @brief The description field is used to describe the function of the
      specified PID. This text field shall be variable up to 32 characters in
      length.*/
-  char description[33];  
+  char description[33];
 } rdm_pid_description_t;
+
+/** @brief This parameter is used to set the responder's DMX personality. Many
+ * devices such as moving lights have different DMX personalities. Many RDM
+ * parameters may be affected by changing personality. */
+typedef struct __attribute__((packed)) rdm_dmx_personality_t {
+  /** @brief The current selected DMX personality of the device. The personality
+     is the configured arrangement of DMX slots used by the device. Many devices
+     may have multiple personalities from which to choose. These personalities
+     shall be consecutively numbered starting from 1.*/
+  uint8_t current_personality;
+  /** @brief The number of personalities supported by the device. The
+     personality is the configured arrangement of DMX slots used by the device.
+     Many devices may have multiple personalities from which to choose. These
+     personalities shall be consecutively numbered starting from 1.*/
+  uint8_t personality_count;
+} rdm_dmx_personality_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast

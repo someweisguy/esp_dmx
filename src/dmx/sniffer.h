@@ -1,6 +1,5 @@
 #pragma once
 
-#include "driver.h"
 #include "types.h"
 
 #ifdef __cplusplus
