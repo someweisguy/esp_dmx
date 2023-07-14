@@ -956,5 +956,8 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
     // TODO: send message to RDM queue
   }
 
+  rdm_pd_set_to_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+                    &dmx_start_address, sizeof(dmx_start_address));
+
   return true;
 }
