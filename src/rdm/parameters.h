@@ -1,3 +1,9 @@
+/**
+ * @file parameters.h
+ * @author Mitch Weisbrod
+ * @brief This file contains getters and setters for various RDM parameters. It
+ * is included with `rdm/responder.h`.
+ */
 #pragma once
 
 #include "dmx/types.h"

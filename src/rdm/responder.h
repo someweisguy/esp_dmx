@@ -1,3 +1,9 @@
+/**
+ * @file responder.h
+ * @author Mitch Weisbrod
+ * @brief This file contains functions used for registering RDM parameters. It
+ * must be included by the user.
+ */
 #pragma once
 
 #include <stdint.h>

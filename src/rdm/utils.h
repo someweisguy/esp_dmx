@@ -3,8 +3,9 @@
  * @author Mitch Weisbrod
  * @brief This file contains some functions that can be helpful when performing
  * advanced operations on RDM packets. It is used throughout this library, but
- * is not included by default in esp_dmx.h. It may be manually included by the
- * user when it is needed.
+ * is not included by default in esp_dmx.h. It is not part of the main API and
+ * may not be backwards compatible with different version numbers. It is
+ * recommended that users do not use these functions.
  */
 #pragma once
 

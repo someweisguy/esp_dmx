@@ -1,7 +1,7 @@
 /**
  * @file types.h
  * @author Mitch Weisbrod
- * @brief This file contains constants used in RDM.
+ * @brief This file contains constants and types used in RDM.
  */
 #pragma once
 
