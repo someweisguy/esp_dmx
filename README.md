@@ -265,7 +265,7 @@ The `dmx_config_t` sets permanent configuration values within the DMX driver. Th
 
 ```c
 dmx_config_t config = {
-  .alloc_size = 512,
+  .alloc_size = 255,
   .model_id = 0xabcd,
   .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,
   .software_version_id = 0x100,
