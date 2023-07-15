@@ -34,6 +34,9 @@ extern "C" {
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
+
+#define DMX_SPINLOCK (&driver->spinlock)  // TODO: conditionally compile
+
 enum dmx_interrupt_mask_t {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
   DMX_INTR_RX_FRAMING_ERR = UART_INTR_PARITY_ERR | UART_INTR_FRAM_ERR,
@@ -104,6 +107,7 @@ typedef struct dmx_driver_t {
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
+  spinlock_t spinlock;  // TODO: conditionally compile
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
   // Data buffer
