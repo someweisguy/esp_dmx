@@ -1,5 +1,5 @@
 /**
- * @file hal.h
+ * @file uart.h
  * @author Mitch Weisbrod
  * @brief This file is the Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the ESP32 UART
@@ -14,12 +14,14 @@
  */
 #pragma once
 
-#include "dmx/types.h"
+#include "uart.h"
 #include "hal/uart_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct dmx_uart_t dmx_uart_t;
 
 /**
  * @brief Initializes the UART for DMX.

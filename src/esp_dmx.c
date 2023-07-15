@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "dmx/driver.h"
-#include "dmx/hal.h"
+#include "dmx/hal/uart.h"
 #include "dmx/types.h"
 #include "endian.h"
 #include "nvs_flash.h"

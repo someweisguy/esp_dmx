@@ -5,7 +5,6 @@
 
 #include "dmx/caps.h"
 #include "dmx/driver.h"
-#include "dmx/hal.h"
 #include "endian.h"
 #include "esp_dmx.h"
 #include "esp_log.h"

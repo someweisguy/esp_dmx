@@ -2,7 +2,7 @@
 
 #include "dmx/caps.h"
 #include "dmx/driver.h"
-#include "dmx/hal.h"
+#include "dmx/hal/uart.h"
 #include "driver/gpio.h"
 #include "esp_dmx.h"
 

@@ -1,4 +1,4 @@
-#include "hal.h"
+#include "uart.h"
 
 #include "dmx/caps.h"
 #include "dmx/driver.h"
@@ -12,6 +12,10 @@
 #else
 #define DMX_ISR_ATTR
 #endif
+
+struct dmx_uart_t {
+  uart_dev_t *uart;
+};
 
 void dmx_uart_init(uart_dev_t *uart) {
   uart_ll_set_sclk(uart, UART_SCLK_APB);
