@@ -26,9 +26,6 @@ static rdm_uid_t rdm_binding_uid = {};
 
 static const char *TAG = "rdm_utils";
 
-extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
-
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);
   assert(source != NULL);
@@ -240,16 +237,16 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
     return NULL;
   }
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *ret = NULL;
-  taskENTER_CRITICAL(spinlock);
+  // taskENTER_CRITICAL(spinlock); FIXME
   if (driver->alloc_head + size <= driver->alloc_size) {
     ret = &(driver->alloc_data[driver->alloc_head]);
     driver->alloc_head += size;
   }
-  taskEXIT_CRITICAL(spinlock);
+  // taskEXIT_CRITICAL(spinlock); FIXME
 
   return ret;
 }
@@ -258,18 +255,18 @@ void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *ret = NULL;
-  taskENTER_CRITICAL(spinlock);
+  // taskENTER_CRITICAL(spinlock); FIXME
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       ret = driver->rdm_cbs[i].param;
       break;
     }
   }
-  taskEXIT_CRITICAL(spinlock);
+  // taskEXIT_CRITICAL(spinlock); FIXME
 
   return ret;
 }
@@ -464,12 +461,12 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
 bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
                        size_t *size) {
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *pd = NULL;
   const rdm_pid_description_t *desc;
-  taskENTER_CRITICAL(spinlock);
+  // taskENTER_CRITICAL(spinlock); FIXME
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
@@ -489,20 +486,20 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
       memcpy(param, pd, *size);
     }
   }
-  taskEXIT_CRITICAL(spinlock);
+  // taskEXIT_CRITICAL(spinlock); FIXME
 
   return (pd != NULL);
 }
 
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
                        size_t size, bool nvs) {
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   bool ret;
   void *pd = NULL;
   const rdm_pid_description_t *desc = NULL;
-  taskENTER_CRITICAL(spinlock);
+  // taskENTER_CRITICAL(spinlock); FIXME
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
@@ -524,7 +521,7 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   } else {
     ret = false;
   }
-  taskEXIT_CRITICAL(spinlock);
+  // taskEXIT_CRITICAL(spinlock);  FIXME
 
   // Copy the user's variable to NVS if desired
   if (ret && nvs) {
@@ -556,7 +553,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   assert(pdl != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
+  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Update the optional components of the header to allowed values
@@ -568,9 +565,9 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Set header values that the user cannot set themselves
-  taskENTER_CRITICAL(spinlock);
+  // taskENTER_CRITICAL(spinlock); FIXME
   header->tn = driver->tn;
-  taskEXIT_CRITICAL(spinlock);
+  // taskEXIT_CRITICAL(spinlock);  FIXME
   header->message_count = 0;
 
   // Determine if a response is expected

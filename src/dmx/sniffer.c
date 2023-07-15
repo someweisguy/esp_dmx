@@ -20,15 +20,14 @@
 
 static const char *TAG = "dmx_sniffer";  // The log tagline for the file.
 
-extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  const dmx_port_t dmx_num = ((dmx_driver_t *)arg)->dmx_num;
   int task_awoken = false;
 
-  if (dmx_uart_get_rx_level(driver->uart)) {
+  if (dmx_uart_get_rx_level(dmx_num)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can

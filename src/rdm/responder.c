@@ -1,6 +1,6 @@
 #include "responder.h"
 
-#include "dmx/agent.h"
+#include "esp_dmx.h"
 #include "dmx/driver.h"
 #include "rdm/utils.h"
 

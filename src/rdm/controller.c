@@ -1,6 +1,6 @@
 #include "controller.h"
 
-#include "dmx/agent.h"
+#include "esp_dmx.h"
 #include "dmx/driver.h"
 #include "endian.h"
 #include "rdm/utils.h"
@@ -103,8 +103,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   rdm_ack_t ack;         // Request response information.
   int num_found = 0;
 
-  extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-  dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Un-mute all devices

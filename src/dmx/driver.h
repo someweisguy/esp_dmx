@@ -93,8 +93,6 @@ typedef struct dmx_driver_personality_t {
 typedef struct dmx_driver_t {
   // UART configuration
   dmx_port_t dmx_num;  // The driver's DMX port number.
-  uart_dev_t *uart;               // A pointer to the UART port.
-  intr_handle_t uart_isr_handle;  // The handle to the DMX UART ISR.
 
   // Hardware timer configuration
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -150,6 +148,8 @@ typedef struct dmx_driver_t {
   int64_t last_pos_edge_ts;      // Timestamp of the last positive edge on the sniffer pin.
   int64_t last_neg_edge_ts;      // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;
+
+extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
 #ifdef __cplusplus
 }
