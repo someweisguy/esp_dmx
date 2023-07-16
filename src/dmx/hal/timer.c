@@ -15,7 +15,7 @@
 #define DMX_ISR_ATTR
 #endif
 
-struct dmx_timer_t {
+static struct dmx_timer_t {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;
 #else
