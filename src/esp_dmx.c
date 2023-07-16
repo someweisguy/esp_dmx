@@ -299,8 +299,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->mux = NULL;
   driver->data = NULL;
   driver->alloc_data = NULL;
-  driver->spinlock.owner = SPINLOCK_FREE;
-  driver->spinlock.count = 0;// = portMUX_INITIALIZER_UNLOCKED;
+  driver->spinlock = (spinlock_t)portMUX_INITIALIZER_UNLOCKED;
 
   // Allocate mutex
   SemaphoreHandle_t mux = xSemaphoreCreateRecursiveMutex();
