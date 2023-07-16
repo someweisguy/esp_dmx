@@ -46,6 +46,7 @@ extern "C" {
     .personality_count = 1, .dmx_start_address = 0                            \
   }
 
+// FIXME: use definition in dmx/driver.h
 #ifdef CONFIG_DMX_ISR_IN_IRAM
 /** @brief The default interrupt flags for the DMX driver. Places the interrupts
  * in IRAM.*/

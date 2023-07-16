@@ -2,17 +2,13 @@
 
 #include <stdbool.h>
 
+#include "dmx/driver.h"
+
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
 #include "esp_timer.h"
 #else
 #include "driver/timer.h"
-#endif
-
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
 #endif
 
 static struct dmx_timer_t {

@@ -15,12 +15,6 @@
 #include "esp_mac.h"
 #endif
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
 static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static rdm_uid_t rdm_binding_uid = {};
 
@@ -291,7 +285,7 @@ esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   nvs_handle_t nvs;
   esp_err_t err = nvs_open(namespace, NVS_READONLY, &nvs);
   if (!err) {
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
+#ifndef DMX_ISR_IN_IRAM
     // Track which drivers are currently enabled and disable those which are
     bool driver_is_enabled[DMX_NUM_MAX];
     for (int i = 0; i < DMX_NUM_MAX; ++i) {
@@ -329,7 +323,7 @@ esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
         err = nvs_get_blob(nvs, key, param, size);
     }
 
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
+#ifndef DMX_ISR_IN_IRAM
     for (int i = 0; i < DMX_NUM_MAX; ++i) {
       if (driver_is_enabled[i]) {
         dmx_driver_enable(i);
@@ -362,7 +356,7 @@ esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   nvs_handle_t nvs;
   esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs);
   if (!err) {
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
+#ifndef DMX_ISR_IN_IRAM
     // Track which drivers are currently enabled and disable those which are
     bool driver_is_enabled[DMX_NUM_MAX];
     for (int i = 0; i < DMX_NUM_MAX; ++i) {
@@ -403,7 +397,7 @@ esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
       err = nvs_commit(nvs);
     }
 
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
+#ifndef DMX_ISR_IN_IRAM
     for (int i = 0; i < DMX_NUM_MAX; ++i) {
       if (driver_is_enabled[i]) {
         dmx_driver_enable(i);

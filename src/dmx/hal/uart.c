@@ -16,12 +16,6 @@
 #define DMX_UART_FULL_DEFAULT 1
 #define DMX_UART_EMPTY_DEFAULT 8
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
 static struct dmx_uart_t {
   const int num;
   uart_dev_t *const dev;

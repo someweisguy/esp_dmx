@@ -26,6 +26,13 @@
 #include "driver/timer.h"
 #endif
 
+#if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
+#define DMX_ISR_ATTR IRAM_ATTR
+#define DMX_ISR_IN_IRAM
+#else
+#define DMX_ISR_ATTR
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -12,12 +12,6 @@
 #include "driver/timer.h"
 #endif
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
 static const char *TAG = "dmx_sniffer";  // The log tagline for the file.
 
 

@@ -19,12 +19,6 @@
 #define RDM_NVS_PARTITION_NAME "nvs"
 #endif
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
-#else
-#define DMX_ISR_ATTR
-#endif
-
 static const char *TAG = "dmx";
 
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
@@ -278,7 +272,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   // Initialize RDM UID
   rdm_uid_get(dmx_num, NULL);
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
+#ifdef DMX_ISR_IN_IRAM
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
   if (!(intr_flags & ESP_INTR_FLAG_IRAM)) {
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
