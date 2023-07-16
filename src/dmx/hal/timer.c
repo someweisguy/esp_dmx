@@ -15,7 +15,7 @@
 #define DMX_ISR_ATTR
 #endif
 
-static struct dmx_timer_t {
+static struct dmx_timer_handle_t {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;
 #else
@@ -25,9 +25,9 @@ static struct dmx_timer_t {
   bool is_running;
 } dmx_timer_context[DMX_NUM_MAX] = {};
 
-dmx_timer_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
+dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
                            void *isr_context, int isr_flags) {
-  dmx_timer_t timer = &dmx_timer_context[dmx_num];
+  dmx_timer_handle_t timer = &dmx_timer_context[dmx_num];
   // Initialize hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5
   const gptimer_config_t timer_config = {
@@ -70,7 +70,7 @@ dmx_timer_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
   return timer;
 }
 
-void dmx_timer_deinit(dmx_timer_t timer) {
+void dmx_timer_deinit(dmx_timer_handle_t timer) {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_disable(timer->gptimer_handle);
   gptimer_del_timer(timer->gptimer_handle);
@@ -81,7 +81,7 @@ void dmx_timer_deinit(dmx_timer_t timer) {
   timer->is_running = false;
 }
 
-void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_t timer) {
+void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_handle_t timer) {
   if (timer->is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_stop(timer->gptimer_handle);
@@ -93,7 +93,7 @@ void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_t timer) {
   }
 }
 
-void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_t timer, uint64_t counter) {
+void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer, uint64_t counter) {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_set_raw_count(timer->gptimer_handle, counter);
 #else
@@ -101,7 +101,7 @@ void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_t timer, uint64_t counter) {
 #endif
 }
 
-void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_t timer, uint64_t alarm) {
+void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     const gptimer_alarm_config_t alarm_config = {
         .alarm_count = alarm,
@@ -113,7 +113,7 @@ void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_t timer, uint64_t alarm) {
 #endif
 }
 
-void DMX_ISR_ATTR dmx_timer_start(dmx_timer_t timer) {
+void DMX_ISR_ATTR dmx_timer_start(dmx_timer_handle_t timer) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_start(timer->gptimer_handle);
 #else
