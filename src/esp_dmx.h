@@ -82,7 +82,7 @@ extern "C" {
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
  * */
-;esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
+esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
                              int intr_flags);
 
 /**
