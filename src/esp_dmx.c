@@ -30,7 +30,7 @@ static const char *TAG = "dmx";
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
 
 static struct dmx_context_t {
-  dmx_uart_t *uart;
+  dmx_uart_handle_t uart;
   dmx_timer_handle_t timer;
 } dmx_context[DMX_NUM_MAX] = {};
 
@@ -38,7 +38,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = esp_timer_get_time();
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
   int task_awoken = false;
 
@@ -205,7 +205,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 #endif
     void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  dmx_uart_t *const uart = dmx_context[driver->dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[driver->dmx_num].uart;
   dmx_timer_handle_t timer = dmx_context[driver->dmx_num].timer;
   int task_awoken = false;
 
@@ -450,7 +450,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
 
   // Enable the UART peripheral
-  dmx_uart_t *uart = dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
+  dmx_uart_handle_t uart = dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
   if (uart == NULL) {
     ESP_LOGE(TAG, "UART init error");
   }
@@ -482,7 +482,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Free driver mutex
@@ -535,7 +535,7 @@ esp_err_t dmx_driver_disable(dmx_port_t dmx_num) {
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   esp_err_t ret = ESP_ERR_NOT_FINISHED;
 
@@ -561,7 +561,7 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Initialize driver flags and reenable interrupts
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -597,7 +597,7 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
             "rx_pin error");
   DMX_CHECK(rts_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_pin),
             ESP_ERR_INVALID_ARG, "rts_pin error");
-  // TODO: move this to dmx_uart_t
+  // TODO: move this to dmx_uart_handle_t
   return uart_set_pin(dmx_num, tx_pin, rx_pin, rts_pin, DMX_PIN_NO_CHANGE);
 }
 
@@ -998,7 +998,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) && driver->rdm_type != 0) {
@@ -1047,7 +1047,7 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Get pointers to driver data buffer locations and declare checksum
   uint16_t checksum = 0;
@@ -1129,7 +1129,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   dmx_driver_t *const restrict driver = dmx_driver[dmx_num];
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Set default return value and default values for output argument
   esp_err_t err = ESP_OK;
@@ -1152,8 +1152,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
-
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
 
   // Set the RTS pin to enable reading from the DMX bus
   if (dmx_uart_get_rts(uart) == 0) {
@@ -1422,7 +1420,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
-  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Block until the mutex can be taken
   if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
