@@ -480,7 +480,6 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is not installed");
 
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -533,7 +532,6 @@ esp_err_t dmx_driver_disable(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already disabled");
 
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
@@ -559,7 +557,6 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
   DMX_CHECK(!dmx_driver_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is already enabled");
 
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
@@ -996,7 +993,6 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
     return 0;
   }
 
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
@@ -1045,7 +1041,6 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
 
   size_t written = 0;
 
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
@@ -1417,7 +1412,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
@@ -1573,7 +1567,6 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Block until the mutex can be taken
