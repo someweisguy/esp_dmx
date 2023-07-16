@@ -1470,7 +1470,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   elapsed = esp_timer_get_time() - driver->last_slot_ts;
   if (elapsed < timeout) {
     dmx_timer_set_counter(timer, elapsed);
-    dmx_timer_set_alarm(timer, timeout);  // FIXME: timer already running
+    dmx_timer_set_alarm(timer, timeout);
     dmx_timer_start(timer);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
