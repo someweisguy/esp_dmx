@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 // TODO: docs
-typedef struct dmx_timer_handle_t *dmx_timer_handle_t;
+typedef struct dmx_timer_t *dmx_timer_handle_t;
 
 // TODO: docs
 dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
