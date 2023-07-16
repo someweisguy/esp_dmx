@@ -37,6 +37,20 @@ dmx_uart_t *dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
                           void *isr_context, int isr_flags) {
   dmx_uart_t *const uart = &dmx_uart_context[dmx_num];
 
+  // taskENTER_CRITICAL(spinlock);  FIXME
+  periph_module_enable(uart_periph_signal[dmx_num].module);
+  if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+#if SOC_UART_REQUIRE_CORE_RESET
+    // ESP32C3 workaround to prevent UART outputting garbage data
+    uart_ll_set_reset_core(uart->dev, true);
+    periph_module_reset(uart_periph_signal[dmx_num].module);
+    uart_ll_set_reset_core(uart->dev, false);
+#else
+    periph_module_reset(uart_periph_signal[dmx_num].module);
+#endif
+  }
+  // taskEXIT_CRITICAL(spinlock); FIXME
+
   uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
 #if ESP_IDF_VERSION_MAJOR >= 5
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, esp_clk_apb_freq());

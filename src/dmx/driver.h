@@ -35,7 +35,7 @@ extern "C" {
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 
-#define DMX_SPINLOCK (&driver->spinlock)  // TODO: conditionally compile
+#define DMX_SPINLOCK (&dmx_driver[dmx_num]->spinlock)  // TODO: conditionally compile
 
 enum dmx_interrupt_mask_t {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
@@ -72,7 +72,6 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
   DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
   DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
-  DMX_FLAGS_TIMER_IS_RUNNING = BIT8,    // The driver hardware timer is running.
 
   DMX_FLAGS_RDM_IS_VALID = BIT0,      // The RDM packet is valid.
   DMX_FLAGS_RDM_IS_REQUEST = BIT1,    // The RDM packet is a request.
@@ -97,14 +96,6 @@ typedef struct dmx_driver_t {
   // UART configuration
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
-  // Hardware timer configuration
-#if ESP_IDF_VERSION_MAJOR >= 5
-  gptimer_handle_t gptimer_handle;  // The general purpose timer to use for DMX functions.
-#else
-  timer_group_t timer_group;  // The timer group to use for DMX functions.
-  timer_idx_t timer_idx;      // The timer index to use for DMX functions.
-#endif
-
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
   spinlock_t spinlock;  // TODO: conditionally compile
@@ -117,7 +108,7 @@ typedef struct dmx_driver_t {
   int16_t rx_size;  // The expected size of the incoming packet.
 
   // Driver state
-  uint16_t flags;
+  uint8_t flags;
   uint8_t rdm_type;
   uint8_t tn;            // The current RDM transaction number. Is incremented with every RDM packet sent.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.

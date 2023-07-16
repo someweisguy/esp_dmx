@@ -65,6 +65,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
   dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
   int task_awoken = false;
 
   while (true) {
@@ -75,15 +76,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     if (intr_flags & DMX_INTR_RX_ALL) {
       // Stop the DMX driver hardware timer if it is running
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK);
-      if (driver->flags & DMX_FLAGS_TIMER_IS_RUNNING) {
-#if ESP_IDF_VERSION_MAJOR >= 5
-        gptimer_stop(driver->gptimer_handle);
-#else
-        timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                              driver->timer_idx, 0);
-#endif
-        driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
-      }
+      dmx_timer_stop(timer);
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK);
 
       // Read data into the DMX buffer if there is enough space
@@ -239,6 +232,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_uart_t *const uart = dmx_context[driver->dmx_num].uart;
+  dmx_timer_t *const timer = dmx_context[driver->dmx_num].timer;
   int task_awoken = false;
 
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
@@ -262,14 +256,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->head += write_size;
 
       // Pause MAB timer alarm
-#if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_stop(gptimer_handle);
-      gptimer_set_raw_count(gptimer_handle, 0);
-#else
-      timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                            driver->timer_idx, 0);
-#endif
-      driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
+      dmx_timer_stop(timer);
 
       // Enable DMX write interrupts
       dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
@@ -280,14 +267,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
                        &task_awoken);
 
     // Pause the receive timer alarm
-#if ESP_IDF_VERSION_MAJOR >= 5
-    gptimer_stop(gptimer_handle);
-    gptimer_set_raw_count(gptimer_handle, 0);
-#else
-    timer_group_set_counter_enable_in_isr(driver->timer_group,
-                                          driver->timer_idx, 0);
-#endif
-    driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
+    dmx_timer_stop(timer);
   }
 
   return task_awoken;
@@ -353,43 +333,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->data = NULL;
   driver->alloc_data = NULL;
 
-  // Initialize hardware timer
-#if ESP_IDF_VERSION_MAJOR >= 5
-  gptimer_handle_t gptimer_handle;
-  const gptimer_config_t timer_config = {
-      .clk_src = GPTIMER_CLK_SRC_APB,
-      .direction = GPTIMER_COUNT_UP,
-      .resolution_hz = 1000000,  // 1MHz resolution timer
-  };
-  esp_err_t err = gptimer_new_timer(&timer_config, &gptimer_handle);
-  if (err) {
-    ESP_LOGE(TAG, "DMX driver gptimer error");
-    dmx_driver_delete(dmx_num);
-    return err;
-  }
-#else
-  timer_group_t timer_group = dmx_num / 2;
-  timer_idx_t timer_idx;
-#ifdef CONFIG_IDF_TARGET_ESP32C3
-  timer_idx = 0;  // ESP32C3 uses timer_idx 1 for Watchdog
-#else
-  timer_idx = dmx_num % 2;
-#endif
-  const timer_config_t timer_config = {
-      .divider = 80,  // (80MHz / 80) == 1MHz resolution timer
-      .counter_dir = TIMER_COUNT_UP,
-      .counter_en = false,
-      .alarm_en = true,
-      .auto_reload = true,
-  };
-  esp_err_t err = timer_init(timer_group, timer_idx, &timer_config);
-  if (err) {
-    ESP_LOGE(TAG, "DMX driver timer error");
-    dmx_driver_delete(dmx_num);
-    return err;
-  }
-#endif
-
   // Allocate mutex
   SemaphoreHandle_t mux = xSemaphoreCreateRecursiveMutex();
   if (mux == NULL) {
@@ -427,14 +370,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // UART configuration
   driver->dmx_num = dmx_num;
-
-// Hardware timer configuration
-#if ESP_IDF_VERSION_MAJOR >= 5
-  driver->gptimer_handle = gptimer_handle;
-#else
-  driver->timer_group = timer_group;
-  driver->timer_idx = timer_idx;
-#endif
 
   // Synchronization state
   driver->mux = mux;
@@ -548,32 +483,13 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
 
   // Enable the UART peripheral
-  // taskENTER_CRITICAL(spinlock);  FIXME
-  periph_module_enable(uart_periph_signal[dmx_num].module);
-  if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-#if SOC_UART_REQUIRE_CORE_RESET
-    // ESP32C3 workaround to prevent UART outputting garbage data
-    uart_ll_set_reset_core(driver->uart, true);
-    periph_module_reset(uart_periph_signal[dmx_num].module);
-    uart_ll_set_reset_core(driver->uart, false);
-#else
-    periph_module_reset(uart_periph_signal[dmx_num].module);
-#endif
-  }
-  // taskEXIT_CRITICAL(spinlock); FIXME
-      
+
+
   dmx_uart_t *uart = dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
   dmx_context[dmx_num].uart = uart;
 
-  // Enable the hardware timer
-#if ESP_IDF_VERSION_MAJOR >= 5
-  const gptimer_event_callbacks_t gptimer_cb = {.on_alarm = dmx_timer_isr};
-  gptimer_register_event_callbacks(driver->gptimer_handle, &gptimer_cb, driver);
-  gptimer_enable(driver->gptimer_handle);
-#else
-  timer_isr_callback_add(driver->timer_group, driver->timer_idx, dmx_timer_isr,
-                         driver, intr_flags);
-#endif
+  dmx_timer_t *timer = dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
+  dmx_context[dmx_num].timer = timer;
 
   // Enable reading on the DMX port
   // taskENTER_CRITICAL(spinlock); FIXME
@@ -594,6 +510,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
 
   // Free driver mutex
   if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
@@ -618,13 +535,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-#if ESP_IDF_VERSION_MAJOR >= 5
-  gptimer_disable(driver->gptimer_handle);
-  gptimer_del_timer(driver->gptimer_handle);
-#else
-  timer_isr_callback_remove(driver->timer_group, driver->timer_idx);
-  timer_deinit(driver->timer_group, driver->timer_idx);
-#endif
+  dmx_timer_deinit(timer);
+  dmx_context[dmx_num].timer = NULL;
 
   // Free driver
   heap_caps_free(driver);
@@ -1261,6 +1173,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
   dmx_driver_t *const restrict driver = dmx_driver[dmx_num];
+  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
   dmx_uart_t *const uart = dmx_context[dmx_num].uart;
 
   // Set default return value and default values for output argument
@@ -1326,25 +1239,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
       // Set an early timeout with the hardware timer
       // taskENTER_CRITICAL(spinlock); FIXME
-#if ESP_IDF_VERSION_MAJOR >= 5
-      const gptimer_handle_t gptimer_handle = driver->gptimer_handle;
-      const gptimer_alarm_config_t alarm_config = {
-          .alarm_count = RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT,
-          .flags.auto_reload_on_alarm = false};
-      gptimer_set_raw_count(gptimer_handle, elapsed);
-      gptimer_set_alarm_action(gptimer_handle, &alarm_config);
-      gptimer_start(gptimer_handle);
-#else
-      const timer_group_t timer_group = driver->timer_group;
-      const timer_idx_t timer_idx = driver->timer_idx;
-      timer_set_counter_value(timer_group, timer_idx, elapsed);
-      timer_set_alarm_value(timer_group, timer_idx,
-                            RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
-      timer_start(timer_group, timer_idx);
-#endif
-      driver->flags |= DMX_FLAGS_TIMER_IS_RUNNING;
+      dmx_timer_set_counter(timer, elapsed);
+      dmx_timer_set_alarm(timer, RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
       // taskEXIT_CRITICAL(spinlock); FIXME
-      driver_flags |= DMX_FLAGS_TIMER_IS_RUNNING;
     }
 
     // Wait for a task notification
@@ -1357,17 +1254,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
     
     if (!notified) {
-      if (driver_flags & DMX_FLAGS_TIMER_IS_RUNNING) {
-#if ESP_IDF_VERSION_MAJOR >= 5
-        gptimer_stop(driver->gptimer_handle);
-#else
-        timer_pause(driver->timer_group, driver->timer_idx);
-#endif
-        // taskENTER_CRITICAL(spinlock); FIXME
-        driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
-        // taskEXIT_CRITICAL(spinlock); FIXME
-        driver_flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
-      }
+      dmx_timer_stop(timer);
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
@@ -1578,6 +1465,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
   dmx_uart_t *const uart = dmx_context[dmx_num].uart;
 
   // Block until the mutex can be taken
@@ -1623,18 +1511,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   elapsed = esp_timer_get_time() - driver->last_slot_ts;
   if (elapsed < timeout) {
-#if ESP_IDF_VERSION_MAJOR >= 5
-    gptimer_set_raw_count(driver->gptimer_handle, elapsed);
-    const gptimer_alarm_config_t alarm_config = {
-        .alarm_count = timeout, .flags.auto_reload_on_alarm = false};
-    gptimer_set_alarm_action(driver->gptimer_handle, &alarm_config);
-    gptimer_start(driver->gptimer_handle);
-#else
-    timer_set_counter_value(driver->timer_group, driver->timer_idx, elapsed);
-    timer_set_alarm_value(driver->timer_group, driver->timer_idx, timeout);
-    timer_start(driver->timer_group, driver->timer_idx);
-#endif
-    driver->flags |= DMX_FLAGS_TIMER_IS_RUNNING;
+    dmx_timer_set_counter(timer, elapsed);
+    dmx_timer_set_alarm(timer, timeout);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   // taskEXIT_CRITICAL(spinlock); FIXME
@@ -1643,14 +1521,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     if (!notified) {
-      if (driver->flags & DMX_FLAGS_TIMER_IS_RUNNING) {
-#if ESP_IDF_VERSION_MAJOR >= 5
-        gptimer_stop(driver->gptimer_handle);
-#else
-        timer_pause(driver->timer_group, driver->timer_idx);
-#endif
-        driver->flags &= ~DMX_FLAGS_TIMER_IS_RUNNING;
-      }
+      dmx_timer_stop(timer);
       xTaskNotifyStateClear(driver->task_waiting);
     }
     driver->task_waiting = NULL;
@@ -1730,21 +1601,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->head = 0;
     driver->flags |=
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
-#if ESP_IDF_VERSION_MAJOR >= 5
-    gptimer_set_raw_count(driver->gptimer_handle, 0);
-    const gptimer_alarm_config_t alarm_config = {
-        .alarm_count = driver->break_len,
-        .reload_count = 0,
-        .flags.auto_reload_on_alarm = true};
-    gptimer_set_alarm_action(driver->gptimer_handle, &alarm_config);
-    gptimer_start(driver->gptimer_handle);
-#else
-    timer_set_counter_value(driver->timer_group, driver->timer_idx, 0);
-    timer_set_alarm_value(driver->timer_group, driver->timer_idx,
-                          driver->break_len);
-    timer_start(driver->timer_group, driver->timer_idx);
-#endif
-    driver->flags |= DMX_FLAGS_TIMER_IS_RUNNING;
+    dmx_timer_set_counter(timer, 0);
+    dmx_timer_set_alarm(timer, driver->break_len);
 
     dmx_uart_invert_tx(uart, 1);
     // taskEXIT_CRITICAL(spinlock); FIXME
