@@ -30,9 +30,9 @@ static const char *TAG = "dmx";
 
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
 
-struct dmx_context_t {
+static struct dmx_context_t {
   dmx_uart_t *uart;
-  dmx_timer_t *timer;
+  dmx_timer_t timer;
 } dmx_context[DMX_NUM_MAX] = {};
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
@@ -40,7 +40,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
   dmx_uart_t *const uart = dmx_context[dmx_num].uart;
-  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
+  dmx_timer_t timer = dmx_context[dmx_num].timer;
   int task_awoken = false;
 
   while (true) {
@@ -207,7 +207,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   dmx_uart_t *const uart = dmx_context[driver->dmx_num].uart;
-  dmx_timer_t *const timer = dmx_context[driver->dmx_num].timer;
+  dmx_timer_t timer = dmx_context[driver->dmx_num].timer;
   int task_awoken = false;
 
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
@@ -299,6 +299,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->mux = NULL;
   driver->data = NULL;
   driver->alloc_data = NULL;
+  driver->spinlock.owner = SPINLOCK_FREE;
+  driver->spinlock.count = 0;// = portMUX_INITIALIZER_UNLOCKED;
 
   // Allocate mutex
   SemaphoreHandle_t mux = xSemaphoreCreateRecursiveMutex();
@@ -451,11 +453,17 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Enable the UART peripheral
   dmx_uart_t *uart = dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
+  if (uart == NULL) {
+    ESP_LOGE(TAG, "UART init error");
+  }
   dmx_context[dmx_num].uart = uart;
 
-  dmx_timer_t *timer =
-      dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
+  dmx_timer_t timer = dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
+  if (timer == NULL) {
+    ESP_LOGE(TAG, "timer init error");
+  }
   dmx_context[dmx_num].timer = timer;
+   
 
   // Enable reading on the DMX port
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -475,7 +483,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
             "driver is not installed");
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
+  dmx_timer_t timer = dmx_context[dmx_num].timer;
   dmx_uart_t *const uart = dmx_context[dmx_num].uart;
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -503,7 +511,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // Free hardware timer ISR
   dmx_timer_deinit(timer);
-  dmx_context[dmx_num].timer = NULL;
+  // dmx_context[dmx_num].timer = NULL;
 
   // Free driver
   heap_caps_free(driver);
@@ -1122,7 +1130,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
   dmx_driver_t *const restrict driver = dmx_driver[dmx_num];
-  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
+  dmx_timer_t timer = dmx_context[dmx_num].timer;
   dmx_uart_t *const uart = dmx_context[dmx_num].uart;
 
   // Set default return value and default values for output argument
@@ -1195,6 +1203,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
     // Wait for a task notification
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
+    dmx_timer_stop(timer);
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -1203,7 +1212,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
     
     if (!notified) {
-      dmx_timer_stop(timer);
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
@@ -1414,7 +1422,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_timer_t *const timer = dmx_context[dmx_num].timer;
+  dmx_timer_t timer = dmx_context[dmx_num].timer;
   dmx_uart_t *const uart = dmx_context[dmx_num].uart;
 
   // Block until the mutex can be taken
@@ -1461,7 +1469,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   elapsed = esp_timer_get_time() - driver->last_slot_ts;
   if (elapsed < timeout) {
     dmx_timer_set_counter(timer, elapsed);
-    dmx_timer_set_alarm(timer, timeout);
+    dmx_timer_set_alarm(timer, timeout);  // FIXME: timer already running
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
