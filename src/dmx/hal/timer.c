@@ -15,7 +15,7 @@
 #define DMX_ISR_ATTR
 #endif
 
-static struct dmx_timer_t {
+struct dmx_timer_t {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;
 #else
@@ -66,6 +66,8 @@ dmx_timer_t *dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
   timer_isr_callback_add(driver->timer_group, driver->timer_idx, isr_handle,
                          isr_context, intr_flags);
 #endif
+  timer->is_running = false;
+
   return timer;
 }
 
@@ -85,31 +87,30 @@ void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_t *timer) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_stop(timer->gptimer_handle);
 #else
-    timer_group_set_counter_enable_in_isr(timer->timer_group,
-                                          timer->timer_idx, 0);
+    timer_group_set_counter_enable_in_isr(timer->timer_group, timer->timer_idx,
+                                          0);
 #endif
     timer->is_running = false;
   }
 }
 
 void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_t *timer, uint64_t counter) {
-  #if ESP_IDF_VERSION_MAJOR >= 5
-      gptimer_set_raw_count(timer->gptimer_handle, counter);
+#if ESP_IDF_VERSION_MAJOR >= 5
+  gptimer_set_raw_count(timer->gptimer_handle, counter);
 #else
-      timer_set_counter_value(timer->timer_group, timer->timer_idx, counter);
+  timer_set_counter_value(timer->timer_group, timer->timer_idx, counter);
 #endif
-
 }
 
 void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_t *timer, uint64_t alarm) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-      const gptimer_alarm_config_t alarm_config = {
-          .alarm_count = alarm, .flags.auto_reload_on_alarm = false};
-      gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
-      gptimer_start(timer->gptimer_handle);
+  const gptimer_alarm_config_t alarm_config = {
+      .alarm_count = alarm, .flags.auto_reload_on_alarm = false};
+  gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
+  gptimer_start(timer->gptimer_handle);
 #else
-      timer_set_alarm_value(timer->timer_group, timer->timer_idx, alarm);
-      timer_start(timer->timer_group, timer->timer_idx);
+  timer_set_alarm_value(timer->timer_group, timer->timer_idx, alarm);
+  timer_start(timer->timer_group, timer->timer_idx);
 #endif
-      timer->is_running = true;
+  timer->is_running = true;
 }
