@@ -1198,6 +1198,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       dmx_timer_set_counter(timer, elapsed);
       dmx_timer_set_alarm(timer, RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
+      dmx_timer_start(timer);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
 
@@ -1470,6 +1471,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   if (elapsed < timeout) {
     dmx_timer_set_counter(timer, elapsed);
     dmx_timer_set_alarm(timer, timeout);  // FIXME: timer already running
+    dmx_timer_start(timer);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -1560,6 +1562,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
     dmx_timer_set_counter(timer, 0);
     dmx_timer_set_alarm(timer, driver->break_len);
+    dmx_timer_start(timer);
 
     dmx_uart_invert_tx(uart, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));

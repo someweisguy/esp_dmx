@@ -19,6 +19,8 @@ void dmx_timer_set_counter(dmx_timer_t timer, uint64_t counter);
 
 void dmx_timer_set_alarm(dmx_timer_t timer, uint64_t alarm);
 
+void dmx_timer_start(dmx_timer_t timer);
+
 #ifdef __cplusplus
 }
 #endif

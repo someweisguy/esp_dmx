@@ -102,18 +102,22 @@ void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_t timer, uint64_t counter) {
 }
 
 void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_t timer, uint64_t alarm) {
-  // if (!timer->is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     const gptimer_alarm_config_t alarm_config = {
         .alarm_count = alarm,
         .reload_count = 0,
         .flags.auto_reload_on_alarm = true};
     gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
-    gptimer_start(timer->gptimer_handle);
 #else
     timer_set_alarm_value(timer->timer_group, timer->timer_idx, alarm);
+#endif
+}
+
+void DMX_ISR_ATTR dmx_timer_start(dmx_timer_t timer) {
+#if ESP_IDF_VERSION_MAJOR >= 5
+    gptimer_start(timer->gptimer_handle);
+#else
     timer_start(timer->timer_group, timer->timer_idx);
 #endif
     timer->is_running = true;
-  // }
 }
