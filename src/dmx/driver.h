@@ -35,7 +35,7 @@ extern "C" {
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 
-#define DMX_SPINLOCK (&dmx_driver[dmx_num]->spinlock)  // TODO: conditionally compile
+#define DMX_SPINLOCK(n) (&dmx_driver[(n)]->spinlock)  // TODO: conditionally compile
 
 enum dmx_interrupt_mask_t {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
