@@ -2,44 +2,19 @@
 
 #include <string.h>
 
-#include "dmx/driver.h"
-#include "dmx/hal/uart.h"
-#include "dmx/types.h"
-#include "endian.h"
-#include "nvs_flash.h"
-#include "rdm/controller.h"
-#include "rdm/responder.h"
-#include "rdm/utils.h"
-
-#include "dmx/hal/timer.h"
-
-#if ESP_IDF_VERSION_MAJOR >= 5
-#include "driver/gptimer.h"
-#include "esp_timer.h"
-#else
-#include "driver/timer.h"
-#endif
-
 #include "dmx/caps.h"
 #include "dmx/driver.h"
+#include "dmx/hal/timer.h"
 #include "dmx/hal/uart.h"
 #include "dmx/sniffer.h"
+#include "dmx/types.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "endian.h"
-#include "esp_dmx.h"
 #include "nvs_flash.h"
-#include "rdm/responder.h"
+#include "rdm/utils.h"
 
-#if ESP_IDF_VERSION_MAJOR >= 5
-#include "driver/gptimer.h"
-#include "esp_mac.h"
-#include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
-#else
-#include "driver/periph_ctrl.h"
-#include "driver/timer.h"
-#endif
 
 #ifndef CONFIG_RDM_NVS_PARTITION_NAME
 #define RDM_NVS_PARTITION_NAME "nvs"
@@ -241,14 +216,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
 
       // Reset the alarm for the end of the DMX mark-after-break
-#if ESP_IDF_VERSION_MAJOR >= 5
-      const gptimer_alarm_config_t alarm_config = {
-          .alarm_count = driver->mab_len, .flags.auto_reload_on_alarm = false};
-      gptimer_set_alarm_action(gptimer_handle, &alarm_config);
-#else
-      timer_group_set_alarm_value_in_isr(driver->timer_group, driver->timer_idx,
-                                         driver->mab_len);
-#endif
+      dmx_timer_set_alarm(timer, driver->mab_len);
     } else {
       // Write data to the UART
       size_t write_size = driver->tx_size;
@@ -509,8 +477,9 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
             "driver is not installed");
 
   // spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_timer_t *const timer = dmx_context[dmx_num].timer;
+  dmx_uart_t *const uart = dmx_context[dmx_num].uart;
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Free driver mutex
   if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
@@ -544,9 +513,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // Disable UART module
   // taskENTER_CRITICAL(spinlock); FIXME 
-  if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
-    periph_module_disable(uart_periph_signal[dmx_num].module);
-  }
+  dmx_uart_deinit(uart);
+  dmx_context[dmx_num].uart = NULL;
   // taskEXIT_CRITICAL(spinlock);  FIXME
 
   return ESP_OK;

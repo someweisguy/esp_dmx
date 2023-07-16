@@ -23,13 +23,14 @@
 #endif
 
 static struct dmx_uart_t {
+  const int num;
   uart_dev_t *const dev;
   intr_handle_t isr_handle;
 } dmx_uart_context[DMX_NUM_MAX] = {
-    {.dev = UART_LL_GET_HW(1)},
-    {.dev = UART_LL_GET_HW(2)},
+    {.num = 0, .dev = UART_LL_GET_HW(0)},
+    {.num = 1, .dev = UART_LL_GET_HW(1)},
 #if DMX_NUM_MAX > 2
-    {.dev = UART_LL_GET_HW(3)},
+    {.num = 2, .dev = UART_LL_GET_HW(2)},
 #endif
 };
 
@@ -78,7 +79,9 @@ dmx_uart_t *dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
 }
 
 void dmx_uart_deinit(dmx_uart_t *uart) {
-  // TODO
+  if (uart->num != CONFIG_ESP_CONSOLE_UART_NUM) {
+    periph_module_disable(uart_periph_signal[uart->num].module);
+  }
 }
 
 uint32_t dmx_uart_get_baud_rate(dmx_uart_t *uart) {;
