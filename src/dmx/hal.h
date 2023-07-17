@@ -33,9 +33,11 @@ extern "C" {
  * personality which has a footprint of one DMX address. The DMX address will
  * automatically be searched for in NVS and set to 1 if not found or if NVS is
  * disabled. */
+// FIXME: Issue #78
 #define DMX_CONFIG_DEFAULT                                                    \
   (dmx_config_t) {                                                            \
-    .alloc_size = 255, .model_id = 0, .product_category = 0x0100,             \
+    .alloc_size = 255, .model_id = 0,                                         \
+    .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,                         \
     .software_version_id = ESP_IDF_VERSION_VAL(                               \
         ESP_DMX_VERSION_MAJOR, ESP_DMX_VERSION_MINOR, ESP_DMX_VERSION_PATCH), \
     .software_version_label =                                                 \
