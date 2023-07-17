@@ -1,7 +1,7 @@
 #include "uart.h"
 
 #include "dmx/caps.h"
-#include "dmx/driver.h"
+#include "dmx/struct.h"
 #include "esp_dmx.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -29,7 +29,7 @@ static struct dmx_uart_t {
 };
 
 dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
-                          void *isr_context, int isr_flags) {
+                                void *isr_context, int isr_flags) {
   dmx_uart_handle_t uart = &dmx_uart_context[dmx_num];
 
   // taskENTER_CRITICAL(spinlock);  FIXME
@@ -68,7 +68,7 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
   dmx_uart_set_rxfifo_full(uart, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, isr_flags, isr_handle,
                  isr_context, &uart->isr_handle);
-  
+
   return uart;
 }
 
@@ -78,7 +78,8 @@ void dmx_uart_deinit(dmx_uart_handle_t uart) {
   }
 }
 
-uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart) {;
+uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart) {
+  ;
 #if ESP_IDF_VERSION_MAJOR >= 5
   return uart_ll_get_baudrate(uart->dev, esp_clk_apb_freq());
 #else
@@ -106,9 +107,7 @@ void DMX_ISR_ATTR dmx_uart_invert_tx(dmx_uart_handle_t uart, uint32_t invert) {
   uart->dev->conf0.txd_inv = invert;
 }
 
-int dmx_uart_get_rts(dmx_uart_handle_t uart) {
-  return uart->dev->conf0.sw_rts;
-}
+int dmx_uart_get_rts(dmx_uart_handle_t uart) { return uart->dev->conf0.sw_rts; }
 
 int DMX_ISR_ATTR dmx_uart_get_interrupt_status(dmx_uart_handle_t uart) {
   return uart_ll_get_intsts_mask(uart->dev);

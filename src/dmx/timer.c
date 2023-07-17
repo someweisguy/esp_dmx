@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-#include "dmx/driver.h"
+#include "dmx/struct.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -22,7 +22,7 @@ static struct dmx_timer_t {
 } dmx_timer_context[DMX_NUM_MAX] = {};
 
 dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
-                           void *isr_context, int isr_flags) {
+                                  void *isr_context, int isr_flags) {
   dmx_timer_handle_t timer = &dmx_timer_context[dmx_num];
   // Initialize hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -89,7 +89,8 @@ void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_handle_t timer) {
   }
 }
 
-void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer, uint64_t counter) {
+void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer,
+                                        uint64_t counter) {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_set_raw_count(timer->gptimer_handle, counter);
 #else
@@ -97,23 +98,24 @@ void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer, uint64_t count
 #endif
 }
 
-void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm) {
+void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer,
+                                      uint64_t alarm) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-    const gptimer_alarm_config_t alarm_config = {
-        .alarm_count = alarm,
-        .reload_count = 0,
-        .flags.auto_reload_on_alarm = true};
-    gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
+  const gptimer_alarm_config_t alarm_config = {
+      .alarm_count = alarm,
+      .reload_count = 0,
+      .flags.auto_reload_on_alarm = true};
+  gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
 #else
-    timer_set_alarm_value(timer->timer_group, timer->timer_idx, alarm);
+  timer_set_alarm_value(timer->timer_group, timer->timer_idx, alarm);
 #endif
 }
 
 void DMX_ISR_ATTR dmx_timer_start(dmx_timer_handle_t timer) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-    gptimer_start(timer->gptimer_handle);
+  gptimer_start(timer->gptimer_handle);
 #else
-    timer_start(timer->timer_group, timer->timer_idx);
+  timer_start(timer->timer_group, timer->timer_idx);
 #endif
-    timer->is_running = true;
+  timer->is_running = true;
 }

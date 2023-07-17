@@ -119,8 +119,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
  */
-bool rdm_register_identify_device(dmx_port_t dmx_num, 
-                                  rdm_responder_cb_t cb, void *context);
+bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                  void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_DMX_START_ADDRESS requests.
@@ -135,8 +135,8 @@ bool rdm_register_identify_device(dmx_port_t dmx_num,
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
  */
-bool rdm_register_dmx_start_address(dmx_port_t dmx_num, 
-                                    rdm_responder_cb_t cb, void *context);
+bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                    void *context);
 
 #ifdef __cplusplus
 }

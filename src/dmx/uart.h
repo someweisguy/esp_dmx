@@ -14,9 +14,9 @@
  */
 #pragma once
 
-#include "uart.h"
-#include "hal/uart_hal.h"
 #include "dmx/types.h"
+#include "hal/uart_hal.h"
+#include "uart.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +46,7 @@ typedef struct dmx_uart_t *dmx_uart_handle_t;
  * @param uart A pointer to a UART port.
  */
 dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
-                          void *isr_context, int isr_flags);
+                                void *isr_context, int isr_flags);
 
 // TODO: docs
 void dmx_uart_deinit(dmx_uart_handle_t uart);
@@ -194,7 +194,8 @@ uint32_t dmx_uart_get_txfifo_len(dmx_uart_handle_t uart);
  * @param buf The source buffer from which to write.
  * @param size The number of bytes to write.
  */
-void dmx_uart_write_txfifo(dmx_uart_handle_t uart, const void *buf, size_t *size);
+void dmx_uart_write_txfifo(dmx_uart_handle_t uart, const void *buf,
+                           size_t *size);
 
 /**
  * @brief Resets the UART TX FIFO.

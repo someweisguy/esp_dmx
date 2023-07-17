@@ -217,11 +217,11 @@ enum dmx_start_code_t {
      sub-code.*/
   DMX_ORG_ID_SC = 0x91,
 
-  /** @brief System Information Packet alternate start code. Alternate start 
-     code 0xCF is reserved for a System Information Packet (SIP). The SIP 
-     includes a method of sending checksum data relating to the previous NULL 
+  /** @brief System Information Packet alternate start code. Alternate start
+     code 0xCF is reserved for a System Information Packet (SIP). The SIP
+     includes a method of sending checksum data relating to the previous NULL
      start code packet on the data link and other control information. No other
-     packet shall be sent between the NULL start code packet and the SIP that 
+     packet shall be sent between the NULL start code packet and the SIP that
      carries its checksum. For more information on the System Information Packet
      alternate start code, see annex D5 in the ANSI-ESTA E1.11 DMX512-A
      standards document.*/
@@ -252,8 +252,8 @@ typedef struct dmx_config_t {
      is the configured arrangement of DMX slots used by the device. Many devices
      may have multiple personalities from which to choose. These personalities
      shall be consecutively numbered starting from 1. Setting this value to 0
-     will attempt to read a value from NVS (if enabled in the Kconfig) and set 
-     the current personality to the value found in NVS, or 1 if no value is 
+     will attempt to read a value from NVS (if enabled in the Kconfig) and set
+     the current personality to the value found in NVS, or 1 if no value is
      found in NVS.*/
   uint8_t current_personality;
   /** @brief An array of DMX footprints and descriptions where the zeroeth

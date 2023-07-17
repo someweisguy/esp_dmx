@@ -1,8 +1,8 @@
 #include "controller.h"
 
-#include "esp_dmx.h"
-#include "dmx/driver.h"
+#include "dmx/struct.h"
 #include "endian.h"
+#include "esp_dmx.h"
 #include "rdm/utils.h"
 
 static const char *TAG = "rdm_controller";  // The log tagline for the file.

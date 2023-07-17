@@ -11,7 +11,7 @@ typedef struct dmx_timer_t *dmx_timer_handle_t;
 
 // TODO: docs
 dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
-                           void *isr_context, int isr_flags);
+                                  void *isr_context, int isr_flags);
 
 // TODO: docs
 void dmx_timer_deinit(dmx_timer_handle_t timer);

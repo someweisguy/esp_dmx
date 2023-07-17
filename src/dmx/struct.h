@@ -16,9 +16,9 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "hal/uart_hal.h"
+#include "rdm/responder.h"
 #include "rdm/types.h"
 #include "rdm/utils.h"
-#include "rdm/responder.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -40,7 +40,6 @@ extern "C" {
 /** @brief Used for argument checking at the beginning of each function.*/
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
-
 
 #define DMX_SPINLOCK(n) (&dmx_driver[(n)]->spinlock)  // TODO: conditionally compile
 
@@ -67,12 +66,12 @@ enum dmx_flags_t {
   DMX_FLAGS_RDM_IS_VALID = BIT0,      // The RDM packet is valid.
   DMX_FLAGS_RDM_IS_REQUEST = BIT1,    // The RDM packet is a request.
   DMX_FLAGS_RDM_IS_BROADCAST = BIT2,  // The RDM packet is a broadcast.
-  DMX_FLAGS_RDM_IS_RECIPIENT =BIT3,   // The RDM packet is addressed to this device.
+  DMX_FLAGS_RDM_IS_RECIPIENT = BIT3,  // The RDM packet is addressed to this device.
   DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
 
 /**
- * @brief Stores the DMX personality information of the DMX driver when RDM is 
+ * @brief Stores the DMX personality information of the DMX driver when RDM is
  * not enabled.*/
 typedef struct dmx_driver_personality_t {
   uint16_t dmx_start_address;   // The driver's DMX start address.
@@ -88,8 +87,9 @@ typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
   // Synchronization state
-  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
-  spinlock_t spinlock;  // TODO: conditionally compile
+  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows
+                              // multi-threaded driver function calls.
+  spinlock_t spinlock;        // TODO: conditionally compile
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
   // Data buffer
@@ -101,7 +101,7 @@ typedef struct dmx_driver_t {
   // Driver state
   uint8_t flags;
   uint8_t rdm_type;
-  uint8_t tn;            // The current RDM transaction number. Is incremented with every RDM packet sent.
+  uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
   // DMX configuration
@@ -110,7 +110,8 @@ typedef struct dmx_driver_t {
     const char *description;  // A description of the personality.
   } personalities[DMX_PERSONALITIES_MAX];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
-  uint32_t mab_len;    // Length in microseconds of the transmitted mark-after-break.
+  uint32_t
+      mab_len;  // Length in microseconds of the transmitted mark-after-break.
 
   uint8_t *alloc_data;  // Allocated memory for DMX/RDM parameter data.
   size_t alloc_size;    // The size of the allocated memory.
@@ -128,11 +129,14 @@ typedef struct dmx_driver_t {
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
 
   // DMX sniffer configuration
-  dmx_metadata_t metadata;       // The metadata received by the DMX sniffer.
-  QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
-  int sniffer_pin;               // The GPIO number of the DMX sniffer interrupt pin.
-  int64_t last_pos_edge_ts;      // Timestamp of the last positive edge on the sniffer pin.
-  int64_t last_neg_edge_ts;      // Timestamp of the last negative edge on the sniffer pin.
+  dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
+  QueueHandle_t
+      metadata_queue;  // The queue handle used to receive sniffer data.
+  int sniffer_pin;     // The GPIO number of the DMX sniffer interrupt pin.
+  int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the
+                             // sniffer pin.
+  int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the
+                             // sniffer pin.
 } dmx_driver_t;
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];

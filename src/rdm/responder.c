@@ -1,7 +1,8 @@
 #include "responder.h"
 
+#include "dmx/hal.h"
+#include "dmx/struct.h"
 #include "esp_dmx.h"
-#include "dmx/driver.h"
 #include "rdm/utils.h"
 
 static const char *TAG = "rdm_responder";  // The log tagline for the file.
