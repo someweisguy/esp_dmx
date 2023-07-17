@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "dmx/caps.h"
+#include "dmx/nvs.h"
 #include "dmx/struct.h"
 #include "dmx/timer.h"
 #include "dmx/types.h"
@@ -12,12 +13,7 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "esp_timer.h"
-#include "nvs_flash.h"
 #include "rdm/utils.h"
-
-#ifndef CONFIG_RDM_NVS_PARTITION_NAME
-#define RDM_NVS_PARTITION_NAME "nvs"
-#endif
 
 static const char *TAG = "dmx";
 
@@ -305,7 +301,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
 
   // Initialize NVS
-  nvs_flash_init_partition(CONFIG_RDM_NVS_PARTITION_NAME);
+  dmx_nvs_init(dmx_num);
 
   // Initialize RDM UID
   rdm_uid_get(dmx_num, NULL);
