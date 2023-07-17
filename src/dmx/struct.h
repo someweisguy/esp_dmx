@@ -77,8 +77,7 @@ typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
   // Synchronization state
-  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows
-                              // multi-threaded driver function calls.
+  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
   spinlock_t spinlock;        // TODO: conditionally compile
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
@@ -100,8 +99,7 @@ typedef struct dmx_driver_t {
     const char *description;  // A description of the personality.
   } personalities[DMX_PERSONALITIES_MAX];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
-  uint32_t
-      mab_len;  // Length in microseconds of the transmitted mark-after-break.
+  uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
 
   uint8_t *alloc_data;  // Allocated memory for DMX/RDM parameter data.
   size_t alloc_size;    // The size of the allocated memory.
@@ -120,13 +118,10 @@ typedef struct dmx_driver_t {
 
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
-  QueueHandle_t
-      metadata_queue;  // The queue handle used to receive sniffer data.
+  QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
   int sniffer_pin;     // The GPIO number of the DMX sniffer interrupt pin.
-  int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the
-                             // sniffer pin.
-  int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the
-                             // sniffer pin.
+  int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
+  int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
