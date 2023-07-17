@@ -62,8 +62,8 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
 
   dmx_uart_rxfifo_reset(uart);
   dmx_uart_txfifo_reset(uart);
-  dmx_uart_disable_interrupt(uart, DMX_ALL_INTR_MASK);
-  dmx_uart_clear_interrupt(uart, DMX_ALL_INTR_MASK);
+  dmx_uart_disable_interrupt(uart, UART_LL_INTR_MASK);
+  dmx_uart_clear_interrupt(uart, UART_LL_INTR_MASK);
   dmx_uart_set_txfifo_empty(uart, DMX_UART_EMPTY_DEFAULT);
   dmx_uart_set_rxfifo_full(uart, DMX_UART_FULL_DEFAULT);
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, isr_flags, isr_handle,

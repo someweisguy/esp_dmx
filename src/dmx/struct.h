@@ -43,16 +43,6 @@ extern "C" {
 
 #define DMX_SPINLOCK(n) (&dmx_driver[(n)]->spinlock)  // TODO: conditionally compile
 
-enum rdm_packet_timing_t {
-  RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,
-  RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,
-  RDM_BROADCAST_PACKET_SPACING = 176,
-  RDM_RESPOND_TO_REQUEST_PACKET_SPACING = 176,
-
-  RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT = 2800,
-  RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000
-};
-
 enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_ENABLED = BIT0,   // The driver is enabled.
   DMX_FLAGS_DRIVER_IS_IDLE = BIT1,      // The driver is not sending data.
