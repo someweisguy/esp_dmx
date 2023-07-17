@@ -238,7 +238,7 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
   void *ret = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->pd_head + size <= driver->pd_size) {
-    ret = &(driver->pd[driver->pd_head]);
+    ret = driver->pd + driver->pd_head;
     driver->pd_head += size;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
