@@ -371,9 +371,7 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
 
   // Copy the user's variable to NVS if desired
   if (ret && nvs) {
-    esp_err_t err =
-        rdm_pd_set_to_nvs(dmx_num, pid, desc->data_type, param, size);
-    if (err) {
+    if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
       // TODO: set boot-loader flag
     }
   }

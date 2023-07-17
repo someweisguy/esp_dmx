@@ -1,7 +1,7 @@
 #include "nvs.h"
 
-#include "dmx/struct.h"
 #include "dmx/hal.h"
+#include "dmx/struct.h"
 #include "nvs_flash.h"
 
 #ifndef CONFIG_DMX_NVS_PARTITION_NAME
@@ -14,8 +14,8 @@ void dmx_nvs_init(dmx_port_t dmx_num) {
   nvs_flash_init_partition(DMX_NVS_PARTITION_NAME);
 }
 
-esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                              void *param, size_t *size) {
+bool dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds, void *param,
+                 size_t *size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(param != NULL);
   assert(size != NULL);
@@ -82,11 +82,11 @@ esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
     nvs_close(nvs);
   }
 
-  return err;
+  return (err == ESP_OK);
 }
 
-esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                            const void *param, size_t size) {
+bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                      const void *param, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(param != NULL);
   assert(dmx_driver_is_installed(dmx_num));
@@ -156,5 +156,5 @@ esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
     nvs_close(nvs);
   }
 
-  return err;
+  return (err == ESP_OK);
 }

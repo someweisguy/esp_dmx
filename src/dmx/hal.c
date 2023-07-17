@@ -444,10 +444,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     uint16_t dmx_start_address;
     if (config->dmx_start_address == 0) {
       size_t size = sizeof(dmx_start_address);
-      esp_err_t err =
-          rdm_pd_get_from_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS,
-                              RDM_DS_UNSIGNED_WORD, &dmx_start_address, &size);
-      if (err) {
+      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+                       &dmx_start_address, &size)) {
         dmx_start_address = 1;
       }
     } else {
@@ -460,10 +458,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
         dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
-      esp_err_t err =
-          rdm_pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
-                              RDM_DS_BIT_FIELD, &personality, &size);
-      if (err || personality.personality_count != config->personality_count) {
+      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_DS_BIT_FIELD,
+                       &personality, &size) ||
+          personality.personality_count != config->personality_count) {
         current_personality = 1;
       } else {
         current_personality = personality.current_personality;
@@ -665,7 +662,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
     // TODO: send message to RDM queue
   }
 
-  rdm_pd_set_to_nvs(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+  dmx_nvs_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
                     &dmx_start_address, sizeof(dmx_start_address));
 
   return true;
@@ -1068,9 +1065,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Update NVS values
   if (must_update_nvs) {
-    esp_err_t err = rdm_pd_set_to_nvs(dmx_num, header.pid, desc->data_type,
-                                      param, desc->pdl_size);
-    if (err) {
+    if (!dmx_nvs_set(dmx_num, header.pid, desc->data_type, param,
+                     desc->pdl_size)) {
       ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
       // TODO: set boot-loader flag
     }

@@ -2,7 +2,6 @@
 
 #include "dmx/struct.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,8 +21,8 @@ void dmx_nvs_init(dmx_port_t dmx_num);
  * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
  */
 // TODO: return bool, not esp_err_t
-esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                              void *param, size_t *size);
+bool dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds, void *param,
+                 size_t *size);
 
 /**
  * @brief Sets the parameter data to non-volatile storage.
@@ -36,8 +35,8 @@ esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
  * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
  */
 // TODO: return bool, not esp_err_t
-esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                            const void *param, size_t size);
+bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
+                 const void *param, size_t size);
 
 #ifdef __cplusplus
 }

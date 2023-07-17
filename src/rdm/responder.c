@@ -211,10 +211,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     // Load the DMX start address from NVS
     if (device_info->dmx_start_address == 0) {
       size_t size = sizeof(device_info->dmx_start_address);
-      esp_err_t err = rdm_pd_get_from_nvs(
-          dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-          &device_info->dmx_start_address, &size);
-      if (err) {
+      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+                       &device_info->dmx_start_address, &size)) {
         device_info->dmx_start_address = 1;
       }
     }
@@ -224,10 +222,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
         device_info->dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
-      esp_err_t err =
-          rdm_pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
-                              RDM_DS_BIT_FIELD, &personality, &size);
-      if (err ||
+      if (dmx_nvs_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_DS_BIT_FIELD,
+                      &personality, &size) ||
           personality.personality_count != device_info->personality_count) {
         device_info->current_personality = 1;
       } else {
