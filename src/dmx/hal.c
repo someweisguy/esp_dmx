@@ -339,7 +339,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
   driver->data = NULL;
-  driver->alloc_data = NULL;
+  driver->pd = NULL;
   driver->spinlock = (spinlock_t)portMUX_INITIALIZER_UNLOCKED;
 
   // Allocate mutex
@@ -361,17 +361,17 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Allocate the RDM parameter buffer
   bool enable_rdm;
-  size_t alloc_size;
-  if (config->alloc_size < 53) {
+  size_t pd_size;
+  if (config->pd_size < 53) {
     // Allocate space for DMX start address and personality info
-    alloc_size = sizeof(dmx_driver_personality_t);
+    pd_size = sizeof(dmx_driver_personality_t);
     enable_rdm = false;
   } else {
-    alloc_size = config->alloc_size;
+    pd_size = config->pd_size;
     enable_rdm = true;
   }
-  uint8_t *alloc_data = heap_caps_malloc(alloc_size, MALLOC_CAP_8BIT);
-  if (alloc_data == NULL) {
+  uint8_t *pd = heap_caps_malloc(pd_size, MALLOC_CAP_8BIT);
+  if (pd == NULL) {
     ESP_LOGE(TAG, "DMX driver RDM buffer malloc error");
     dmx_driver_delete(dmx_num);
     return ESP_ERR_NO_MEM;
@@ -400,9 +400,9 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
 
-  driver->alloc_size = alloc_size;
-  driver->alloc_data = alloc_data;
-  driver->alloc_head = 0;
+  driver->pd_size = pd_size;
+  driver->pd = pd;
+  driver->pd_head = 0;
 
   // RDM responder configuration
   driver->num_rdm_cbs = 0;
@@ -451,7 +451,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     }
     // TODO: rdm_register_supported_parameters()
   } else {
-    dmx_driver_personality_t *dmx = rdm_pd_alloc(dmx_num, alloc_size);
+    dmx_driver_personality_t *dmx = rdm_pd_alloc(dmx_num, pd_size);
     assert(dmx != NULL);
 
     // Load the DMX start address from NVS
@@ -542,8 +542,8 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free RDM parameter data buffer
-  if (driver->alloc_data != NULL) {
-    heap_caps_free(driver->alloc_data);
+  if (driver->pd != NULL) {
+    heap_caps_free(driver->pd);
   }
 
   // Free hardware timer ISR
@@ -665,7 +665,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (device_info == NULL) {
     dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->alloc_data;
+        (void *)dmx_driver[dmx_num]->pd;
     personality->dmx_start_address = dmx_start_address;
   } else {
     device_info->dmx_start_address = dmx_start_address;

@@ -101,9 +101,9 @@ typedef struct dmx_driver_t {
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
 
-  uint8_t *alloc_data;  // Allocated memory for DMX/RDM parameter data.
-  size_t alloc_size;    // The size of the allocated memory.
-  size_t alloc_head;    // The amount of memory currently used for parameters.
+  uint8_t *pd;     // Allocated memory for DMX/RDM parameter data.
+  size_t pd_size;  // The size of the allocated memory.
+  size_t pd_head;  // The amount of memory currently used for parameters.
 
   // RDM responder configuration
   uint16_t num_rdm_cbs;

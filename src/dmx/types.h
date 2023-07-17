@@ -233,7 +233,7 @@ typedef unsigned int dmx_port_t;
 
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_t {
-  size_t alloc_size;
+  size_t pd_size;
   /** @brief This field identifies the device model ID of the root device or
      sub-device. The manufacturer shall not use the same ID to represent more
      than one unique model type.*/

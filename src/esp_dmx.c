@@ -86,7 +86,7 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (device_info == NULL) {
     const dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->alloc_data;
+        (void *)dmx_driver[dmx_num]->pd;
     current_personality = personality->current_personality;
   } else {
     current_personality = device_info->current_personality;
@@ -109,7 +109,7 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   if (device_info == NULL) {
     dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->alloc_data;
+        (void *)dmx_driver[dmx_num]->pd;
     current_personality = &personality->current_personality;
     footprint = NULL;
   } else {
@@ -140,7 +140,7 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
       rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   if (device_info == NULL) {
     const dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->alloc_data;
+        (void *)dmx_driver[dmx_num]->pd;
     return personality->personality_count;
   } else {
     return device_info->personality_count;
@@ -185,7 +185,7 @@ uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (device_info == NULL) {
     const dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->alloc_data;
+        (void *)dmx_driver[dmx_num]->pd;
     dmx_start_address = personality->dmx_start_address;
   } else {
     dmx_start_address = device_info->dmx_start_address;
