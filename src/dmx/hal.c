@@ -548,15 +548,15 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // Free hardware timer ISR
   dmx_timer_deinit(timer);
-  // dmx_context[dmx_num].timer = NULL; // FIXME
-
-  // Free driver
-  heap_caps_free(driver);
-  dmx_driver[dmx_num] = NULL;
+  dmx_context[dmx_num].timer = NULL;
 
   // Disable UART module
   dmx_uart_deinit(uart);
   dmx_context[dmx_num].uart = NULL;
+
+  // Free driver
+  heap_caps_free(driver);
+  dmx_driver[dmx_num] = NULL;
 
   return ESP_OK;
 }
