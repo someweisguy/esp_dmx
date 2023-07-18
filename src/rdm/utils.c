@@ -10,7 +10,6 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "esp_log.h"
-#include "nvs_flash.h"
 #include "rdm/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -19,8 +18,6 @@
 
 static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static rdm_uid_t rdm_binding_uid = {};
-
-static const char *TAG = "rdm_utils";
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);

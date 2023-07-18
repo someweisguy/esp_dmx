@@ -1,13 +1,12 @@
 #pragma once
 
-
+#include "dmx/hal.h"
 #include "dmx/types.h"
 #include "rdm/types.h"
-#include "dmx/hal.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 /**
  * @brief Checks if the DMX driver is enabled. When the DMX driver is not placed
@@ -79,7 +78,7 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 
 /**
  * @brief Gets the current personality of the DMX driver.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The current personality or 0 on failure.
  */
@@ -99,7 +98,7 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num);
 
 /**
  * @brief Gets the personality count of the DMX driver.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The personality count or 0 on failure.
  */
@@ -107,7 +106,7 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
 
 /**
  * @brief Gets the footprint of the specified personality.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param personality_num The personality number of the footprint to get.
  * Personality numbers are indexed starting at 1.
@@ -117,7 +116,7 @@ size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num);
 
 /**
  * @brief Gets the description of the specified personality.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param personality_num The personality number of the description to get.
  * Personality numbers are indexed starting at 1.
@@ -128,12 +127,11 @@ const char *dmx_get_personality_description(dmx_port_t dmx_num,
 
 /**
  * @brief Gets the DMX start address of the DMX driver.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The DMX start address of the DMX driver or 0 on failure.
  */
 uint16_t dmx_get_start_address(dmx_port_t dmx_num);
-
 
 /**
  * @brief Reads DMX data from the driver into a destination buffer with an
@@ -187,7 +185,6 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
 size_t dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
                     size_t num);
 
-
 /**
  * @brief Writes DMX data from a source buffer into the DMX driver buffer. Data
  * written into the DMX driver buffer can then be sent to DMX devices.
@@ -222,7 +219,6 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
  * @return The size of the RDM packet that was written or 0 on error.
  */
 size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
-
 
 /**
  * @brief Waits until the DMX packet is done being sent. This function can be
@@ -264,6 +260,4 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
 
 #ifdef __cplusplus
 }
-#endif 
-
-
+#endif

@@ -1,11 +1,10 @@
 #include "parameters.h"
 
+#include "dmx/caps.h"
 #include "dmx/hal.h"
 #include "dmx/struct.h"
 #include "esp_dmx.h"
 #include "rdm/utils.h"
-
-static const char *TAG = "rdm_parameter";  // The log tagline for the file.
 
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");

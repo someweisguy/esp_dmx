@@ -14,7 +14,13 @@
 #include "esp_timer.h"
 #include "rdm/utils.h"
 
-static const char *TAG = "dmx";
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "driver/gptimer.h"
+#else
+#include "driver/timer.h"
+#endif
+
+const char *TAG = "dmx";  // The log tagline for the library
 
 enum dmx_interrupt_mask_t {
   DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
@@ -665,8 +671,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (device_info == NULL) {
-    dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->pd;
+    dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;
     personality->dmx_start_address = dmx_start_address;
   } else {
     device_info->dmx_start_address = dmx_start_address;
@@ -678,7 +683,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   }
 
   dmx_nvs_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-                    &dmx_start_address, sizeof(dmx_start_address));
+              &dmx_start_address, sizeof(dmx_start_address));
 
   return true;
 }

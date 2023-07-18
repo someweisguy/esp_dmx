@@ -86,7 +86,7 @@ bool dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds, void *param,
 }
 
 bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                      const void *param, size_t size) {
+                 const void *param, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(param != NULL);
   assert(dmx_driver_is_installed(dmx_num));

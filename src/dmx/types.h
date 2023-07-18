@@ -6,12 +6,20 @@
  */
 #pragma once
 
-#include "dmx/caps.h"
 #include "esp_intr_alloc.h"
 #include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef CONFIG_DMX_MAX_PERSONALITIES
+/** @brief The maximum number of personalities that this device supports. This
+ * value may be adjusted in the Kconfig.*/
+#define DMX_PERSONALITIES_MAX (CONFIG_DMX_MAX_PERSONALITIES)
+#else
+/** @brief The maximum number of personalities that this device supports.*/
+#define DMX_PERSONALITIES_MAX (16)
 #endif
 
 /** @brief Evaluates to true if the start code is a start code permitted in a

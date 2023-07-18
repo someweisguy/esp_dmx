@@ -12,7 +12,6 @@
 #include "dmx/caps.h"
 #include "dmx/types.h"
 #include "esp_check.h"
-#include "esp_intr_alloc.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "hal/uart_hal.h"
@@ -20,26 +19,9 @@
 #include "rdm/types.h"
 #include "rdm/utils.h"
 
-#if ESP_IDF_VERSION_MAJOR >= 5
-#include "driver/gptimer.h"
-#else
-#include "driver/timer.h"
-#endif
-
-#if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
-#define DMX_ISR_ATTR IRAM_ATTR
-#define DMX_ISR_IN_IRAM
-#else
-#define DMX_ISR_ATTR
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/** @brief Used for argument checking at the beginning of each function.*/
-#define DMX_CHECK(a, err_code, format, ...) \
-  ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 #define DMX_SPINLOCK(n) (&dmx_driver[(n)]->spinlock)  // TODO: conditionally compile
 
@@ -120,7 +102,7 @@ typedef struct dmx_driver_t {
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
   QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
-  int sniffer_pin;     // The GPIO number of the DMX sniffer interrupt pin.
+  int sniffer_pin;  // The GPIO number of the DMX sniffer interrupt pin.
   int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
   int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;

@@ -1,9 +1,8 @@
 #include "esp_dmx.h"
 
+#include "dmx/caps.h"
 #include "dmx/struct.h"
 #include "endian.h"
-
-static const char *TAG = "dmx";  // The log tagline of the file.
 
 bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
   bool is_enabled = false;
@@ -108,8 +107,7 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   uint16_t *footprint;
   rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
   if (device_info == NULL) {
-    dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->pd;
+    dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;
     current_personality = &personality->current_personality;
     footprint = NULL;
   } else {

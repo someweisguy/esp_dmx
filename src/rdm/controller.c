@@ -1,11 +1,10 @@
 #include "controller.h"
 
+#include "dmx/caps.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "esp_dmx.h"
 #include "rdm/utils.h"
-
-static const char *TAG = "rdm_controller";  // The log tagline for the file.
 
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                                  const rdm_disc_unique_branch_t *branch,

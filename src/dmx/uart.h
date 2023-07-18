@@ -16,7 +16,6 @@
 
 #include "dmx/types.h"
 #include "hal/uart_hal.h"
-#include "uart.h"
 
 #ifdef __cplusplus
 extern "C" {

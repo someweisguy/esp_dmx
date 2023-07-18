@@ -11,7 +11,6 @@
 #pragma once
 
 #include "dmx/types.h"
-#include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "rdm/types.h"
 
@@ -36,7 +35,7 @@ extern "C" {
 // FIXME: Issue #78
 #define DMX_CONFIG_DEFAULT                                                    \
   (dmx_config_t) {                                                            \
-    .pd_size = 255, .model_id = 0,                                         \
+    .pd_size = 255, .model_id = 0,                                            \
     .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,                         \
     .software_version_id = ESP_IDF_VERSION_VAL(                               \
         ESP_DMX_VERSION_MAJOR, ESP_DMX_VERSION_MINOR, ESP_DMX_VERSION_PATCH), \
