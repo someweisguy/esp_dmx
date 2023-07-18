@@ -35,6 +35,9 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
 // TODO: docs
 void dmx_uart_deinit(dmx_uart_handle_t uart);
 
+// TODO: docs
+bool dmx_uart_set_pin(dmx_uart_handle_t uart, int tx, int rx, int rts);
+
 /**
  * @brief Gets the UART baud rate of the selected UART hardware.
  *

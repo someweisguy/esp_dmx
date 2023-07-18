@@ -2,6 +2,7 @@
 
 #include "dmx/caps.h"
 #include "dmx/struct.h"
+#include "driver/uart.h"
 #include "esp_dmx.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
@@ -78,8 +79,12 @@ void dmx_uart_deinit(dmx_uart_handle_t uart) {
   }
 }
 
+bool dmx_uart_set_pin(dmx_uart_handle_t uart, int tx, int rx, int rts) {
+  esp_err_t err = uart_set_pin(uart->num, tx, rx, rts, -1);
+  return (err == ESP_OK);
+}
+
 uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart) {
-  ;
 #if ESP_IDF_VERSION_MAJOR >= 5
   return uart_ll_get_baudrate(uart->dev, esp_clk_apb_freq());
 #else

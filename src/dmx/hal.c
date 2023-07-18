@@ -9,7 +9,6 @@
 #include "dmx/types.h"
 #include "dmx/uart.h"
 #include "driver/gpio.h"
-#include "driver/uart.h"
 #include "endian.h"
 #include "esp_dmx.h"
 #include "esp_timer.h"
@@ -622,8 +621,10 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
             "rx_pin error");
   DMX_CHECK(rts_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_pin),
             ESP_ERR_INVALID_ARG, "rts_pin error");
-  // TODO: move this to dmx_uart_handle_t
-  return uart_set_pin(dmx_num, tx_pin, rx_pin, rts_pin, DMX_PIN_NO_CHANGE);
+
+  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
+
+  return dmx_uart_set_pin(uart, tx_pin, rx_pin, rts_pin);
 }
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
