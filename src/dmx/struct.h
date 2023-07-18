@@ -73,13 +73,13 @@ typedef struct dmx_driver_personality_t {
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.*/
 typedef struct dmx_driver_t {
-  // UART configuration
   dmx_port_t dmx_num;  // The driver's DMX port number.
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
-  spinlock_t spinlock;        // TODO: conditionally compile
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
+
+  spinlock_t spinlock;        // TODO: conditionally compile
 
   // Data buffer
   int16_t head;     // The index of the slot being transmitted or received.
@@ -101,6 +101,7 @@ typedef struct dmx_driver_t {
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
 
+  // Parameter data
   void *pd;        // Allocated memory for DMX/RDM parameter data.
   size_t pd_size;  // The size of the allocated memory.
   size_t pd_head;  // The amount of memory currently used for parameters.
