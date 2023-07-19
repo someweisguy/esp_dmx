@@ -15,7 +15,12 @@
 extern "C" {
 #endif
 
-enum rdm_packet_timing_t {
+/**
+ * @brief RDM packet spacing constants. These values are the length of time in
+ * microseconds between RDM packets that must elapse in certain situations.
+ * These constants are defined in page nine of the ANSI/ESTA e1.20 document.
+ */
+enum rdm_packet_spacing_t {
   RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING = 5800,
   RDM_REQUEST_NO_RESPONSE_PACKET_SPACING = 3000,
   RDM_BROADCAST_PACKET_SPACING = 176,
