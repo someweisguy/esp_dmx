@@ -37,7 +37,6 @@ void *rdm_uidmove(void *destination, const void *source) {
 
 void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
-  taskENTER_CRITICAL(&rdm_spinlock);
   if (rdm_uid_is_null(&rdm_binding_uid)) {
     uint32_t dev_id;
 #if RDM_UID_DEVICE_ID == 0xffffffff
@@ -47,10 +46,11 @@ void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
 #else
     dev_id = RDM_UID_DEVICE_UID;
 #endif
+    taskENTER_CRITICAL(&rdm_spinlock);
     rdm_binding_uid.man_id = RDM_UID_MANUFACTURER_ID;
     rdm_binding_uid.dev_id = dev_id;
+    taskEXIT_CRITICAL(&rdm_spinlock);
   }
-  taskEXIT_CRITICAL(&rdm_spinlock);
 
   // Return early if there is an argument error
   if (dmx_num >= DMX_NUM_MAX || uid == NULL) {
