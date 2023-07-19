@@ -31,14 +31,14 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
 
 /**
  * @brief De-initializes the UART.
- * 
+ *
  * @param uart A handle to the DMX UART.
  */
 void dmx_uart_deinit(dmx_uart_handle_t uart);
 
 /**
  * @brief Sets the pins to be used by the DMX UART.
- * 
+ *
  * @param uart A handle to the DMX UART.
  * @param tx The transmit pin number to use.
  * @param rx The receive pin number to use.
