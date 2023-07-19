@@ -18,7 +18,8 @@ extern "C" {
 /**
  * @brief RDM packet spacing constants. These values are the length of time in
  * microseconds between RDM packets that must elapse in certain situations.
- * These constants are defined in page nine of the ANSI/ESTA e1.20 document.
+ * These constants are defined in page 9 through 11 of the ANSI/ESTA e1.20
+ * document.
  */
 enum rdm_packet_spacing_t {
   RDM_PACKET_SPACING_DISCOVERY_NO_RESPONSE = 5800,
