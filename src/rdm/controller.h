@@ -1,5 +1,5 @@
 /**
- * @file requests.h
+ * @file controller.h
  * @author Mitch Weisbrod
  * @brief This file contains functions needed to send requests to RDM
  * responders.

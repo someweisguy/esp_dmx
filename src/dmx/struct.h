@@ -1,5 +1,5 @@
 /**
- * @file driver.h
+ * @file struct.h
  * @author Mitch Weisbrod
  * @brief This file contains the definition for the DMX driver. It is intended
  * to be obfuscated from end-users, but may be included when forking this

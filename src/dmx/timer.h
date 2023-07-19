@@ -1,3 +1,12 @@
+/**
+ * @file timer.h
+ * @author Mitch Weisbrod
+ * @brief This file is the timer Hardware Abstraction Layer (HAL) of esp_dmx. It
+ * contains low-level functions to perform tasks relating to the timer hardware.
+ * The timer hardware is used for generating the timing for the DMX break and
+ * mark-after-break. It is also used for RDM timing to ensure that proper packet
+ * spacing is maintained on the RDM bus.
+ */
 #pragma once
 
 #include "dmx/types.h"
@@ -16,26 +25,58 @@ enum rdm_packet_timing_t {
   RDM_RESPONDER_RESPONSE_LOST_TIMEOUT = 2000
 };
 
-// TODO: docs
+/**
+ * @brief A handle to the DMX timer.
+ */
 typedef struct dmx_timer_t *dmx_timer_handle_t;
 
-// TODO: docs
+/**
+ * @brief Initializes the DMX timer.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] isr_handle The ISR function to be called when the timer completes.
+ * @param[inout] isr_context Context to be used in in the DMX timer ISR.
+ * @param isr_flags Interrupt flags to be used for the DMX timer ISR.
+ * @return A handle to the DMX timer or NULL on failure.
+ */
 dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
                                   void *isr_context, int isr_flags);
 
-// TODO: docs
+/**
+ * @brief De-initializes the DMX timer.
+ *
+ * @param timer A handle to the DMX timer.
+ */
 void dmx_timer_deinit(dmx_timer_handle_t timer);
 
-// TODO: docs
+/**
+ * @brief Pauses the DMX timer.
+ *
+ * @param timer A handle to the DMX timer.
+ */
 void dmx_timer_stop(dmx_timer_handle_t timer);
 
-// TODO: docs
+/**
+ * @brief Sets the counter value for the DMX timer.
+ *
+ * @param timer A handle to the DMX timer.
+ * @param counter The counter value to which to set the DMX timer.
+ */
 void dmx_timer_set_counter(dmx_timer_handle_t timer, uint64_t counter);
 
-// TODO: docs
+/**
+ * @brief Sets the alarm value for the DMX timer.
+ *
+ * @param timer A handle to the DMX timer.
+ * @param alarm The alarm value to which to set the DMX timer.
+ */
 void dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm);
 
-// TODO: docs
+/**
+ * @brief Starts the DMX timer.
+ *
+ * @param timer A handle to the DMX timer.
+ */
 void dmx_timer_start(dmx_timer_handle_t timer);
 
 #ifdef __cplusplus
