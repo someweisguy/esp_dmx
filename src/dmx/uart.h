@@ -65,26 +65,6 @@ uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart);
 void dmx_uart_set_baud_rate(dmx_uart_handle_t uart, uint32_t baud_rate);
 
 /**
- * @brief Sets the number of bytes that the UART must receive to trigger a RX
- * FIFO full interrupt.
- *
- * @param uart A handle to the DMX UART.
- * @param threshold The number of bytes needed to trigger an RX FIFO full
- * interrupt.
- */
-void dmx_uart_set_rxfifo_full(dmx_uart_handle_t uart, uint8_t threshold);
-
-/**
- * @brief Sets the number of bytes that the UART TX FIFO must have remaining in
- * it to trigger a TX FIFO empty interrupt.
- *
- * @param uart  A handle to the DMX UART.
- * @param threshold The number of bytes remaining to trigger a TX FIFO empty
- * interrupt.
- */
-void dmx_uart_set_txfifo_empty(dmx_uart_handle_t uart, uint8_t threshold);
-
-/**
  * @brief Inverts or un-inverts the TX line on the UART.
  *
  * @param uart A handle to the DMX UART.

@@ -58,13 +58,14 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
   uart_ll_tx_break(uart->dev, 0);
   uart_ll_set_tx_idle_num(uart->dev, 0);
   uart_ll_set_hw_flow_ctrl(uart->dev, UART_HW_FLOWCTRL_DISABLE, 0);
+  uart_ll_set_txfifo_empty_thr(uart->dev, DMX_UART_EMPTY_DEFAULT);
+  uart_ll_set_rxfifo_full_thr(uart->dev, DMX_UART_FULL_DEFAULT);
 
   dmx_uart_rxfifo_reset(uart);
   dmx_uart_txfifo_reset(uart);
   dmx_uart_disable_interrupt(uart, UART_LL_INTR_MASK);
   dmx_uart_clear_interrupt(uart, UART_LL_INTR_MASK);
-  dmx_uart_set_txfifo_empty(uart, DMX_UART_EMPTY_DEFAULT);
-  dmx_uart_set_rxfifo_full(uart, DMX_UART_FULL_DEFAULT);
+
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, isr_flags, isr_handle,
                  isr_context, &uart->isr_handle);
 
@@ -96,14 +97,6 @@ void dmx_uart_set_baud_rate(dmx_uart_handle_t uart, uint32_t baud_rate) {
 #else
   uart_ll_set_baudrate(uart->dev, baud_rate);
 #endif
-}
-
-void dmx_uart_set_rxfifo_full(dmx_uart_handle_t uart, uint8_t threshold) {
-  uart_ll_set_rxfifo_full_thr(uart->dev, threshold);
-}
-
-void dmx_uart_set_txfifo_empty(dmx_uart_handle_t uart, uint8_t threshold) {
-  uart_ll_set_txfifo_empty_thr(uart->dev, threshold);
 }
 
 void DMX_ISR_ATTR dmx_uart_invert_tx(dmx_uart_handle_t uart, uint32_t invert) {
