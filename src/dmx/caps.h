@@ -17,13 +17,6 @@ extern "C" {
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
-#if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
-#define DMX_ISR_ATTR IRAM_ATTR
-#define DMX_ISR_IN_IRAM
-#else
-#define DMX_ISR_ATTR
-#endif
-
 #ifdef CONFIG_RDM_DEVICE_UID_MAN_ID
 /** @brief This is the RDM Manufacturer ID used with this library. It may be set
  * using the Kconfig file. The default value is 0x05e0.*/

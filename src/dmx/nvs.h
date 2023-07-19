@@ -8,6 +8,7 @@
  */
 #pragma once
 
+#include "dmx/hal.h"
 #include "dmx/types.h"
 #include "rdm/types.h"
 

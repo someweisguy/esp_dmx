@@ -44,6 +44,13 @@ extern "C" {
     .personality_count = 1, .dmx_start_address = 0                            \
   }
 
+#if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
+#define DMX_ISR_ATTR IRAM_ATTR
+#define DMX_ISR_IN_IRAM
+#else
+#define DMX_ISR_ATTR
+#endif
+
 // FIXME: DMX_ISR_IN_IRAM isn't visible to this file
 #ifdef DMX_ISR_IN_IRAM
 /** @brief The default interrupt flags for the DMX sniffer. Places the
