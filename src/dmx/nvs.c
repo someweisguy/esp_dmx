@@ -21,7 +21,7 @@ bool dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds, void *param,
   assert(size != NULL);
 
   if (*size == 0) {
-    return ESP_OK;
+    return true;
   }
 
   // Get the NVS namespace and key value
@@ -92,7 +92,7 @@ bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
   assert(dmx_driver_is_installed(dmx_num));
 
   if (size == 0) {
-    return ESP_OK;
+    return true;
   }
 
   // Get the NVS namespace and key value
