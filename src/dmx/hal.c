@@ -8,7 +8,6 @@
 #include "dmx/timer.h"
 #include "dmx/types.h"
 #include "dmx/uart.h"
-#include "driver/gpio.h"
 #include "endian.h"
 #include "esp_dmx.h"
 #include "esp_timer.h"
@@ -621,12 +620,10 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(tx_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_pin),
-            ESP_ERR_INVALID_ARG, "tx_pin error");
-  DMX_CHECK(rx_pin < 0 || GPIO_IS_VALID_GPIO(rx_pin), ESP_ERR_INVALID_ARG,
-            "rx_pin error");
-  DMX_CHECK(rts_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_pin),
-            ESP_ERR_INVALID_ARG, "rts_pin error");
+  DMX_CHECK(DMX_TX_PIN_IS_VALID(tx_pin), ESP_ERR_INVALID_ARG, "tx_pin error");
+  DMX_CHECK(DMX_RX_PIN_IS_VALID(rx_pin), ESP_ERR_INVALID_ARG, "rx_pin error");
+  DMX_CHECK(DMX_RTS_PIN_IS_VALID(rts_pin), ESP_ERR_INVALID_ARG,
+            "rts_pin error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;

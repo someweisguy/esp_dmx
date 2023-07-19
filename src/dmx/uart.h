@@ -10,11 +10,27 @@
 #pragma once
 
 #include "dmx/types.h"
+#include "driver/gpio.h"
 #include "hal/uart_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Evaluates to true if the pin number used for TX is valid.
+ */
+#define DMX_TX_PIN_IS_VALID(tx) ((tx) < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx))
+
+/**
+ * @brief Evaluates to true if the pin number used for RX is valid.
+ */
+#define DMX_RX_PIN_IS_VALID(rx) ((rx) < 0 || GPIO_IS_VALID_GPIO(rx))
+
+/**
+ * @brief Evaluates to true if the pin number used for RTS is valid.
+ */
+#define DMX_RTS_PIN_IS_VALID(rts) ((rts) < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts))
 
 /**
  * @brief A handle to the DMX UART.

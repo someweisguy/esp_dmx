@@ -44,6 +44,7 @@ extern "C" {
     .personality_count = 1, .dmx_start_address = 0                            \
   }
 
+// FIXME: DMX_ISR_IN_IRAM isn't visible to this file
 #ifdef DMX_ISR_IN_IRAM
 /** @brief The default interrupt flags for the DMX sniffer. Places the
  * interrupts in IRAM.*/
