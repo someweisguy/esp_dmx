@@ -872,7 +872,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
       // Guard against setting hardware alarm durations with negative values
       int64_t elapsed = esp_timer_get_time() - last_timestamp;
-      if (elapsed >= RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT) {
+      if (elapsed >= RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE) {
         xSemaphoreGiveRecursive(driver->mux);
         return packet_size;
       }
@@ -880,7 +880,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // Set an early timeout with the hardware timer
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       dmx_timer_set_counter(timer, elapsed);
-      dmx_timer_set_alarm(timer, RDM_CONTROLLER_RESPONSE_LOST_TIMEOUT);
+      dmx_timer_set_alarm(timer, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE);
       dmx_timer_start(timer);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
@@ -1129,7 +1129,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     elapsed = esp_timer_get_time() - driver->last_slot_ts;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (elapsed >= RDM_RESPONDER_RESPONSE_LOST_TIMEOUT) {
+  if (elapsed >= RDM_PACKET_SPACING_RESPONDER_NO_RESPONSE) {
     xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
@@ -1139,14 +1139,14 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->flags & DMX_FLAGS_DRIVER_SENT_LAST) {
     if (driver->rdm_type & DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH) {
-      timeout = RDM_DISCOVERY_NO_RESPONSE_PACKET_SPACING;
+      timeout = RDM_PACKET_SPACING_DISCOVERY_NO_RESPONSE;
     } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_BROADCAST) {
-      timeout = RDM_BROADCAST_PACKET_SPACING;
+      timeout = RDM_PACKET_SPACING_BROADCAST;
     } else if (driver->rdm_type == DMX_FLAGS_RDM_IS_REQUEST) {
-      timeout = RDM_REQUEST_NO_RESPONSE_PACKET_SPACING;
+      timeout = RDM_PACKET_SPACING_REQUEST_NO_RESPONSE;
     }
   } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_VALID) {
-    timeout = RDM_RESPOND_TO_REQUEST_PACKET_SPACING;
+    timeout = RDM_PACKET_SPACING_RESPONSE;
   }
   elapsed = esp_timer_get_time() - driver->last_slot_ts;
   if (elapsed < timeout) {
