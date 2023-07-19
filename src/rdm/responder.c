@@ -277,10 +277,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   if (param == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
-    // Get the string length and clamp it to 32 chars
-    if (strnlen(software_version_label, 33) > 32) {
-      ESP_LOGW(TAG, "software_version_label will be truncated.");
-    }
+    DMX_CHECK(strnlen(software_version_label, 33) < 33, false,
+              "software_version_label error");
     param = rdm_pd_alloc(dmx_num, 32);
     if (param == NULL) {
       return false;

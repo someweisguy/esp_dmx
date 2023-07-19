@@ -86,10 +86,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
 #else
   rdm_disc_unique_branch_t *stack;
   stack = malloc(sizeof(rdm_disc_unique_branch_t) * 49);
-  if (stack == NULL) {
-    ESP_LOGE(TAG, "Discovery malloc error");
-    return 0;
-  }
+  DMX_CHECK(stack != NULL, 0, "discovery malloc error");
 #endif
 
   // Initialize the stack with the initial branch instruction

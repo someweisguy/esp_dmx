@@ -10,6 +10,7 @@
 #include "dmx/uart.h"
 #include "endian.h"
 #include "esp_dmx.h"
+// #include "esp_log.h"
 #include "esp_timer.h"
 #include "rdm/utils.h"
 
@@ -336,10 +337,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Allocate the DMX driver
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
-  if (driver == NULL) {
-    ESP_LOGE(TAG, "DMX driver malloc error");
-    return ESP_ERR_NO_MEM;
-  }
+  DMX_CHECK(driver != NULL, ESP_ERR_NO_MEM, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
   driver->data = NULL;
@@ -349,17 +347,15 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   // Allocate mutex
   SemaphoreHandle_t mux = xSemaphoreCreateRecursiveMutex();
   if (mux == NULL) {
-    ESP_LOGE(TAG, "DMX driver mutex malloc error");
     dmx_driver_delete(dmx_num);
-    return ESP_ERR_NO_MEM;
+    DMX_CHECK(mux != NULL, ESP_ERR_NO_MEM, "DMX driver mutex malloc error");
   }
 
   // Allocate DMX buffer
   uint8_t *data = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
   if (data == NULL) {
-    ESP_LOGE(TAG, "DMX driver buffer malloc error");
     dmx_driver_delete(dmx_num);
-    return ESP_ERR_NO_MEM;
+    DMX_CHECK(data != NULL, ESP_ERR_NO_MEM, "DMX driver buffer malloc error");
   }
   bzero(data, DMX_PACKET_SIZE_MAX);
 
@@ -376,9 +372,8 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
   uint8_t *pd = heap_caps_malloc(pd_size, MALLOC_CAP_8BIT);
   if (pd == NULL) {
-    ESP_LOGE(TAG, "DMX driver RDM buffer malloc error");
     dmx_driver_delete(dmx_num);
-    return ESP_ERR_NO_MEM;
+    DMX_CHECK(pd != NULL, ESP_ERR_NO_MEM, "DMX driver pd buffer malloc error");
   }
 
   // UART configuration
@@ -496,14 +491,16 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   dmx_uart_handle_t uart =
       dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
   if (uart == NULL) {
-    ESP_LOGE(TAG, "UART init error");
+    dmx_driver_delete(dmx_num);
+    DMX_CHECK(uart != NULL, ESP_FAIL, "UART init error");
   }
   dmx_context[dmx_num].uart = uart;
 
   dmx_timer_handle_t timer =
       dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
   if (timer == NULL) {
-    ESP_LOGE(TAG, "timer init error");
+    dmx_driver_delete(dmx_num);
+    DMX_CHECK(timer != NULL, ESP_FAIL, "timer init error");
   }
   dmx_context[dmx_num].timer = timer;
 
@@ -1265,10 +1262,8 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
 
   // Allocate the sniffer queue
   driver->metadata_queue = xQueueCreate(1, sizeof(dmx_metadata_t));
-  if (driver->metadata_queue == NULL) {
-    ESP_LOGE(TAG, "DMX sniffer queue malloc error");
-    return ESP_ERR_NO_MEM;
-  }
+  DMX_CHECK(driver->metadata_queue != NULL, ESP_ERR_NO_MEM,
+            "DMX sniffer queue malloc error");
 
   // Add the GPIO interrupt handler
   esp_err_t err = gpio_isr_handler_add(intr_pin, dmx_gpio_isr, driver);
@@ -1300,10 +1295,7 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   // Disable the interrupt and remove the interrupt handler
   gpio_set_intr_type(driver->sniffer_pin, GPIO_INTR_DISABLE);
   esp_err_t err = gpio_isr_handler_remove(driver->sniffer_pin);
-  if (err) {
-    ESP_LOGE(TAG, "DMX sniffer ISR handler error");
-    return ESP_FAIL;
-  }
+  DMX_CHECK(!err, err, "DMX sniffer ISR handler error");
 
   // Deallocate the sniffer queue
   vQueueDelete(driver->metadata_queue);

@@ -6,7 +6,6 @@
  */
 #pragma once
 
-#include "esp_intr_alloc.h"
 #include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus

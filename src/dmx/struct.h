@@ -11,10 +11,8 @@
 
 #include "dmx/caps.h"
 #include "dmx/types.h"
-#include "esp_check.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "hal/uart_hal.h"
 #include "rdm/responder.h"
 #include "rdm/types.h"
 #include "rdm/utils.h"

@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#include "esp_check.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
