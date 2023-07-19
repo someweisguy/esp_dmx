@@ -8,11 +8,10 @@
 #include "dmx/timer.h"
 #include "dmx/types.h"
 #include "dmx/uart.h"
+#include "dmx/utils.h"
 #include "endian.h"
 #include "esp_dmx.h"
-// #include "esp_log.h"
 #include "esp_timer.h"
-#include "rdm/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"

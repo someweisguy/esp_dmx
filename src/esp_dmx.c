@@ -2,6 +2,7 @@
 
 #include "dmx/caps.h"
 #include "dmx/struct.h"
+#include "dmx/utils.h"
 #include "endian.h"
 
 bool dmx_driver_is_enabled(dmx_port_t dmx_num) {

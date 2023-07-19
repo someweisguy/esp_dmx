@@ -2,9 +2,9 @@
 
 #include "dmx/caps.h"
 #include "dmx/struct.h"
+#include "dmx/utils.h"
 #include "endian.h"
 #include "esp_dmx.h"
-#include "rdm/utils.h"
 
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                                  const rdm_disc_unique_branch_t *branch,
