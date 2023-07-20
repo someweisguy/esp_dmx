@@ -24,6 +24,8 @@ typedef struct dmx_uart_t *dmx_uart_handle_t;
 /**
  * @brief Initializes the UART for DMX.
  *
+ * @param[in] isr_handle The ISR function to be called when servicing the UART.
+ * @param[inout] isr_context Context to be used in the DMX UART ISR.
  * @return A handle to the DMX UART or NULL on failure.
  */
 dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
@@ -120,15 +122,6 @@ void dmx_uart_clear_interrupt(dmx_uart_handle_t uart, int mask);
  * @return The number of bytes in the UART RX FIFO.
  */
 uint32_t dmx_uart_get_rxfifo_len(dmx_uart_handle_t uart);
-
-/**
- * @brief Gets the level of the UART RX line.
- *
- * @param uart A handle to the DMX UART.
- * @return The UART RX line level.
- */
-
-uint32_t dmx_uart_get_rx_level(dmx_uart_handle_t uart);
 
 /**
  * @brief Reads from the UART RX FIFO.

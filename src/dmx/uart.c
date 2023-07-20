@@ -126,10 +126,6 @@ uint32_t DMX_ISR_ATTR dmx_uart_get_rxfifo_len(dmx_uart_handle_t uart) {
   return uart_ll_get_rxfifo_len(uart->dev);
 }
 
-uint32_t DMX_ISR_ATTR dmx_uart_get_rx_level(dmx_uart_handle_t uart) {
-  return uart->dev->status.rxd;
-}
-
 void DMX_ISR_ATTR dmx_uart_read_rxfifo(dmx_uart_handle_t uart, uint8_t *buf,
                                        int *size) {
   const size_t rxfifo_len = uart_ll_get_rxfifo_len(uart->dev);

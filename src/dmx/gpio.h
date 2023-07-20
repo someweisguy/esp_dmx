@@ -43,10 +43,11 @@ typedef struct dmx_gpio_t *dmx_gpio_handle_t;
 
 /**
  * @brief Initializes the GPIO for the DMX sniffer.
- * 
+ *
  * @param dmx_num The DMX port number.
- * @param[in] isr_handle
- * @param[inout] isr_context
+ * @param[in] isr_handle The ISR function to be called the sniffer pin
+ * transitions on any edge.
+ * @param[in] isr_context Context to be used in the DMX GPIO ISR.
  * @param sniffer_pin The sniffer pin GPIO number.
  * @return A handle to the DMX GPIO or null on failure.
  */
@@ -60,6 +61,13 @@ dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_handle,
  */
 void dmx_gpio_deinit(dmx_gpio_handle_t gpio);
 
+/**
+ * @brief Reads the level of the DMX sniffer GPIO.
+ * 
+ * @param gpio A handle to the DMX GPIO.
+ * @return The level of the DMX GPIO.
+ */
+int dmx_gpio_read(dmx_gpio_handle_t gpio);
 
 #ifdef __cplusplus
 }

@@ -256,7 +256,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   const dmx_port_t dmx_num = ((dmx_driver_t *)arg)->dmx_num;
   int task_awoken = false;
 
-  if (dmx_uart_get_rx_level(dmx_context[dmx_num].uart)) {
+  if (dmx_gpio_read(dmx_context[dmx_num].gpio)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
