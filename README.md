@@ -459,6 +459,9 @@ Getting or setting the DMX start address can be done using `dmx_get_start_addres
 // Get the DMX start address and increment it by one
 uint16_t dmx_start_address = dmx_get_start_address(DMX_NUM_2);
 dmx_start_address++;
+if (dmx_start_address >= DMX_PACKET_SIZE_MAX) {
+  dmx_start_address = 1;  // Ensure DMX start address is within bounds
+}
 dmx_set_start_address(DMX_NUM_2, dmx_start_address);
 ```
 
