@@ -2,8 +2,8 @@
 
 #include <stdbool.h>
 
-#include "dmx/struct.h"
 #include "dmx/hal.h"
+#include "dmx/struct.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"

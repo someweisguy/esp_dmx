@@ -9,8 +9,8 @@
 
 #include "dmx/hal.h"
 #include "dmx/types.h"
-#include "rdm/types.h"
 #include "driver/gpio.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,14 +56,14 @@ dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_handle,
 
 /**
  * @brief De-initializes the GPIO for the DMX sniffer.
- * 
+ *
  * @param gpio A handle to the DMX GPIO.
  */
 void dmx_gpio_deinit(dmx_gpio_handle_t gpio);
 
 /**
  * @brief Reads the level of the DMX sniffer GPIO.
- * 
+ *
  * @param gpio A handle to the DMX GPIO.
  * @return The level of the DMX GPIO.
  */
