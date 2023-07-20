@@ -18,7 +18,7 @@
 
 #ifdef DMX_USE_SPINLOCK
 #define RDM_SPINLOCK (&rdm_spinlock)
-static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static dmx_spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 #else
 #define RDM_SPINLOCK
 #endif

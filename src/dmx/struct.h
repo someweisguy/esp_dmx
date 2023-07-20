@@ -64,7 +64,7 @@ typedef struct dmx_driver_t {
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
 #ifdef DMX_USE_SPINLOCK
-  spinlock_t spinlock;
+  dmx_spinlock_t spinlock;
 #endif
 
   // Data buffer
