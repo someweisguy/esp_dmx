@@ -620,14 +620,14 @@ esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
   DMX_CHECK(DMX_RX_PIN_IS_VALID(rx_pin), ESP_ERR_INVALID_ARG, "rx_pin error");
   DMX_CHECK(DMX_RTS_PIN_IS_VALID(rts_pin), ESP_ERR_INVALID_ARG,
             "rts_pin error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
+            "driver is not installed");
 
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
-  bool success = dmx_uart_set_pin(uart, tx_pin, rx_pin, rts_pin);
-  // FIXME: change return type to bool
+  dmx_uart_set_pin(uart, tx_pin, rx_pin, rts_pin);
 
-  return success ? ESP_OK : ESP_FAIL;
+  return ESP_OK;
 }
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
