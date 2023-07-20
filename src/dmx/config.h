@@ -1,5 +1,5 @@
 /**
- * @file caps.h
+ * @file config.h
  * @author Mitch Weisbrod
  * @brief This file contains configuration information for the DMX library. It
  * is not considered part of the API and should not be included by the user.

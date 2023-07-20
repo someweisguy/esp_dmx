@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-#include "dmx/caps.h"
+#include "dmx/config.h"
 #include "dmx/types.h"
 #include "dmx/utils.h"
 #include "freertos/queue.h"

@@ -1,6 +1,6 @@
 #include "esp_dmx.h"
 
-#include "dmx/caps.h"
+#include "dmx/config.h"
 #include "dmx/struct.h"
 #include "dmx/utils.h"
 #include "endian.h"

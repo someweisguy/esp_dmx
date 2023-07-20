@@ -1,6 +1,6 @@
 #include "parameters.h"
 
-#include "dmx/caps.h"
+#include "dmx/config.h"
 #include "dmx/hal.h"
 #include "dmx/struct.h"
 #include "dmx/utils.h"

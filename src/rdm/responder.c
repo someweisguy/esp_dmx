@@ -1,6 +1,6 @@
 #include "responder.h"
 
-#include "dmx/caps.h"
+#include "dmx/config.h"
 #include "dmx/hal.h"
 #include "dmx/nvs.h"
 #include "dmx/struct.h"

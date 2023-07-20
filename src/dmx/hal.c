@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "dmx/caps.h"
+#include "dmx/config.h"
 #include "dmx/nvs.h"
 #include "dmx/struct.h"
 #include "dmx/timer.h"
