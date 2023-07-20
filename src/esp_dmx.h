@@ -18,6 +18,15 @@ extern "C" {
 #endif
 
 /**
+ * @brief Checks if DMX driver is installed.
+ *
+ * @param dmx_num The DMX port number.
+ * @retval true if the driver is installed.
+ * @retval false if the driver is not installed or DMX port does not exist.
+ * */
+bool dmx_driver_is_installed(dmx_port_t dmx_num);
+
+/**
  * @brief Checks if the DMX driver is enabled. When the DMX driver is not placed
  * in IRAM, functions which disable the cache, such as functions which read or
  * write to flash, will also stop DMX interrupts from firing. This can cause

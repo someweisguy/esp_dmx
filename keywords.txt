@@ -16,7 +16,6 @@ DMX_SNIFFER_INTR_FLAGS_DEFAULT	LITERAL1
 DMX_INTR_FLAGS_DEFAULT	LITERAL1
 dmx_driver_install	KEYWORD2
 dmx_driver_delete	KEYWORD2
-dmx_driver_is_installed	KEYWORD2
 dmx_driver_disable	KEYWORD2
 dmx_driver_enable	KEYWORD2
 dmx_set_pin	KEYWORD2
@@ -246,6 +245,7 @@ RDM_UID_BROADCAST_ALL	LITERAL1
 RDM_UID_MAX	LITERAL1
 
 # esp_dmx.h
+dmx_driver_is_installed	KEYWORD2
 dmx_driver_is_enabled	KEYWORD2
 dmx_set_break_len	KEYWORD2
 dmx_get_break_len	KEYWORD2

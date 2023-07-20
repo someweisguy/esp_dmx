@@ -5,6 +5,10 @@
 #include "dmx/utils.h"
 #include "endian.h"
 
+bool dmx_driver_is_installed(dmx_port_t dmx_num) {
+  return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
+}
+
 bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
   bool is_enabled = false;
 

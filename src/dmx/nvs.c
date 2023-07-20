@@ -2,6 +2,7 @@
 
 #include "dmx/hal.h"
 #include "dmx/struct.h"
+#include "esp_dmx.h"
 #include "nvs_flash.h"
 
 #ifndef CONFIG_DMX_NVS_PARTITION_NAME
@@ -89,7 +90,6 @@ bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
                  const void *param, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(param != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
 
   if (size == 0) {
     return true;

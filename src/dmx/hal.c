@@ -563,10 +563,6 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   return ESP_OK;
 }
 
-bool dmx_driver_is_installed(dmx_port_t dmx_num) {
-  return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
-}
-
 esp_err_t dmx_driver_disable(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
