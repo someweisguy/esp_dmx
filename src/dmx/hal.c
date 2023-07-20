@@ -309,7 +309,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   DMX_CHECK((config->personality_count == 0 &&
              config->dmx_start_address == DMX_START_ADDRESS_NONE) ||
                 (config->personality_count > 0 &&
-                 config->personality_count < DMX_PERSONALITIES_MAX),
+                 config->personality_count < DMX_PERSONALITY_COUNT_MAX),
             false, "personality_count error");
   DMX_CHECK(config->current_personality <= config->personality_count,
             ESP_ERR_INVALID_ARG, "current_personality error");

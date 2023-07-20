@@ -15,10 +15,10 @@ extern "C" {
 #ifdef CONFIG_DMX_MAX_PERSONALITIES
 /** @brief The maximum number of personalities that this device supports. This
  * value may be adjusted in the Kconfig.*/
-#define DMX_PERSONALITIES_MAX (CONFIG_DMX_MAX_PERSONALITIES)
+#define DMX_PERSONALITY_COUNT_MAX (CONFIG_DMX_MAX_PERSONALITIES)
 #else
 /** @brief The maximum number of personalities that this device supports.*/
-#define DMX_PERSONALITIES_MAX (16)
+#define DMX_PERSONALITY_COUNT_MAX (16)
 #endif
 
 /** @brief Evaluates to true if the start code is a start code permitted in a
@@ -270,7 +270,7 @@ typedef struct dmx_config_t {
   struct {
     uint16_t footprint;
     const char *description;
-  } personalities[DMX_PERSONALITIES_MAX];
+  } personalities[DMX_PERSONALITY_COUNT_MAX];
   /** @brief The number of personalities supported by the device. The
      personality is the configured arrangement of DMX slots used by the device.
      Many devices may have multiple personalities from which to choose. These

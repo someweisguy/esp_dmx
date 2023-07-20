@@ -201,7 +201,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     DMX_CHECK((device_info->personality_count == 0 &&
                device_info->dmx_start_address == DMX_START_ADDRESS_NONE) ||
                   (device_info->personality_count > 0 &&
-                   device_info->personality_count < DMX_PERSONALITIES_MAX),
+                   device_info->personality_count < DMX_PERSONALITY_COUNT_MAX),
               false, "personality_count error");
     DMX_CHECK(
         device_info->current_personality <= device_info->personality_count,
