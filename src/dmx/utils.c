@@ -509,7 +509,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     // Get and report the received NACK reason
     decoded = bswap16(*(uint16_t *)pd_out);
   } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-    ESP_LOGW(TAG, "RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");
+    DMX_WARN("RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported."); // TODO
     decoded = 0;
   } else {
     // Do nothing when response_type is RDM_RESPONSE_TYPE_ACK

@@ -996,7 +996,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
     // Verify that the driver-side callback returned correctly
     if (pdl_out > sizeof(pd)) {
-      ESP_LOGW(TAG, "PID 0x%04x pdl is too large", header.pid);
+      DMX_WARN("PID 0x%04x pdl is too large", header.pid);
       // TODO: set the boot-loader flag
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
       pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
@@ -1011,7 +1011,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                ((response_type != RDM_RESPONSE_TYPE_ACK &&
                  response_type != RDM_RESPONSE_TYPE_NONE) &&
                 header.cc == RDM_CC_DISC_COMMAND)) {
-      ESP_LOGW(TAG, "PID 0x%04x returned invalid response type", header.pid);
+      DMX_WARN("PID 0x%04x returned invalid response type", header.pid);
       // TODO: set the boot-loader flag to indicate an error with this device
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
       pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
@@ -1062,7 +1062,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (response_type != RDM_RESPONSE_TYPE_NONE) {
     const size_t response_size = dmx_write_rdm(dmx_num, &header, pd);
     if (!dmx_send(dmx_num, response_size)) {
-      ESP_LOGW(TAG, "PID 0x%04x did not send a response", header.pid);
+      DMX_WARN("PID 0x%04x did not send a response", header.pid);
       // TODO set the boot-loader flag
     } else if (response_size > 0) {
       dmx_wait_sent(dmx_num, 10);
@@ -1083,7 +1083,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (must_update_nvs) {
     if (!dmx_nvs_set(dmx_num, header.pid, desc->data_type, param,
                      desc->pdl_size)) {
-      ESP_LOGW(TAG, "unable to save PID 0x%04x to NVS", header.pid);
+      DMX_WARN("unable to save PID 0x%04x to NVS", header.pid);
       // TODO: set boot-loader flag
     }
   }
