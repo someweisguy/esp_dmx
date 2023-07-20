@@ -53,6 +53,12 @@ extern "C" {
 #define RDM_RESPONDER_PIDS_MAX (8 + 16)
 #endif
 
+#ifndef CONFIG_FREERTOS_UNICORE
+/** @brief Directs the DMX driver to use spinlocks in critical sections. This is
+ * needed for devices which have multiple cores.*/
+#define DMX_USE_SPINLOCK
+#endif
+
 extern const char *TAG;  // The log tagline for the library.
 
 #ifdef __cplusplus

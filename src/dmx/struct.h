@@ -21,7 +21,11 @@
 extern "C" {
 #endif
 
-#define DMX_SPINLOCK(n) (&dmx_driver[(n)]->spinlock)  // TODO: conditionally compile
+#ifdef DMX_USE_SPINLOCK
+#define DMX_SPINLOCK(n) (&dmx_driver[(n)]->spinlock)
+#else
+#define DMX_SPINLOCK(n)
+#endif
 
 enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_ENABLED = BIT0,   // The driver is enabled.
@@ -59,7 +63,9 @@ typedef struct dmx_driver_t {
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
-  spinlock_t spinlock;        // TODO: conditionally compile
+#ifdef DMX_USE_SPINLOCK
+  spinlock_t spinlock;
+#endif
 
   // Data buffer
   int16_t head;     // The index of the slot being transmitted or received.
