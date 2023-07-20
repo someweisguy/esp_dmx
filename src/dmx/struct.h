@@ -106,7 +106,6 @@ typedef struct dmx_driver_t {
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
   QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
-  int sniffer_pin;  // The GPIO number of the DMX sniffer interrupt pin.
   int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
   int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;

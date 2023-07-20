@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "dmx/config.h"
+#include "dmx/gpio.h"
 #include "dmx/nvs.h"
 #include "dmx/struct.h"
 #include "dmx/timer.h"
@@ -40,6 +41,7 @@ dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
 static struct dmx_context_t {
   dmx_uart_handle_t uart;
   dmx_timer_handle_t timer;
+  dmx_gpio_handle_t gpio;
 } dmx_context[DMX_NUM_MAX] = {};
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
@@ -411,7 +413,6 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   // DMX sniffer configuration
   // The driver->metadata field is left uninitialized
   driver->metadata_queue = NULL;
-  driver->sniffer_pin = -1;
   driver->last_pos_edge_ts = -1;
   driver->last_neg_edge_ts = -1;
 
@@ -614,9 +615,9 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
 
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(DMX_TX_PIN_IS_VALID(tx_pin), ESP_ERR_INVALID_ARG, "tx_pin error");
-  DMX_CHECK(DMX_RX_PIN_IS_VALID(rx_pin), ESP_ERR_INVALID_ARG, "rx_pin error");
-  DMX_CHECK(DMX_RTS_PIN_IS_VALID(rts_pin), ESP_ERR_INVALID_ARG,
+  DMX_CHECK(dmx_tx_pin_is_valid(tx_pin), ESP_ERR_INVALID_ARG, "tx_pin error");
+  DMX_CHECK(dmx_rx_pin_is_valid(rx_pin), ESP_ERR_INVALID_ARG, "rx_pin error");
+  DMX_CHECK(dmx_rts_pin_is_valid(rts_pin), ESP_ERR_INVALID_ARG,
             "rts_pin error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
             "driver is not installed");
@@ -1250,7 +1251,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
 esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(intr_pin > 0 && GPIO_IS_VALID_GPIO(intr_pin), ESP_ERR_INVALID_ARG,
+  DMX_CHECK(dmx_sniffer_pin_is_valid(intr_pin), ESP_ERR_INVALID_ARG,
             "intr_pin error");
   DMX_CHECK(!dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
             "sniffer is already enabled");
@@ -1262,22 +1263,14 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   DMX_CHECK(driver->metadata_queue != NULL, ESP_ERR_NO_MEM,
             "DMX sniffer queue malloc error");
 
-  // Add the GPIO interrupt handler
-  esp_err_t err = gpio_isr_handler_add(intr_pin, dmx_gpio_isr, driver);
-  if (err) {
-    ESP_LOGE(TAG, "DMX sniffer ISR handler error");
-    vQueueDelete(driver->metadata_queue);
-    driver->metadata_queue = NULL;
-    return ESP_FAIL;
-  }
-  driver->sniffer_pin = intr_pin;
-
   // Set sniffer default values
   driver->last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
   driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
-  // Enable the interrupt
-  gpio_set_intr_type(intr_pin, GPIO_INTR_ANYEDGE);
+  // Add the GPIO interrupt handler
+  dmx_gpio_handle_t gpio =
+      dmx_gpio_init(dmx_num, dmx_gpio_isr, driver, intr_pin);
+  dmx_context[dmx_num].gpio = gpio;
 
   return ESP_OK;
 }
@@ -1290,9 +1283,8 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Disable the interrupt and remove the interrupt handler
-  gpio_set_intr_type(driver->sniffer_pin, GPIO_INTR_DISABLE);
-  esp_err_t err = gpio_isr_handler_remove(driver->sniffer_pin);
-  DMX_CHECK(!err, err, "DMX sniffer ISR handler error");
+  dmx_gpio_deinit(dmx_context[dmx_num].gpio);
+  dmx_context[dmx_num].gpio = NULL;
 
   // Deallocate the sniffer queue
   vQueueDelete(driver->metadata_queue);
