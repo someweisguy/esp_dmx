@@ -45,21 +45,31 @@ extern "C" {
   }
 
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
+/** @brief This macro sets certain functions used within DMX interrupt handlers
+ * to be placed within IRAM. The current hardware configuration of this device
+ * places the DMX driver functions within IRAM. */
 #define DMX_ISR_ATTR IRAM_ATTR
+/** @brief This macro is used to conditionally compile certain parts of code
+ * depending on whether or not the DMX driver is within IRAM.*/
 #define DMX_ISR_IN_IRAM
 #else
+/** @brief This macro sets certain functions used within DMX interrupt handlers
+ * to be placed within IRAM. Due to the current hardware configuration of this
+ * device, the DMX driver is not currently placed within IRAM. */
 #define DMX_ISR_ATTR
 #endif
 
-// FIXME: DMX_ISR_IN_IRAM isn't visible to this file
 #ifdef DMX_ISR_IN_IRAM
 /** @brief The default interrupt flags for the DMX sniffer. Places the
  * interrupts in IRAM.*/
 #define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM)
+/** @brief The default interrupt flags for the DMX driver. Places the
+ * interrupts in IRAM.*/
 #define DMX_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_IRAM)
 #else
 /** @brief The default interrupt flags for the DMX sniffer.*/
 #define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE)
+/** @brief The default interrupt flags for the DMX driver.*/
 #define DMX_INTR_FLAGS_DEFAULT (0)
 #endif
 
