@@ -5,13 +5,6 @@
 #include "dmx/hal.h"
 #include "dmx/struct.h"
 
-#if ESP_IDF_VERSION_MAJOR >= 5
-#include "driver/gptimer.h"
-#include "esp_timer.h"
-#else
-#include "driver/timer.h"
-#endif
-
 static struct dmx_timer_t {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;

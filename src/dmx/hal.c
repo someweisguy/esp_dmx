@@ -12,13 +12,6 @@
 #include "dmx/utils.h"
 #include "endian.h"
 #include "esp_dmx.h"
-#include "esp_timer.h"
-
-#if ESP_IDF_VERSION_MAJOR >= 5
-#include "driver/gptimer.h"
-#else
-#include "driver/timer.h"
-#endif
 
 const char *TAG = "dmx";  // The log tagline for the library
 
