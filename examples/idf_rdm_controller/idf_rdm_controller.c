@@ -31,8 +31,8 @@ static const char *TAG = "main";
 void app_main() {
   const dmx_port_t dmx_num = DMX_NUM_2;
   dmx_config_t config = DMX_CONFIG_DEFAULT;
-  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT));
-  ESP_ERROR_CHECK(dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN));
+  dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
+  dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
 
   rdm_uid_t uids[32];
   size_t devices_found = rdm_discover_devices_simple(dmx_num, uids, 32);

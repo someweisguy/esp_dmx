@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "dmx/types.h"
 #include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
@@ -381,7 +382,7 @@ typedef struct __attribute__((packed)) rdm_uid_t {
 /** @brief Provides information about RDM responses.*/
 typedef struct rdm_ack_t {
   /** @brief Evaluates to true if an error occurred reading DMX data.*/
-  esp_err_t err;
+  dmx_err_t err;
   /** @brief The size of the packet received.*/
   size_t size;
   /** @brief The UID of the device originating the response packet.*/

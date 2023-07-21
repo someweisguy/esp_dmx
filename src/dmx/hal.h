@@ -104,23 +104,20 @@ extern "C" {
  * @param[in] config A pointer to a DMX configuration which will be used to
  * setup the DMX driver.
  * @param intr_flags The interrupt allocation flags to use.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there is an argument error.
- * @retval ESP_ERR_NO_MEM if there is not enough memory.
- * @retval ESP_ERR_INVALID_STATE if the driver already installed.
+ * @return true on success.
+ * @return false on failure.
  */
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
-                             int intr_flags);
+bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
+                        int intr_flags);
 
 /**
  * @brief Uninstalls the DMX driver.
  *
  * @param dmx_num The DMX port number
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there is an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver not installed.
+ * @return true on success.
+ * @return false on failure.
  */
-esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
+bool dmx_driver_delete(dmx_port_t dmx_num);
 
 /**
  * @brief Disables the DMX driver. When the DMX driver is not placed in IRAM,
@@ -132,13 +129,10 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num);
  * and reenabling the DMX driver is not needed.
  *
  * @param dmx_num The DMX port number.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there is an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver is not installed or already
- * disabled.
- * @retval ESP_ERR_NOT_FINISHED if the driver is currently sending data.
+ * @return true on success.
+ * @return false on failure.
  */
-esp_err_t dmx_driver_disable(dmx_port_t dmx_num);
+bool dmx_driver_disable(dmx_port_t dmx_num);
 
 /**
  * @brief Enables the DMX driver. When the DMX driver is not placed in IRAM,
@@ -150,12 +144,10 @@ esp_err_t dmx_driver_disable(dmx_port_t dmx_num);
  * and reenabling the DMX driver is not needed.
  *
  * @param dmx_num The DMX port number.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there is an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver is not installed or already
- * enabled.
+ * @return true on success.
+ * @return false on failure.
  */
-esp_err_t dmx_driver_enable(dmx_port_t dmx_num);
+bool dmx_driver_enable(dmx_port_t dmx_num);
 
 /**
  * @brief Sets DMX pin number.
@@ -164,10 +156,10 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num);
  * @param tx_pin The pin to which the TX signal will be assigned.
  * @param rx_pin The pin to which the RX signal will be assigned.
  * @param rts_pin The pin to which the RTS signal will be assigned.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
+ * @return true on success.
+ * @return false on failure.
  */
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin);
+bool dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin);
 
 /**
  * @brief Sets the DMX baud rate. The baud rate will be clamped to DMX
@@ -266,23 +258,19 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size);
  *
  * @param dmx_num The DMX port number.
  * @param intr_pin The pin to which to assign the interrupt.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver is not installed or sniffer
- * already enabled.
+ * @return true on success.
+ * @return false on failure.
  */
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin);
+bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin);
 
 /**
  * @brief Disables the DMX sniffer.
  *
  * @param dmx_num The DMX port number.
- * @retval ESP_OK on success.
- * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * @retval ESP_ERR_INVALID_STATE if the driver is not installed, no queue, or
- * sniffer already disabled.
+ * @return true on success.
+ * @return false on failure.
  */
-esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num);
+bool dmx_sniffer_disable(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
 }

@@ -346,8 +346,8 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
  * - ack.err will evaluate to true if an error occurred during the sending or
  *   receiving of raw DMX data. RDM data will not be processed if an error
  *   occurred. If a response was expected but none was received, ack.err will
- *   evaluate to ESP_ERR_TIMEOUT. If no response was expected, ack.err will be
- *   set to ESP_OK.
+ *   evaluate to DMX_ERR_TIMEOUT. If no response was expected, ack.err will be
+ *   set to DMX_OK.
  * - ack.size is the size of the received RDM packet, including the RDM
  *   checksum.
  * - ack.src_uid is the UID of the device which responds to the request.

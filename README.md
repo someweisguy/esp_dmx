@@ -334,7 +334,7 @@ dmx_packet_t packet;
 if (dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK)) {
 
   // Check that no errors occurred.
-  if (packet.err == ESP_OK) {
+  if (packet.err == DMX_OK) {
     dmx_read(DMX_NUM_2, data, packet.size);
   } else {
     printf("An error occurred receiving DMX!");
@@ -696,10 +696,10 @@ if (!rdm_set_dmx_start_address(DMX_NUM_2, dmx_start_address)) {
 
 On rare occasions, DMX packets can become corrupted. Errors are typically detected upon initially connecting to an active DMX bus but are resolved on receiving the next packet. Errors can be checked by reading the error code from the `dmx_packet_t` struct. The error types are as follows:
 
-- `ESP_OK` indicates data was read successfully.
-- `ESP_ERR_TIMEOUT` indicates that the driver timed out waiting for a packet.
-- `ESP_FAIL` occurs when the DMX driver detects missing stop bits. If this condition occurs, the driver shall discard the improperly framed slot data and all following slots in the packet. When this error is reported the `dmx_packet_t` size can be read to determine at which slot the error occurred.
-- `ESP_ERR_NOT_FINISHED` occurs when the ESP32 hardware overflows resulting in loss of data.
+- `DMX_OK` indicates data was read successfully.
+- `DMX_ERR_TIMEOUT` indicates that the driver timed out waiting for a packet.
+- `DMX_ERR_IMPROPER_SLOT` occurs when the DMX driver detects missing stop bits. If this condition occurs, the driver shall discard the improperly framed slot data and all following slots in the packet. When this error is reported the `dmx_packet_t` size can be read to determine at which slot the error occurred.
+- `DMX_ERR_UART_OVERFLOW` occurs when the ESP32 hardware overflows resulting in loss of data.
 
 ```c
 uint8_t data[DMX_PACKET_SIZE];
@@ -708,27 +708,27 @@ dmx_packet_t packet;
 while (true) {
   if (dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK)) {
     switch (packet.err) {
-      case ESP_OK:
+      case DMX_OK:
         printf("Received packet with start code: %02X and size: %i.\n",
           packet.sc, packet.size);
         // Data is OK. Now read the packet into the buffer.
         dmx_read(DMX_NUM_2, data, packet.size);
         break;
       
-      case ESP_ERR_TIMEOUT:
+      case DMX_ERR_TIMEOUT:
         printf("The driver timed out waiting for the packet.\n");
         /* If the provided timeout was less than DMX_TIMEOUT_TICK, it may be
           worthwhile to call dmx_receive() again to see if the packet could be
           received. */
         break;
 
-      case ESP_FAIL:
+      case DMX_ERR_IMPROPER_SLOT:
         printf("Received malformed byte at slot %i.\n", packet.size);
         /* A slot in the packet is malformed. Data can be recovered up until 
           packet.size. */
         break;
 
-      case ESP_ERR_NOT_FINISHED:
+      case DMX_ERR_UART_OVERFLOW:
         printf("The DMX port overflowed.\n");
         /* The ESP32 UART overflowed. This could occur if the DMX ISR is being
           constantly preempted. */

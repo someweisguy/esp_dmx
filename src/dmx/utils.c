@@ -447,7 +447,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
       ack->err = packet.err;
       ack->size = size;
     }
-    if (packet.err && packet.err != ESP_ERR_TIMEOUT) {
+    if (packet.err && packet.err != DMX_ERR_TIMEOUT) {
       if (ack != NULL) {
         ack->src_uid = (rdm_uid_t){0, 0};
         ack->message_count = 0;
@@ -467,7 +467,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     }
   } else {
     if (ack != NULL) {
-      ack->err = ESP_OK;
+      ack->err = DMX_OK;
       ack->size = size;
       ack->src_uid = (rdm_uid_t){0, 0};
       ack->message_count = 0;

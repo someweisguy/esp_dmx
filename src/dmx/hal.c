@@ -110,11 +110,11 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Check for potential end-of-packet condition
       int rdm_type = 0;
       rdm_header_t header;
-      esp_err_t err = ESP_OK;
+      dmx_err_t err = DMX_OK;
       if (intr_flags & DMX_INTR_RX_ERR) {
         err = intr_flags & DMX_INTR_RX_FIFO_OVERFLOW
-                  ? ESP_ERR_NOT_FINISHED  // UART overflow
-                  : ESP_FAIL;             // Missing stop bits
+                  ? DMX_ERR_UART_OVERFLOW   // UART overflow
+                  : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
       } else if (driver->head > 16 &&
                  driver->head ==
                      dmx_read_rdm(driver->dmx_num, &header, NULL, 0)) {
@@ -173,7 +173,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
       driver->last_slot_ts = now;
       if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, ESP_OK, eNoAction,
+        xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eNoAction,
                            &task_awoken);
       }
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -233,7 +233,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     }
   } else if (driver->task_waiting) {
     // Notify the task
-    xTaskNotifyFromISR(driver->task_waiting, ESP_OK, eSetValueWithOverwrite,
+    xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
                        &task_awoken);
 
     // Pause the receive timer alarm
@@ -293,24 +293,24 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num,
   }
 }
 
-esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
-                             int intr_flags) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(!dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
+bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
+                        int intr_flags) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(!dmx_driver_is_installed(dmx_num), false,
             "driver is already installed");
   DMX_CHECK(config->dmx_start_address < DMX_PACKET_SIZE_MAX ||
                 config->dmx_start_address == DMX_START_ADDRESS_NONE,
-            ESP_ERR_INVALID_ARG, "dmx_start_address error");
+            false, "dmx_start_address error");
   DMX_CHECK((config->personality_count == 0 &&
              config->dmx_start_address == DMX_START_ADDRESS_NONE) ||
                 (config->personality_count > 0 &&
                  config->personality_count < DMX_PERSONALITY_COUNT_MAX),
             false, "personality_count error");
-  DMX_CHECK(config->current_personality <= config->personality_count,
-            ESP_ERR_INVALID_ARG, "current_personality error");
+  DMX_CHECK(config->current_personality <= config->personality_count, false,
+            "current_personality error");
   for (int i = 0; i < config->personality_count; ++i) {
-    DMX_CHECK(config->personalities[i].footprint < DMX_PACKET_SIZE_MAX,
-              ESP_ERR_INVALID_ARG, "footprint error");
+    DMX_CHECK(config->personalities[i].footprint < DMX_PACKET_SIZE_MAX, false,
+              "footprint error");
   }
 
   // Initialize NVS
@@ -331,7 +331,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Allocate the DMX driver
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
-  DMX_CHECK(driver != NULL, ESP_ERR_NO_MEM, "DMX driver malloc error");
+  DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
   driver->data = NULL;
@@ -344,14 +344,14 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   SemaphoreHandle_t mux = xSemaphoreCreateRecursiveMutex();
   if (mux == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(mux != NULL, ESP_ERR_NO_MEM, "DMX driver mutex malloc error");
+    DMX_CHECK(mux != NULL, false, "DMX driver mutex malloc error");
   }
 
   // Allocate DMX buffer
   uint8_t *data = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
   if (data == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(data != NULL, ESP_ERR_NO_MEM, "DMX driver buffer malloc error");
+    DMX_CHECK(data != NULL, false, "DMX driver buffer malloc error");
   }
   bzero(data, DMX_PACKET_SIZE_MAX);
 
@@ -369,7 +369,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   uint8_t *pd = heap_caps_malloc(pd_size, MALLOC_CAP_8BIT);
   if (pd == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(pd != NULL, ESP_ERR_NO_MEM, "DMX driver pd buffer malloc error");
+    DMX_CHECK(pd != NULL, false, "DMX driver pd buffer malloc error");
   }
 
   // UART configuration
@@ -487,7 +487,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
       dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
   if (uart == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(uart != NULL, ESP_FAIL, "UART init error");
+    DMX_CHECK(uart != NULL, false, "UART init error");
   }
   dmx_context[dmx_num].uart = uart;
 
@@ -495,7 +495,7 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
       dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
   if (timer == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(timer != NULL, ESP_FAIL, "timer init error");
+    DMX_CHECK(timer != NULL, false, "timer init error");
   }
   dmx_context[dmx_num].timer = timer;
 
@@ -508,13 +508,12 @@ esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Give the mutex and return
   xSemaphoreGiveRecursive(driver->mux);
-  return ESP_OK;
+  return true;
 }
 
-esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
-            "driver is not installed");
+bool dmx_driver_delete(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
@@ -522,7 +521,7 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 
   // Free driver mutex
   if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
-    return ESP_FAIL;
+    return false;
   }
   xSemaphoreGiveRecursive(driver->mux);
   vSemaphoreDelete(driver->mux);
@@ -554,39 +553,36 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
   heap_caps_free(driver);
   dmx_driver[dmx_num] = NULL;
 
-  return ESP_OK;
+  return true;
 }
 
-esp_err_t dmx_driver_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
-            "driver is not installed");
-  DMX_CHECK(dmx_driver_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
+bool dmx_driver_disable(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), false,
             "driver is already disabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
-  esp_err_t ret = ESP_ERR_NOT_FINISHED;
-
   // Disable receive interrupts
+  bool ret = false;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (!(driver->flags & DMX_FLAGS_DRIVER_IS_SENDING)) {
     dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
     dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
     driver->flags &= ~DMX_FLAGS_DRIVER_IS_ENABLED;
-    ret = ESP_OK;
+    ret = true;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return ret;
 }
 
-esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
-            "driver is not installed");
-  DMX_CHECK(!dmx_driver_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
+bool dmx_driver_enable(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(!dmx_driver_is_enabled(dmx_num), false,
             "driver is already enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -603,23 +599,18 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num) {
   dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  return ESP_OK;
+  return true;
 }
 
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(dmx_tx_pin_is_valid(tx_pin), ESP_ERR_INVALID_ARG, "tx_pin error");
-  DMX_CHECK(dmx_rx_pin_is_valid(rx_pin), ESP_ERR_INVALID_ARG, "rx_pin error");
-  DMX_CHECK(dmx_rts_pin_is_valid(rts_pin), ESP_ERR_INVALID_ARG,
-            "rts_pin error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), ESP_ERR_INVALID_STATE,
-            "driver is not installed");
+bool dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_tx_pin_is_valid(tx_pin), false, "tx_pin error");
+  DMX_CHECK(dmx_rx_pin_is_valid(rx_pin), false, "rx_pin error");
+  DMX_CHECK(dmx_rts_pin_is_valid(rts_pin), false, "rts_pin error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
-
-  dmx_uart_set_pin(uart, tx_pin, rx_pin, rts_pin);
-
-  return ESP_OK;
+  return dmx_uart_set_pin(uart, tx_pin, rx_pin, rts_pin);
 }
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
@@ -808,10 +799,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Set default return value and default values for output argument
-  esp_err_t err = ESP_OK;
+  dmx_err_t err = DMX_OK;
   uint32_t packet_size = 0;
   if (packet != NULL) {
-    packet->err = ESP_ERR_TIMEOUT;
+    packet->err = DMX_ERR_TIMEOUT;
     packet->sc = -1;
     packet->size = 0;
     packet->is_rdm = false;
@@ -1251,18 +1242,17 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   return size;
 }
 
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(dmx_sniffer_pin_is_valid(intr_pin), ESP_ERR_INVALID_ARG,
-            "intr_pin error");
-  DMX_CHECK(!dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
+bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_sniffer_pin_is_valid(intr_pin), false, "intr_pin error");
+  DMX_CHECK(!dmx_sniffer_is_enabled(dmx_num), false,
             "sniffer is already enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Allocate the sniffer queue
   driver->metadata_queue = xQueueCreate(1, sizeof(dmx_metadata_t));
-  DMX_CHECK(driver->metadata_queue != NULL, ESP_ERR_NO_MEM,
+  DMX_CHECK(driver->metadata_queue != NULL, false,
             "DMX sniffer queue malloc error");
 
   // Set sniffer default values
@@ -1274,13 +1264,12 @@ esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
       dmx_gpio_init(dmx_num, dmx_gpio_isr, driver, intr_pin);
   dmx_context[dmx_num].gpio = gpio;
 
-  return ESP_OK;
+  return true;
 }
 
-esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
-            "sniffer is not enabled");
+bool dmx_sniffer_disable(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), false, "sniffer is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -1292,5 +1281,5 @@ esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
   vQueueDelete(driver->metadata_queue);
   driver->metadata_queue = NULL;
 
-  return ESP_OK;
+  return true;
 }

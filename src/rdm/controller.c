@@ -172,7 +172,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
               rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
           } while (ack.type == RDM_RESPONSE_TYPE_ACK);
-          devices_remaining = (ack.err && ack.err != ESP_ERR_TIMEOUT);
+          devices_remaining = (ack.err && ack.err != DMX_ERR_TIMEOUT);
         }
 #endif
 

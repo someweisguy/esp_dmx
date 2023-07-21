@@ -238,6 +238,20 @@ enum dmx_start_code_t {
 /** @brief DMX port type.*/
 typedef unsigned int dmx_port_t;
 
+/** @brief Type which indicates errors, or lack thereof, for DMX operations.*/
+typedef enum dmx_err_t {
+   /** @brief DMX error value indicating no error.*/
+  DMX_OK = 0,
+  /** @brief The DMX operation timed out.*/
+  DMX_ERR_TIMEOUT = ESP_ERR_TIMEOUT,
+  /** @brief The UART overflowed while reading DMX data.*/
+  DMX_ERR_UART_OVERFLOW = ESP_ERR_NOT_FINISHED,
+  /** @brief The UART received an improperly framed DMX slot.*/
+  DMX_ERR_IMPROPER_SLOT = ESP_ERR_INVALID_RESPONSE,
+  /** @brief Generic DMX error code indicating failure.*/
+  DMX_FAIL = -1
+} dmx_err_t;
+
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_t {
   size_t pd_size;
@@ -296,7 +310,7 @@ typedef struct dmx_metadata_t {
  * quickly and easily process and respond to DMX data.*/
 typedef struct dmx_packet_t {
   /** @brief Evaluates to true if an error occurred reading DMX data.*/
-  esp_err_t err;
+  dmx_err_t err;
   /** @brief Start code of the DMX packet.*/
   int sc;
   /** @brief The size of the received DMX packet in bytes.*/
