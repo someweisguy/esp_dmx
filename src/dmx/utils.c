@@ -375,7 +375,9 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   // Copy the user's variable to NVS if desired
   if (ret && nvs) {
     if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
-      // TODO: set boot-loader flag
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
   }
 

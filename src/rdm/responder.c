@@ -23,7 +23,9 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
     // Ignore this message if discovery is muted
     const uint8_t *is_muted = rdm_pd_find(dmx_num, RDM_PID_DISC_MUTE);
     if (is_muted == NULL) {
-      // TODO: set boot-loader flag
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      dmx_driver[dmx_num]->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       return RDM_RESPONSE_TYPE_NONE;
     } else if (*is_muted) {
       return RDM_RESPONSE_TYPE_NONE;
