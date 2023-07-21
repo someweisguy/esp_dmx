@@ -1096,7 +1096,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Block until the mutex can be taken
-  if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
+  if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
     return 0;
   }
 

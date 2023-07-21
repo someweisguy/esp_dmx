@@ -422,7 +422,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                                   header->cc == RDM_CC_DISC_COMMAND);
 
   // Block until the mutex can be taken
-  if (!xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY)) {
+  if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
     return 0;
   }
 

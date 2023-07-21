@@ -100,7 +100,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   int num_found = 0;
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
+  xSemaphoreTakeRecursive(driver->mux, 0);
 
   // Un-mute all devices
   header.dest_uid = RDM_UID_BROADCAST_ALL;
