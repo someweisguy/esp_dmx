@@ -1,9 +1,8 @@
 /**
  * @file struct.h
  * @author Mitch Weisbrod
- * @brief This file contains the definition for the DMX driver. It is intended
- * to be obfuscated from end-users, but may be included when forking this
- * library or adding new features.
+ * @brief This file contains the definition for the DMX driver. This file is not
+ * considered part of the API and should not be included by the user.
  */
 #pragma once
 

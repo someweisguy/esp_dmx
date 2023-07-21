@@ -3,7 +3,8 @@
  * @author Mitch Weisbrod
  * @brief This file is the GPIO Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the GPIO hardware.
- * GPIO is needed for the DMX sniffer.
+ * GPIO is needed for the DMX sniffer. This file is not considered part of the
+ * API and should not be included by the user.
  */
 #pragma once
 

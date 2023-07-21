@@ -4,7 +4,8 @@
  * @brief This file is the non-volatile storage (NVS) Hardware Abstraction Layer
  * (HAL) of esp_dmx. It contains low-level functions to perform tasks relating
  * to the NVS hardware. NVS is needed for various DMX and RDM parameters which
- * should not be reset upon power-cycling the microcontroller.
+ * should not be reset upon power-cycling the microcontroller. This file is not
+ * considered part of the API and should not be included by the user.
  */
 #pragma once
 

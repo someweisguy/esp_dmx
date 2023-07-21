@@ -5,7 +5,8 @@
  * contains low-level functions to perform tasks relating to the timer hardware.
  * The timer hardware is used for generating the timing for the DMX break and
  * mark-after-break. It is also used for RDM timing to ensure that proper packet
- * spacing is maintained on the RDM bus.
+ * spacing is maintained on the RDM bus. This file is not considered part of the
+ * API and should not be included by the user.
  */
 #pragma once
 
