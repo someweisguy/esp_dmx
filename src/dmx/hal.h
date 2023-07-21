@@ -40,18 +40,18 @@ extern "C" {
  * personality which has a footprint of one DMX address. The DMX address will
  * automatically be searched for in NVS and set to 1 if not found or if NVS is
  * disabled. */
-#define DMX_CONFIG_DEFAULT                                       \
-  (dmx_config_t) {                                               \
-    255,                              /*alloc_size*/             \
-        0,                            /*model_id*/               \
-        RDM_PRODUCT_CATEGORY_FIXTURE, /*product_category*/       \
-        ESP_DMX_VERSION_ID,           /*software_version_id*/    \
-        ESP_DMX_VERSION_LABEL,        /*software_version_label*/ \
-        1,                            /*current_personality*/    \
-        {{1, "Default Personality"}}, /*personalities*/          \
-        1,                            /*personality_count*/      \
-        0,                            /*dmx_start_address*/      \
-  }
+#define DMX_CONFIG_DEFAULT                                     \
+  ((dmx_config_t){                                             \
+      255,                          /*alloc_size*/             \
+      0,                            /*model_id*/               \
+      RDM_PRODUCT_CATEGORY_FIXTURE, /*product_category*/       \
+      ESP_DMX_VERSION_ID,           /*software_version_id*/    \
+      ESP_DMX_VERSION_LABEL,        /*software_version_label*/ \
+      1,                            /*current_personality*/    \
+      {{1, "Default Personality"}}, /*personalities*/          \
+      1,                            /*personality_count*/      \
+      0,                            /*dmx_start_address*/      \
+  })
 
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
 /** @brief This macro sets certain functions used within DMX interrupt handlers
