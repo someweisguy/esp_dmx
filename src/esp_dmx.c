@@ -418,10 +418,9 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
                           TickType_t wait_ticks) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG, "dmx_num error");
-  DMX_CHECK(metadata, ESP_ERR_INVALID_ARG, "metadata is null");
-  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
-            "sniffer is not enabled");
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(metadata, false, "metadata is null");
+  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), false, "sniffer is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
