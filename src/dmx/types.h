@@ -316,7 +316,7 @@ typedef struct dmx_packet_t {
   /** @brief The size of the received DMX packet in bytes.*/
   size_t size;
   /** @brief True if the received packet is RDM.*/
-  bool is_rdm;
+  uint16_t is_rdm;
 } dmx_packet_t;
 
 /** @brief DMX start address which indicates the device does not have a DMX
