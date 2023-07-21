@@ -20,7 +20,7 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Sub-devices](#sub-devices)
   - [Parameters](#parameters)
   - [Discovery](#discovery)
-  - [Response Types](#response-types)
+  - [Responses](#responses)
 - [Configuring the DMX Port](#configuring-the-dmx-port)
   - [Installing the Driver](#installing-the-driver)
   - [Setting Communication Pins](#setting-communication-pins)
@@ -43,9 +43,11 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Hardware Specifications](#hardware-specifications)
 - [To Do](#to-do)
 - [Appendix](#appendix)
+  - [Command Classes](#command-classes)
+  - [NACK Reason Codes](#nack-reason-codes)
   - [Parameter IDs](#parameter-ids)
   - [Product Categories](#product-categories)
-  - [NACK Reason Codes](#nack-reason-codes)
+  - [Response Types](#response-types)
 
 ## Library Installation
 
@@ -208,7 +210,7 @@ Some RDM devices act as proxy devices. A proxy device is any inline device that 
 
 Discovery should be performed periodically as discovered devices may be removed from the RDM network or new devices may be added. Before restarting the discovery algorithm, a `RDM_PID_DISC_UN_MUTE` request should be broadcast to all devices in order to detect if devices were removed from the RDM network.
 
-### Response Types
+### Responses
 
 Responding devices shall respond to requests only if the request was a non-broadcast request. Responding devices may respond to requests with the following response types:
 
@@ -829,6 +831,33 @@ For a list of planned features, see the [esp_dmx GitHub Projects](https://github
 
 ## Appendix
 
+### Command Classes
+
+The command class specifies the action of the RDM message. Responders shall always generate a response to `RDM_CC_GET_COMMAND` and `RDM_CC_SET_COMMAND` messages except when the destination UID of the message is a broadcast address. Responders shall not respond to commands sent using broadcast addressing, in order to prevent collisions.
+
+- `RDM_CC_DISC_COMMAND` The packet is an RDM discovery command.
+- `RDM_CC_DISC_COMMAND_RESPONSE` The packet is a response to an RDM discovery command.
+- `RDM_CC_GET_COMMAND` The packet is an RDM GET request.
+- `RDM_CC_GET_COMMAND_RESPONSE` The packet is a response to an RDM GET request.
+- `RDM_CC_SET_COMMAND` The packet is an RDM SET request.
+- `RDM_CC_SET_COMMAND_RESPONSE` The packet is a response to an RDM SET request.
+
+### NACK Reason Codes
+
+The NACK reason defines the reason that the responder is unable to comply with the request.
+
+- `RDM_NR_UNKNOWN_PID` The responder cannot comply with the request because the message is not implemented in the responder.
+- `RDM_NR_FORMAT_ERROR` The responder cannot interpret the request as the controller data was not formatted correctly.
+- `RDM_NR_HARDWARE_FAULT` The responder cannot comply due to an internal hardware fault.
+- `RDM_NR_PROXY_REJECT` Proxy is not the RDM line master and cannot comply with the message.
+- `RDM_NR_WRITE_PROTECT` Set command normally allowed but being blocked currently.
+- `RDM_NR_UNSUPPORTED_COMMAND_CLASS` Not valid for command class attempted. May be used where get allowed but set is not supported.
+- `RDM_NR_DATA_OUT_OF_RANGE` Value for given parameter out of allowable range or not supported.
+- `RDM_NR_BUFFER_FULL` Buffer or queue space currently has no free space to store data.
+- `RDM_NR_PACKET_SIZE_UNSUPPORTED` Incoming message exceeds buffer capacity.
+- `RDM_NR_SUB_DEVICE_OUT_OF_RANGE` Sub-device is out of range or unknown.
+- `RDM_NR_PROXY_BUFFER_FULL` The proxy buffer is full and cannot store any more queued message or status message responses.
+
 ### Parameter IDs
 
 The table below lists the Parameter IDs specified by the RDM standard. Parameters which support GET or SET are indicated accordingly. Parameters which are required are indicated in the "req" column. Parameters which are automatically placed in non-volatile storage are indicated in the "NVS" column. PIDs which are currently supported by this library are indicated in the "supported" column by the earliest version of this library which supported the PID. The "root" column indicates if a PID may be sent to the root sub-device of an RDM device. A "❕" indicates that a PID may only be sent to the root device. A "❌" indicates that a PID may not be sent to the root device.
@@ -907,18 +936,11 @@ Devices shall report a product category based on the product's primary function.
 - `RDM_PRODUCT_CATEGORY_TEST` The product is test equipment.
 - `RDM_PRODUCT_CATEGORY_OTHER` The product isn't described by any of the other product categories.
 
-### NACK Reason Codes
+### Response Types
 
-The NACK reason defines the reason that the responder is unable to comply with the request.
+Responding devices shall respond to requests only if the request was a non-broadcast request. Responding devices may respond to requests with the following response types:
 
-- `RDM_NR_UNKNOWN_PID` The responder cannot comply with the request because the message is not implemented in the responder.
-- `RDM_NR_FORMAT_ERROR` The responder cannot interpret the request as the controller data was not formatted correctly.
-- `RDM_NR_HARDWARE_FAULT` The responder cannot comply due to an internal hardware fault.
-- `RDM_NR_PROXY_REJECT` Proxy is not the RDM line master and cannot comply with the message.
-- `RDM_NR_WRITE_PROTECT` Set command normally allowed but being blocked currently.
-- `RDM_NR_UNSUPPORTED_COMMAND_CLASS` Not valid for command class attempted. May be used where get allowed but set is not supported.
-- `RDM_NR_DATA_OUT_OF_RANGE` Value for given parameter out of allowable range or not supported.
-- `RDM_NR_BUFFER_FULL` Buffer or queue space currently has no free space to store data.
-- `RDM_NR_PACKET_SIZE_UNSUPPORTED` Incoming message exceeds buffer capacity.
-- `RDM_NR_SUB_DEVICE_OUT_OF_RANGE` Sub-device is out of range or unknown.
-- `RDM_NR_PROXY_BUFFER_FULL` The proxy buffer is full and cannot store any more queued message or status message responses.
+- `RDM_RESPONSE_TYPE_ACK` indicates that the responder has correctly received the controller message and is acting upon the request.
+- `RDM_RESPONSE_TYPE_ACK_OVERFLOW` indicates that the responder has correctly received the controller message and is acting upon the request, but there is more response data available than will fit in a single response packet. To receive the remaining information, controllers are able to send repeated requests to the same PID until the remaining information can fit in a single message.
+- `RDM_RESPONSE_TYPE_ACK_TIMER` indicates that the responder is unable to supply the requested GET information or SET confirmation within the required response time. When sending this response, responding devices include an estimated response time that must elapse before the responder can provide the required information.
+- `RDM_RESPONSE_TYPE_NACK_REASON` indicates that the responder is unable to reply with the requested GET information or unable to process the specified SET command. Responding devices must include a NACK reason code in their response. NACK reason codes are enumerated in the [appendix](#nack-reason-codes).

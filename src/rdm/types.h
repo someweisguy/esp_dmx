@@ -48,13 +48,13 @@ typedef enum rdm_cc_t {
   RDM_CC_DISC_COMMAND = 0x10,
   /** @brief The packet is a response to an RDM discovery command.*/
   RDM_CC_DISC_COMMAND_RESPONSE = 0x11,
-  /** @brief The packet is an RDM get request.*/
+  /** @brief The packet is an RDM GET request.*/
   RDM_CC_GET_COMMAND = 0x20,
-  /** @brief The packet is a response to an RDM get request.*/
+  /** @brief The packet is a response to an RDM GET request.*/
   RDM_CC_GET_COMMAND_RESPONSE = 0x21,
-  /** @brief The packet is an RDM set request.*/
+  /** @brief The packet is an RDM SET request.*/
   RDM_CC_SET_COMMAND = 0x30,
-  /** @brief The packet is a response to an RDM set request.*/
+  /** @brief The packet is a response to an RDM SET request.*/
   RDM_CC_SET_COMMAND_RESPONSE = 0x31,
 } rdm_cc_t;
 
