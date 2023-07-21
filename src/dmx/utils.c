@@ -427,7 +427,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Block until the driver is done sending
-  if (!dmx_wait_sent(dmx_num, portMAX_DELAY)) {
+  if (!dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30))) {
     xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
