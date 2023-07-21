@@ -52,8 +52,8 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
   if (err) {
     return NULL;
   }
-  timer_isr_callback_add(driver->timer_group, driver->timer_idx, isr_handle,
-                         isr_context, intr_flags);
+  timer_isr_callback_add(timer->timer_group, timer->timer_idx, isr_handle,
+                         isr_context, isr_flags);
 #endif
   timer->is_running = false;
 
