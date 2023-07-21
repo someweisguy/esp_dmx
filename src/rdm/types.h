@@ -101,7 +101,6 @@ typedef enum rdm_pid_t {
   RDM_PID_COMMS_STATUS = 0x0015,
 
   // Category: Status Collection
-  // TODO: Add rdm_status_t enum
 
   RDM_PID_QUEUED_MESSAGE = 0x0020,
   RDM_PID_STATUS_MESSAGE = 0x0030,
