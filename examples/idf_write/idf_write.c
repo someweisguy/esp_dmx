@@ -27,7 +27,7 @@ static const char *TAG = "main";
 static uint8_t data[DMX_PACKET_SIZE] = {};  // Buffer to store DMX data
 
 void app_main() {
-  const dmx_port_t dmx_num = DMX_NUM_2;
+  const dmx_port_t dmx_num = DMX_NUM_1;
 
   // Set communication pins and install the driver
   dmx_config_t config = DMX_CONFIG_DEFAULT;

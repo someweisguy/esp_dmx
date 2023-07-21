@@ -39,7 +39,7 @@ void custom_rdm_identify_cb(dmx_port_t dmx_num, const rdm_header_t *header,
 }
 
 void app_main() {
-  const dmx_port_t dmx_num = DMX_NUM_2;
+  const dmx_port_t dmx_num = DMX_NUM_1;
   dmx_config_t config = DMX_CONFIG_DEFAULT;
   dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
   dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
