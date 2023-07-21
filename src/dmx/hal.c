@@ -642,8 +642,9 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
 uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
 
+  uint32_t baud_rate;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const uint32_t baud_rate = dmx_uart_get_baud_rate(dmx_context[dmx_num].uart);
+  baud_rate = dmx_uart_get_baud_rate(dmx_context[dmx_num].uart);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return baud_rate;
