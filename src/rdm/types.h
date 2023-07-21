@@ -69,40 +69,64 @@ typedef enum rdm_pid_t {
 
   /** @brief Discovery Unique Branch. This parameter is used for the device
      discovery process. @note Does not support GET nor SET. Must only be sent to
-     RDM_UID_BROADCAST_ALL. Must only be sent to RDM_SUB_DEVICE_ROOT.*/
+     RDM_UID_BROADCAST_ALL. Must only be sent to RDM_SUB_DEVICE_ROOT. This
+     parameter is required.*/
   RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,
   /** @brief A responder port shall set its Mute flag when it receives this
      message containing its UID, or a broadcast address. @note Does not support
-     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT.*/
+     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT. This parameter is 
+     required.*/
   RDM_PID_DISC_MUTE = 0x0002,
   /** @brief A responder port shall clear its Mute flag when it receives this
      message containing its UID, or a broadcast address. @note Does not support
-     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT.*/
+     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT. This parameter is 
+     required.*/
   RDM_PID_DISC_UN_MUTE = 0x0003,
 
+  /** @brief This parameter is used to retrieve the UIDs from a device
+     identified as a proxy during discovery. The response to this parameter
+     contains a packed list of 48-bit UIDs for all devices represented by the
+     proxy. @note Supports GET.*/
   RDM_PID_PROXIED_DEVICES = 0x0010,
+  /** @brief This parameter is used to identify the number of devices being
+     represented by a proxy and whether the list of represented device UIDs has
+     changed. If the list change flag is set then the controller should GET
+     RDM_PID_PROXIED_DEVICES. The device shall automatically clear the list
+     change flag after all the proxied UID's have been retrieved using the GET
+     RDM_PID_PROXIED_DEVICES message. @note Supports GET.*/
   RDM_PID_PROXIED_DEVICE_COUNT = 0x0011,
+  /** @brief The RDM_PID_COMMS_STATUS parameter is used to collect information
+     that may be useful in analyzing the integrity of the communication
+     system. @note Supports GET and SET.*/
   RDM_PID_COMMS_STATUS = 0x0015,
 
   // Category: Status Collection
+  // TODO: Add rdm_status_t enum
 
-  RDM_PID_QUEUED_MESSAGE = 0x0020,  // TODO: See rdm_status_t
-  RDM_PID_STATUS_MESSAGE = 0x0030,  // TODO: See rdm_status_t
+  RDM_PID_QUEUED_MESSAGE = 0x0020,
+  RDM_PID_STATUS_MESSAGE = 0x0030,
   RDM_PID_STATUS_ID_DESCRIPTION = 0x0031,
   RDM_PID_CLEAR_STATUS_ID = 0x0032,
-  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,  // TODO: See rdm_status_t
+  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,
 
   // Category: RDM Information
 
   /** @brief This parameter is used to retrieve a list of supported PIDs. @note
-     Supports GET.*/
+     Supports GET. This parameter is required if supporting parameters beyond
+     the minimum required set.*/
   RDM_PID_SUPPORTED_PARAMETERS = 0x0050,
-  RDM_PID_PARAMETER_DESCRIPTION = 0x0051,  // TODO: req'd if using manufacturer specific PIDs
+  /** @brief This parameter is used to retrieve the definition of some
+    manufacturer-specific PIDs. The purpose of this parameter is to allow a
+    controller to retrieve enough information about the manufacturerspecific PID
+    to generate GET and SET commands. @note Supports GET. This parameter is
+    required if using manufacturer-specific PIDs.*/
+  RDM_PID_PARAMETER_DESCRIPTION = 0x0051,
 
   // Category: Product Information
 
   /** @brief This parameter is used to retrieve a variety of information about
-     the device that is normally required by a controller. @note Supports GET.*/
+     the device that is normally required by a controller. @note Supports GET. 
+     This parameter is required.*/
   RDM_PID_DEVICE_INFO = 0x0060,
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
   RDM_PID_DEVICE_MODEL_DESCRIPTION = 0x0080,
@@ -113,7 +137,8 @@ typedef enum rdm_pid_t {
   RDM_PID_LANGUAGE = 0x00b0,
   /** @brief This parameter is used to get a descriptive ASCII text label for
      the device's operating software version. The descriptive text returned by
-     this parameter is intended for display to the user. @note Supports GET.*/
+     this parameter is intended for display to the user. @note Supports GET.
+     This parameter is required.*/
   RDM_PID_SOFTWARE_VERSION_LABEL = 0x00c0,
   RDM_PID_BOOT_SOFTWARE_VERSION_ID = 0x00c1,
   RDM_PID_BOOT_SOFTWARE_VERSION_LABEL = 0x00c2,
@@ -122,7 +147,8 @@ typedef enum rdm_pid_t {
   RDM_PID_DMX_PERSONALITY = 0x00e0,
   RDM_PID_DMX_PERSONALITY_DESCRIPTION = 0x00e1,
   /** @brief This parameter is used to set or get the DMX512 start address.
-     @note Supports GET and SET.*/
+     @note Supports GET and SET. This parameter is required if the device uses a
+     DMX slot.*/
   RDM_PID_DMX_START_ADDRESS = 0x00f0,
   RDM_PID_SLOT_INFO = 0x0120,
   RDM_PID_SLOT_DESCRIPTION = 0x0121,
@@ -157,7 +183,8 @@ typedef enum rdm_pid_t {
   // Category: Control (0x10xx)
 
   /** @brief This parameter is used for the user to physically identify the
-     device represented by the UID. @note Supports GET and SET.*/
+     device represented by the UID. @note Supports GET and SET. This parameter 
+     is required.*/
   RDM_PID_IDENTIFY_DEVICE = 0x1000,
   RDM_PID_RESET_DEVICE = 0x1001,
   RDM_PID_POWER_STATE = 0x1010,        // TODO: See rdm_power_state_t
