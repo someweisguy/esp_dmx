@@ -39,7 +39,7 @@ void app_main() {
 
   // Install the default GPIO ISR and enable the sniffer
   ESP_ERROR_CHECK(gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS));
-  ESP_ERROR_CHECK(dmx_sniffer_enable(dmx_num, SN_PIN));
+  dmx_sniffer_enable(dmx_num, SN_PIN);
 
   dmx_metadata_t metadata;
   bool is_connected = false;
