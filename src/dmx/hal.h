@@ -17,31 +17,40 @@ extern "C" {
 #endif
 
 /** @brief The major version number of this library. (X.x.x)*/
-#define ESP_DMX_VERSION_MAJOR 3
+#define ESP_DMX_VERSION_MAJOR (3)
 
 /** @brief The minor version number of this library. (x.X.x)*/
-#define ESP_DMX_VERSION_MINOR 0
+#define ESP_DMX_VERSION_MINOR (0)
 
 /** @brief The patch version number of this library. (x.x.X)*/
-#define ESP_DMX_VERSION_PATCH 3
+#define ESP_DMX_VERSION_PATCH (3)
+
+/** @brief The version of this library expressed as a 32-bit integer value.*/
+#define ESP_DMX_VERSION_ID                                        \
+  ((ESP_DMX_VERSION_MAJOR << 16) | (ESP_DMX_VERSION_MINOR << 8) | \
+   ESP_DMX_VERSION_PATCH)
+
+/** @brief The version of this library expressed as a string value.*/
+#define ESP_DMX_VERSION_LABEL                                 \
+  "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING( \
+      ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH)
 
 /** @brief The default configuration for the DMX driver. Passing this
  * configuration to dmx_driver_install() installs the driver with one DMX
  * personality which has a footprint of one DMX address. The DMX address will
  * automatically be searched for in NVS and set to 1 if not found or if NVS is
  * disabled. */
-// FIXME: Issue #78
-#define DMX_CONFIG_DEFAULT                                                    \
-  (dmx_config_t) {                                                            \
-    .pd_size = 255, .model_id = 0,                                            \
-    .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,                         \
-    .software_version_id = ESP_IDF_VERSION_VAL(                               \
-        ESP_DMX_VERSION_MAJOR, ESP_DMX_VERSION_MINOR, ESP_DMX_VERSION_PATCH), \
-    .software_version_label =                                                 \
-        "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING(           \
-            ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH),      \
-    .current_personality = 1, .personalities = {{1, "Default Personality"}},  \
-    .personality_count = 1, .dmx_start_address = 0                            \
+#define DMX_CONFIG_DEFAULT                                       \
+  (dmx_config_t) {                                               \
+    255,                              /*alloc_size*/             \
+        0,                            /*model_id*/               \
+        RDM_PRODUCT_CATEGORY_FIXTURE, /*product_category*/       \
+        ESP_DMX_VERSION_ID,           /*software_version_id*/    \
+        ESP_DMX_VERSION_LABEL,        /*software_version_label*/ \
+        1,                            /*current_personality*/    \
+        {{1, "Default Personality"}}, /*personalities*/          \
+        1,                            /*personality_count*/      \
+        0,                            /*dmx_start_address*/      \
   }
 
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
