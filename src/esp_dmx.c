@@ -10,12 +10,13 @@ bool dmx_driver_is_installed(dmx_port_t dmx_num) {
 }
 
 bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
-  bool is_enabled = false;
-
+  bool is_enabled;
   if (dmx_driver_is_installed(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     is_enabled = dmx_driver[dmx_num]->flags & DMX_FLAGS_DRIVER_IS_ENABLED;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  } else {
+    is_enabled = false;
   }
 
   return is_enabled;
@@ -25,8 +26,9 @@ uint32_t dmx_get_break_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  uint32_t break_len;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const uint32_t break_len = dmx_driver[dmx_num]->break_len;
+  break_len = dmx_driver[dmx_num]->break_len;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return break_len;
@@ -72,8 +74,9 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  uint32_t mab_len;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const uint32_t mab_len = dmx_driver[dmx_num]->mab_len;
+  mab_len = dmx_driver[dmx_num]->mab_len;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return mab_len;
@@ -158,8 +161,10 @@ size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {
             0, "personality_num is invalid");
 
   --personality_num;  // Personalities are indexed starting at 1
+
+  size_t fp;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  size_t fp = dmx_driver[dmx_num]->personalities[personality_num].footprint;
+  fp = dmx_driver[dmx_num]->personalities[personality_num].footprint;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return fp;
