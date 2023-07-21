@@ -282,7 +282,9 @@ typedef struct dmx_config_t {
      first element is the footprint and description for the second personality,
      and so on.*/
   struct {
+    /** @brief The footprint of the personality in the personality array.*/
     uint16_t footprint;
+    /** @brief A description of the personality in the personality array.*/
     const char *description;
   } personalities[DMX_PERSONALITY_COUNT_MAX];
   /** @brief The number of personalities supported by the device. The

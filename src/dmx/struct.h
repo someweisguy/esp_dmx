@@ -64,7 +64,7 @@ typedef struct dmx_driver_t {
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 
 #ifdef DMX_USE_SPINLOCK
-  dmx_spinlock_t spinlock;
+  dmx_spinlock_t spinlock;  // The spinlock used for critical sections.
 #endif
 
   // Data buffer
@@ -74,8 +74,8 @@ typedef struct dmx_driver_t {
   int16_t rx_size;  // The expected size of the incoming packet.
 
   // Driver state
-  uint8_t flags;
-  uint8_t rdm_type;
+  uint8_t flags;     // Flags which indicate the current state of the driver.
+  uint8_t rdm_type;  // Flags which indicate the RDM type of the most recent packet.
   uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
@@ -93,15 +93,15 @@ typedef struct dmx_driver_t {
   size_t pd_head;  // The amount of memory currently used for parameters.
 
   // RDM responder configuration
-  size_t num_rdm_cbs;
+  size_t num_rdm_cbs;            // The number of RDM callbacks registered.
   struct rdm_cb_table_t {
-    rdm_pid_description_t desc;
-    void *param;
-    const char *param_str;
-    rdm_driver_cb_t driver_cb;
-    rdm_responder_cb_t user_cb;
-    void *context;
-  } rdm_cbs[RDM_RESPONDER_PIDS_MAX];
+    rdm_pid_description_t desc;  // The parameter description.
+    void *param;                 // A pointer to the parameter data.
+    const char *param_str;       // A parameter string describing the data.
+    rdm_driver_cb_t driver_cb;   // The driver-side callback function.
+    rdm_responder_cb_t user_cb;  // The user-side callback function.
+    void *context;               // The contexted for the user-side callback.
+  } rdm_cbs[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM callbacks.
 
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
