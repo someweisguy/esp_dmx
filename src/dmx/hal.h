@@ -108,7 +108,7 @@ extern "C" {
  * @retval ESP_ERR_INVALID_ARG if there is an argument error.
  * @retval ESP_ERR_NO_MEM if there is not enough memory.
  * @retval ESP_ERR_INVALID_STATE if the driver already installed.
- * */
+ */
 esp_err_t dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
                              int intr_flags);
 
@@ -166,7 +166,7 @@ esp_err_t dmx_driver_enable(dmx_port_t dmx_num);
  * @param rts_pin The pin to which the RTS signal will be assigned.
  * @retval ESP_OK on success.
  * @retval ESP_ERR_INVALID_ARG if there was an argument error.
- * */
+ */
 esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin);
 
 /**
