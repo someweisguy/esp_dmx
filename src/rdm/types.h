@@ -74,30 +74,32 @@ typedef enum rdm_pid_t {
   RDM_PID_DISC_UNIQUE_BRANCH = 0x0001,
   /** @brief A responder port shall set its Mute flag when it receives this
      message containing its UID, or a broadcast address. @note Does not support
-     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT. This parameter is 
+     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT. This parameter is
      required.*/
   RDM_PID_DISC_MUTE = 0x0002,
   /** @brief A responder port shall clear its Mute flag when it receives this
      message containing its UID, or a broadcast address. @note Does not support
-     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT. This parameter is 
+     GET nor SET. Must only be sent to RDM_SUB_DEVICE_ROOT. This parameter is
      required.*/
   RDM_PID_DISC_UN_MUTE = 0x0003,
 
   /** @brief This parameter is used to retrieve the UIDs from a device
      identified as a proxy during discovery. The response to this parameter
      contains a packed list of 48-bit UIDs for all devices represented by the
-     proxy. @note Supports GET.*/
+     proxy. @note Supports GET. Must only be sent to RDM_SUB_DEVICE_ROOT.*/
   RDM_PID_PROXIED_DEVICES = 0x0010,
   /** @brief This parameter is used to identify the number of devices being
      represented by a proxy and whether the list of represented device UIDs has
      changed. If the list change flag is set then the controller should GET
      RDM_PID_PROXIED_DEVICES. The device shall automatically clear the list
      change flag after all the proxied UID's have been retrieved using the GET
-     RDM_PID_PROXIED_DEVICES message. @note Supports GET.*/
+     RDM_PID_PROXIED_DEVICES message. @note Supports GET. Must only be sent to
+     RDM_SUB_DEVICE_ROOT.*/
   RDM_PID_PROXIED_DEVICE_COUNT = 0x0011,
   /** @brief The RDM_PID_COMMS_STATUS parameter is used to collect information
      that may be useful in analyzing the integrity of the communication
-     system. @note Supports GET and SET.*/
+     system. @note Supports GET and SET. Must only be sent to
+     RDM_SUB_DEVICE_ROOT.*/
   RDM_PID_COMMS_STATUS = 0x0015,
 
   // Category: Status Collection
@@ -124,7 +126,7 @@ typedef enum rdm_pid_t {
   // Category: Product Information
 
   /** @brief This parameter is used to retrieve a variety of information about
-     the device that is normally required by a controller. @note Supports GET. 
+     the device that is normally required by a controller. @note Supports GET.
      This parameter is required.*/
   RDM_PID_DEVICE_INFO = 0x0060,
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
@@ -182,7 +184,7 @@ typedef enum rdm_pid_t {
   // Category: Control (0x10xx)
 
   /** @brief This parameter is used for the user to physically identify the
-     device represented by the UID. @note Supports GET and SET. This parameter 
+     device represented by the UID. @note Supports GET and SET. This parameter
      is required.*/
   RDM_PID_IDENTIFY_DEVICE = 0x1000,
   RDM_PID_RESET_DEVICE = 0x1001,
