@@ -93,7 +93,7 @@ typedef struct dmx_driver_t {
   size_t pd_head;  // The amount of memory currently used for parameters.
 
   // RDM responder configuration
-  uint16_t num_rdm_cbs;
+  size_t num_rdm_cbs;
   struct rdm_cb_table_t {
     rdm_pid_description_t desc;
     void *param;
