@@ -3,32 +3,27 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "dmx/caps.h"
-#include "dmx/driver.h"
+#include "dmx/config.h"
 #include "dmx/hal.h"
+#include "dmx/nvs.h"
+#include "dmx/struct.h"
 #include "endian.h"
 #include "esp_dmx.h"
 #include "esp_log.h"
-#include "nvs_flash.h"
 #include "rdm/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"
 #endif
 
-#ifdef CONFIG_DMX_ISR_IN_IRAM
-#define DMX_ISR_ATTR IRAM_ATTR
+#ifdef DMX_USE_SPINLOCK
+#define RDM_SPINLOCK (&rdm_spinlock)
+static dmx_spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 #else
-#define DMX_ISR_ATTR
+#define RDM_SPINLOCK
 #endif
 
-static spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static rdm_uid_t rdm_binding_uid = {};
-
-static const char *TAG = "rdm_utils";
-
-extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-extern spinlock_t dmx_spinlock[DMX_NUM_MAX];
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);
@@ -48,7 +43,6 @@ void *rdm_uidmove(void *destination, const void *source) {
 
 void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
-  taskENTER_CRITICAL(&rdm_spinlock);
   if (rdm_uid_is_null(&rdm_binding_uid)) {
     uint32_t dev_id;
 #if RDM_UID_DEVICE_ID == 0xffffffff
@@ -58,10 +52,11 @@ void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
 #else
     dev_id = RDM_UID_DEVICE_UID;
 #endif
+    taskENTER_CRITICAL(RDM_SPINLOCK);
     rdm_binding_uid.man_id = RDM_UID_MANUFACTURER_ID;
     rdm_binding_uid.dev_id = dev_id;
+    taskEXIT_CRITICAL(RDM_SPINLOCK);
   }
-  taskEXIT_CRITICAL(&rdm_spinlock);
 
   // Return early if there is an argument error
   if (dmx_num >= DMX_NUM_MAX || uid == NULL) {
@@ -241,16 +236,15 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
     return NULL;
   }
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *ret = NULL;
-  taskENTER_CRITICAL(spinlock);
-  if (driver->alloc_head + size <= driver->alloc_size) {
-    ret = &(driver->alloc_data[driver->alloc_head]);
-    driver->alloc_head += size;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->pd_head + size <= driver->pd_size) {
+    ret = driver->pd + driver->pd_head;
+    driver->pd_head += size;
   }
-  taskEXIT_CRITICAL(spinlock);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return ret;
 }
@@ -259,166 +253,19 @@ void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *ret = NULL;
-  taskENTER_CRITICAL(spinlock);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       ret = driver->rdm_cbs[i].param;
       break;
     }
   }
-  taskEXIT_CRITICAL(spinlock);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return ret;
-}
-
-esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                              void *param, size_t *size) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(param != NULL);
-  assert(size != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  if (*size == 0) {
-    return ESP_OK;
-  }
-
-  // Get the NVS namespace and key value
-  char namespace[] = "esp_dmx?";
-  namespace[sizeof(namespace) - 2] = dmx_num + '0';
-  char key[5];
-  itoa((uint16_t)pid, key, 16);
-
-  nvs_handle_t nvs;
-  esp_err_t err = nvs_open(namespace, NVS_READONLY, &nvs);
-  if (!err) {
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
-    // Track which drivers are currently enabled and disable those which are
-    bool driver_is_enabled[DMX_NUM_MAX];
-    for (int i = 0; i < DMX_NUM_MAX; ++i) {
-      driver_is_enabled[i] = dmx_driver_is_enabled(i);
-      if (dmx_driver_is_installed(i)) {
-        dmx_driver_disable(i);
-      }
-    }
-#endif
-
-    // Read the parameter from NVS depending on its type
-    switch (ds) {
-      case RDM_DS_ASCII:
-        err = nvs_get_str(nvs, key, param, size);
-        break;
-      case RDM_DS_UNSIGNED_BYTE:
-        err = nvs_get_u8(nvs, key, param);
-        break;
-      case RDM_DS_SIGNED_BYTE:
-        err = nvs_get_i8(nvs, key, param);
-        break;
-      case RDM_DS_UNSIGNED_WORD:
-        err = nvs_get_u16(nvs, key, param);
-        break;
-      case RDM_DS_SIGNED_WORD:
-        err = nvs_get_i16(nvs, key, param);
-        break;
-      case RDM_DS_UNSIGNED_DWORD:
-        err = nvs_get_u32(nvs, key, param);
-        break;
-      case RDM_DS_SIGNED_DWORD:
-        err = nvs_get_i32(nvs, key, param);
-        break;
-      default:
-        err = nvs_get_blob(nvs, key, param, size);
-    }
-
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
-    for (int i = 0; i < DMX_NUM_MAX; ++i) {
-      if (driver_is_enabled[i]) {
-        dmx_driver_enable(i);
-      }
-    }
-#endif
-
-    nvs_close(nvs);
-  }
-
-  return err;
-}
-
-esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                            const void *param, size_t size) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(param != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  if (size == 0) {
-    return ESP_OK;
-  }
-
-  // Get the NVS namespace and key value
-  char namespace[] = "esp_dmx?";
-  namespace[sizeof(namespace) - 2] = dmx_num + '0';
-  char key[5];
-  itoa((uint16_t)pid, key, 16);
-
-  nvs_handle_t nvs;
-  esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs);
-  if (!err) {
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
-    // Track which drivers are currently enabled and disable those which are
-    bool driver_is_enabled[DMX_NUM_MAX];
-    for (int i = 0; i < DMX_NUM_MAX; ++i) {
-      driver_is_enabled[i] = dmx_driver_is_enabled(i);
-      if (dmx_driver_is_installed(i)) {
-        dmx_driver_disable(i);
-      }
-    }
-#endif
-
-    // Write the parameter to NVS depending on its type
-    switch (ds) {
-      case RDM_DS_ASCII:
-        err = nvs_set_str(nvs, key, param);
-        break;
-      case RDM_DS_UNSIGNED_BYTE:
-        err = nvs_set_u8(nvs, key, *(uint8_t *)param);
-        break;
-      case RDM_DS_SIGNED_BYTE:
-        err = nvs_set_i8(nvs, key, *(int8_t *)param);
-        break;
-      case RDM_DS_UNSIGNED_WORD:
-        err = nvs_set_u16(nvs, key, *(uint16_t *)param);
-        break;
-      case RDM_DS_SIGNED_WORD:
-        err = nvs_set_i16(nvs, key, *(int16_t *)param);
-        break;
-      case RDM_DS_UNSIGNED_DWORD:
-        err = nvs_set_u32(nvs, key, *(uint32_t *)param);
-        break;
-      case RDM_DS_SIGNED_DWORD:
-        err = nvs_set_i32(nvs, key, *(int32_t *)param);
-        break;
-      default:
-        err = nvs_set_blob(nvs, key, param, size);
-    }
-    if (!err) {
-      err = nvs_commit(nvs);
-    }
-
-#if !defined(CONFIG_DMX_ISR_IN_IRAM) && ESP_IDF_VERSION_MAJOR == 5
-    for (int i = 0; i < DMX_NUM_MAX; ++i) {
-      if (driver_is_enabled[i]) {
-        dmx_driver_enable(i);
-      }
-    }
-#endif
-
-    nvs_close(nvs);
-  }
-
-  return err;
 }
 
 bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -465,12 +312,11 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
 bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
                        size_t *size) {
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *pd = NULL;
   const rdm_pid_description_t *desc;
-  taskENTER_CRITICAL(spinlock);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
@@ -490,20 +336,19 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
       memcpy(param, pd, *size);
     }
   }
-  taskEXIT_CRITICAL(spinlock);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return (pd != NULL);
 }
 
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
                        size_t size, bool nvs) {
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   bool ret;
   void *pd = NULL;
   const rdm_pid_description_t *desc = NULL;
-  taskENTER_CRITICAL(spinlock);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
@@ -525,13 +370,11 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   } else {
     ret = false;
   }
-  taskEXIT_CRITICAL(spinlock);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Copy the user's variable to NVS if desired
   if (ret && nvs) {
-    esp_err_t err =
-        rdm_pd_set_to_nvs(dmx_num, pid, desc->data_type, param, size);
-    if (err) {
+    if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
       // TODO: set boot-loader flag
     }
   }
@@ -557,7 +400,6 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   assert(pdl != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Update the optional components of the header to allowed values
@@ -569,9 +411,9 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Set header values that the user cannot set themselves
-  taskENTER_CRITICAL(spinlock);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   header->tn = driver->tn;
-  taskEXIT_CRITICAL(spinlock);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   header->message_count = 0;
 
   // Determine if a response is expected
@@ -667,7 +509,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     // Get and report the received NACK reason
     decoded = bswap16(*(uint16_t *)pd_out);
   } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-    ESP_LOGW(TAG, "RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");
+    DMX_WARN("RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported."); // TODO
     decoded = 0;
   } else {
     // Do nothing when response_type is RDM_RESPONSE_TYPE_ACK

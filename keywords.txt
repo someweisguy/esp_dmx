@@ -5,49 +5,39 @@
 # Constants              (LITERAL1)
 #####################################
 
-# dmx/agent.h
+# dmx/config.h is not public API.
+
+# dmx/hal.h
 ESP_DMX_VERSION_MAJOR	LITERAL1
 ESP_DMX_VERSION_MINOR	LITERAL1
 ESP_DMX_VERSION_PATCH	LITERAL1
+ESP_DMX_VERSION_ID	LITERAL1
+ESP_DMX_VERSION_LABEL	LITERAL1
 DMX_CONFIG_DEFAULT	LITERAL1
+DMX_SNIFFER_INTR_FLAGS_DEFAULT	LITERAL1
 DMX_INTR_FLAGS_DEFAULT	LITERAL1
 dmx_driver_install	KEYWORD2
 dmx_driver_delete	KEYWORD2
-dmx_driver_is_installed	KEYWORD2
 dmx_driver_disable	KEYWORD2
 dmx_driver_enable	KEYWORD2
-dmx_driver_is_enabled	KEYWORD2
 dmx_set_pin	KEYWORD2
 dmx_set_baud_rate	KEYWORD2
 dmx_get_baud_rate	KEYWORD2
-dmx_set_break_len	KEYWORD2
-dmx_get_break_len	KEYWORD2
-dmx_set_mab_len	KEYWORD2
-dmx_get_mab_len	KEYWORD2
-dmx_get_current_personality	KEYWORD2
-dmx_set_current_personality	KEYWORD2
-dmx_get_personality_count	KEYWORD2
-dmx_get_footprint	KEYWORD2
-dmx_get_dmx_start_address	KEYWORD2
 dmx_set_dmx_start_address	KEYWORD2
-dmx_get_sub_device_count	KEYWORD2
-dmx_get_sensor_count	KEYWORD2
-
-# dmx/caps.h
-DMX_NUM_MAX	LITERAL1
-DMX_PERSONALITIES_MAX	LITERAL1
-RDM_UID_MANUFACTURER_ID	LITERAL1
-RDM_UID_DEVICE_ID	LITERAL1
-RDM_RESPONDER_PIDS_MAX	LITERAL1
-
-# dmx/sniffer.h
-DMX_SNIFFER_INTR_FLAGS_DEFAULT	LITERAL1
+dmx_write_offset	KEYWORD2
+dmx_receive	KEYWORD2
+dmx_send	KEYWORD2
 dmx_sniffer_enable	KEYWORD2
 dmx_sniffer_disable	KEYWORD2
-dmx_sniffer_is_enabled	KEYWORD2
-dmx_sniffer_get_data	KEYWORD2
+
+# dmx/nvs.h is not public API.
+
+# dmx/struct.h is not public API.
+
+# dmx/timer.h is not public API.
 
 # dmx/types.h
+DMX_PERSONALITY_COUNT_MAX	LITERAL1
 dmx_start_code_is_valid	KEYWORD2
 dmx_baud_rate_is_valid	KEYWORD2
 dmx_break_len_is_valid	KEYWORD2
@@ -92,6 +82,10 @@ dmx_config_t	KEYWORD3
 dmx_metadata_t	KEYWORD3
 dmx_packet_t	KEYWORD3
 
+# dmx/uart.h is not public API.
+
+# dmx/utils.h is not public API.
+
 # rdm/controller.h
 rdm_disc_cb_t	KEYWORD1
 rdm_send_disc_unique_branch	KEYWORD2
@@ -106,8 +100,16 @@ rdm_send_set_identify_device	KEYWORD2
 rdm_send_get_dmx_start_address	KEYWORD2
 rdm_send_set_dmx_start_address	KEYWORD2
 
+# rdm/parameters.h
+rdm_get_device_info	KEYWORD2
+rdm_get_software_version_label	KEYWORD2
+rdm_get_identify_device	KEYWORD2
+rdm_set_identify_device	KEYWORD2
+rdm_get_dmx_start_address	KEYWORD2
+rdm_set_dmx_start_address	KEYWORD2
+
 # rdm/responder.h
-rdm_identify_cb_t	KEYWORD1
+rdm_responder_cb_t	KEYWORD1
 rdm_register_disc_unique_branch	KEYWORD2
 rdm_register_disc_mute	KEYWORD2
 rdm_register_disc_un_mute	KEYWORD2
@@ -244,37 +246,26 @@ rdm_pid_description_t	KEYWORD3
 RDM_UID_BROADCAST_ALL	LITERAL1
 RDM_UID_MAX	LITERAL1
 
-# rdm/utils.h
-rdm_response_cb_t	KEYWORD1
-uidcpy	KEYWORD2
-uidmove	KEYWORD2
-uid_get	KEYWORD2
-uid_is_eq	KEYWORD2
-uid_is_lt	KEYWORD2
-uid_is_gt	KEYWORD2
-uid_is_le	KEYWORD2
-uid_is_ge	KEYWORD2
-uid_is_broadcast	KEYWORD2
-uid_is_null	KEYWORD2
-uid_is_target	KEYWORD2
-pd_emplace	KEYWORD2
-pd_emplace_word	KEYWORD2
-rdm_disc_mute_get	KEYWORD2
-rdm_disc_mute_set	KEYWORD2
-rdm_identify_get	KEYWORD2
-rdm_identify_set	KEYWORD2
-rdm_read	KEYWORD2
-rdm_write	KEYWORD2
-rdm_send_request	KEYWORD2
-rdm_register_response	KEYWORD2
-
 # esp_dmx.h
+dmx_driver_is_installed	KEYWORD2
+dmx_driver_is_enabled	KEYWORD2
+dmx_set_break_len	KEYWORD2
+dmx_get_break_len	KEYWORD2
+dmx_set_mab_len	KEYWORD2
+dmx_get_mab_len	KEYWORD2
+dmx_get_current_personality	KEYWORD2
+dmx_set_current_personality	KEYWORD2
+dmx_get_personality_count	KEYWORD2
+dmx_get_footprint	KEYWORD2
+dmx_get_personality_description	KEYWORD2
+dmx_get_dmx_start_address	KEYWORD2
 dmx_read_offset	KEYWORD2
 dmx_read	KEYWORD2
 dmx_read_slot	KEYWORD2
-dmx_write_offset	KEYWORD2
+dmx_read_rdm	KEYWORD2
 dmx_write	KEYWORD2
 dmx_write_slot	KEYWORD2
-dmx_receive	KEYWORD2
-dmx_send	KEYWORD2
+dmx_write_rdm	KEYWORD2
 dmx_wait_sent	KEYWORD2
+dmx_sniffer_is_enabled	KEYWORD2
+dmx_sniffer_get_data	KEYWORD2

@@ -61,16 +61,16 @@ void setup() {
    messages to the Serial Monitor. Lets set the baud rate to 115200. */
   Serial.begin(115200);
 
-  /* Set the DMX hardware pins to the pins that we want to use. */
-  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
-
-  /* Now we can install the DMX driver! We'll tell it which DMX port to use, 
+  /* Now we will install the DMX driver! We'll tell it which DMX port to use, 
     what device configure to use, and which interrupt priority it should have. 
     If you aren't sure which configuration or interrupt priority to use, you can
     use the macros `DMX_CONFIG_DEFAULT` and `DMX_INTR_FLAGS_DEFAULT` to set the
     configuration and interrupt to their default settings. */
   dmx_config_t config = DMX_CONFIG_DEFAULT;
   dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
+
+  /* Now set the DMX hardware pins to the pins that we want to use. */
+  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
   /* Register the custom RDM_PID_IDENTIFY_DEVICE callback. This overwrites the
     default response. Since we aren't using a user context in the callback, we

@@ -1,10 +1,11 @@
 #include "responder.h"
 
-#include "dmx/agent.h"
-#include "dmx/driver.h"
-#include "rdm/utils.h"
-
-static const char *TAG = "rdm_responder";  // The log tagline for the file.
+#include "dmx/config.h"
+#include "dmx/hal.h"
+#include "dmx/nvs.h"
+#include "dmx/struct.h"
+#include "dmx/utils.h"
+#include "esp_dmx.h"
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *pd,
@@ -200,7 +201,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     DMX_CHECK((device_info->personality_count == 0 &&
                device_info->dmx_start_address == DMX_START_ADDRESS_NONE) ||
                   (device_info->personality_count > 0 &&
-                   device_info->personality_count < DMX_PERSONALITIES_MAX),
+                   device_info->personality_count < DMX_PERSONALITY_COUNT_MAX),
               false, "personality_count error");
     DMX_CHECK(
         device_info->current_personality <= device_info->personality_count,
@@ -209,10 +210,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     // Load the DMX start address from NVS
     if (device_info->dmx_start_address == 0) {
       size_t size = sizeof(device_info->dmx_start_address);
-      esp_err_t err = rdm_pd_get_from_nvs(
-          dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-          &device_info->dmx_start_address, &size);
-      if (err) {
+      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
+                       &device_info->dmx_start_address, &size)) {
         device_info->dmx_start_address = 1;
       }
     }
@@ -222,10 +221,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
         device_info->dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
       size_t size = sizeof(personality);
-      esp_err_t err =
-          rdm_pd_get_from_nvs(dmx_num, RDM_PID_DMX_PERSONALITY,
-                              RDM_DS_BIT_FIELD, &personality, &size);
-      if (err ||
+      if (dmx_nvs_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_DS_BIT_FIELD,
+                      &personality, &size) ||
           personality.personality_count != device_info->personality_count) {
         device_info->current_personality = 1;
       } else {
@@ -280,10 +277,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   if (param == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
-    // Get the string length and clamp it to 32 chars
-    if (strnlen(software_version_label, 33) > 32) {
-      ESP_LOGW(TAG, "software_version_label will be truncated.");
-    }
+    DMX_CHECK(strnlen(software_version_label, 33) < 33, false,
+              "software_version_label error");
     param = rdm_pd_alloc(dmx_num, 32);
     if (param == NULL) {
       return false;

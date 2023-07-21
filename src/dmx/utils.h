@@ -270,39 +270,12 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
 
 /**
  * @brief Finds the pointer to the parameter data for a registered parameter.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param pid The parameter ID to find.
  * @return A pointer to the parameter data or NULL on failure.
  */
 void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
-
-/**
- * @brief Gets parameter data from non-volatile storage.
- * 
- * @param dmx_num The DMX port number.
- * @param pid The parameter ID to get.
- * @param ds The parameter data type.
- * @param[out] param A pointer into which to copy the parameter data.
- * @param[inout] size The size of the param pointer. Upon getting the parameter
- * data, this value is set to the size of the gotten parameter.
- * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
- */
-esp_err_t rdm_pd_get_from_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                              void *param, size_t *size);
-
-/**
- * @brief Sets the parameter data to non-volatile storage.
- * 
- * @param dmx_num The DMX port number.
- * @param pid The parameter ID to set.
- * @param ds The parameter data type.
- * @param[in] param A pointer to the parameter data to copy to NVS.
- * @param size The size of the parameter data.
- * @return ESP_OK on success or any of the ESP_ERR_NVS errors upon failure.
- */
-esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
-                            const void *param, size_t size);
 
 /**
  * @brief Registers a response callback to be called when a request is received
@@ -320,7 +293,7 @@ esp_err_t rdm_pd_set_to_nvs(dmx_port_t dmx_num, rdm_pid_t pid, rdm_ds_t ds,
  * @param driver_cb A driver-side callback function which is called when a
  * request for this PID is received.
  * @param[in] param A pointer to the parameter which can be used in the response
- * callback. 
+ * callback.
  * @param user_cb A user-side callback function which is called after a request
  * for this PID is handled.
  * @param[in] context A pointer to a user-defined context.
@@ -352,7 +325,7 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
  * @brief Sets the value of a specified RDM parameter. This function will set
  * the value of an RDM parameter even if the parameter does not support SET
  * requests.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param pid The parameter ID to set.
  * @param[in] param A pointer to the new value to which to set the parameter.

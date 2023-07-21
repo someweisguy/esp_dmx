@@ -9,7 +9,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
@@ -90,16 +89,14 @@ typedef enum rdm_pid_t {
   RDM_PID_STATUS_MESSAGE = 0x0030,  // TODO: See rdm_status_t
   RDM_PID_STATUS_ID_DESCRIPTION = 0x0031,
   RDM_PID_CLEAR_STATUS_ID = 0x0032,
-  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD =
-      0x0033,  // TODO: See rdm_status_t
+  RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD = 0x0033,  // TODO: See rdm_status_t
 
   // Category: RDM Information
 
   /** @brief This parameter is used to retrieve a list of supported PIDs. @note
      Supports GET.*/
   RDM_PID_SUPPORTED_PARAMETERS = 0x0050,
-  RDM_PID_PARAMETER_DESCRIPTION =
-      0x0051,  // TODO: req'd if using manufacturer specific PIDs
+  RDM_PID_PARAMETER_DESCRIPTION = 0x0051,  // TODO: req'd if using manufacturer specific PIDs
 
   // Category: Product Information
 

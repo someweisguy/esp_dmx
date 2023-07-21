@@ -22,13 +22,14 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [Discovery](#discovery)
   - [Response Types](#response-types)
 - [Configuring the DMX Port](#configuring-the-dmx-port)
-  - [Setting Communication Pins](#setting-communication-pins)
   - [Installing the Driver](#installing-the-driver)
+  - [Setting Communication Pins](#setting-communication-pins)
   - [Timing Configuration](#timing-configuration)
 - [Reading and Writing DMX](#reading-and-writing-dmx)
   - [Reading DMX](#reading-dmx)
   - [DMX Sniffer](#dmx-sniffer)
   - [Writing DMX](#writing-dmx)
+  - [DMX Parameters](#dmx-parameters)
 - [Reading and Writing RDM](#reading-and-writing-rdm)
   - [RDM Requests](#rdm-requests)
   - [Discovering Devices](#discovering-devices)
@@ -71,17 +72,17 @@ To get started, call the following code in your `setup()` function if using Ardu
 ```c
 const dmx_port_t dmx_num = DMX_NUM_2;
 
-// First set the communication pins...
+// First, use the default DMX configuration...
+dmx_config_t config = DMX_CONFIG_DEFAULT;
+
+// ...install the DMX driver...
+dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
+
+// ...and then set the communication pins!
 const int tx_pin = 17;
 const int rx_pin = 16;
 const int rts_pin = 21;
 dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
-
-// ...use the default DMX configuration...
-dmx_config_t config = DMX_CONFIG_DEFAULT;
-
-// ...and then install the driver!
-dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
 ```
 
 To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
@@ -183,11 +184,9 @@ In this library, UIDs are represented with the `rdm_uid_t` type. The macro `rdm_
 
 Each RDM device may support up to 512 sub-devices. An example of a device that may support sub-devices is a dimmer rack which possesses multiple dimmers. Requests may be addressed to a specific dimmer in the dimmer rack by addressing the dimmer rack's UID, and specifying a sub-device number to target the appropriate dimmer.
 
-The sub-device number which represents the root device is `0x0000`. A request may also be addressed to all sub-devices of a root device by using the sub-device number `0xffff`.
+The sub-device number which represents the root device is `0x0000`. A request may also be addressed to all sub-devices of a root device by using the sub-device number `0xffff`. The constants `RDM_SUB_DEVICE_ROOT` and `RDM_SUB_DEVICE_ALL` are provided to improve code readability.
 
 A root device and its sub-devices may support different RDM parameters, but each sub-device within a root device must support the same parameters as each other.
-
-The constants `RDM_SUB_DEVICE_ROOT` and `RDM_SUB_DEVICE_ALL` are provided to improve code readability.
 
 ### Parameters
 
@@ -201,7 +200,7 @@ GET requests may not be sent to all sub-devices of a root devices. It is therefo
 
 ### Discovery
 
-When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting an `RDM_PID_DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `RDM_PID_DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal-to the lower bound and less-than-or-equal-to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. An `RDM_PID_DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
+When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting an `RDM_PID_DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `RDM_PID_DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal to the lower bound and less-than-or-equal to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. An `RDM_PID_DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
 
 When a single device is found within an address space, that device is sent an `RDM_PID_DISC_MUTE` request to mute its response to future `RDM_PID_DISC_UNIQUE_BRANCH` requests. When responding to `RDM_PID_DISC_MUTE` requests, devices that have multiple RDM ports return a binding UID which represents its primary UID.
 
@@ -229,18 +228,9 @@ Responders must respond to every non-broadcast RDM request as well as every broa
 
 The DMX driver’s functions identify each of the UART controllers using `dmx_port_t`. This identification is needed for all the following function calls.
 
-### Setting Communication Pins
-
-Configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro `DMX_PIN_NO_CHANGE`. This macro should also be used if a pin isn't used.
-
-```c
-// Set TX: GPIO16 (port 2 default), RX: GPIO17 (port 2 default), RTS: GPIO21.
-dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
-```
-
 ### Installing the Driver
 
-After the communication pins are set, install the driver by calling `dmx_driver_install()`. This function will allocate the necessary resources for the DMX driver. It instantiates the driver to default DMX settings. The following parameters are passed to this function:
+Before any DMX functions may be called, the DMX driver must be installed. Install the driver by calling `dmx_driver_install()`. This function will allocate the necessary resources for the DMX driver. It instantiates the driver to default DMX timing. The following parameters are passed to this function:
 
 - The DMX port to use.
 - The DMX configuration to use. The macro `DMX_CONFIG_DEFAULT` can be used to declare a struct with the default configuration.
@@ -253,7 +243,7 @@ dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
 
 The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
 
-- `alloc_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `alloc_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 21 will disable the RDM responder.
+- `alloc_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `alloc_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 53 will disable the RDM responder. The default value is `255`.
 - `model_id` identifies the device model ID. This is an arbitrary value set by the user. Users should not use the same model ID to represent more than one unique model type. The default value is `0`.
 - `product_category` is the primary function of the device. A list of product categories are enumerated in the appendix under [product categories](#product-categories). The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
 - `software_version_id` indicates the software version ID for the device. This is a 32-bit value determined by the user. The default is a value returned by a function of this library's version number.
@@ -283,6 +273,15 @@ dmx_config_t config = {
   .dmx_start_address = 0,  // Load value from NVS
 };
 dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
+```
+
+### Setting Communication Pins
+
+After the DMX driver is installed, users can configure the physical GPIO pins to which the DMX port will be connected. To do this, call the function `dmx_set_pin()` and specify which GPIO should be connected to the TX, RX, and RTS signals. If you want to keep a currently allocated pin to a specific signal, pass the macro `DMX_PIN_NO_CHANGE`. This macro should also be used if a pin isn't used.
+
+```c
+// Set TX: GPIO16 (port 2 default), RX: GPIO17 (port 2 default), RTS: GPIO21.
+dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 ```
 
 ### Timing Configuration
@@ -368,7 +367,7 @@ int value = dmx_read_slot(DMX_NUM_2, slot_num);
 
 ### DMX Sniffer
 
-This library offers an option to measure DMX break and mark-after-break timings of received data packets. Its associated functions must be included by calling `#include "dmx/sniffer.h"`. The sniffer is much more resource intensive than the default DMX driver, so it must be explicitly enabled by calling `dmx_sniffer_enable()`.
+This library offers an option to measure DMX break and mark-after-break timings of received data packets. The sniffer is much more resource intensive than the default DMX driver, so it must be explicitly enabled by calling `dmx_sniffer_enable()`.
 
 The DMX sniffer installs an edge-triggered interrupt on the specified GPIO pin. This library uses the ESP-IDF provided GPIO ISR which allows the use of individual interrupt handlers for specific GPIO interrupts. The interrupt handler works by iterating through each GPIO to determine if it triggered an interrupt and if so, it calls the appropriate handler.
 
@@ -432,15 +431,62 @@ while (true) {
 }
 ```
 
-Individual DMX slots can be written using `dmx_write_slot()` similarly to reading individual slots with `dmx_read_slot()`.
+An offset of DMX slots can be written using `dmx_write_offset()` and individual DMX slots can be written using `dmx_write_slot()`. This behavior is similar to reading an offset of DMX slots or reading a single DMX slot using `dmx_read_offset()` and `dmx_read_slot()`, respectively.
 
 ```c
+uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
+
+// Write slots 10 through 17 (inclusive)
+const int offset = 10;
+const size_t size = 7;
+dmx_write_offset(DMX_NUM_2, offset, data, size);
+
 // Set slot number 5 to value 127.
 const int slot_num = 5;
 const uint8_t value = 127;
 dmx_write_slot(DMX_NUM_2, slot_num, value);
 
 // Don't forget to call dmx_send()!
+```
+
+### DMX Parameters
+
+Upon installing the DMX driver, some parameter values are set which may be get or set by the user. These parameters include the current DMX personality, the personality count, the footprint of a specified personality, the description of a personality, and the DMX start address.
+
+Getting or setting the DMX start address can be done using `dmx_get_start_address()` and `dmx_set_start_address()`. When RDM is enabled, these functions behave similarly to `rdm_get_dmx_start_address()` and `rdm_set_dmx_start_address()`.
+
+```c
+// Get the DMX start address and increment it by one
+uint16_t dmx_start_address = dmx_get_start_address(DMX_NUM_2);
+dmx_start_address++;
+if (dmx_start_address >= DMX_PACKET_SIZE_MAX) {
+  dmx_start_address = 1;  // Ensure DMX start address is within bounds
+}
+dmx_set_start_address(DMX_NUM_2, dmx_start_address);
+```
+
+Personalities, the personality count, personality descriptions, and footprint sizes may be accessed with `dmx_get_current_personality()`, `dmx_set_current_personality()`, `dmx_get_personality_count()`, `dmx_get_personality_description()`, and `dmx_get_footprint()`. Personalities are indexed starting at one. There is no personality zero.
+
+```c
+const uint8_t personality_count = dmx_get_personality_count(DMX_NUM_2);
+uint8_t current_personality = dmx_get_current_personality(DMX_NUM_2);
+if (current_personality < personality_count) {
+  // Increment the personality.
+  current_personality++;
+  /* It is ok if current_personality == personality_count because personalities
+    start at 1, not 0! */
+
+  // Get and print the new personality description and footprint.
+  const char *desc = dmx_get_personality_description(DMX_NUM_2, 
+                                                     current_personality)
+  uint16_t footprint = dmx_get_footprint(DMX_NUM_2, current_personality);
+  printf("Setting the current personality to %i: \"%s\"\n", current_personality,
+         desc);
+  printf("Personality %i has a footprint of %i\n", current_personality,
+         footprint);
+  
+  dmx_set_current_personality_count(DMX_NUM_2, current_personality);
+}
 ```
 
 ## Reading and Writing RDM
@@ -478,11 +524,11 @@ dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK);  // Unblocks in 3ms
 
 ### RDM Requests
 
-This library supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_send_`, whether the request is a GET or a SET, and the parameter name. To GET the `RDM_PID_DEVICE_INFO` of a responder device, users can call `rdm_send_get_device_info()`. To SET a device's `RDM_PID_DMX_START_ADDRESS`, users can call `rdm_send_set_dmx_start_address()`. All standard RDM request functions return `true` if an `RDM_RESPONSE_TYPE_ACK` was received or `false` if no response was received.
+This library supports the minimum required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_send_`, whether the request is a GET or a SET, and the parameter name. To GET the `RDM_PID_DEVICE_INFO` of a responder device, users can call `rdm_send_get_device_info()`. To SET a device's `RDM_PID_DMX_START_ADDRESS`, users can call `rdm_send_set_dmx_start_address()`. All standard RDM request functions return `true` if an `RDM_RESPONSE_TYPE_ACK` was received or `false` if an `RDM_RESPONSE_TYPE_ACK` was not received.
 
 RDM request functions use an `rdm_header_t` pointer to direct the DMX driver where to send its request. The `rdm_header_t` type contains several fields. Two fields are required to be defined when sending an RDM request. They are as follows:
 
-- `dest_uid` the destination UID for the RDM packet. This field must be defined as a valid UID except when sending a `RDM_PID_DISC_UNIQUE_BRANCH` packet.
+- `dest_uid` the destination UID for the RDM packet. This field must be defined as a valid UID. When sending a `RDM_PID_DISC_UNIQUE_BRANCH` packet this field is automatically set to `RDM_UID_BROADCAST_ALL` which is required per the RDM specification.
 - `sub_device` the target sub-device for the RDM packet. The RDM standard defines many PIDs in which the `sub_device` field may only be `RDM_SUB_DEVICE_ROOT`. Only one PID, `RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD` may not be sent to `RDM_SUB_DEVICE_ROOT`. The `sub_device` field may not be set to `RDM_SUB_DEVICE_ALL` in any GET requests.
 
 The remaining fields are set within the request function:
@@ -518,7 +564,7 @@ if (rdm_set_dmx_start_address(DMX_NUM_2, &header, new_address, &ack)) {
 Response information from requests is read into a `rdm_ack_t` pointer which is provided by the user. Users can use this type to ensure that requests were successful and, if they are not successful, handle errors. The `rdm_ack_t` type contains the following fields:
 
 - `err` evaluates to `true` if an error occurred reading DMX data. This field only indicates if an error occurred reading raw DMX data. It does not indicate if an invalid RDM packet was received. More information on error handling can be found in the [Error Handling](#error-handling) section.
-- `size` is the size of the received packet, including start code, sub-start code, and checksum.
+- `size` is the size of the received packet, including start code, RDM sub-start code, and checksum.
 - `src_uid` is the UID of the device originating the response packet.
 - `type` is the type of the RDM response received. It can be any of the RDM response types enumerated in [Response Types](#response-types).
 - `message_count` is used by an RDM responder to indicate that additional data is now available for collection by a controller.
@@ -600,7 +646,7 @@ An RDM responder must respond to every non-discovery, non-broadcast packet addre
 
 The DMX driver will parse RDM requests and send responses within the `dmx_receive()` function. It is therefore required for RDM requests to be received with `dmx_receive()` to ensure that a response is sent. If `dmx_receive()` is not called, an RDM response will not be sent.
 
-RDM parameters can be registered with the DMX driver using functions prefixed with `rdm_register_`. The parameter `RDM_PID_DMX_START_ADDRESS` may therefore be registered with `rdm_register_dmx_start_address()`. Parameter data is owned and initialized by the DMX driver, but users may set the default value for parameters using the arguments to the `rdm_register_` functions.
+RDM parameters can be registered with the DMX driver using functions prefixed with `rdm_register_`. The parameter `RDM_PID_DMX_START_ADDRESS` may therefore be registered with `rdm_register_dmx_start_address()`. Parameter data is owned and initialized by the DMX driver, but users may set the default value for some parameters using the arguments to the `rdm_register_` functions.
 
 RDM parameters which support GET but do not support SET allow users to set the parameter's default value as the second argument of the `rdm_register_` function. The default value is set the first time the `rdm_register_` function is called and then the default value argument is subsequently ignored and may be left `NULL`. RDM parameters which support GET and SET will be set to a predefined default value upon registration and must be manually changed using their corresponding `rdm_set_` function. RDM parameters which support NVS will be set to the value found in NVS.
 
@@ -714,7 +760,7 @@ DMX and RDM specify different timing requirements for receivers and transmitters
 
 ### DMX Start Codes
 
-This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in [dmx_types.h](src/dmx_types.h).
+This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in [dmx/types.h](src/dmx/types.h).
 
 - `DMX_SC` is the standard DMX null start code.
 - `RDM_SC` is the standard Remote Device Management start code.
@@ -730,7 +776,7 @@ Additional macro constants include the following:
 - `RDM_PREAMBLE` is not considered a start code but is often the first byte received in an RDM discovery response packet.
 - `RDM_DELIMITER` is not considered a start code but is the delimiter byte received at the end of an RDM discovery response preamble.
 
-Some start codes are considered invalid and should not be used in a DMX packet. The validity of the start code can be checked using the macro `DMX_START_CODE_IS_VALID()`. If the start code is valid, this macro will evaluate to true. This library does not automatically check for valid start codes. Such error checking is left to the user to implement.
+Some start codes are considered invalid and should not be used in a DMX packet. The validity of the start code can be checked using the macro `dmx_start_code_is_valid()`. If the start code is valid, this macro will evaluate to true. This library does not automatically check for valid start codes. Such error checking is left to the user to implement.
 
 ## Additional Considerations
 
@@ -740,7 +786,7 @@ When calling functions that read from or write to flash memory on the ESP32, cac
 
 The included `Kconfig` file in this library instructs the ESP32's build system to place the DMX driver and some of its functions into IRAM. This and other configuration options can be disabled using the ESP32's `menuconfig`. The use of `menuconfig` and `Kconfig` files is not supported when using the Arduino framework.
 
-The DMX driver can be placed in either IRAM or flash memory. The DMX driver and its associated functions are automatically placed in IRAM to reduce the penalty associated with loading code from flash. Placing the DMX driver in flash is acceptable although less performant. When using the Arduino framework, the DMX driver will be placed in flash. It is not currently possible to place the DMX driver in IRAM when using the Arduino framework.
+The DMX driver can be placed in either IRAM or flash memory. The DMX driver and its associated functions are automatically placed in IRAM to reduce the penalty associated with loading code from flash. Placing the DMX driver in flash is acceptable although less performant. When using the Arduino framework, the DMX driver may be placed in flash.
 
 When this driver is not placed in IRAM, functions which disable the cache will also temporarily disable the DMX driver. To prevent data corruption, it is required to gracefully disable the DMX driver before cache is disabled. This can be done with `dmx_driver_disable()`. The driver can be reenabled with `dmx_driver_enable()`. The function `dmx_driver_is_enabled()` can be used to check the status of the DMX driver.
 

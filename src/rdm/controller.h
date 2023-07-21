@@ -1,5 +1,5 @@
 /**
- * @file requests.h
+ * @file controller.h
  * @author Mitch Weisbrod
  * @brief This file contains functions needed to send requests to RDM
  * responders.
@@ -17,21 +17,20 @@ extern "C" {
 
 /**
  * @brief A callback function type for use with rdm_discover_with_callback().
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param uid A pointer to a UID of the found device.
  * @param num_found The number of devices that have been found by discovery.
  * @param[out] mute A pointer to the mute parameter received by the device.
  * @param[inout] context A pointer to a user context.
  */
-typedef void (*rdm_disc_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid,
-                              int num_found, const rdm_disc_mute_t *mute,
-                              void *context);
+typedef void (*rdm_disc_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid, int num_found,
+                              const rdm_disc_mute_t *mute, void *context);
 
 /**
  * @brief Sends an RDM discovery unique branch request and reads the response,
  * if any.
- * 
+ *
  * Discovery unique branch requests include two UIDs as the parameter data. The
  * UIDs describe an upper and lower bound for an address space to search. Any
  * devices whose UID falls within this address space must respond to the request
@@ -104,7 +103,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
  * the standards document algorithm because it is iterative instead of
  * recursive. This significantly reduces the memory needed to perform the
  * discovery algorithm which allows it to be safely performed on an embedded
- * platform. However, the iterative algorithm still requires the allocation of 
+ * platform. However, the iterative algorithm still requires the allocation of
  * 588 bytes. By default, this is heap allocated but may be allocated on the
  * stack by configuring settings in this library's Kconfig.
  *
@@ -126,7 +125,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
  * the standards document algorithm because it is iterative instead of
  * recursive. This significantly reduces the memory needed to perform the
  * discovery algorithm which allows it to be safely performed on an embedded
- * platform. However, the iterative algorithm still requires the allocation of 
+ * platform. However, the iterative algorithm still requires the allocation of
  * 588 bytes. By default, this is heap allocated but may be allocated on the
  * stack by configuring settings in this library's Kconfig.
  *

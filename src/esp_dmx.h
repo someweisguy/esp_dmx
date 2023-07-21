@@ -1,24 +1,155 @@
 /**
  * @file esp_dmx.h
  * @author Mitch Weisbrod
- * @brief This is the main header file for esp_dmx. This file declares functions
- * needed for installing the DMX driver and sending or receiving DMX data. It is
- * possible to implement RDM using the functions found in this header file
- * alone. However, RDM can be complex to users who aren't familiar with the
- * standard. Functions found in rdm/agent.h and rdm/requests.h can be used to
- * simplify basic RDM tasks.
+ * @brief This is the main header file for esp_dmx. It contains required API
+ * functions for the user. Notably, the functions in this header are not
+ * hardware-dependent. The functions in this file do not interface with any of
+ * the functions described in uart.h, timer.h, or nvs.h. This header includes
+ * dmx/hal.h which contains functions that interface with hardware.
  */
 #pragma once
 
-#include "dmx/agent.h"
+#include "dmx/hal.h"
 #include "dmx/types.h"
-#include "driver/gpio.h"
-#include "freertos/FreeRTOS.h"
 #include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Checks if DMX driver is installed.
+ *
+ * @param dmx_num The DMX port number.
+ * @retval true if the driver is installed.
+ * @retval false if the driver is not installed or DMX port does not exist.
+ * */
+bool dmx_driver_is_installed(dmx_port_t dmx_num);
+
+/**
+ * @brief Checks if the DMX driver is enabled. When the DMX driver is not placed
+ * in IRAM, functions which disable the cache, such as functions which read or
+ * write to flash, will also stop DMX interrupts from firing. This can cause
+ * incoming DMX data to become corrupted. To avoid this issue, the DMX driver
+ * should be disabled before disabling the cache. When cache is reenabled, the
+ * DMX driver can be reenabled as well. When the DMX driver is placed in IRAM,
+ * disabling and reenabling the DMX driver is not needed.
+ *
+ * @param dmx_num The DMX port number.
+ * @retval true if the driver is enabled.
+ * @retval false if the driver is disabled.
+ */
+bool dmx_driver_is_enabled(dmx_port_t dmx_num);
+
+/**
+ * @brief Sets the DMX break length in microseconds. The break length will be
+ * clamped to DMX specification. If the input break length is lower than
+ * DMX_MIN_BREAK_LEN_US it will be set to DMX_MIN_BREAK_LEN_US. If the input
+ * break length is higher than DMX_MAX_BREAK_LEN_US it will be set to
+ * DMX_MAX_BREAK_LEN_US.
+ *
+ * @note The DMX break length specification is not the same as the RDM break
+ * length specification. It is possible to use this function to set the DMX
+ * break length so that RDM is unusable. This function should be used carefully
+ * to ensure correct RDM functionality!
+ *
+ * @param dmx_num The DMX port number.
+ * @param break_num The length in microseconds of the DMX break.
+ * @return the value that the DMX break length was set to or 0 on error.
+ */
+uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len);
+
+/**
+ * @brief Gets the DMX break length in microseconds.
+ *
+ * @param dmx_num The DMX port number.
+ * @return the current DMX break length or 0 on error.
+ */
+uint32_t dmx_get_break_len(dmx_port_t dmx_num);
+
+/**
+ * @brief Sets the DMX mark-after-break length in microseconds. The
+ * mark-after-break length will be clamped to DMX specification. If the input
+ * mark-after-break length is lower than DMX_MIN_MAB_LEN_US it will be set to
+ * DMX_MIN_MAB_LEN_US. If the input mark-after-break length is higher than
+ * DMX_MAX_MAB_LEN_US it will be set to DMX_MAX_MAB_LEN_US.
+ *
+ * @note The DMX mark-after-break length specification is not the same as the
+ * RDM mark-after-break length specification. It is possible to use this
+ * function to set the DMX mark-after-break length so that RDM is unusable. This
+ * function should be used carefully to ensure correct RDM functionality!
+ *
+ * @param dmx_num The DMX port number.
+ * @param mab_len The length in microseconds of the DMX mark-after-break.
+ * @return the value that the DMX mark-after-break length was set to or 0 on
+ * error.
+ */
+uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
+
+/**
+ * @brief Gets the DMX mark-after-break length in microseconds.
+ *
+ * @param dmx_num The DMX port number.
+ * @return the current DMX mark-after-break length or 0 on error.
+ */
+uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
+
+/**
+ * @brief Gets the current personality of the DMX driver.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The current personality or 0 on failure.
+ */
+uint8_t dmx_get_current_personality(dmx_port_t dmx_num);
+
+/**
+ * @brief Sets the current personality of the DMX driver. Personalities are
+ * indexed starting at 1.
+ *
+ * @param dmx_num The DMX port number.
+ * @param personality_num The personality number to which to set the DMX driver.
+ * Personality number are indexed starting at 1.
+ * @return true on success.
+ * @return false on failure.
+ */
+bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num);
+
+/**
+ * @brief Gets the personality count of the DMX driver.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The personality count or 0 on failure.
+ */
+uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
+
+/**
+ * @brief Gets the footprint of the specified personality.
+ *
+ * @param dmx_num The DMX port number.
+ * @param personality_num The personality number of the footprint to get.
+ * Personality numbers are indexed starting at 1.
+ * @return The footprint of the specified personality or 0 on failure.
+ */
+size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num);
+
+/**
+ * @brief Gets the description of the specified personality.
+ *
+ * @param dmx_num The DMX port number.
+ * @param personality_num The personality number of the description to get.
+ * Personality numbers are indexed starting at 1.
+ * @return The description of the DMX personality or NULL on failure.
+ */
+const char *dmx_get_personality_description(dmx_port_t dmx_num,
+                                            uint8_t personality_num);
+
+/**
+ * @brief Gets the DMX start address of the DMX driver.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The DMX start address of the DMX driver or 0 on failure.
+ */
+uint16_t dmx_get_start_address(dmx_port_t dmx_num);
 
 /**
  * @brief Reads DMX data from the driver into a destination buffer with an
@@ -73,21 +204,6 @@ size_t dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
                     size_t num);
 
 /**
- * @brief Writes DMX data from a source buffer into the DMX driver buffer with
- * an offset. Allows a source buffer to be written to a specific slot number in
- * the DMX driver buffer.
- *
- * @param dmx_num The DMX port number.
- * @param offset The number of slots with which to offset the write. If set to 0
- * this function is equivalent to dmx_write().
- * @param[in] source The source buffer which is copied to the DMX driver.
- * @param size The size of the source buffer.
- * @return The number of bytes written into the DMX driver.
- */
-size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
-                        size_t size);
-
-/**
  * @brief Writes DMX data from a source buffer into the DMX driver buffer. Data
  * written into the DMX driver buffer can then be sent to DMX devices.
  *
@@ -123,41 +239,6 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 
 /**
- * @brief Receives a DMX packet from the DMX bus. This is a blocking function.
- * This function first blocks until the DMX driver is idle and then it blocks
- * using a timeout until a new packet is received. This function will timeout
- * early according to RDM specification if an RDM packet is expected.
- *
- * @note This function uses FreeRTOS direct-to-task notifications to block and
- * unblock. Using task notifications on the same task that calls this function
- * can lead to undesired behavior and program instability.
- *
- * @param dmx_num The DMX port number.
- * @param[out] packet An optional pointer to a dmx_packet_t which contains
- * information about the received DMX packet.
- * @param wait_ticks The number of ticks to wait before this function times out.
- * @return The size of the received DMX packet or 0 if no packet was received.
- */
-size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
-                   TickType_t wait_ticks);
-
-/**
- * @brief Sends a DMX packet on the DMX bus. This function blocks indefinitely
- * until the DMX driver is idle and then sends a packet.
- *
- * @note This function uses FreeRTOS direct-to-task notifications to block and
- * unblock. Using task notifications on the same task that calls this function
- * can lead to undesired behavior and program instability.
- *
- * @param dmx_num The DMX port number.
- * @param size The size of the packet to send. If 0, sends the number of bytes
- * equal to the highest slot number that was written or sent in the previous
- * call to dmx_write(), dmx_write_offset(), dmx_write_slot(), or dmx_send().
- * @return The number of bytes sent on the DMX bus.
- */
-size_t dmx_send(dmx_port_t dmx_num, size_t size);
-
-/**
  * @brief Waits until the DMX packet is done being sent. This function can be
  * used to ensure that calls to dmx_write() happen synchronously with the
  * current DMX frame.
@@ -172,6 +253,28 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size);
  * @retval false if the function timed out.
  */
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks);
+
+/**
+ * @brief Checks if the sniffer is enabled.
+ *
+ * @param dmx_num The DMX port number.
+ * @retval true if the sniffer is installed.
+ * @retval false if the sniffer is not installed or DMX port does not exist.
+ */
+bool dmx_sniffer_is_enabled(dmx_port_t dmx_num);
+
+/**
+ * @brief Gets sniffer data if it is available.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] metadata A pointer to a dmx_metadata_t struct into which to
+ * copy DMX sniffer data.
+ * @param wait_ticks The number of ticks to wait before this function times out.
+ * @return true if data was copied.
+ * @return false if data was not copied.
+ */
+bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
+                          TickType_t wait_ticks);
 
 #ifdef __cplusplus
 }

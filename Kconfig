@@ -1,5 +1,5 @@
 menu "DMX/RDM Configuration"
-
+    
     config DMX_ISR_IN_IRAM
         bool "Place DMX ISR functions in IRAM"
         default y
@@ -19,7 +19,14 @@ menu "DMX/RDM Configuration"
             This is the maximum number of DMX personalities that the DMX driver
             supports. Increasing this number increases the size of the DMX
             driver.
-
+    
+    config DMX_NVS_PARTITION_NAME
+        string "NVS partition name for DMX parameters"
+        default "nvs"
+        help
+            This is the NVS partition name in which supported DMX parameters are
+            stored.
+            
     config RDM_DEVICE_UID_MAN_ID
         hex "RDM manufacturer ID"
         range 0x0001 0x7fff
@@ -62,13 +69,5 @@ menu "DMX/RDM Configuration"
             This is the maximum number of RDM parameter responses that the DMX
             driver supports. Increasing this number increases the size of the
             DMX driver.
-    
-    config RDM_NVS_PARTITION_NAME
-        string "NVS partition name for RDM parameters"
-        default "nvs"
-        help
-            This is the NVS partition name in which supported RDM parameters are
-            stored.
-           
 
 endmenu

@@ -1,11 +1,10 @@
 #include "controller.h"
 
-#include "dmx/agent.h"
-#include "dmx/driver.h"
+#include "dmx/config.h"
+#include "dmx/struct.h"
+#include "dmx/utils.h"
 #include "endian.h"
-#include "rdm/utils.h"
-
-static const char *TAG = "rdm_controller";  // The log tagline for the file.
+#include "esp_dmx.h"
 
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                                  const rdm_disc_unique_branch_t *branch,
@@ -87,10 +86,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
 #else
   rdm_disc_unique_branch_t *stack;
   stack = malloc(sizeof(rdm_disc_unique_branch_t) * 49);
-  if (stack == NULL) {
-    ESP_LOGE(TAG, "Discovery malloc error");
-    return 0;
-  }
+  DMX_CHECK(stack != NULL, 0, "discovery malloc error");
 #endif
 
   // Initialize the stack with the initial branch instruction
@@ -103,8 +99,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   rdm_ack_t ack;         // Request response information.
   int num_found = 0;
 
-  extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
-  dmx_driver_t *restrict const driver = dmx_driver[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
   xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
 
   // Un-mute all devices
