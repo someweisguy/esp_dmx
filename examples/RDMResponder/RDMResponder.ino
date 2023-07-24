@@ -50,7 +50,7 @@ void rdmIdentifyCallback(dmx_port_t dmxPort, const rdm_header_t *header,
     This prevents extra work from being done when a GET request is received. */
   if (header->cc == RDM_CC_SET_COMMAND_RESPONSE) {
     uint8_t identify;
-    rdm_get_identify_device(dmx_num, &identify);
+    rdm_get_identify_device(dmxPort, &identify);
     digitalWrite(ledPin, identify);
     Serial.printf("Identify mode is %s.\n", identify ? "on" : "off");
   }
