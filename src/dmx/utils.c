@@ -16,13 +16,6 @@
 #include "esp_mac.h"
 #endif
 
-#ifdef DMX_USE_SPINLOCK
-#define RDM_SPINLOCK (&rdm_spinlock)
-static dmx_spinlock_t rdm_spinlock = portMUX_INITIALIZER_UNLOCKED;
-#else
-#define RDM_SPINLOCK
-#endif
-
 static rdm_uid_t rdm_binding_uid = {};
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
@@ -52,10 +45,8 @@ void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
 #else
     dev_id = RDM_UID_DEVICE_UID;
 #endif
-    taskENTER_CRITICAL(RDM_SPINLOCK);
     rdm_binding_uid.man_id = RDM_UID_MANUFACTURER_ID;
     rdm_binding_uid.dev_id = dev_id;
-    taskEXIT_CRITICAL(RDM_SPINLOCK);
   }
 
   // Return early if there is an argument error
