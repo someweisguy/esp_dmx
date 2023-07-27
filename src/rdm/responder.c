@@ -52,18 +52,17 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num,
 
     // Get the binding UID of this device
     int num_ports = 0;
-    rdm_uid_t binding_uid;
     for (int i = 0; i < DMX_NUM_MAX; ++i) {
       if (dmx_driver_is_installed(i)) {
-        if (num_ports == 0) {
-          rdm_uid_get(i, &binding_uid);
-        }
         ++num_ports;
       }
     }
+    rdm_uid_t binding_uid;
     if (num_ports == 1) {
       // Only report binding UID if there are multiple ports
       binding_uid = (rdm_uid_t){0, 0};
+    } else {
+      rdm_uid_get_binding(&binding_uid);
     }
 
     // Respond with this device's mute parameters
