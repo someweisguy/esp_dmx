@@ -1,5 +1,5 @@
 /**
- * @file utils.h
+ * @file rdm_utils.h
  * @author Mitch Weisbrod
  * @brief This file contains some functions that can be helpful when performing
  * advanced operations on RDM packets. It is used throughout this library, but
