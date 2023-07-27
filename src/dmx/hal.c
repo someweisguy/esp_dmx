@@ -42,7 +42,7 @@ static struct dmx_context_t {
 } dmx_context[DMX_NUM_MAX] = {};
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
-  const int64_t now = esp_timer_get_time();
+  const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
@@ -250,7 +250,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 }
 
 static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
-  const int64_t now = esp_timer_get_time();
+  const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   const dmx_port_t dmx_num = ((dmx_driver_t *)arg)->dmx_num;
   int task_awoken = false;
@@ -870,7 +870,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
       // Guard against setting hardware alarm durations with negative values
-      int64_t elapsed = esp_timer_get_time() - last_timestamp;
+      int64_t elapsed = dmx_timer_get_micros_since_boot() - last_timestamp;
       if (elapsed >= RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE) {
         xSemaphoreGiveRecursive(driver->mux);
         return packet_size;
@@ -1133,7 +1133,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
       (cc == RDM_CC_DISC_COMMAND_RESPONSE ||
        cc == RDM_CC_GET_COMMAND_RESPONSE ||
        cc == RDM_CC_SET_COMMAND_RESPONSE)) {
-    elapsed = esp_timer_get_time() - driver->last_slot_ts;
+    elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (elapsed >= RDM_PACKET_SPACING_RESPONDER_NO_RESPONSE) {
@@ -1155,7 +1155,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_VALID) {
     timeout = RDM_PACKET_SPACING_RESPONSE;
   }
-  elapsed = esp_timer_get_time() - driver->last_slot_ts;
+  elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
   if (elapsed < timeout) {
     dmx_timer_set_counter(timer, elapsed);
     dmx_timer_set_alarm(timer, timeout);

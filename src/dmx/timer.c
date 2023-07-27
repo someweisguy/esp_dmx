@@ -112,3 +112,7 @@ void DMX_ISR_ATTR dmx_timer_start(dmx_timer_handle_t timer) {
 #endif
   timer->is_running = true;
 }
+
+int64_t DMX_ISR_ATTR dmx_timer_get_micros_since_boot() {
+  return esp_timer_get_time();
+}
