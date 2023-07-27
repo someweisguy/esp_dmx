@@ -500,7 +500,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     dmx->personality_count = config->personality_count;
   }
 
-  // Enable the UART peripheral
+  // Initialize the UART peripheral
   dmx_uart_handle_t uart =
       dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
   if (uart == NULL) {
@@ -509,6 +509,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
   dmx_context[dmx_num].uart = uart;
 
+  // Initialize the timer peripheral
   dmx_timer_handle_t timer =
       dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
   if (timer == NULL) {
