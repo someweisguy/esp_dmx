@@ -9,14 +9,11 @@
 #include "dmx/struct.h"
 #include "endian.h"
 #include "esp_dmx.h"
-#include "esp_log.h"
 #include "rdm_types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"
 #endif
-
-static rdm_uid_t rdm_binding_uid = {};
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);
@@ -34,7 +31,7 @@ void *rdm_uidmove(void *destination, const void *source) {
   return rdm_uidcpy(destination, &temp);
 }
 
-void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
+void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   // Initialize the binding UID if it isn't initialized
   if (rdm_uid_is_null(&rdm_binding_uid)) {
     uint32_t dev_id;
@@ -63,8 +60,7 @@ void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   uid->dev_id |= last_octet;
 }
 
-static size_t rdm_param_parse(const char *format, bool *is_singleton) {
-  *is_singleton = (*format == '\0');
+static size_t rdm_param_parse(const char *format) {
   int param_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
     size_t field_size = 0;
@@ -77,20 +73,14 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
     } else if (*f == 'u' || *f == 'U') {
       field_size = sizeof(rdm_uid_t);  // Handle 48-bit UID
     } else if (*f == 'v' || *f == 'V') {
-      if (f[1] != '\0' && f[1] != '$') {
-        ESP_LOGE(TAG, "Optional UID not at end of parameter.");
-        return 0;
-      }
-      *is_singleton = true;  // Can't declare parameter array with optional UID
+      DMX_CHECK(f[1] == '\0' || f[1] == '$', 0,
+                "Optional UID not at end of parameter.");
       field_size = sizeof(rdm_uid_t);
     } else if (*f == 'a' || *f == 'A') {
       // Handle ASCII string
-      if (f[1] != '\0' && f[1] != '$') {
-        ESP_LOGE(TAG, "Variable-length string not at end of parameter.");
-        return -1;
-      }
+      DMX_CHECK(f[1] == '\0' || f[1] == '$', 0,
+                "String not at end of parameter.");
       field_size = 32;
-      *is_singleton = true;
     } else if (*f == '#') {
       // Handle integer literal
       ++f;  // Ignore '#' character
@@ -98,32 +88,19 @@ static size_t rdm_param_parse(const char *format, bool *is_singleton) {
       for (; num_chars <= 16; ++num_chars) {
         if (!isxdigit((int)f[num_chars])) break;
       }
-      if (num_chars > 16) {
-        ESP_LOGE(TAG, "Integer literal is too big");
-        return 0;
-      }
+      DMX_CHECK(num_chars <= 16, 0, "Integer literal is too big");
       field_size = (num_chars / 2) + (num_chars % 2);
       f += num_chars;
-      if (*f != 'h' && *f != 'H') {
-        ESP_LOGE(TAG, "Improperly terminated integer literal.");
-        return 0;
-      }
+      DMX_CHECK(*f == 'h' || *f == 'H', 0,
+                "Improperly terminated integer literal.");
     } else if (*f == '$') {
-      if (f[1] != '\0') {
-        ESP_LOGE(TAG, "Improperly placed end-of-parameter anchor.");
-        return 0;
-      }
-      *is_singleton = true;
+      DMX_CHECK(f[1] == '\0', 0, "Improperly placed end-of-parameter anchor.");
     } else {
-      ESP_LOGE(TAG, "Unknown symbol '%c' found at index %i.", *f, f - format);
-      return 0;
+      DMX_CHECK(1, 0, "Unknown symbol '%c' found at index %i.", *f, f - format);
     }
 
     // Ensure format size doesn't exceed MDB size.
-    if (param_size + field_size > 231) {
-      ESP_LOGE(TAG, "Parameter is too big.");
-      return 0;
-    }
+    DMX_CHECK(param_size + field_size <= 231, 0, "Parameter is too big.");
     param_size += field_size;
   }
   return param_size;
@@ -141,14 +118,20 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
   }
 
   // Ensure that the format string syntax is correct
-  bool param_is_singleton;
-  const int param_size = rdm_param_parse(format, &param_is_singleton);
-  if (param_size < 1) {
+  const int param_size = rdm_param_parse(format);
+  if (param_size == 0) {
     return 0;
   }
-
+  
   // Get the number of parameters that can be encoded
-  const int num_params_to_copy = param_is_singleton ? 1 : num / param_size;
+  int num_params_to_copy;
+  if (format[strlen(format)] == '$' || format[strlen(format)] == 'a' ||
+       format[strlen(format)] == 'A' || format[strlen(format)] == 'v' ||
+       format[strlen(format)] == 'V') {
+    num_params_to_copy = 1;  // Format string is a singleton
+  } else {
+    num_params_to_copy = num / param_size;
+  }
 
   // Encode the fields into the destination
   size_t n = 0;

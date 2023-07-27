@@ -28,6 +28,7 @@ enum dmx_interrupt_mask_t {
   DMX_INTR_TX_ALL = DMX_INTR_TX_DATA | DMX_INTR_TX_DONE,
 };
 
+rdm_uid_t rdm_binding_uid = {};
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
 
 static struct dmx_context_t {
@@ -118,7 +119,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                  driver->head ==
                      dmx_read_rdm(driver->dmx_num, &header, NULL, 0)) {
         rdm_type |= DMX_FLAGS_RDM_IS_VALID;
-        rdm_uid_t my_uid;
+        rdm_uid_t my_uid = rdm_binding_uid;
+        *(uint8_t *)&my_uid.dev_id += dmx_num;  // Increment last octet
+
         rdm_uid_get(driver->dmx_num, &my_uid);
         if (header.cc == RDM_CC_DISC_COMMAND ||
             header.cc == RDM_CC_GET_COMMAND ||

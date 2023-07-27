@@ -109,6 +109,7 @@ typedef struct dmx_driver_t {
   int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;
 
+extern rdm_uid_t rdm_binding_uid;
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
 #ifdef __cplusplus
