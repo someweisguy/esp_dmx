@@ -3,8 +3,8 @@
 #include "dmx/config.h"
 #include "dmx/hal.h"
 #include "dmx/struct.h"
-#include "dmx/utils.h"
 #include "esp_dmx.h"
+#include "rdm_utils.h"
 
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");

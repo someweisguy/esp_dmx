@@ -8,9 +8,12 @@
 #include "dmx/struct.h"
 #include "dmx/timer.h"
 #include "dmx/uart.h"
-#include "dmx/utils.h"
 #include "endian.h"
 #include "esp_dmx.h"
+
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "esp_mac.h"
+#endif
 
 const char *TAG = "dmx";  // The log tagline for the library
 
@@ -28,7 +31,8 @@ enum dmx_interrupt_mask_t {
   DMX_INTR_TX_ALL = DMX_INTR_TX_DATA | DMX_INTR_TX_DONE,
 };
 
-rdm_uid_t rdm_binding_uid = {};
+dmx_port_t rdm_binding_port;
+rdm_uid_t rdm_device_uid = {};
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
 
 static struct dmx_context_t {
@@ -119,7 +123,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                  driver->head ==
                      dmx_read_rdm(driver->dmx_num, &header, NULL, 0)) {
         rdm_type |= DMX_FLAGS_RDM_IS_VALID;
-        rdm_uid_t my_uid = rdm_binding_uid;
+        rdm_uid_t my_uid = rdm_device_uid;
         *(uint8_t *)&my_uid.dev_id += dmx_num;  // Increment last octet
 
         rdm_uid_get(driver->dmx_num, &my_uid);
@@ -315,11 +319,23 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
               "footprint error");
   }
 
+  // Initialize RDM UID
+  if (rdm_uid_is_null(&rdm_device_uid)) {
+    rdm_device_uid.man_id = RDM_UID_MANUFACTURER_ID;
+    uint32_t dev_id;
+#if RDM_UID_DEVICE_ID == 0xffffffff
+    uint8_t mac[8];
+    esp_efuse_mac_get_default(mac);
+    dev_id = bswap32(*(uint32_t *)(mac + 2));
+#else
+    dev_id = RDM_UID_DEVICE_UID;
+#endif
+    rdm_device_uid.dev_id = dev_id;
+    rdm_binding_port = dmx_num;
+  }
+
   // Initialize NVS
   dmx_nvs_init(dmx_num);
-
-  // Initialize RDM UID
-  rdm_uid_get(dmx_num, NULL);
 
 #ifdef DMX_ISR_IN_IRAM
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag

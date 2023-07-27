@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "rdm_utils.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -10,10 +10,6 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "rdm_types.h"
-
-#if ESP_IDF_VERSION_MAJOR >= 5
-#include "esp_mac.h"
-#endif
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);
@@ -32,28 +28,13 @@ void *rdm_uidmove(void *destination, const void *source) {
 }
 
 void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
-  // Initialize the binding UID if it isn't initialized
-  if (rdm_uid_is_null(&rdm_binding_uid)) {
-    uint32_t dev_id;
-#if RDM_UID_DEVICE_ID == 0xffffffff
-    uint8_t mac[8];
-    esp_efuse_mac_get_default(mac);
-    dev_id = bswap32(*(uint32_t *)(mac + 2));
-#else
-    dev_id = RDM_UID_DEVICE_UID;
-#endif
-    rdm_binding_uid.man_id = RDM_UID_MANUFACTURER_ID;
-    rdm_binding_uid.dev_id = dev_id;
-  }
-
-  // Return early if there is an argument error
-  if (dmx_num >= DMX_NUM_MAX || uid == NULL) {
-    return;
-  }
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(uid != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
 
   // Copy the binding UID and increment the final octet by dmx_num
-  uid->man_id = rdm_binding_uid.man_id;
-  uid->dev_id = rdm_binding_uid.dev_id;
+  uid->man_id = rdm_device_uid.man_id;
+  uid->dev_id = rdm_device_uid.dev_id;
   uint8_t last_octet = (uint8_t)uid->dev_id;
   last_octet += dmx_num;
   uid->dev_id &= 0xffffff00;

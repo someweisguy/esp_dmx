@@ -4,8 +4,8 @@
 #include "dmx/hal.h"
 #include "dmx/nvs.h"
 #include "dmx/struct.h"
-#include "dmx/utils.h"
 #include "esp_dmx.h"
+#include "rdm_utils.h"
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *pd,

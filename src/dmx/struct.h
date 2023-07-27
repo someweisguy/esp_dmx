@@ -9,12 +9,12 @@
 #include <stdint.h>
 
 #include "dmx/config.h"
-#include "dmx/utils.h"
 #include "dmx_types.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "rdm/responder.h"
 #include "rdm_types.h"
+#include "rdm_utils.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,7 +109,8 @@ typedef struct dmx_driver_t {
   int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;
 
-extern rdm_uid_t rdm_binding_uid;
+extern dmx_port_t rdm_binding_port;
+extern rdm_uid_t rdm_device_uid;
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
 #ifdef __cplusplus

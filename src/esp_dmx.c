@@ -2,7 +2,6 @@
 
 #include "dmx/config.h"
 #include "dmx/struct.h"
-#include "dmx/utils.h"
 #include "endian.h"
 
 bool dmx_driver_is_installed(dmx_port_t dmx_num) {
