@@ -807,7 +807,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     packet->err = DMX_ERR_TIMEOUT;
     packet->sc = -1;
     packet->size = 0;
-    packet->is_rdm = false;
+    packet->is_rdm = 0;
   }
 
   // Block until mutex is taken and driver is idle, or until a timeout
@@ -900,7 +900,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     packet->err = err;
     packet->size = packet_size;
-    packet->is_rdm = false;
+    packet->is_rdm = 0;
   }
 
   // Return early if the no data was received
@@ -918,7 +918,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   }
   if (packet != NULL) {
-    packet->is_rdm = true;
+    packet->is_rdm = header.pid;
   }
 
   // Ignore the packet if it does not target this device
