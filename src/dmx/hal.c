@@ -345,7 +345,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
 #endif
 
-  dmx_driver_t *restrict driver;
+  dmx_driver_t *driver;
 
   // Allocate the DMX driver
   driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
@@ -812,7 +812,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
-  dmx_driver_t *const restrict driver = dmx_driver[dmx_num];
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
   dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
   dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
