@@ -321,8 +321,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
 #ifdef DMX_ISR_IN_IRAM
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
-  if (!(isr_flags & ESP_INTR_FLAG_IRAM)) {
-    isr_flags |= ESP_INTR_FLAG_IRAM;
+  if (!(intr_flags & ESP_INTR_FLAG_IRAM)) {
+    intr_flags |= ESP_INTR_FLAG_IRAM;
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
   }
 #endif
