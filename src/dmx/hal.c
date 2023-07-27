@@ -337,14 +337,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   // Initialize NVS
   dmx_nvs_init(dmx_num);
 
-#ifdef DMX_ISR_IN_IRAM
-  // Driver ISR is in IRAM so interrupt flags must include IRAM flag
-  if (!(intr_flags & ESP_INTR_FLAG_IRAM)) {
-    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
-    intr_flags |= ESP_INTR_FLAG_IRAM;
-  }
-#endif
-
   dmx_driver_t *driver;
 
   // Allocate the DMX driver

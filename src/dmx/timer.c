@@ -18,6 +18,14 @@ static struct dmx_timer_t {
 dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
                                   void *isr_context, int isr_flags) {
   dmx_timer_handle_t timer = &dmx_timer_context[dmx_num];
+
+#ifdef DMX_ISR_IN_IRAM
+  // Driver ISR is in IRAM so interrupt flags must include IRAM flag
+  if (!(isr_flags & ESP_INTR_FLAG_IRAM)) {
+    isr_flags |= ESP_INTR_FLAG_IRAM;
+  }
+#endif
+
   // Initialize hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5
   const gptimer_config_t timer_config = {
