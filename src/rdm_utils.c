@@ -30,15 +30,20 @@ void *rdm_uidmove(void *destination, const void *source) {
 void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(uid != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
 
   // Copy the binding UID and increment the final octet by dmx_num
   uid->man_id = rdm_device_uid.man_id;
   uid->dev_id = rdm_device_uid.dev_id;
-  uint8_t last_octet = (uint8_t)uid->dev_id;
-  last_octet += dmx_num;
-  uid->dev_id &= 0xffffff00;
-  uid->dev_id |= last_octet;
+  if (!rdm_uid_is_null(uid)) {
+    uint8_t last_octet = (uint8_t)uid->dev_id;
+    last_octet += dmx_num;
+    uid->dev_id &= 0xffffff00;
+    uid->dev_id |= last_octet;
+  }
+}
+
+void rdm_uid_get_binding(rdm_uid_t *uid) {
+  rdm_uid_get(rdm_binding_port, uid);
 }
 
 static size_t rdm_param_parse(const char *format) {
