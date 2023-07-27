@@ -258,6 +258,8 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return false;
   }
 
+  // TODO: update number of unique parameters supported
+  
   // Add the requested callback to the callback list
   driver->rdm_cbs[i].param_str = param_str;
   driver->rdm_cbs[i].param = param;
