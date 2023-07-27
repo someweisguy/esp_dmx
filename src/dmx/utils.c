@@ -10,7 +10,7 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "esp_log.h"
-#include "rdm/types.h"
+#include "rdm_types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"
@@ -502,7 +502,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     // Get and report the received NACK reason
     decoded = bswap16(*(uint16_t *)pd_out);
   } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
-    DMX_WARN("RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported."); // TODO
+    DMX_WARN("RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");  // TODO
     decoded = 0;
   } else {
     // Do nothing when response_type is RDM_RESPONSE_TYPE_ACK

@@ -8,9 +8,9 @@
  */
 #pragma once
 
-#include "dmx/types.h"
+#include "dmx_types.h"
 #include "freertos/FreeRTOS.h"
-#include "rdm/types.h"
+#include "rdm_types.h"
 
 #ifdef __cplusplus
 extern "C" {

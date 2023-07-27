@@ -7,7 +7,6 @@
 #include "dmx/nvs.h"
 #include "dmx/struct.h"
 #include "dmx/timer.h"
-#include "dmx/types.h"
 #include "dmx/uart.h"
 #include "dmx/utils.h"
 #include "endian.h"

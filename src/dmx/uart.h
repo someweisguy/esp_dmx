@@ -10,7 +10,7 @@
  */
 #pragma once
 
-#include "dmx/types.h"
+#include "dmx_types.h"
 #include "hal/uart_hal.h"
 
 #ifdef __cplusplus

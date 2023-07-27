@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "dmx/types.h"
+#include "dmx_types.h"
 #include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus

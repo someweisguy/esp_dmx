@@ -9,12 +9,12 @@
 #include <stdint.h>
 
 #include "dmx/config.h"
-#include "dmx/types.h"
 #include "dmx/utils.h"
+#include "dmx_types.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "rdm/responder.h"
-#include "rdm/types.h"
+#include "rdm_types.h"
 
 #ifdef __cplusplus
 extern "C" {
