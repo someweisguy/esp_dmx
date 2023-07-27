@@ -347,7 +347,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->data = NULL;
   driver->pd = NULL;
 #ifdef DMX_USE_SPINLOCK
-  driver->spinlock = (spinlock_t)portMUX_INITIALIZER_UNLOCKED;
+  driver->spinlock = (dmx_spinlock_t)DMX_SPINLOCK_INIT;
 #endif
 
   // Allocate mutex

@@ -65,6 +65,7 @@ extern "C" {
  * needed for devices which have multiple cores.*/
 #define DMX_USE_SPINLOCK
 typedef spinlock_t dmx_spinlock_t;
+#define DMX_SPINLOCK_INIT portMUX_INITIALIZER_UNLOCKED
 
 extern const char *TAG;  // The log tagline for the library.
 
