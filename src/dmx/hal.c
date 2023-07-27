@@ -319,6 +319,14 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
               "footprint error");
   }
 
+#ifdef DMX_ISR_IN_IRAM
+  // Driver ISR is in IRAM so interrupt flags must include IRAM flag
+  if (!(isr_flags & ESP_INTR_FLAG_IRAM)) {
+    isr_flags |= ESP_INTR_FLAG_IRAM;
+    ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
+  }
+#endif
+
   // Initialize RDM UID
   if (rdm_uid_is_null(&rdm_device_uid)) {
     rdm_device_uid.man_id = RDM_UID_MANUFACTURER_ID;

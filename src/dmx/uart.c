@@ -34,13 +34,6 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
                                 void *isr_context, int isr_flags) {
   dmx_uart_handle_t uart = &dmx_uart_context[dmx_num];
 
-#ifdef DMX_ISR_IN_IRAM
-  // Driver ISR is in IRAM so interrupt flags must include IRAM flag
-  if (!(isr_flags & ESP_INTR_FLAG_IRAM)) {
-    isr_flags |= ESP_INTR_FLAG_IRAM;
-  }
-#endif
-
   periph_module_enable(uart_periph_signal[dmx_num].module);
   if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
 #if SOC_UART_REQUIRE_CORE_RESET
