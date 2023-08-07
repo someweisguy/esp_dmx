@@ -96,8 +96,10 @@ void setup() {
       label. Strings in RDM typically have a maximum length of 32 characters. We
       should allocate space for 32 characters and one null terminator. */
     char softwareVersionLabel[33];
-    if (rdm_send_get_software_version_label(
-            dmxPort, &header, softwareVersionLabel, 33, &ack)) {
+    size_t softwareVersionLabelSize = 32;
+    if (rdm_send_get_software_version_label(dmxPort, &header,
+                                            softwareVersionLabel,
+                                            &softwareVersionLabelSize, &ack)) {
       Serial.printf("Software version label: %s\n", softwareVersionLabel);
     }
 

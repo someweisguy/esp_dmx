@@ -56,8 +56,9 @@ void app_main() {
 
       // Get the software version label
       char sw_label[33];
-      if (rdm_send_get_software_version_label(dmx_num, &header, sw_label, 32,
-                                              &ack)) {
+      size_t sw_label_size = 32;
+      if (rdm_send_get_software_version_label(dmx_num, &header, sw_label,
+                                              &sw_label_size, &ack)) {
         ESP_LOGI(TAG, "Software version label: %s", sw_label);
       }
 
