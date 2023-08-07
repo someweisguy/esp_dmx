@@ -391,7 +391,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Block until the driver is done sending
-  if (!dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30))) {
+  if (!dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23))) {
     xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
@@ -468,7 +468,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   // Handle the response based on the response type
   if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
     // Get and convert the estimated response time to FreeRTOS ticks
-    decoded = pdMS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
+    decoded = pdDMX_MS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
   } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
     // Get and report the received NACK reason
     decoded = bswap16(*(uint16_t *)pd_out);

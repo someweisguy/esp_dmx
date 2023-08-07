@@ -19,13 +19,20 @@ extern "C" {
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
-/**
- * @brief Logs a warning message on the terminal if the condition is not met.
- */
+/** @brief Logs a warning message on the terminal if the condition is not met.*/
 #define DMX_WARN(format, ...)             \
   do {                                    \
     ESP_LOGW(TAG, format, ##__VA_ARGS__); \
   } while (0);
+
+/** @brief Macro used to convert milliseconds to FreeRTOS ticks. Evaluates to
+ * the minimum number of ticks needed for the specified number of milliseconds
+ * to elapse.*/
+#define pdDMX_MS_TO_TICKS(ms)                               \
+  (pdMS_TO_TICKS(ms) +                                      \
+   (((TickType_t)(ms) * (TickType_t)(configTICK_RATE_HZ)) % \
+        (TickType_t)1000U >                                 \
+    0))
 
 #ifdef CONFIG_RDM_DEVICE_UID_MAN_ID
 /** @brief This is the RDM Manufacturer ID used with this library. It may be set

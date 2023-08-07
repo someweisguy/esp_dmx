@@ -1120,7 +1120,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
 
   // Block until the driver is done sending
-  if (!dmx_wait_sent(dmx_num, pdMS_TO_TICKS(30))) {
+  if (!dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23))) {
     xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
@@ -1166,7 +1166,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Block if an alarm was set
   if (elapsed < timeout) {
-    bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, pdMS_TO_TICKS(30));
+    bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, pdDMX_MS_TO_TICKS(23));
     if (!notified) {
       dmx_timer_stop(timer);
       xTaskNotifyStateClear(driver->task_waiting);
