@@ -1051,7 +1051,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Don't respond to non-discovery broadcasts nor send NACK to DISC packets
   if ((rdm_uid_is_broadcast(&header.dest_uid) &&
        header.pid != RDM_PID_DISC_UNIQUE_BRANCH) ||
-      (response_type == RDM_RESPONSE_TYPE_NACK_REASON &&
+      (response_type != RDM_RESPONSE_TYPE_ACK &&
        header.cc == RDM_CC_DISC_COMMAND)) {
     response_type = RDM_RESPONSE_TYPE_NONE;
   }
@@ -1062,7 +1062,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.src_uid = my_uid;
   header.response_type = response_type;
   header.message_count = 0;  // TODO: update this if messages are queued
-  header.cc += 1;            // Set to RCM_CC_x_COMMAND_RESPONSE
+  header.cc += 1;            // Set to RDM_CC_x_COMMAND_RESPONSE
   header.pdl = pdl_out;
   // These fields should not change: tn, sub_device, and pid
 
@@ -1075,7 +1075,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     } else if (response_size > 0) {
-      dmx_wait_sent(dmx_num, 10);
+      dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->head = -1;  // Wait for DMX break before reading data
       dmx_uart_set_rts(uart, 1);
