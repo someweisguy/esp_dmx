@@ -5,6 +5,8 @@
 #include "dmx/hal.h"
 #include "dmx/struct.h"
 
+#include "driver/gpio.h"
+
 static struct dmx_timer_t {
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_handle_t gptimer_handle;
@@ -46,7 +48,7 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
       .counter_dir = TIMER_COUNT_UP,
       .counter_en = false,
       .alarm_en = true,
-      .auto_reload = true,
+      .auto_reload = true,  // FIXME: set to false?
   };
   esp_err_t err = timer_init(timer->group, timer->idx, &timer_config);
   if (err) {
@@ -75,6 +77,7 @@ void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_handle_t timer) {
   if (timer->is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_stop(timer->gptimer_handle);
+    gptimer_set_raw_count(timer->gptimer_handle, 0);
 #else
     timer_group_set_counter_enable_in_isr(timer->group, timer->idx, 0);
 #endif
@@ -97,7 +100,7 @@ void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer,
   const gptimer_alarm_config_t alarm_config = {
       .alarm_count = alarm,
       .reload_count = 0,
-      .flags.auto_reload_on_alarm = true};
+      .flags.auto_reload_on_alarm = false};
   gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
 #else
   timer_set_alarm_value(timer->group, timer->idx, alarm);

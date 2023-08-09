@@ -224,7 +224,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
 
       // Reset the alarm for the end of the DMX mark-after-break
-      dmx_timer_set_alarm(timer, driver->mab_len);
+      dmx_timer_set_alarm(timer, driver->break_len + driver->mab_len);
     } else {
       // Write data to the UART
       size_t write_size = driver->tx_size;
@@ -240,7 +240,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   } else if (driver->task_waiting) {
     // Notify the task
     xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
-                       &task_awoken);
+                       &task_awoken); // TODO: return timeout?
 
     // Pause the receive timer alarm
     dmx_timer_stop(timer);
@@ -856,7 +856,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA) && wait_ticks > 0) {
     // Set task waiting and get additional DMX driver flags
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->task_waiting = xTaskGetCurrentTaskHandle();
     const int rdm_type = driver->rdm_type;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -881,18 +880,16 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       dmx_timer_set_counter(timer, elapsed);
       dmx_timer_set_alarm(timer, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE);
       dmx_timer_start(timer);
+      driver->task_waiting = xTaskGetCurrentTaskHandle();
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
 
     // Wait for a task notification
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
-    dmx_timer_stop(timer);
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    dmx_timer_stop(timer);
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (packet_size == -1) {
-      packet_size = 0;
-    }
 
     if (!notified) {
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
