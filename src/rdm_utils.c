@@ -267,7 +267,12 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm_cbs[i].user_cb = user_cb;
   driver->rdm_cbs[i].driver_cb = driver_cb;
   driver->rdm_cbs[i].desc = *desc;
-  ++driver->num_rdm_cbs;
+
+  bool newCallback = i == driver->num_rdm_cbs;
+  if(newCallback)
+  {
+    ++driver->num_rdm_cbs;
+  }
 
   return true;
 }
