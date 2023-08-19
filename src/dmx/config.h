@@ -68,6 +68,13 @@ extern "C" {
 #define RDM_RESPONDER_PIDS_MAX (8 + 16)
 #endif
 
+/** @brief The maximum number of additional parameters that is supported.
+ *  
+ * According to ANSI-E1-20-2010 we can support up to 115 additional parameters.
+ * In practice we will never need that many, thus we limit it to save memory.
+*/
+#define RDM_MAX_NUM_ADDITIONAL_PARAMETERS 25
+
 /** @brief Directs the DMX driver to use spinlocks in critical sections. This is
  * needed for devices which have multiple cores.*/
 #define DMX_USE_SPINLOCK

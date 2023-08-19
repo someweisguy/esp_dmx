@@ -182,6 +182,46 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num,
   return RDM_RESPONSE_TYPE_ACK;
 }
 
+static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
+                                            const rdm_header_t *header, void *pd,
+                                            uint8_t *pdl_out, void *param,
+                                            const rdm_pid_description_t *desc,
+                                            const char *param_str) 
+{
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, RDM_RESPONSE_TYPE_NONE, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), RDM_RESPONSE_TYPE_NONE, "driver is not installed");
+
+  // Return early if the sub-device is out of range
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  if (header->cc != RDM_CC_GET_COMMAND) {
+    //the supported params list is read-only
+      ESP_LOGE(TAG, "RDM_PID_SUPPORTED_PARAMETERS is read-only");
+      *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_WRITE_PROTECT);
+      return RDM_RESPONSE_TYPE_NACK_REASON;
+    }
+
+  uint16_t *params = (uint16_t*)param;
+
+  int i = 0;
+  for(; i < RDM_MAX_NUM_ADDITIONAL_PARAMETERS; i++) {
+    if(params[i] == 0) {
+      break;
+    }
+    rdm_pd_emplace_word(pd, params[i]);
+    pd += sizeof(uint16_t);
+  }
+  *pdl_out = i * sizeof(uint16_t);
+
+  ESP_LOGE(TAG, "NUM OF ADDITIONAL PARAMS: %d\n", i);
+
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info,
                               rdm_responder_cb_t cb, void *context) {
@@ -320,6 +360,37 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
                                 rdm_simple_response_cb, param, cb, context);
+}
+
+
+bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                  void *context)
+{
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  const uint16_t size = RDM_MAX_NUM_ADDITIONAL_PARAMETERS * sizeof(uint16_t);
+  uint16_t *param = rdm_pd_find(dmx_num, RDM_PID_SUPPORTED_PARAMETERS);
+  if (param == NULL) {
+    param = rdm_pd_alloc(dmx_num, size);
+    if (param == NULL) {
+      return false;
+    }
+    memset(param, 0, size);
+  }
+
+  const rdm_pid_description_t desc = {.pid = RDM_PID_SUPPORTED_PARAMETERS,
+                                      .pdl_size = size,
+                                      .data_type = RDM_DS_NOT_DEFINED,
+                                      .cc = RDM_CC_GET,
+                                      .unit = RDM_UNITS_NONE,
+                                      .prefix = RDM_PREFIX_NONE,
+                                      .min_value = 0,
+                                      .max_value = 0,
+                                      .default_value = 0,
+                                      .description = "Supported Parameters"};
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
+                                rdm_supported_params_response_cb, param, NULL, NULL);  
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,

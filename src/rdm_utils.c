@@ -228,6 +228,34 @@ void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
   return ret;
 }
 
+static bool rdm_add_supported_parameter(dmx_port_t dmx_num, uint16_t pid)
+{
+  uint16_t *param = rdm_pd_find(dmx_num, RDM_PID_SUPPORTED_PARAMETERS);
+  if (param == NULL) {
+    ESP_LOGE(TAG, "RDM_PID_SUPPORTED_PARAMETERS needs to be added first");
+    return false;
+  }
+
+  //find next free slot in parameter list and insert the pid
+  for(int i = 0; i < RDM_MAX_NUM_ADDITIONAL_PARAMETERS; i++)
+  {
+    if(param[i] == pid)
+    {
+      // Parameter already in parameter list, nothing to do
+      return true;
+    }
+
+    if(param[i] == 0)
+    {
+      param[i] = pid;
+    }
+    return true;
+  }
+
+  ESP_LOGE(TAG, "Not space left in parameter list. Increase RDM_MAX_NUM_ADDITIONAL_PARAMETERS and recompile");
+  return false;
+}
+
 bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             const rdm_pid_description_t *desc,
                             const char *param_str, rdm_driver_cb_t driver_cb,
@@ -269,11 +297,38 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm_cbs[i].desc = *desc;
 
   bool newCallback = i == driver->num_rdm_cbs;
+
+  if(newCallback) 
+  {
+    // If this parameter lies outside the minimum required parameter set, we
+    // need to put it into the supported_parameters list to let rdm masters know
+    // about it.
+    switch(desc->pid)
+    {
+      // minimum required parameters
+      case RDM_PID_DISC_UNIQUE_BRANCH:
+      case RDM_PID_DISC_MUTE:
+      case RDM_PID_DISC_UN_MUTE:
+      case RDM_PID_SUPPORTED_PARAMETERS:
+      case RDM_PID_PARAMETER_DESCRIPTION:
+      case RDM_PID_DEVICE_INFO:
+      case RDM_PID_SOFTWARE_VERSION_LABEL:
+      case RDM_PID_DMX_START_ADDRESS:
+      case RDM_PID_IDENTIFY_DEVICE:
+        break;
+      default:
+        if(!rdm_add_supported_parameter(dmx_num, desc->pid))
+        {
+          ESP_LOGE(TAG, "Failed to add parmeter %d to parmeter list.", desc->pid);
+        }
+        ESP_LOGE("RDM", "Added parameter: %d\n", desc->pid); //TODO remove this line after debug
+    }
+  }
+
   if(newCallback)
   {
     ++driver->num_rdm_cbs;
   }
-
   return true;
 }
 

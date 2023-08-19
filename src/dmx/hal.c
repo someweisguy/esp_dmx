@@ -451,6 +451,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
         .sub_device_count = 0,  // Sub-devices must be registered
         .sensor_count = 0,      // Sensors must be registered
     };
+    rdm_register_supported_parameters(dmx_num, NULL, NULL);
     rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
     rdm_register_disc_un_mute(dmx_num, NULL, NULL);
     rdm_register_disc_mute(dmx_num, NULL, NULL);
