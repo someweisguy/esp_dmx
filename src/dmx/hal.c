@@ -857,6 +857,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Set task waiting and get additional DMX driver flags
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     const int rdm_type = driver->rdm_type;
+    driver->task_waiting = xTaskGetCurrentTaskHandle();
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
     // Check for early timeout according to RDM specification
@@ -871,6 +872,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // Guard against setting hardware alarm durations with negative values
       int64_t elapsed = dmx_timer_get_micros_since_boot() - last_timestamp;
       if (elapsed >= RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE) {
+        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+        driver->task_waiting = NULL;
+        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
         xSemaphoreGiveRecursive(driver->mux);
         return packet_size;
       }
@@ -880,7 +884,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       dmx_timer_set_counter(timer, elapsed);
       dmx_timer_set_alarm(timer, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE);
       dmx_timer_start(timer);
-      driver->task_waiting = xTaskGetCurrentTaskHandle();
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
 
