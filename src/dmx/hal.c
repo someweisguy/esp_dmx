@@ -893,16 +893,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     dmx_timer_stop(timer);
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
     if (!notified) {
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
       return packet_size;
     }
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-    packet_size = driver->head;
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA)) {
     // Fail early if there is no data available and this function cannot block
     xSemaphoreGiveRecursive(driver->mux);
@@ -910,6 +905,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Parse DMX data packet
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
+  packet_size = driver->head;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (packet_size == -1) {
+    packet_size = 0;
+  }
   if (packet != NULL) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     packet->sc = packet_size > 0 ? driver->data[0] : -1;
@@ -1166,6 +1168,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Block if an alarm was set
   if (elapsed < timeout) {
+    // FIXME: clean up this section
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, pdDMX_MS_TO_TICKS(23));
     if (!notified) {
       dmx_timer_stop(timer);
