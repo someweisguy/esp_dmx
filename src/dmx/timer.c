@@ -100,7 +100,7 @@ void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer,
   const gptimer_alarm_config_t alarm_config = {
       .alarm_count = alarm,
       .reload_count = 0,
-      .flags.auto_reload_on_alarm = true};
+      .flags.auto_reload_on_alarm = false};
   gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
 #else
   timer_group_set_alarm_value_in_isr(timer->group, timer->idx, alarm);
