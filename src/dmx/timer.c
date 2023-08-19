@@ -48,7 +48,7 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
       .counter_dir = TIMER_COUNT_UP,
       .counter_en = false,
       .alarm_en = true,
-      .auto_reload = true,  // FIXME: set to false?
+      .auto_reload = false,
   };
   esp_err_t err = timer_init(timer->group, timer->idx, &timer_config);
   if (err) {
