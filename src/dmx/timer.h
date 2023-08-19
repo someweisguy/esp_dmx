@@ -83,8 +83,11 @@ void dmx_timer_set_counter(dmx_timer_handle_t timer, uint64_t counter);
  *
  * @param timer A handle to the DMX timer.
  * @param alarm The alarm value to which to set the DMX timer.
+ * @param auto_reload Set to true to automatically reload the alarm when the
+ * alarm is triggered.
  */
-void dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm);
+void dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm,
+                         bool auto_reload);
 
 /**
  * @brief Starts the DMX timer.

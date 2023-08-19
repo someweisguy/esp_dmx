@@ -224,7 +224,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
 
       // Reset the alarm for the end of the DMX mark-after-break
-      dmx_timer_set_alarm(timer, driver->mab_len);
+      dmx_timer_set_alarm(timer, driver->mab_len, false);
     } else {
       // Write data to the UART
       size_t write_size = driver->tx_size;
@@ -882,7 +882,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // Set an early timeout with the hardware timer
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       dmx_timer_set_counter(timer, elapsed);
-      dmx_timer_set_alarm(timer, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE);
+      dmx_timer_set_alarm(timer, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE,
+                          false);
       dmx_timer_start(timer);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
@@ -1160,7 +1161,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
   if (elapsed < timeout) {
     dmx_timer_set_counter(timer, elapsed);
-    dmx_timer_set_alarm(timer, timeout);
+    dmx_timer_set_alarm(timer, timeout, false);
     dmx_timer_start(timer);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
@@ -1252,7 +1253,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->flags |=
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
     dmx_timer_set_counter(timer, 0);
-    dmx_timer_set_alarm(timer, driver->break_len);
+    dmx_timer_set_alarm(timer, driver->break_len, true);
     dmx_timer_start(timer);
 
     dmx_uart_invert_tx(uart, 1);
