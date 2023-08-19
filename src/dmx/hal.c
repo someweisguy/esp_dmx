@@ -1084,7 +1084,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Call the user-side callback
-  if (driver->rdm_cbs[cb_num].user_cb != NULL) {
+  if (cb_num < driver->num_rdm_cbs && driver->rdm_cbs[cb_num].user_cb != NULL) {
     void *context = driver->rdm_cbs[cb_num].context;
     driver->rdm_cbs[cb_num].user_cb(dmx_num, &header, context);
   }
