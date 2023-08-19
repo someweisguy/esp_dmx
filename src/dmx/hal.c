@@ -224,7 +224,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
 
       // Reset the alarm for the end of the DMX mark-after-break
-      dmx_timer_set_alarm(timer, driver->break_len + driver->mab_len);
+      dmx_timer_set_alarm(timer, driver->mab_len);
     } else {
       // Write data to the UART
       size_t write_size = driver->tx_size;
