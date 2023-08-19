@@ -48,7 +48,7 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
       .counter_dir = TIMER_COUNT_UP,
       .counter_en = false,
       .alarm_en = true,
-      .auto_reload = false,
+      .auto_reload = true,
   };
   esp_err_t err = timer_init(timer->group, timer->idx, &timer_config);
   if (err) {
@@ -95,15 +95,15 @@ void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer,
 }
 
 void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer,
-                                      uint64_t alarm) {
+                                      uint64_t alarm, bool auto_reload) {
 #if ESP_IDF_VERSION_MAJOR >= 5
   const gptimer_alarm_config_t alarm_config = {
       .alarm_count = alarm,
       .reload_count = 0,
-      .flags.auto_reload_on_alarm = false};
+      .flags.auto_reload_on_alarm = auto_reload};
   gptimer_set_alarm_action(timer->gptimer_handle, &alarm_config);
 #else
-  timer_set_alarm_value(timer->group, timer->idx, alarm);
+  timer_group_set_alarm_value_in_isr(timer->group, timer->idx, alarm);
 #endif
 }
 
