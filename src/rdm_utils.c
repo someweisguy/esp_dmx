@@ -237,7 +237,7 @@ static bool rdm_add_supported_parameter(dmx_port_t dmx_num, uint16_t pid)
   }
 
   //find next free slot in parameter list and insert the pid
-  for(int i = 0; i < RDM_MAX_NUM_ADDITIONAL_PARAMETERS; i++)
+  for(int i = 0; i < RDM_RESPONDER_NUM_PIDS_OPTIONAL; i++)
   {
     if(param[i] == pid)
     {

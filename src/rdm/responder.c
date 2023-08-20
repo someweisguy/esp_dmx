@@ -204,7 +204,7 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
   uint16_t *params = (uint16_t*)param;
 
   int i = 0;
-  for(; i < RDM_MAX_NUM_ADDITIONAL_PARAMETERS; i++) {
+  for(; i < RDM_RESPONDER_NUM_PIDS_OPTIONAL; i++) {
     if(params[i] == 0) {
       break;
     }
@@ -364,7 +364,7 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  const uint16_t size = RDM_MAX_NUM_ADDITIONAL_PARAMETERS * sizeof(uint16_t);
+  const uint16_t size = RDM_RESPONDER_NUM_PIDS_OPTIONAL * sizeof(uint16_t);
   uint16_t *param = rdm_pd_find(dmx_num, RDM_PID_SUPPORTED_PARAMETERS);
   if (param == NULL) {
     param = rdm_pd_alloc(dmx_num, size);
