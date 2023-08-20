@@ -188,9 +188,6 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
                                             const rdm_pid_description_t *desc,
                                             const char *param_str) 
 {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, RDM_RESPONSE_TYPE_NONE, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), RDM_RESPONSE_TYPE_NONE, "driver is not installed");
-
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -215,8 +212,6 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
     pd += sizeof(uint16_t);
   }
   *pdl_out = i * sizeof(uint16_t);
-
-  ESP_LOGE(TAG, "NUM OF ADDITIONAL PARAMS: %d\n", i);
 
   return RDM_RESPONSE_TYPE_ACK;
 }
@@ -381,7 +376,7 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb
 
   const rdm_pid_description_t desc = {.pid = RDM_PID_SUPPORTED_PARAMETERS,
                                       .pdl_size = size,
-                                      .data_type = RDM_DS_NOT_DEFINED,
+                                      .data_type = RDM_DS_UNSIGNED_WORD,
                                       .cc = RDM_CC_GET,
                                       .unit = RDM_UNITS_NONE,
                                       .prefix = RDM_PREFIX_NONE,
