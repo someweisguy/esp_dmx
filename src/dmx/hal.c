@@ -456,6 +456,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     rdm_register_disc_un_mute(dmx_num, NULL, NULL);
     rdm_register_disc_mute(dmx_num, NULL, NULL);
     rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
+    rdm_register_device_label(dmx_num, config->device_label, NULL, NULL);
     rdm_register_software_version_label(dmx_num, config->software_version_label,
                                         NULL, NULL);
     rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
