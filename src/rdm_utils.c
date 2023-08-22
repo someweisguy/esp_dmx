@@ -248,8 +248,8 @@ static bool rdm_add_supported_parameter(dmx_port_t dmx_num, uint16_t pid)
     if(param[i] == 0)
     {
       param[i] = pid;
+      return true;
     }
-    return true;
   }
 
   ESP_LOGE(TAG, "Not space left in parameter list. Increase RDM_MAX_NUM_ADDITIONAL_PARAMETERS and recompile");
