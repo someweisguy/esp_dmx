@@ -24,7 +24,7 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
   // Initialize hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5
   const gptimer_config_t timer_config = {
-      .clk_src = GPTIMER_CLK_SRC_APB,
+      .clk_src = GPTIMER_CLK_SRC_DEFAULT,
       .direction = GPTIMER_COUNT_UP,
       .resolution_hz = 1000000,  // 1MHz resolution timer
   };

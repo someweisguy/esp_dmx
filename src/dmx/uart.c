@@ -35,7 +35,7 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
   dmx_uart_handle_t uart = &dmx_uart_context[dmx_num];
 
   periph_module_enable(uart_periph_signal[dmx_num].module);
-  if (dmx_num != CONFIG_ESP_CONSOLE_UART_NUM) {
+  if (dmx_num != 0) {
 #if SOC_UART_REQUIRE_CORE_RESET
     // ESP32C3 workaround to prevent UART outputting garbage data
     uart_ll_set_reset_core(uart->dev, true);
@@ -46,7 +46,7 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
 #endif
   }
 
-  uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
+  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
 #if ESP_IDF_VERSION_MAJOR >= 5
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, esp_clk_apb_freq());
 #else
@@ -74,7 +74,7 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
 }
 
 void dmx_uart_deinit(dmx_uart_handle_t uart) {
-  if (uart->num != CONFIG_ESP_CONSOLE_UART_NUM) {
+  if (uart->num != 0) {
     periph_module_disable(uart_periph_signal[uart->num].module);
   }
 }
@@ -101,10 +101,20 @@ void dmx_uart_set_baud_rate(dmx_uart_handle_t uart, uint32_t baud_rate) {
 }
 
 void DMX_ISR_ATTR dmx_uart_invert_tx(dmx_uart_handle_t uart, uint32_t invert) {
+#if CONFIG_IDF_TARGET_ESP32C6
+  uart->dev->conf0_sync.txd_inv = invert;
+#else
   uart->dev->conf0.txd_inv = invert;
+#endif
 }
 
-int dmx_uart_get_rts(dmx_uart_handle_t uart) { return uart->dev->conf0.sw_rts; }
+int dmx_uart_get_rts(dmx_uart_handle_t uart) {
+#if CONFIG_IDF_TARGET_ESP32C6
+  return uart->dev->conf0_sync.sw_rts;
+#else
+  return uart->dev->conf0.sw_rts;
+#endif
+}
 
 int DMX_ISR_ATTR dmx_uart_get_interrupt_status(dmx_uart_handle_t uart) {
   return uart_ll_get_intsts_mask(uart->dev);
