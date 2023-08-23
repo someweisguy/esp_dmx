@@ -45,11 +45,11 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
     periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
   }
-
-  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
 #if ESP_IDF_VERSION_MAJOR >= 5
+  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, esp_clk_apb_freq());
 #else
+  uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE);
 #endif
   uart_ll_set_mode(uart->dev, UART_MODE_UART);
