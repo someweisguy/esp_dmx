@@ -58,15 +58,19 @@ extern "C" {
 #define RDM_UID_DEVICE_ID (0xffffffff)
 #endif
 
-#ifdef CONFIG_RDM_RESPONDER_MAX_PARAMETERS
-/** @brief The maximum number of parameters that the RDM responder can
+#define RDM_RESPONDER_NUM_PIDS_REQUIRED 9
+
+#ifdef CONFIG_RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS
+/** @brief The maximum number of optional parameters that the RDM responder can
  * support. This value is editable in the Kconfig.*/
-#define RDM_RESPONDER_PIDS_MAX (8 + CONFIG_RDM_RESPONDER_MAX_PARAMETERS)
+#define RDM_RESPONDER_NUM_PIDS_OPTIONAL (CONFIG_RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS)
 #else
+#define RDM_RESPONDER_NUM_PIDS_OPTIONAL 25
+#endif
+
 /** @brief The maximum number of parameters that the RDM responder can
  * support.*/
-#define RDM_RESPONDER_PIDS_MAX (8 + 16)
-#endif
+#define RDM_RESPONDER_PIDS_MAX (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
 
 /** @brief Directs the DMX driver to use spinlocks in critical sections. This is
  * needed for devices which have multiple cores.*/
