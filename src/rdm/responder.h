@@ -122,6 +122,10 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                   void *context);
 
+
+bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                  void *context);
+
 /**
  * @brief Registers the default response to RDM_PID_DMX_START_ADDRESS requests.
  * This response is required by all RDM-capable devices which use a DMX address.
