@@ -35,7 +35,7 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
   dmx_uart_handle_t uart = &dmx_uart_context[dmx_num];
 
   periph_module_enable(uart_periph_signal[dmx_num].module);
-  if (dmx_num != 0) {
+  if (dmx_num != 0) {  // Default UART port for console
 #if SOC_UART_REQUIRE_CORE_RESET
     // ESP32C3 workaround to prevent UART outputting garbage data
     uart_ll_set_reset_core(uart->dev, true);
@@ -74,7 +74,7 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
 }
 
 void dmx_uart_deinit(dmx_uart_handle_t uart) {
-  if (uart->num != 0) {
+  if (uart->num != 0) {  // Default UART port for console
     periph_module_disable(uart_periph_signal[uart->num].module);
   }
 }
