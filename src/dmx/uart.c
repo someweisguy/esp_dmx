@@ -47,7 +47,9 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
   }
 #if ESP_IDF_VERSION_MAJOR >= 5
   uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
-  uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, esp_clk_apb_freq());
+  uint32_t sclk_freq;
+  uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+  uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
 #else
   uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE);
