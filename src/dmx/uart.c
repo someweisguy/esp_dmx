@@ -88,7 +88,9 @@ bool dmx_uart_set_pin(dmx_uart_handle_t uart, int tx, int rx, int rts) {
 
 uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-  return uart_ll_get_baudrate(uart->dev, esp_clk_apb_freq());
+  uint32_t sclk_freq;
+  uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+  return uart_ll_get_baudrate(uart->dev, sclk_freq);
 #else
   return uart_ll_get_baudrate(uart->dev);
 #endif
@@ -96,7 +98,9 @@ uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart) {
 
 void dmx_uart_set_baud_rate(dmx_uart_handle_t uart, uint32_t baud_rate) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-  uart_ll_set_baudrate(uart->dev, baud_rate, esp_clk_apb_freq());
+  uint32_t sclk_freq;
+  uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+  uart_ll_set_baudrate(uart->dev, baud_rate, sclk_freq);
 #else
   uart_ll_set_baudrate(uart->dev, baud_rate);
 #endif
@@ -105,6 +109,7 @@ void dmx_uart_set_baud_rate(dmx_uart_handle_t uart, uint32_t baud_rate) {
 void DMX_ISR_ATTR dmx_uart_invert_tx(dmx_uart_handle_t uart, uint32_t invert) {
 #if CONFIG_IDF_TARGET_ESP32C6
   uart->dev->conf0_sync.txd_inv = invert;
+  uart_ll_update(uart->dev);
 #else
   uart->dev->conf0.txd_inv = invert;
 #endif
