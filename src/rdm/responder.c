@@ -196,7 +196,6 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
 
   if (header->cc != RDM_CC_GET_COMMAND) {
     //the supported params list is read-only
-      ESP_LOGE(TAG, "RDM_PID_SUPPORTED_PARAMETERS is read-only");
       *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_WRITE_PROTECT);
       return RDM_RESPONSE_TYPE_NACK_REASON;
     }
