@@ -29,11 +29,12 @@ static const char *TAG = "main";  // The log tagline.
 static uint8_t data[DMX_PACKET_SIZE] = {};  // Buffer to store DMX data
 
 void app_main() {
-  const dmx_port_t dmx_num = DMX_NUM_2;
+  const dmx_port_t dmx_num = DMX_NUM_1;
 
   // Set communication pins and install the driver
-  ESP_ERROR_CHECK(dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN));
-  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, DMX_DEFAULT_INTR_FLAGS));
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
+  dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
 
   dmx_packet_t packet;
   bool is_connected = false;

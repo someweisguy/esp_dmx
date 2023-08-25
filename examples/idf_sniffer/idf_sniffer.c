@@ -20,6 +20,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "freertos/task.h"
+#include "dmx/sniffer.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
@@ -29,15 +30,16 @@
 static const char *TAG = "main";  // The log tagline.
 
 void app_main() {
-  const dmx_port_t dmx_num = DMX_NUM_2;
+  const dmx_port_t dmx_num = DMX_NUM_1;
 
   // Set communication pins and install the driver
-  ESP_ERROR_CHECK(dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN));
-  ESP_ERROR_CHECK(dmx_driver_install(dmx_num, DMX_DEFAULT_INTR_FLAGS));
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
+  dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
 
   // Install the default GPIO ISR and enable the sniffer
   ESP_ERROR_CHECK(gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS));
-  ESP_ERROR_CHECK(dmx_sniffer_enable(dmx_num, SN_PIN));
+  dmx_sniffer_enable(dmx_num, SN_PIN);
 
   dmx_metadata_t metadata;
   bool is_connected = false;

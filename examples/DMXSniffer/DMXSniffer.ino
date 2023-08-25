@@ -14,6 +14,7 @@
 */
 #include <Arduino.h>
 #include <esp_dmx.h>
+#include <dmx/sniffer.h>
 
 /* First, lets define the hardware pins that we are using with our ESP32. We
   need to define which pin is transmitting data and which pin is receiving data.
@@ -52,14 +53,17 @@ void setup() {
     messages to the Serial Monitor. Lets set the baud rate to 115200. */
   Serial.begin(115200);
 
-  /* Set the DMX hardware pins to the pins that we want to use. */
-  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
+  /* Now we will install the DMX driver! We'll tell it which DMX port to use, 
+    what device configure to use, and which interrupt priority it should have. 
+    If you aren't sure which configuration or interrupt priority to use, you can
+    use the macros `DMX_CONFIG_DEFAULT` and `DMX_INTR_FLAGS_DEFAULT` to set the
+    configuration and interrupt to their default settings. */
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
 
-  /* Now we can install the DMX driver! We'll tell it which DMX port to use and
-    which interrupt priority it should have. If you aren't sure which interrupt
-    priority to use, you can use the macro `DMX_DEFAULT_INTR_FLAG` to set the
-    interrupt to its default settings.*/
-  dmx_driver_install(dmxPort, DMX_DEFAULT_INTR_FLAGS);
+  /* Now set the DMX hardware pins to the pins that we want to use and setup
+    will be complete! */
+  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
   /* In this example, we are using the DMX sniffer. The sniffer uses an
     interrupt service routine (ISR) to create metadata about the DMX we

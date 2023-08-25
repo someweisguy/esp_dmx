@@ -1,20 +1,10 @@
 #include "esp_dmx.h"
 
-#include <string.h>
-
-#include "dmx_types.h"
-#include "driver/gpio.h"
-#include "driver/uart.h"
+#include "dmx/config.h"
+#include "dmx/struct.h"
 #include "endian.h"
-#include "esp_check.h"
-#include "esp_log.h"
-#include "esp_rdm.h"
-#include "esp_task_wdt.h"
-#include "private/dmx_hal.h"
-#include "private/driver.h"
-#include "private/rdm_encode/types.h"
-#include "rdm_types.h"
 
+<<<<<<< HEAD
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
 #include "esp_private/periph_ctrl.h"
@@ -586,188 +576,35 @@ esp_err_t dmx_driver_delete(dmx_port_t dmx_num) {
 }
 
 bool dmx_driver_is_installed(dmx_port_t dmx_num) {
+=======
+bool DMX_ISR_ATTR dmx_driver_is_installed(dmx_port_t dmx_num) {
+>>>>>>> release/v3.1
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
-}
-bool dmx_driver_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(dmx_driver_is_enabled(dmx_num), false,
-            "driver is already disabled");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  bool success = false;
-
-  // Disable receive interrupts
-  taskENTER_CRITICAL(spinlock);
-  if (!driver->is_sending) {
-    dmx_uart_disable_interrupt(driver->uart, DMX_INTR_RX_ALL);
-    dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
-    driver->is_enabled = false;
-    success = true;
-  }
-  taskEXIT_CRITICAL(spinlock);
-
-  return success;
-}
-
-bool dmx_driver_enable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(!dmx_driver_is_enabled(dmx_num), false,
-            "driver is already enabled");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Initialize driver flags and reenable interrupts
-  taskENTER_CRITICAL(spinlock);
-  driver->is_in_break = false;
-  driver->end_of_packet = true;
-  driver->new_packet = false;
-  driver->data.head = -1;  // Wait for DMX break before reading data
-  dmx_uart_rxfifo_reset(driver->uart);
-  dmx_uart_txfifo_reset(driver->uart);
-  dmx_uart_enable_interrupt(driver->uart, DMX_INTR_RX_ALL);
-  dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
-  driver->is_enabled = true;
-  taskEXIT_CRITICAL(spinlock);
-
-  return true;
 }
 
 bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
-  bool is_enabled = false;
-
-  if(dmx_driver_is_installed(dmx_num)) {
-    spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-    taskENTER_CRITICAL(spinlock);
-    is_enabled = dmx_driver[dmx_num]->is_enabled;
-    taskEXIT_CRITICAL(spinlock);
+  bool is_enabled;
+  if (dmx_driver_is_installed(dmx_num)) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    is_enabled = dmx_driver[dmx_num]->flags & DMX_FLAGS_DRIVER_IS_ENABLED;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  } else {
+    is_enabled = false;
   }
 
   return is_enabled;
 }
 
-esp_err_t dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
-  DMX_CHECK(tx_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(tx_pin),
-            ESP_ERR_INVALID_ARG, "tx_pin error");
-  DMX_CHECK(rx_pin < 0 || GPIO_IS_VALID_GPIO(rx_pin), ESP_ERR_INVALID_ARG,
-            "rx_pin error");
-  DMX_CHECK(rts_pin < 0 || GPIO_IS_VALID_OUTPUT_GPIO(rts_pin),
-            ESP_ERR_INVALID_ARG, "rts_pin error");
-
-  return uart_set_pin(dmx_num, tx_pin, rx_pin, rts_pin, DMX_PIN_NO_CHANGE);
-}
-
-esp_err_t dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
-  DMX_CHECK(intr_pin > 0 && GPIO_IS_VALID_GPIO(intr_pin), ESP_ERR_INVALID_ARG,
-            "intr_pin error");
-  DMX_CHECK(!dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
-            "sniffer is already enabled");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Allocate the sniffer queue
-  driver->sniffer.queue = xQueueCreate(1, sizeof(dmx_metadata_t));
-  if (driver->sniffer.queue == NULL) {
-    ESP_LOGE(TAG, "DMX sniffer queue malloc error");
-    return ESP_ERR_NO_MEM;
-  }
-
-  // Add the GPIO interrupt handler
-  esp_err_t err = gpio_isr_handler_add(intr_pin, dmx_gpio_isr, driver);
-  if (err) {
-    ESP_LOGE(TAG, "DMX sniffer ISR handler error");
-    vQueueDelete(driver->sniffer.queue);
-    driver->sniffer.queue = NULL;
-    return ESP_FAIL;
-  }
-  driver->sniffer.intr_pin = intr_pin;
-
-  // Set sniffer default values
-  driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
-  driver->sniffer.is_in_mab = false;
-
-  // Enable the interrupt
-  gpio_set_intr_type(intr_pin, GPIO_INTR_ANYEDGE);
-
-  return ESP_OK;
-}
-
-esp_err_t dmx_sniffer_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
-  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
-            "sniffer is not enabled");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Disable the interrupt and remove the interrupt handler
-  gpio_set_intr_type(driver->sniffer.intr_pin, GPIO_INTR_DISABLE);
-  esp_err_t err = gpio_isr_handler_remove(driver->sniffer.intr_pin);
-  if (err) {
-    ESP_LOGE(TAG, "DMX sniffer ISR handler error");
-    return ESP_FAIL;
-  }
-
-  // Deallocate the sniffer queue
-  vQueueDelete(driver->sniffer.queue);
-  driver->sniffer.queue = NULL;
-
-  return ESP_OK;
-}
-
-bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
-  return dmx_driver_is_installed(dmx_num) &&
-         dmx_driver[dmx_num]->sniffer.queue != NULL;
-}
-
-bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
-                          TickType_t wait_ticks) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, ESP_ERR_INVALID_ARG,
-            "dmx_num error");
-  DMX_CHECK(metadata, ESP_ERR_INVALID_ARG, "metadata is null");
-  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), ESP_ERR_INVALID_STATE,
-            "sniffer is not enabled");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  return xQueueReceive(driver->sniffer.queue, metadata, wait_ticks);
-}
-
-uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
+uint32_t dmx_get_break_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // Clamp the baud rate to within DMX specification
-  if (baud_rate < DMX_MIN_BAUD_RATE) {
-    baud_rate = DMX_MIN_BAUD_RATE;
-  } else if (baud_rate > DMX_MAX_BAUD_RATE) {
-    baud_rate = DMX_MAX_BAUD_RATE;
-  }
+  uint32_t break_len;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  break_len = dmx_driver[dmx_num]->break_len;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  taskENTER_CRITICAL(spinlock);
-  dmx_uart_set_baud_rate(dmx_driver[dmx_num]->uart, baud_rate);
-  taskEXIT_CRITICAL(spinlock);
-
-  return baud_rate;
-}
-
-uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  taskENTER_CRITICAL(spinlock);
-  const uint32_t baud_rate = dmx_uart_get_baud_rate(dmx_driver[dmx_num]->uart);
-  taskEXIT_CRITICAL(spinlock);
-
-  return baud_rate;
+  return break_len;
 }
 
 uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
@@ -775,28 +612,15 @@ uint32_t dmx_set_break_len(dmx_port_t dmx_num, uint32_t break_len) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp the break length to within DMX specification
-  if (break_len < DMX_MIN_BREAK_LEN_US) {
-    break_len = DMX_MIN_BREAK_LEN_US;
-  } else if (break_len > DMX_MAX_BREAK_LEN_US) {
-    break_len = DMX_MAX_BREAK_LEN_US;
+  if (break_len < DMX_BREAK_LEN_MIN_US) {
+    break_len = DMX_BREAK_LEN_MIN_US;
+  } else if (break_len > DMX_BREAK_LEN_MAX_US) {
+    break_len = DMX_BREAK_LEN_MAX_US;
   }
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  taskENTER_CRITICAL(spinlock);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   dmx_driver[dmx_num]->break_len = break_len;
-  taskEXIT_CRITICAL(spinlock);
-
-  return break_len;
-}
-
-uint32_t dmx_get_break_len(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  taskENTER_CRITICAL(spinlock);
-  const uint32_t break_len = dmx_driver[dmx_num]->break_len;
-  taskEXIT_CRITICAL(spinlock);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return break_len;
 }
@@ -806,16 +630,15 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // Clamp the mark-after-break length to within DMX specification
-  if (mab_len < DMX_MIN_MAB_LEN_US) {
-    mab_len = DMX_MIN_MAB_LEN_US;
-  } else if (mab_len > DMX_MAX_MAB_LEN_US) {
-    mab_len = DMX_MAX_MAB_LEN_US;
+  if (mab_len < DMX_MAB_LEN_MIN_US) {
+    mab_len = DMX_MAB_LEN_MIN_US;
+  } else if (mab_len > DMX_MAB_LEN_MAX_US) {
+    mab_len = DMX_MAB_LEN_MAX_US;
   }
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  taskENTER_CRITICAL(spinlock);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   dmx_driver[dmx_num]->mab_len = mab_len;
-  taskEXIT_CRITICAL(spinlock);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return mab_len;
 }
@@ -824,12 +647,155 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  taskENTER_CRITICAL(spinlock);
-  const uint32_t mab_len = dmx_driver[dmx_num]->mab_len;
-  taskEXIT_CRITICAL(spinlock);
+  uint32_t mab_len;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  mab_len = dmx_driver[dmx_num]->mab_len;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return mab_len;
+}
+
+uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  uint8_t current_personality;
+
+  const rdm_device_info_t *device_info =
+      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (device_info == NULL) {
+    const dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->pd;
+    current_personality = personality->current_personality;
+  } else {
+    current_personality = device_info->current_personality;
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return current_personality;
+}
+
+bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            false, "personality_num error");
+
+  // Get the required personality values from RDM device info or DMX driver
+  uint8_t *current_personality;
+  uint16_t *footprint;
+  rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  if (device_info == NULL) {
+    dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;
+    current_personality = &personality->current_personality;
+    footprint = NULL;
+  } else {
+    current_personality = &device_info->current_personality;
+    footprint = (void *)device_info + offsetof(rdm_device_info_t, footprint);
+  }
+
+  // Set the new personality
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  *current_personality = personality_num;
+  if (footprint != NULL) {
+    *footprint = dmx_get_footprint(dmx_num, personality_num);
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  if (device_info != NULL) {
+    // TODO: send message to RDM queue
+  }
+
+  return true;
+}
+
+uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  const rdm_device_info_t *device_info =
+      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  if (device_info == NULL) {
+    const dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->pd;
+    return personality->personality_count;
+  } else {
+    return device_info->personality_count;
+  }
+}
+
+size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            0, "personality_num is invalid");
+
+  --personality_num;  // Personalities are indexed starting at 1
+
+  size_t fp;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  fp = dmx_driver[dmx_num]->personalities[personality_num].footprint;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return fp;
+}
+
+const char *dmx_get_personality_description(dmx_port_t dmx_num,
+                                            uint8_t personality_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, NULL, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), NULL, "driver is not installed");
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            NULL, "personality_num is invalid");
+
+  --personality_num;  // Personalities are indexed starting at 1
+  return dmx_driver[dmx_num]->personalities[personality_num].description;
+}
+
+uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  uint16_t dmx_start_address;
+
+  const rdm_device_info_t *device_info =
+      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (device_info == NULL) {
+    const dmx_driver_personality_t *personality =
+        (void *)dmx_driver[dmx_num]->pd;
+    dmx_start_address = personality->dmx_start_address;
+  } else {
+    dmx_start_address = device_info->dmx_start_address;
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return dmx_start_address;
+}
+
+size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
+                       size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(offset < DMX_PACKET_SIZE_MAX, 0, "offset error");
+  DMX_CHECK(destination, 0, "destination is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // Clamp size to the maximum DMX packet size
+  if (size + offset > DMX_PACKET_SIZE_MAX) {
+    size = DMX_PACKET_SIZE_MAX - offset;
+  } else if (size == 0) {
+    return 0;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Copy data from the driver buffer to the destination asynchronously
+  memcpy(destination, driver->data + offset, size);
+
+  return size;
 }
 
 size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
@@ -837,52 +803,124 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size) {
   DMX_CHECK(destination, 0, "destination is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // Clamp size to the maximum DMX packet size
-  if (size > DMX_MAX_PACKET_SIZE) {
-    size = DMX_MAX_PACKET_SIZE;
-  } else if (size == 0) {
-    return 0;
-  }
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Copy data from the driver buffer to the destination asynchronously
-  memcpy(destination, driver->data.buffer, size);
-
-  return size;
-}
-
-size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
-                       size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
-  DMX_CHECK(destination, 0, "destination is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // Clamp size to the maximum DMX packet size
-  if (size + offset > DMX_MAX_PACKET_SIZE) {
-    size = DMX_MAX_PACKET_SIZE - offset;
-  } else if (size == 0) {
-    return 0;
-  }
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Copy data from the driver buffer to the destination asynchronously
-  memcpy(destination, driver->data.buffer + offset, size);
-
-  return size;
+  return dmx_read_offset(dmx_num, 0, destination, size);
 }
 
 int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
-  DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
+  DMX_CHECK(slot_num < DMX_PACKET_SIZE_MAX, -1, "slot_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
+
+  uint8_t slot;
+  dmx_read_offset(dmx_num, slot_num, &slot, 1);
+
+  return slot;
+}
+
+size_t DMX_ISR_ATTR dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header,
+                                 void *pd, size_t num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  size_t read = 0;
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Return data from the driver buffer asynchronously
-  return driver->data.buffer[slot_num];
+  // Get pointers to driver data buffer locations and declare checksum
+  uint16_t checksum = 0;
+  const uint8_t *header_ptr = driver->data;
+  const void *pd_ptr = header_ptr + 24;
+
+  // Verify start code and sub-start code are correct
+  if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8)) &&
+      *header_ptr != RDM_PREAMBLE && *header_ptr != RDM_DELIMITER) {
+    return read;
+  }
+
+  // Get and verify the preamble_len if packet is a discovery response
+  size_t preamble_len = 0;
+  if (*header_ptr == RDM_PREAMBLE || *header_ptr == RDM_DELIMITER) {
+    for (; preamble_len <= 7; ++preamble_len) {
+      if (header_ptr[preamble_len] == RDM_DELIMITER) break;
+    }
+    if (preamble_len > 7) {
+      return read;
+    }
+  }
+
+  // Handle packets differently if a DISC_UNIQUE_BRANCH packet was received
+  if (*header_ptr == RDM_SC) {
+    // Verify checksum is correct
+    const uint8_t message_len = header_ptr[2];
+    for (int i = 0; i < message_len; ++i) {
+      checksum += header_ptr[i];
+    }
+    if (checksum != bswap16(*(uint16_t *)(header_ptr + message_len))) {
+      return read;
+    }
+
+    // Copy the header and pd from the driver
+    if (header != NULL) {
+      // Copy header without emplace so this function can be used in IRAM ISR
+      for (int i = 0; i < sizeof(rdm_header_t); ++i) {
+        ((uint8_t *)header)[i] = header_ptr[i];
+      }
+      header->dest_uid.man_id = bswap16(header->dest_uid.man_id);
+      header->dest_uid.dev_id = bswap32(header->dest_uid.dev_id);
+      header->src_uid.man_id = bswap16(header->src_uid.man_id);
+      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
+      header->sub_device = bswap16(header->sub_device);
+      header->pid = bswap16(header->pid);
+    }
+    if (pd != NULL) {
+      const uint8_t pdl = header_ptr[23];
+      const size_t copy_size = pdl < num ? pdl : num;
+      memcpy(pd, pd_ptr, copy_size);
+    }
+
+    // Update the read size
+    read = message_len + 2;
+
+  } else {
+    // Verify the checksum is correct
+    header_ptr += preamble_len + 1;
+    for (int i = 0; i < 12; ++i) {
+      checksum += header_ptr[i];
+    }
+    if (checksum != (((header_ptr[12] & header_ptr[13]) << 8) |
+                     (header_ptr[14] & header_ptr[15]))) {
+      return read;
+    }
+
+    // Decode the EUID
+    uint8_t buf[6];
+    for (int i = 0, j = 0; i < 6; ++i, j += 2) {
+      buf[i] = header_ptr[j] & header_ptr[j + 1];
+    }
+
+    // Copy the data into the header
+    if (header != NULL) {
+      // Copy header without emplace so this function can be used in IRAM ISR
+      for (int i = 0; i < sizeof(rdm_uid_t); ++i) {
+        ((uint8_t *)&header->src_uid)[i] = buf[i];
+      }
+      header->src_uid.man_id = bswap16(header->src_uid.man_id);
+      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
+      header->dest_uid = (rdm_uid_t){0, 0};
+      header->tn = 0;
+      header->response_type = RDM_RESPONSE_TYPE_ACK;
+      header->message_count = 0;
+      header->sub_device = RDM_SUB_DEVICE_ROOT;
+      header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
+      header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
+      header->pdl = preamble_len + 1 + 16;
+    }
+
+    // Update the read size
+    read = preamble_len + 1 + 16;
+  }
+
+  return read;
 }
 
 size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
@@ -890,102 +928,20 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size) {
   DMX_CHECK(source, 0, "source is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // Clamp size to the maximum DMX packet size or fail quickly on invalid size
-  if (size > DMX_MAX_PACKET_SIZE) {
-    size = DMX_MAX_PACKET_SIZE;
-  } else if (size == 0) {
-    return 0;
-  }
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  uart_dev_t *const restrict uart = driver->uart;
-
-  taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
-    // Do not allow asynchronous writes when sending an RDM packet
-    taskEXIT_CRITICAL(spinlock);
-    return 0;
-  } else if (dmx_uart_get_rts(uart) == 1) {
-    // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_set_rts(uart, 0);
-  }
-  driver->data.tx_size = size;  // Update driver transmit size
-  taskEXIT_CRITICAL(spinlock);
-
-  // Copy data from the source to the driver buffer asynchronously
-  memcpy(driver->data.buffer, source, size);
-
-  return size;
-}
-
-size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
-                        size_t size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(offset < DMX_MAX_PACKET_SIZE, 0, "offset error");
-  DMX_CHECK(source, 0, "source is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // Clamp size to the maximum DMX packet size
-  if (size + offset > DMX_MAX_PACKET_SIZE) {
-    size = DMX_MAX_PACKET_SIZE - offset;
-  } else if (size == 0) {
-    return 0;
-  }
-
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  uart_dev_t *const restrict uart = driver->uart;
-
-  taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
-    // Do not allow asynchronous writes when sending an RDM packet
-    taskEXIT_CRITICAL(spinlock);
-    return 0;
-  } else if (dmx_uart_get_rts(uart) == 1) {
-    // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_set_rts(uart, 0);
-  }
-  driver->data.tx_size = offset + size;  // Update driver transmit size
-  taskEXIT_CRITICAL(spinlock);
-
-  // Copy data from the source to the driver buffer asynchronously
-  memcpy(driver->data.buffer + offset, source, size);
-
-  return size;
+  return dmx_write_offset(dmx_num, 0, source, size);
 }
 
 int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, -1, "dmx_num error");
-  DMX_CHECK(slot_num < DMX_MAX_PACKET_SIZE, -1, "slot_num error");
+  DMX_CHECK(slot_num < DMX_PACKET_SIZE_MAX, -1, "slot_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), -1, "driver is not installed");
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  uart_dev_t *const restrict uart = driver->uart;
-
-  taskENTER_CRITICAL(spinlock);
-  if (driver->is_sending && driver->data.type != RDM_PACKET_TYPE_NON_RDM) {
-    // Do not allow asynchronous writes when sending an RDM packet
-    taskEXIT_CRITICAL(spinlock);
-    return 0;
-  } else if (dmx_uart_get_rts(uart) == 1) {
-    // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_set_rts(uart, 0);
-  }
-
-  // Ensure that the next packet to be sent includes this slot
-  if (driver->data.tx_size < slot_num) {
-    driver->data.tx_size = slot_num;
-  }
-  taskEXIT_CRITICAL(spinlock);
-
-  // Set the driver buffer slot to the assigned value asynchronously
-  driver->data.buffer[slot_num] = value;
+  dmx_write_offset(dmx_num, slot_num, &value, 1);
 
   return value;
 }
 
+<<<<<<< HEAD
 size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                    TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -1303,11 +1259,12 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   return size;
 }
 
+=======
+>>>>>>> release/v3.1
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  spinlock_t *const restrict spinlock = &dmx_spinlock[dmx_num];
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Block until the mutex can be taken
@@ -1322,12 +1279,12 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   bool result = true;
   if (wait_ticks > 0) {
     bool task_waiting = false;
-    taskENTER_CRITICAL(spinlock);
-    if (driver->is_sending) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
       driver->task_waiting = xTaskGetCurrentTaskHandle();
       task_waiting = true;
     }
-    taskEXIT_CRITICAL(spinlock);
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
     // Wait for a notification that the driver is done sending
     if (task_waiting) {
@@ -1335,14 +1292,30 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
       driver->task_waiting = NULL;
     }
   } else {
-    taskENTER_CRITICAL(spinlock);
-    if (driver->is_sending) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
       result = false;
     }
-    taskEXIT_CRITICAL(spinlock);
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
   return result;
+}
+
+bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
+  return dmx_driver_is_installed(dmx_num) &&
+         dmx_driver[dmx_num]->metadata_queue != NULL;
+}
+
+bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
+                          TickType_t wait_ticks) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(metadata, false, "metadata is null");
+  DMX_CHECK(dmx_sniffer_is_enabled(dmx_num), false, "sniffer is not enabled");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  return xQueueReceive(driver->metadata_queue, metadata, wait_ticks);
 }

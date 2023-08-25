@@ -14,6 +14,7 @@
 */
 #include <Arduino.h>
 #include <esp_dmx.h>
+#include <rdm/controller.h>
 
 /* First, lets define the hardware pins that we are using with our ESP32. We
   need to define which pin is transmitting data and which pin is receiving data.
@@ -41,14 +42,17 @@ void setup() {
     messages to the Serial Monitor. Lets set the baud rate to 115200. */
   Serial.begin(115200);
 
-  /* Set the DMX hardware pins to the pins that we want to use. */
-  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
+  /* Now we will install the DMX driver! We'll tell it which DMX port to use, 
+    what device configure to use, and which interrupt priority it should have. 
+    If you aren't sure which configuration or interrupt priority to use, you can
+    use the macros `DMX_CONFIG_DEFAULT` and `DMX_INTR_FLAGS_DEFAULT` to set the
+    configuration and interrupt to their default settings. */
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
 
-  /* Now we can install the DMX driver! We'll tell it which DMX port to use and
-    which interrupt priority it should have. If you aren't sure which interrupt
-    priority to use, you can use the macro `DMX_DEFAULT_INTR_FLAG` to set the
-    interrupt to its default settings.*/
-  dmx_driver_install(dmxPort, DMX_DEFAULT_INTR_FLAGS);
+  /* Now set the DMX hardware pins to the pins that we want to use and DMX
+    driver setup will be complete! */
+  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
   /* RDM Discovery can take several seconds to complete. With just 1 RDM capable
     device in the RDM network, discovery should take around 30ms. */
@@ -57,7 +61,7 @@ void setup() {
     RDM devices on the network. When a device is found, its UID is added to an
     array of UIDs. This function will never overflow the UID array as long as
     the size argument is set properly. */
-  size_t devicesFound = rdm_discover_devices_simple(dmxPort, uids, 32);
+  int devicesFound = rdm_discover_devices_simple(dmxPort, uids, 32);
   if (devicesFound) {
     /* Now we'll print the devices we found to the Serial Monitor! */
     Serial.printf("Discovery found %i device(s).\n", devicesFound);
