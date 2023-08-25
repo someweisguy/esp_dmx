@@ -4,7 +4,7 @@
 #include "dmx/struct.h"
 #include "endian.h"
 
-bool dmx_driver_is_installed(dmx_port_t dmx_num) {
+bool DMX_ISR_ATTR dmx_driver_is_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 

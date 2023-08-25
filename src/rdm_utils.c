@@ -27,7 +27,7 @@ void *rdm_uidmove(void *destination, const void *source) {
   return rdm_uidcpy(destination, &temp);
 }
 
-void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
+void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(uid != NULL);
 
