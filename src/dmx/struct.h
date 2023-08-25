@@ -102,7 +102,6 @@ typedef struct dmx_driver_t {
     void *context;               // The contexted for the user-side callback.
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM callbacks.
 
-  char device_label[33];
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
   QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
