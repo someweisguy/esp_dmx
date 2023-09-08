@@ -42,7 +42,7 @@ extern "C" {
  * disabled. */
 #define DMX_CONFIG_DEFAULT                                     \
   ((dmx_config_t){                                             \
-      255,                          /*alloc_size*/             \
+      255,                          /*pd_size*/                \
       0,                            /*model_id*/               \
       RDM_PRODUCT_CATEGORY_FIXTURE, /*product_category*/       \
       ESP_DMX_VERSION_ID,           /*software_version_id*/    \

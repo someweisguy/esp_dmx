@@ -245,7 +245,7 @@ dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
 
 The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
 
-- `alloc_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `alloc_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 53 will disable the RDM responder. The default value is `255`.
+- `pd_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `pd_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 53 will disable the RDM responder. The default value is `255`.
 - `model_id` identifies the device model ID. This is an arbitrary value set by the user. Users should not use the same model ID to represent more than one unique model type. The default value is `0`.
 - `product_category` is the primary function of the device. A list of product categories are enumerated in the appendix under [product categories](#product-categories). The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
 - `software_version_id` indicates the software version ID for the device. This is a 32-bit value determined by the user. The default is a value returned by a function of this library's version number.
@@ -257,7 +257,7 @@ The `dmx_config_t` sets permanent configuration values within the DMX driver. Th
 
 ```c
 dmx_config_t config = {
-  .alloc_size = 255,
+  .pd_size = 255,
   .model_id = 0xabcd,
   .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,
   .software_version_id = 0x100,

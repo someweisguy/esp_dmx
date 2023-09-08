@@ -254,6 +254,10 @@ typedef enum dmx_err_t {
 
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_t {
+  /** @brief This field sets the size of the RDM responder parameter data. This
+     is a heap-allocated array which stores all the RDM parameter data for the
+     RDM responder. RDM parameter data is then accessed through the various 
+     rdm_get_ and rdm_set_ functions.*/
   size_t pd_size;
   /** @brief This field identifies the device model ID of the root device or
      sub-device. The manufacturer shall not use the same ID to represent more
