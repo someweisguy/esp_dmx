@@ -122,6 +122,11 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                   void *context);
 
+bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                  void *context);
+
+bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                  void *context);
 
 bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                   void *context);
