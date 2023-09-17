@@ -196,6 +196,8 @@ typedef enum rdm_pid_t {
 
   // Reserved for Future RDM Development: 0x7fe0-0x7fff
   // Manufacturer Specific PIDs:          0x8000-0xffdf
+  RDM_PID_MANUFACTURER_SPECIFIC_BEGIN = 0x8000,
+  RDM_PID_MANUFACTURER_SPECIFIC_END = 0xffdf,
   // Reserved for Future RDM Development: 0xffe0-0xffff
 } rdm_pid_t;
 
