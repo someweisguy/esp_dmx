@@ -425,6 +425,41 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   }
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
+                                  rdm_simple_response_cb, param, cb, context);
+}
+
+bool rdm_register_device_label(dmx_port_t dmx_num,
+                               const char *device_label,
+                               rdm_responder_cb_t cb, void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  const rdm_pid_description_t desc = {.pid = RDM_PID_DEVICE_LABEL,
+                                      .pdl_size = 32,
+                                      .data_type = RDM_DS_ASCII,
+                                      .cc = RDM_CC_GET,
+                                      .unit = RDM_UNITS_NONE,
+                                      .prefix = RDM_PREFIX_NONE,
+                                      .min_value = 0,
+                                      .max_value = 0,
+                                      .default_value = 0,
+                                      .description = "Device Label"};
+  const char *param_str = "a$";
+
+  char *param = rdm_pd_find(dmx_num, RDM_PID_DEVICE_LABEL);
+  if (param == NULL) {
+    DMX_CHECK(device_label != NULL, false,
+              "device_label is null");
+    DMX_CHECK(strnlen(device_label, 33) < 33, false,
+              "device_label error");
+    param = rdm_pd_alloc(dmx_num, 32);
+    if (param == NULL) {
+      return false;
+    }
+    strncpy(param, device_label, 32);
+  }
+
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
                                 rdm_simple_response_cb, param, cb, context);
 }
 
