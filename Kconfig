@@ -66,8 +66,17 @@ menu "DMX/RDM Configuration"
         range 0 512
         default 16
         help
-            This is the maximum number of optional RDM parameter responses that the DMX
-            driver supports. Increasing this number increases the size of the
-            DMX driver.
+            This is the maximum number of optional RDM parameter responses that 
+            the DMX driver supports. Increasing this number increases the size
+            of the DMX driver.
+    
+    config RDM_RESPONDER_MAX_QUEUE_SIZE
+        int "Max RDM responder queue size"
+        range 0 65535
+        default 32
+        help
+           This is the maximum number of queued messages which the DMX driver
+           supports. Increasing this number increases the size of the DMX 
+           driver.
 
 endmenu

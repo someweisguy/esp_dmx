@@ -72,6 +72,18 @@ extern "C" {
  * support.*/
 #define RDM_RESPONDER_PIDS_MAX (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
 
+#ifdef CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
+/** @brief The maximum number of queued messages that ther RDM responder can 
+ * support. It may be set using the Kconfig file.
+ */
+#define RDM_RESPONDER_MAX_QUEUE_SIZE CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
+#else
+/** @brief The maximum number of queued messages that ther RDM responder can 
+ * support.
+ */
+#define RDM_RESPONDER_MAX_QUEUE_SIZE 64
+#endif
+
 /** @brief Directs the DMX driver to use spinlocks in critical sections. This is
  * needed for devices which have multiple cores.*/
 #define DMX_USE_SPINLOCK
