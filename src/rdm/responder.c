@@ -5,6 +5,7 @@
 #include "dmx/nvs.h"
 #include "dmx/struct.h"
 #include "esp_dmx.h"
+#include "endian.h"
 #include "rdm_utils.h"
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num,
@@ -318,6 +319,48 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num,
   }
 }
 
+static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
+                                                 const rdm_header_t *header, void *pd,
+                                                 uint8_t *pdl_out, void *param,
+                                                 const rdm_pid_description_t *desc,
+                                                 const char *param_str)
+{
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT)
+  {
+    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  uint16_t requestedPid;
+  memcpy(&requestedPid, pd, sizeof(uint16_t)); // need to memcpy to avoid undefined behavior (strict aliasing rule)
+  requestedPid = bswap16(requestedPid);
+
+  // 0x8000 to 0xFFDF is the allowed range for manufacturer specific pids
+  if (requestedPid < RDM_PID_MANUFACTURER_SPECIFIC_BEGIN || requestedPid > RDM_PID_MANUFACTURER_SPECIFIC_END)
+  {
+    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Iterate the callback list to see if a callback with this PID exists
+  for (int i = 0; i < driver->num_rdm_cbs; ++i)
+  {
+    if (driver->rdm_cbs[i].desc.pid == requestedPid)
+    {
+      //The pdl can be in range x014-0x34 depending on how long the parameter description string is.
+      //There is no harm in always sending the full string, so we just do that.
+      *pdl_out = rdm_pd_emplace(pd, param_str, &driver->rdm_cbs[i].desc, 0x34, false);
+      return RDM_RESPONSE_TYPE_ACK;
+    }
+  }
+
+  // no pid found
+  *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+  return RDM_RESPONSE_TYPE_NACK_REASON;
+}
+
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info,
@@ -615,3 +658,34 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
                                 rdm_simple_response_cb, param, cb, context);
 }
+
+bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                        void *context)
+{
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  const rdm_pid_description_t desc = {.pid = RDM_PID_PARAMETER_DESCRIPTION,
+                                      .pdl_size = 0x34,                  // this is the max size, not necessarily the one we send
+                                      .data_type = RDM_DS_UNSIGNED_BYTE, // not really true but there is no data type for complex struct
+                                      .cc = RDM_CC_GET,
+                                      .unit = RDM_UNITS_NONE,
+                                      .prefix = RDM_PREFIX_NONE,
+                                      .min_value = 0,
+                                      .max_value = 0,
+                                      .default_value = 0,
+                                      .description = "Parameter Description"};
+
+  const char *param_str = "wbbbbbbddda$";                                   
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
+                                rdm_parameter_description_response_cb, NULL, NULL, NULL);
+}
+
+bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_description_t desc,
+                                               void* param, const char *param_str, rdm_responder_cb_t cb,
+                                               void *context)
+{
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
+                                rdm_simple_response_cb, param, cb, context);  
+}
+
