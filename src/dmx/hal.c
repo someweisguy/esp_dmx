@@ -418,6 +418,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->pd_head = 0;
 
   // RDM responder configuration
+  driver->rdm_queue_size = 0;
+  driver->rdm_queue_last_sent = 0;  // A queued message has not yet been sent
   driver->num_rdm_cbs = 0;
   // The driver->rdm_cbs field is left uninitialized
 

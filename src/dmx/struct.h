@@ -102,6 +102,10 @@ typedef struct dmx_driver_t {
     void *context;               // The contexted for the user-side callback.
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM callbacks.
 
+  uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
+  uint16_t rdm_queue_size;  // The index of the RDM message queue list.
+  uint16_t rdm_queue[RDM_RESPONDER_MAX_QUEUE_SIZE];  // The RDM queued message list.
+
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
   QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
