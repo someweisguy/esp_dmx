@@ -396,30 +396,13 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
 
   // Handle NVS and RDM queueing
   if (ret) {
-    // TODO: remove this part 
-    const uint16_t nvs_pids[] = {
-        RDM_PID_DEVICE_LABEL,    RDM_PID_LANGUAGE,
-        RDM_PID_DMX_PERSONALITY, RDM_PID_DMX_START_ADDRESS,
-        RDM_PID_DEVICE_HOURS,    RDM_PID_LAMP_HOURS,
-        RDM_PID_LAMP_STRIKES,    RDM_PID_LAMP_STATE,
-        RDM_PID_LAMP_ON_MODE,    RDM_PID_DEVICE_POWER_CYCLES,
-        RDM_PID_DISPLAY_INVERT,  RDM_PID_DISPLAY_LEVEL,
-        RDM_PID_PAN_INVERT,      RDM_PID_TILT_INVERT,
-        RDM_PID_PAN_TILT_SWAP};
-    for (int i = 0; i < sizeof(nvs_pids) / sizeof(uint16_t); ++i) {
-      if (nvs_pids[i] == pid) {
-        save_to_nvs = true;
-        break;
-      }
-    }
-
     // Save to NVS if needed
     if (save_to_nvs) {
       if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
         taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
         driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
         taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-        DMX_ERR("unable to write to NVS");
+        DMX_WARN("unable to save PID 0x%04x to NVS", pid)
       }
     }
 

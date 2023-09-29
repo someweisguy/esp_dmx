@@ -1032,28 +1032,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
   }
 
-  // Check if NVS needs to be updated
-  bool must_update_nvs = false;
-  if (header.cc == RDM_CC_SET_COMMAND &&
-      (response_type == RDM_RESPONSE_TYPE_ACK ||
-       response_type == RDM_RESPONSE_TYPE_NONE)) {
-    const uint16_t nvs_pids[] = {
-        RDM_PID_DEVICE_LABEL,    RDM_PID_LANGUAGE,
-        RDM_PID_DMX_PERSONALITY, RDM_PID_DMX_START_ADDRESS,
-        RDM_PID_DEVICE_HOURS,    RDM_PID_LAMP_HOURS,
-        RDM_PID_LAMP_STRIKES,    RDM_PID_LAMP_STATE,
-        RDM_PID_LAMP_ON_MODE,    RDM_PID_DEVICE_POWER_CYCLES,
-        RDM_PID_DISPLAY_INVERT,  RDM_PID_DISPLAY_LEVEL,
-        RDM_PID_PAN_INVERT,      RDM_PID_TILT_INVERT,
-        RDM_PID_PAN_TILT_SWAP};
-    for (int i = 0; i < sizeof(nvs_pids) / sizeof(uint16_t); ++i) {
-      if (nvs_pids[i] == header.pid) {
-        must_update_nvs = true;
-        break;
-      }
-    }
-  }
-
   // Don't respond to non-discovery broadcasts nor send NACK to DISC packets
   if ((rdm_uid_is_broadcast(&header.dest_uid) &&
        header.pid != RDM_PID_DISC_UNIQUE_BRANCH) ||
@@ -1098,13 +1076,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Update NVS values
-  if (must_update_nvs) {
+  if (driver->rdm_cbs[cb_num].nvs) {
     if (!dmx_nvs_set(dmx_num, header.pid, desc->data_type, param,
                      desc->pdl_size)) {
-      DMX_WARN("unable to save PID 0x%04x to NVS", header.pid);
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      DMX_WARN("unable to save PID 0x%04x to NVS", header.pid);
     }
   }
 
