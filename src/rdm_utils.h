@@ -342,7 +342,7 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
  * @param pid The parameter ID to set.
  * @param[in] param A pointer to the new value to which to set the parameter.
  * @param size The size of the new value of the parameter.
- * @param add_to_queue // TODO
+ * @param add_to_queue True to add this parameter to the RDM message queue.
  * @return true on success.
  * @return false on failure.
  */
