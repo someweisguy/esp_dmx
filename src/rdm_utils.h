@@ -23,6 +23,11 @@
 extern "C" {
 #endif
 
+enum dmx_parameter_flag_t {
+  RDM_PARAMETER_FLAG_NVS = BIT0,
+  RDM_PARAMETER_FLAG_QUEUE = BIT1,
+};
+
 /**
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
@@ -341,12 +346,12 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
  * @param pid The parameter ID to set.
  * @param[in] param A pointer to the new value to which to set the parameter.
  * @param size The size of the new value of the parameter.
- * @param nvs Set to true if this parameter should also be updated in NVS.
+ * @param flags // TODO
  * @return true on success.
  * @return false on failure.
  */
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                       size_t size, bool nvs);
+                       size_t size, int flags);
 
 /**
  * @brief Sends an RDM controller request and processes the response. This

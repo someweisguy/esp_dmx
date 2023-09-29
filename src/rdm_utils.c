@@ -363,7 +363,7 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
 }
 
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                       size_t size, bool nvs) {
+                       size_t size, int flags) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   bool ret;
@@ -393,16 +393,32 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  // Copy the user's variable to NVS if desired
-  if (ret && nvs) {
-    if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
+  // Handle flags
+  if (ret) {
+    if (flags & RDM_PARAMETER_FLAG_NVS) {
+      if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
+        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+        driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+        DMX_ERR("unable to write to NVS");
+      }
+    }
+    if (flags & RDM_PARAMETER_FLAG_QUEUE) {
+      bool success; 
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+      if (driver->rdm_queue_size < RDM_RESPONDER_MAX_QUEUE_SIZE) {
+        driver->rdm_queue[driver->rdm_queue_size] = pid;
+        ++driver->rdm_queue_size;
+        success = true;
+      } else {
+        success = false;
+      }
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      if (!success) {
+        DMX_WARN("out of queue space");
+      }
     }
   }
-
-  // TODO: Send the update to the RDM queue
 
   return ret;
 }
