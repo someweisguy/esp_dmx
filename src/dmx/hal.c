@@ -675,22 +675,19 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   DMX_CHECK(dmx_get_start_address(dmx_num) != DMX_START_ADDRESS_NONE, false,
             "cannot set DMX start address");
 
-  rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (device_info == NULL) {
+  // TODO: make a function to check if RDM is enabled on the driver
+  const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
+
+  if (rdm_is_enabled) {
+    rdm_set_parameter(dmx_num, RDM_PID_DMX_START_ADDRESS, &dmx_start_address,
+                      sizeof(uint16_t),
+                      RDM_PARAMETER_FLAG_NVS | RDM_PARAMETER_FLAG_QUEUE);
+  } else {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;
     personality->dmx_start_address = dmx_start_address;
-  } else {
-    device_info->dmx_start_address = dmx_start_address;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  if (device_info != NULL) {
-    // TODO: send message to RDM queue
-  }
-
-  dmx_nvs_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-              &dmx_start_address, sizeof(dmx_start_address));
 
   return true;
 }
