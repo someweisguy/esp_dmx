@@ -453,7 +453,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   header->tn = driver->tn;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  header->message_count = 0;
+  header->message_count = 0;  // Required for all controller requests
 
   // Determine if a response is expected
   const bool response_expected = !rdm_uid_is_broadcast(&header->dest_uid) ||
