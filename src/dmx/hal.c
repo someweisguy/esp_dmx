@@ -1068,8 +1068,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.dest_uid = header.src_uid;
   header.src_uid = my_uid;
   header.response_type = response_type;
-  header.message_count = 0;  // TODO: update this if messages are queued
-  header.cc += 1;            // Set to RDM_CC_x_COMMAND_RESPONSE
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  header.message_count = driver->rdm_queue_size;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  header.cc += 1;  // Set to RDM_CC_x_COMMAND_RESPONSE
   header.pdl = pdl_out;
   // These fields should not change: tn, sub_device, and pid
 
