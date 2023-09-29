@@ -260,7 +260,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             const rdm_pid_description_t *desc,
                             const char *param_str, rdm_driver_cb_t driver_cb,
                             void *param, rdm_responder_cb_t user_cb,
-                            void *context) {
+                            void *context, bool nvs) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(desc != NULL);
@@ -285,8 +285,6 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
-
-  // TODO: update number of unique parameters supported
   
   // Add the requested callback to the callback list
   driver->rdm_cbs[i].param_str = param_str;
@@ -295,6 +293,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm_cbs[i].user_cb = user_cb;
   driver->rdm_cbs[i].driver_cb = driver_cb;
   driver->rdm_cbs[i].desc = *desc;
+  driver->rdm_cbs[i].nvs = nvs;
 
   bool newCallback = i == driver->num_rdm_cbs;
 
@@ -363,11 +362,12 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
 }
 
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                       size_t size, int flags) {
+                       size_t size, bool add_to_queue) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   bool ret;
   void *pd = NULL;
+  bool save_to_nvs = false;
   const rdm_pid_description_t *desc = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
@@ -375,6 +375,7 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
     if (driver->rdm_cbs[i].desc.pid == pid) {
       pd = driver->rdm_cbs[i].param;
       desc = &driver->rdm_cbs[i].desc;
+      save_to_nvs = driver->rdm_cbs[i].nvs;
       break;
     }
   }
@@ -393,9 +394,27 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  // Handle flags
+  // Handle NVS and RDM queueing
   if (ret) {
-    if (flags & RDM_PARAMETER_FLAG_NVS) {
+    // TODO: remove this part 
+    const uint16_t nvs_pids[] = {
+        RDM_PID_DEVICE_LABEL,    RDM_PID_LANGUAGE,
+        RDM_PID_DMX_PERSONALITY, RDM_PID_DMX_START_ADDRESS,
+        RDM_PID_DEVICE_HOURS,    RDM_PID_LAMP_HOURS,
+        RDM_PID_LAMP_STRIKES,    RDM_PID_LAMP_STATE,
+        RDM_PID_LAMP_ON_MODE,    RDM_PID_DEVICE_POWER_CYCLES,
+        RDM_PID_DISPLAY_INVERT,  RDM_PID_DISPLAY_LEVEL,
+        RDM_PID_PAN_INVERT,      RDM_PID_TILT_INVERT,
+        RDM_PID_PAN_TILT_SWAP};
+    for (int i = 0; i < sizeof(nvs_pids) / sizeof(uint16_t); ++i) {
+      if (nvs_pids[i] == pid) {
+        save_to_nvs = true;
+        break;
+      }
+    }
+
+    // Save to NVS if needed
+    if (save_to_nvs) {
       if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
         taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
         driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
@@ -403,7 +422,9 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
         DMX_ERR("unable to write to NVS");
       }
     }
-    if (flags & RDM_PARAMETER_FLAG_QUEUE) {
+
+    // Enqueue the RDM packet if desired
+    if (add_to_queue) {
       bool success; 
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       if (driver->rdm_queue_size < RDM_RESPONDER_MAX_QUEUE_SIZE) {

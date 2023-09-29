@@ -100,6 +100,7 @@ typedef struct dmx_driver_t {
     rdm_driver_cb_t driver_cb;   // The driver-side callback function.
     rdm_responder_cb_t user_cb;  // The user-side callback function.
     void *context;               // The contexted for the user-side callback.
+    bool nvs;                    // True if the parameter is non-volatile.
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM callbacks.
 
   uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
