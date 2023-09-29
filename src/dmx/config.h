@@ -20,6 +20,12 @@ extern "C" {
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 /** @brief Logs a warning message on the terminal if the condition is not met.*/
+#define DMX_ERR(format, ...)              \
+  do {                                    \
+    ESP_LOGE(TAG, format, ##__VA_ARGS__); \
+  } while (0);
+
+/** @brief Logs a warning message on the terminal if the condition is not met.*/
 #define DMX_WARN(format, ...)             \
   do {                                    \
     ESP_LOGW(TAG, format, ##__VA_ARGS__); \
