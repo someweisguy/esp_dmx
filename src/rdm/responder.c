@@ -96,7 +96,8 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .description = "Discovery Unique Branch"};
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                                rdm_default_discovery_cb, NULL, cb, context);
+                                rdm_default_discovery_cb, NULL, cb, context,
+                                false);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
@@ -128,7 +129,8 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .description = "Discovery Mute"};
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                                rdm_default_discovery_cb, param, cb, context);
+                                rdm_default_discovery_cb, param, cb, context,
+                                false);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
@@ -160,7 +162,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                       .description = "Discovery Un-Mute"};
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                                rdm_default_discovery_cb, param, cb, context);
+                                rdm_default_discovery_cb, param, cb, context,
+                                false);
 }
 
 static int rdm_simple_response_cb(dmx_port_t dmx_num,
@@ -433,7 +436,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   const char *param_str = "#0100hwwdwbbwwb$";
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                                rdm_simple_response_cb, param, cb, context);
+                                rdm_simple_response_cb, param, cb, context,
+                                false);
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
@@ -468,7 +472,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   }
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                                  rdm_simple_response_cb, param, cb, context);
+                                rdm_simple_response_cb, param, cb, context,
+                                false);
 }
 
 bool rdm_register_device_label(dmx_port_t dmx_num,
@@ -503,7 +508,8 @@ bool rdm_register_device_label(dmx_port_t dmx_num,
   }
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                                rdm_simple_response_cb, param, cb, context);
+                                rdm_simple_response_cb, param, cb, context,
+                                true);
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
@@ -534,7 +540,8 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   const char *param_str = "b$";
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                                rdm_simple_response_cb, param, cb, context);
+                                rdm_simple_response_cb, param, cb, context,
+                                false);
 }
 
 
@@ -565,7 +572,8 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb
                                       .default_value = 0,
                                       .description = "Supported Parameters"};
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                                rdm_supported_params_response_cb, param, NULL, NULL);  
+                                rdm_supported_params_response_cb, param, NULL,
+                                NULL, false);
 }
 
 
@@ -600,7 +608,8 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                     .description = "DMX Personality"};
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, "b$",
-                                rdm_personality_response_cb, param, cb, context);  
+                                rdm_personality_response_cb, param, cb, context,
+                                false);
 }
 
 
@@ -625,11 +634,9 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_responder_
                                     .default_value = 0, // has no meaning for RDM_DS_BIT_FIELD
                                     .description = "DMX Personality Description"};
 
-
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
-                                rdm_personality_description_response_cb, NULL, cb, context);  
-
-
+                                rdm_personality_description_response_cb, NULL,
+                                cb, context, false);
 }
 
 
@@ -656,7 +663,8 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,
   const char *param_str = "w$";
 
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                                rdm_simple_response_cb, param, cb, context);
+                                rdm_simple_response_cb, param, cb, context,
+                                true);
 }
 
 bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_responder_cb_t cb,
@@ -676,16 +684,17 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_responder_cb_t c
                                       .default_value = 0,
                                       .description = "Parameter Description"};
 
-  const char *param_str = "wbbbbbbddda$";                                   
+  const char *param_str = "wbbbbbbddda$";
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                                rdm_parameter_description_response_cb, NULL, NULL, NULL);
+                                rdm_parameter_description_response_cb, NULL,
+                                NULL, NULL, false);
 }
 
 bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_description_t desc,
                                                void* param, const char *param_str, rdm_responder_cb_t cb,
-                                               void *context)
+                                               void *context, bool nvs)
 {
   return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, param_str,
-                                rdm_simple_response_cb, param, cb, context);  
+                                rdm_simple_response_cb, param, cb, context, nvs);  
 }
 

@@ -680,8 +680,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
 
   if (rdm_is_enabled) {
     rdm_set_parameter(dmx_num, RDM_PID_DMX_START_ADDRESS, &dmx_start_address,
-                      sizeof(uint16_t),
-                      RDM_PARAMETER_FLAG_NVS | RDM_PARAMETER_FLAG_QUEUE);
+                      sizeof(uint16_t), true);
   } else {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;

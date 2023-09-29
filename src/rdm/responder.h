@@ -153,10 +153,10 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb
 bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                         void *context);
 
-bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_description_t desc,
-                                               void* param, const char *param_str,
-                                               rdm_responder_cb_t cb, void *context);
-                                        
+// TODO: docs
+bool rdm_register_manufacturer_specific_simple(
+    dmx_port_t dmx_num, rdm_pid_description_t desc, void *param,
+    const char *param_str, rdm_responder_cb_t cb, void *context, bool nvs);
 
 /**
  * @brief Registers the default response to RDM_PID_DMX_START_ADDRESS requests.

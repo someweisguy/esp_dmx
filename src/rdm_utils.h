@@ -23,11 +23,6 @@
 extern "C" {
 #endif
 
-enum dmx_parameter_flag_t {
-  RDM_PARAMETER_FLAG_NVS = BIT0,
-  RDM_PARAMETER_FLAG_QUEUE = BIT1,
-};
-
 /**
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
@@ -313,6 +308,7 @@ void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
  * @param user_cb A user-side callback function which is called after a request
  * for this PID is handled.
  * @param[in] context A pointer to a user-defined context.
+ * @param nvs True if this parameter should be saved to non-volatile memory.
  * @return true if the response was successfully registered.
  * @return false if the response was not registered.
  */
@@ -320,7 +316,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             const rdm_pid_description_t *desc,
                             const char *param_str, rdm_driver_cb_t driver_cb,
                             void *param, rdm_responder_cb_t user_cb,
-                            void *context);
+                            void *context, bool nvs);
 
 /**
  * @brief Copies a specified RDM parameter to a buffer.
@@ -346,12 +342,12 @@ bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
  * @param pid The parameter ID to set.
  * @param[in] param A pointer to the new value to which to set the parameter.
  * @param size The size of the new value of the parameter.
- * @param flags // TODO
+ * @param add_to_queue // TODO
  * @return true on success.
  * @return false on failure.
  */
 bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                       size_t size, int flags);
+                       size_t size, bool add_to_queue);
 
 /**
  * @brief Sends an RDM controller request and processes the response. This
