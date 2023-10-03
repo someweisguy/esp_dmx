@@ -8,9 +8,8 @@
 #include "endian.h"
 #include "rdm_utils.h"
 
-static int rdm_default_discovery_cb(dmx_port_t dmx_num,
-                                    const rdm_header_t *header, void *pd,
-                                    uint8_t *pdl_out, void *param,
+static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
+                                    void *pd, uint8_t *pdl_out, void *param,
                                     const rdm_pid_description_t *desc,
                                     const char *param_str) {
   // Return early if the sub-device is out of range
@@ -166,9 +165,8 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                 false);
 }
 
-static int rdm_simple_response_cb(dmx_port_t dmx_num,
-                                  const rdm_header_t *header, void *pd,
-                                  uint8_t *pdl_out, void *param,
+static int rdm_simple_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
+                                  void *pd, uint8_t *pdl_out, void *param,
                                   const rdm_pid_description_t *desc,
                                   const char *param_str) {
   // Return early if the sub-device is out of range
@@ -187,11 +185,10 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num,
 }
 
 static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
-                                            const rdm_header_t *header, void *pd,
+                                            rdm_header_t *header, void *pd,
                                             uint8_t *pdl_out, void *param,
                                             const rdm_pid_description_t *desc,
-                                            const char *param_str) 
-{
+                                            const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -219,12 +216,9 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
   return RDM_RESPONSE_TYPE_ACK;
 }
 
-static int rdm_personality_description_response_cb(dmx_port_t dmx_num,
-                                            const rdm_header_t *header, void *pd,
-                                            uint8_t *pdl_out, void *param,
-                                            const rdm_pid_description_t *desc,
-                                            const char *param_str) 
-{
+static int rdm_personality_description_response_cb(
+    dmx_port_t dmx_num, rdm_header_t *header, void *pd, uint8_t *pdl_out,
+    void *param, const rdm_pid_description_t *desc, const char *param_str) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
@@ -269,12 +263,10 @@ static int rdm_personality_description_response_cb(dmx_port_t dmx_num,
 
   return RDM_RESPONSE_TYPE_ACK;
 }
-static int rdm_personality_response_cb(dmx_port_t dmx_num,
-                                            const rdm_header_t *header, void *pd,
-                                            uint8_t *pdl_out, void *param,
-                                            const rdm_pid_description_t *desc,
-                                            const char *param_str) 
-{
+static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
+                                       void *pd, uint8_t *pdl_out, void *param,
+                                       const rdm_pid_description_t *desc,
+                                       const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -322,12 +314,9 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num,
   }
 }
 
-static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
-                                                 const rdm_header_t *header, void *pd,
-                                                 uint8_t *pdl_out, void *param,
-                                                 const rdm_pid_description_t *desc,
-                                                 const char *param_str)
-{
+static int rdm_parameter_description_response_cb(
+    dmx_port_t dmx_num, rdm_header_t *header, void *pd, uint8_t *pdl_out,
+    void *param, const rdm_pid_description_t *desc, const char *param_str) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT)
   {
     *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -363,7 +352,6 @@ static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
   *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
   return RDM_RESPONSE_TYPE_NACK_REASON;
 }
-
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info,
