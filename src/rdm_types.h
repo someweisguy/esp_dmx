@@ -639,6 +639,20 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_t {
   uint8_t personality_count;
 } rdm_dmx_personality_t;
 
+// TODO: docs
+typedef struct __attribute__((packed)) rdm_status_message_t {
+   uint16_t sub_device;
+   uint8_t type;
+   uint16_t id;
+   union {
+      struct {
+         uint16_t data1;
+         uint16_t data2;
+      };
+      uint16_t data[2];
+   };
+} rdm_status_message_t;
+
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
  * messages.*/
