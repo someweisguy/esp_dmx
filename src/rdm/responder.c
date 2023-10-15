@@ -686,3 +686,82 @@ bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_descr
                                 rdm_simple_response_cb, param, cb, context, nvs);  
 }
 
+static int rdm_status_messages_response_cb(dmx_port_t dmx_num,
+                                           rdm_header_t *header, void *pd,
+                                           uint8_t *pdl_out, void *param,
+                                           const rdm_pid_description_t *desc,
+                                           const char *param_str) {
+  // TODO: error checking
+
+  // TODO: generate status messages for each sub-device
+  const rdm_status_message_t status_message = {
+      .sub_device = RDM_SUB_DEVICE_ROOT,
+      .type = RDM_STATUS_ADVISORY,
+      .id = 0,
+      .data = {}};
+  *pdl_out = rdm_pd_emplace(pd, "wbwww", &status_message, 1, false);
+  return RDM_RESPONSE_TYPE_ACK;
+}
+
+static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
+                                          rdm_header_t *header, void *pd,
+                                          uint8_t *pdl_out, void *param,
+                                          const rdm_pid_description_t *desc,
+                                          const char *param_str) {
+  // Verify data is valid
+  const uint8_t status_type_requested = *(uint8_t *)pd;
+  if (status_type_requested != RDM_STATUS_GET_LAST_MESSAGE &&
+      status_type_requested != RDM_STATUS_ADVISORY &&
+      status_type_requested != RDM_STATUS_WARNING &&
+      status_type_requested != RDM_STATUS_ERROR) {
+    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }  // TODO: ensure error-checking is correct
+
+  int ack;
+
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  uint8_t message_count = dmx_driver[dmx_num]->rdm_queue_size;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  if (message_count > 0) {
+    --message_count;
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    header->pid = dmx_driver[dmx_num]->rdm_queue[message_count];
+    dmx_driver[dmx_num]->rdm_queue_last_sent = header->pid;
+    dmx_driver[dmx_num]->rdm_queue_size = message_count;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+    // TODO: get the PD and emplace it into pd
+    
+    ack = RDM_RESPONSE_TYPE_ACK;
+  } else {
+    // When there aren't any queued messages respond with a status message
+    header->pid = RDM_PID_STATUS_MESSAGE;
+    ack = rdm_status_messages_response_cb(dmx_num, header, pd, pdl_out, param,
+                                          desc, param_str);
+  }
+
+  return ack;
+}
+
+bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                 void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  const rdm_pid_description_t desc = {.pid = RDM_PID_QUEUED_MESSAGE,
+                                      .pdl_size = 1,
+                                      .data_type = RDM_DS_NOT_DEFINED,
+                                      .cc = RDM_CC_GET,
+                                      .unit = RDM_UNITS_NONE,
+                                      .prefix = RDM_PREFIX_NONE,
+                                      .min_value = 0,
+                                      .max_value = 0,
+                                      .default_value = 0,
+                                      .description = "Queued Message"};
+
+  return rdm_register_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, &desc, NULL,
+                                rdm_queued_message_response_cb, NULL, cb,
+                                context, false);
+}
