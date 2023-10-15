@@ -417,6 +417,9 @@ typedef struct rdm_ack_t {
   size_t size;
   /** @brief The UID of the device originating the response packet.*/
   rdm_uid_t src_uid;
+  /** @brief The PID of the response packet. It is typically the same PID as the
+   * RDM request. */
+  rdm_pid_t pid;
   /** @brief The type of the RDM response received.*/
   rdm_response_type_t type;
   /** @brief The message count field is used by a responder to indicate that

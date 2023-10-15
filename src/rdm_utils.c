@@ -493,6 +493,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
         ack->src_uid = (rdm_uid_t){0, 0};
         ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_INVALID;
+        ack->pid = 0;
       }
       xSemaphoreGiveRecursive(driver->mux);
       return false;
@@ -502,6 +503,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
         ack->src_uid = (rdm_uid_t){0, 0};
         ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_NONE;
+        ack->pid = 0;
       }
       xSemaphoreGiveRecursive(driver->mux);
       return false;
@@ -513,6 +515,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
       ack->src_uid = (rdm_uid_t){0, 0};
       ack->message_count = 0;
       ack->type = RDM_RESPONSE_TYPE_NONE;
+      ack->pid = 0;
     }
     dmx_wait_sent(dmx_num, 2);
     xSemaphoreGiveRecursive(driver->mux);
@@ -565,6 +568,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     ack->src_uid = resp.src_uid;
     ack->message_count = resp.message_count;
     ack->timer = decoded;
+    ack->pid = resp.pid;
   }
 
   // Give the mutex back
