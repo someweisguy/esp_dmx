@@ -193,7 +193,7 @@ static inline bool DMX_ISR_ATTR rdm_uid_is_target(const rdm_uid_t *uid,
  * ensure it is formatted correctly for the RDM data bus or for the ESP32's
  * memory. Emplacing data swaps the endianness of each parameter field and also
  * optionally writes null terminators for strings and writes optional UID
- * fields.
+ * fields. The destination buffer and the source buffer may overlap.
  *
  * Parameter fields are emplaced using a format string. This provides the
  * instructions on how data is written. Fields are written in the order provided
