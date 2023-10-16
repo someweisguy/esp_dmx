@@ -363,6 +363,9 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
  * - ack.size is the size of the received RDM packet, including the RDM
  *   checksum.
  * - ack.src_uid is the UID of the device which responds to the request.
+ * - ack.pid is the PID of the RDM response packet. This is typically the same
+ *   as the PID which was sent in the RDM request, but may be a different value
+ *   in certain responses.
  * - ack.type will evaluate to RDM_RESPONSE_TYPE_INVALID if an invalid
  *   response is received but does not necessarily indicate a DMX error
  *   occurred. If no response is received ack.type will be set to
@@ -382,7 +385,7 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
  * request.
  * @param[in] pd_in A pointer which stores parameter data to be written.
  * @param[out] pd_out A pointer which stores parameter data which was read, if a
- * response was received.
+ * response was received. This can be an alias of pd_in.
  * @param[inout] pdl The size of the pd_out buffer. When receiving data, this is
  * set to the PDL of the received data. Used to prevent buffer overflows.
  * @param[out] ack A pointer to an rdm_ack_t which stores information about the
