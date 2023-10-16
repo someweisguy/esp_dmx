@@ -46,7 +46,7 @@ void rdm_uid_get_binding(rdm_uid_t *uid) {
   rdm_uid_get(rdm_binding_port, uid);
 }
 
-static size_t rdm_param_parse(const char *format) {
+static size_t rdm_pd_parse(const char *format) {
   int param_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
     size_t field_size = 0;
@@ -104,7 +104,7 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
   }
 
   // Ensure that the format string syntax is correct
-  const int param_size = rdm_param_parse(format);
+  const int param_size = rdm_pd_parse(format);
   if (param_size == 0) {
     return 0;
   }
