@@ -326,7 +326,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
     if (add_to_queue) {
       bool success; 
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      if (driver->rdm_queue_size < RDM_RESPONDER_MAX_QUEUE_SIZE) {
+      if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
         driver->rdm_queue[driver->rdm_queue_size] = pid;
         ++driver->rdm_queue_size;
         success = true;

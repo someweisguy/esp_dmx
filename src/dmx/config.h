@@ -82,7 +82,7 @@ extern "C" {
 /** @brief The maximum number of queued messages that ther RDM responder can 
  * support. It may be set using the Kconfig file.
  */
-#define RDM_RESPONDER_MAX_QUEUE_SIZE CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
+#define RDM_RESPONDER_QUEUE_SIZE_MAX CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
 #else
 /** @brief The maximum number of queued messages that ther RDM responder can 
  * support.
