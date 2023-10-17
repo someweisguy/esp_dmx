@@ -290,7 +290,8 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 static void rdm_default_identify_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *context) {
   if (header->cc == RDM_CC_SET_COMMAND) {
-    const uint8_t *identify = rdm_pd_find(dmx_num, RDM_PID_IDENTIFY_DEVICE);
+    const uint8_t *identify =
+        rdm_get_parameter(dmx_num, RDM_PID_IDENTIFY_DEVICE, header->sub_device);
 #ifdef ARDUINO
     printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else
@@ -679,8 +680,8 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
 
   if (rdm_is_enabled) {
-    rdm_set_parameter(dmx_num, RDM_PID_DMX_START_ADDRESS, &dmx_start_address,
-                      sizeof(uint16_t), true);
+    rdm_set_parameter(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
+                      &dmx_start_address, sizeof(uint16_t), true);
   } else {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;

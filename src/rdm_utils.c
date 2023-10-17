@@ -330,39 +330,30 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                       size_t *size) {
+void *rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
+                        rdm_sub_device_t sub_device) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *pd = NULL;
-  const rdm_pid_description_t *desc;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       pd = driver->rdm_cbs[i].param;
-      desc = &driver->rdm_cbs[i].desc;
       break;
-    }
-  }
-
-  // Copy the parameter data to the user's variable
-  if (pd != NULL) {
-    if (desc->data_type == RDM_DS_ASCII) {
-      *size = strnlen(pd, *size);
-      strncpy(param, pd, *size);
-    } else {
-      *size = *size < desc->pdl_size ? *size : desc->pdl_size;
-      memcpy(param, pd, *size);
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  return (pd != NULL);
+  return pd;
 }
 
-bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
+                       rdm_sub_device_t sub_device, const void *param,
                        size_t size, bool add_to_queue) {
+  assert(param != NULL);
+  assert(size > 0);
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   bool ret;
