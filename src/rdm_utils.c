@@ -246,7 +246,7 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm_cbs[i].user_cb = user_cb;
   driver->rdm_cbs[i].driver_cb = driver_cb;
   driver->rdm_cbs[i].desc = *desc;
-  driver->rdm_cbs[i].nvs = nvs;
+  driver->rdm_cbs[i].non_volatile = nvs;
   const bool added_cb = (i == driver->num_rdm_cbs);
   if (added_cb) {
     ++driver->num_rdm_cbs;
@@ -291,7 +291,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
     if (driver->rdm_cbs[i].desc.pid == pid) {
       pd = driver->rdm_cbs[i].param;
       desc = &driver->rdm_cbs[i].desc;
-      save_to_nvs = driver->rdm_cbs[i].nvs;
+      save_to_nvs = driver->rdm_cbs[i].non_volatile;
       break;
     }
   }

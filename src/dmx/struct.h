@@ -43,6 +43,12 @@ enum dmx_flags_t {
   DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
 
+typedef struct rdm_pid_info_t {
+  rdm_pid_description_t desc;
+  const char *param_str;
+  bool is_persistent;
+} rdm_pid_info_t;
+
 /**
  * @brief Stores the DMX personality information of the DMX driver when RDM is
  * not enabled.*/
@@ -96,7 +102,7 @@ typedef struct dmx_driver_t {
   struct rdm_cb_table_t {
     rdm_pid_description_t desc;  // The parameter description.
     const char *param_str;       // A parameter string describing the data.
-    bool nvs;                    // True if the parameter is non-volatile.
+    bool non_volatile;                    // True if the parameter is non-volatile.
     rdm_driver_cb_t driver_cb;   // The driver-side callback function.
     rdm_responder_cb_t user_cb;  // The user-side callback function.
     void *param;                 // A pointer to the parameter data.
