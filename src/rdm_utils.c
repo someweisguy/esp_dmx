@@ -209,54 +209,7 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
   return ret;
 }
 
-void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  void *ret = NULL;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_rdm_cbs; ++i) {
-    if (driver->rdm_cbs[i].desc.pid == pid) {
-      ret = driver->rdm_cbs[i].param;
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return ret;
-}
-
-static bool rdm_add_supported_parameter(dmx_port_t dmx_num, uint16_t pid)
-{
-  uint16_t *param = rdm_pd_find(dmx_num, RDM_PID_SUPPORTED_PARAMETERS);
-  if (param == NULL) {
-    ESP_LOGE(TAG, "RDM_PID_SUPPORTED_PARAMETERS needs to be added first");
-    return false;
-  }
-
-  //find next free slot in parameter list and insert the pid
-  for(int i = 0; i < RDM_RESPONDER_NUM_PIDS_OPTIONAL; i++)
-  {
-    if(param[i] == pid)
-    {
-      // Parameter already in parameter list, nothing to do
-      return true;
-    }
-
-    if(param[i] == 0)
-    {
-      param[i] = pid;
-      return true;
-    }
-  }
-
-  ESP_LOGE(TAG, "Not space left in parameter list. Increase RDM_MAX_NUM_ADDITIONAL_PARAMETERS and recompile");
-  return false;
-}
-
-bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             const rdm_pid_description_t *desc,
                             const char *param_str, rdm_driver_cb_t driver_cb,
                             void *param, rdm_responder_cb_t user_cb,
@@ -268,7 +221,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   if (sub_device != RDM_SUB_DEVICE_ROOT) {
-    ESP_LOGE(TAG, "Responses for multiple sub-devices are not yet supported.");
+    ESP_LOGE(TAG, "Multiple sub-devices are not yet supported.");
     return false;
   }
 
@@ -330,7 +283,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-void *rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
+void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
                         rdm_sub_device_t sub_device) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -348,7 +301,7 @@ void *rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
   return pd;
 }
 
-bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
+bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
                        rdm_sub_device_t sub_device, const void *param,
                        size_t size, bool add_to_queue) {
   assert(param != NULL);
