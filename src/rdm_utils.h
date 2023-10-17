@@ -280,15 +280,6 @@ size_t rdm_pd_emplace_word(void *destination, uint16_t word);
 void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
 
 /**
- * @brief Finds the pointer to the parameter data for a registered parameter.
- *
- * @param dmx_num The DMX port number.
- * @param pid The parameter ID to find.
- * @return A pointer to the parameter data or NULL on failure.
- */
-void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
-
-/**
  * @brief Registers a response callback to be called when a request is received
  * for a specified PID for this device. Callbacks may be overwritten, but they
  * may not be deleted. The pointers to the parameter and context are copied by
@@ -312,11 +303,10 @@ void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid);
  * @return true if the response was successfully registered.
  * @return false if the response was not registered.
  */
-bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            const rdm_pid_description_t *desc,
-                            const char *param_str, rdm_driver_cb_t driver_cb,
-                            void *param, rdm_responder_cb_t user_cb,
-                            void *context, bool nvs);
+bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                     const rdm_pid_description_t *desc, const char *param_str,
+                     rdm_driver_cb_t driver_cb, void *param,
+                     rdm_responder_cb_t user_cb, void *context, bool nvs);
 
 /**
  * @brief Gets a pointer to the parameter stored in the RDM device, if the
@@ -325,7 +315,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @note This function returns a pointer to the raw parameter data which is
  * stored on the RDM device. It is possible to edit the data directly but this
  * is not recommended for most use cases. The proper way to update RDM parameter
- * data would be to use the function `rdm_set_parameter()` because it properly
+ * data would be to use the function `rdm_pd_set()` because it properly
  * updates NVS and the RDM queue.
  *
  * @param dmx_num The DMX port number.
@@ -334,8 +324,8 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @return A pointer to the parameter data or NULL if the parameter does not
  * exist.
  */
-void *rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
-                        rdm_sub_device_t sub_device);
+void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
+                 rdm_sub_device_t sub_device);
 
 /**
  * @brief Sets the value of a specified RDM parameter. This function will not
@@ -351,9 +341,8 @@ void *rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
  * @return true on success.
  * @return false on failure.
  */
-bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
-                       rdm_sub_device_t sub_device, const void *param,
-                       size_t size, bool add_to_queue);
+bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
+                const void *param, size_t size, bool add_to_queue);
 
 /**
  * @brief Sends an RDM controller request and processes the response. This

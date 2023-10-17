@@ -11,8 +11,12 @@ bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   DMX_CHECK(device_info != NULL, 0, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  size_t size = sizeof(*device_info);
-  return rdm_get_parameter(dmx_num, RDM_PID_DEVICE_INFO, device_info, &size);
+  // Get the parameter and copy it to the user's pointer
+  const rdm_device_info_t *di = rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, 0);
+  DMX_CHECK(di != NULL, false, "device_info not registered");
+  memcpy(device_info, di, sizeof(rdm_device_info_t));
+  
+  return true;
 }
 
 bool rdm_get_software_version_label(dmx_port_t dmx_num,
@@ -23,8 +27,13 @@ bool rdm_get_software_version_label(dmx_port_t dmx_num,
             "software_version_label is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_get_parameter(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
-                           software_version_label, size);
+  // Get the parameter and copy it to the user's pointer
+  const char *svl = rdm_pd_get(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL, 0);
+  DMX_CHECK(svl != NULL, false, "software_version_label not registered");
+  *size = strnlen(svl, *size);  // Prevent buffer overflows
+  strncpy(software_version_label, svl, *size);
+
+  return true;
 }
 
 bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify) {
@@ -32,8 +41,12 @@ bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify) {
   DMX_CHECK(identify != NULL, 0, "identify is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  size_t size = sizeof(*identify);
-  return rdm_get_parameter(dmx_num, RDM_PID_IDENTIFY_DEVICE, identify, &size);
+  // Get the parameter and copy it to the user's pointer
+  const uint8_t *id = rdm_pd_get(dmx_num, RDM_PID_IDENTIFY_DEVICE, 0);
+  DMX_CHECK(id != NULL, false, "identify_device not registered");
+  *identify = *id;
+
+  return true;
 }
 
 bool rdm_set_identify_device(dmx_port_t dmx_num, const uint8_t identify) {
@@ -41,8 +54,8 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, const uint8_t identify) {
   DMX_CHECK(identify == 0 || identify == 1, 0, "identify error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_set_parameter(dmx_num, RDM_PID_IDENTIFY_DEVICE, &identify,
-                           sizeof(identify), true);
+  return rdm_pd_set(dmx_num, RDM_PID_IDENTIFY_DEVICE, 0, &identify,
+                    sizeof(uint8_t), true);
 }
 
 bool rdm_get_dmx_start_address(dmx_port_t dmx_num,
@@ -51,7 +64,7 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // DMX getter can be called and should always return true
+  // DMX getter can be called
   *dmx_start_address = dmx_get_start_address(dmx_num);
   return (dmx_start_address != 0);
 }
@@ -67,12 +80,11 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
   return dmx_set_start_address(dmx_num, dmx_start_address);
 }
 
-size_t rdm_get_device_label(dmx_port_t dmx_num, char * label, size_t label_len)
-{
+size_t rdm_get_device_label(dmx_port_t dmx_num, char *label, size_t label_len) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const char *rdm_label = rdm_pd_find(dmx_num, RDM_PID_DEVICE_LABEL); 
+  const char *rdm_label = rdm_pd_get(dmx_num, RDM_PID_DEVICE_LABEL, 0);
   DMX_CHECK(rdm_label != NULL, 0, "RDM_PID_DEVICE_LABEL not found");
 
   const size_t rdm_label_len = strnlen(rdm_label, 32); //length without '\0'
