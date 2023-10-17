@@ -392,6 +392,10 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack);
 
+// TODO docs
+uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                     uint16_t *pids, uint32_t num);
+
 #ifdef __cplusplus
 }
 #endif
