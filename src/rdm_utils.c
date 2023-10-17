@@ -247,39 +247,11 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm_cbs[i].driver_cb = driver_cb;
   driver->rdm_cbs[i].desc = *desc;
   driver->rdm_cbs[i].nvs = nvs;
-
-  bool newCallback = i == driver->num_rdm_cbs;
-
-  if(newCallback) 
-  {
-    // If this parameter lies outside the minimum required parameter set, we
-    // need to put it into the supported_parameters list to let rdm masters know
-    // about it.
-    switch(desc->pid)
-    {
-      // minimum required parameters
-      case RDM_PID_DISC_UNIQUE_BRANCH:
-      case RDM_PID_DISC_MUTE:
-      case RDM_PID_DISC_UN_MUTE:
-      case RDM_PID_SUPPORTED_PARAMETERS:
-      case RDM_PID_PARAMETER_DESCRIPTION:
-      case RDM_PID_DEVICE_INFO:
-      case RDM_PID_SOFTWARE_VERSION_LABEL:
-      case RDM_PID_DMX_START_ADDRESS:
-      case RDM_PID_IDENTIFY_DEVICE:
-        break;
-      default:
-        if(!rdm_add_supported_parameter(dmx_num, desc->pid))
-        {
-          ESP_LOGE(TAG, "Failed to add parmeter %d to parmeter list.", desc->pid);
-        }
-    }
-  }
-
-  if(newCallback)
-  {
+  const bool added_cb = (i == driver->num_rdm_cbs);
+  if (added_cb) {
     ++driver->num_rdm_cbs;
   }
+
   return true;
 }
 
