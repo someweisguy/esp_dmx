@@ -519,3 +519,32 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   xSemaphoreGiveRecursive(driver->mux);
   return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
+
+uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                     uint16_t *pids, uint32_t num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  // Stop writes to a null pointer array
+  if (pids == NULL) {
+    num = 0;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Copy the PIDs into the buffer
+  uint32_t num_pids = 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; num_pids < driver->num_rdm_cbs; ++num_pids) {
+    if (num_pids < num) {
+      pids[num_pids] = driver->rdm_cbs->desc.pid;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return num_pids;
+}
