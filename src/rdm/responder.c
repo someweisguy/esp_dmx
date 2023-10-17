@@ -9,8 +9,7 @@
 #include "rdm_utils.h"
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
-                                    void *pd, uint8_t *pdl_out, void *param,
-                                    const rdm_pid_description_t *desc,
+                                    void *pd, uint8_t *pdl_out,
                                     const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -48,7 +47,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
     }
   } else {
     // Mute or un-mute the discovery responses
-    uint8_t *is_muted = param;
+    uint8_t *is_muted = rdm_pd_get(dmx_num, RDM_PID_DISC_MUTE, 0);
     *is_muted = (header->pid == RDM_PID_DISC_MUTE);
 
     // Get the binding UID of this device
@@ -171,7 +170,6 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 
 static int rdm_simple_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
                                   void *pd, uint8_t *pdl_out,
-                                  const rdm_pid_description_t *desc,
                                   const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -181,7 +179,7 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
 
   void *param = rdm_pd_get(dmx_num, header->pid, header->sub_device);
   if (header->cc == RDM_CC_GET_COMMAND) {
-    *pdl_out = rdm_pd_emplace(pd, param_str, param, desc->pdl_size, false);
+    *pdl_out = rdm_pd_emplace(pd, param_str, param, 231, false);
   } else {
     rdm_pd_emplace(param, param_str, pd, header->pdl, true);
   }
@@ -189,9 +187,10 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
   return RDM_RESPONSE_TYPE_ACK;
 }
 
-static int rdm_personality_description_response_cb(
-    dmx_port_t dmx_num, rdm_header_t *header, void *pd, uint8_t *pdl_out,
-    void *param, const rdm_pid_description_t *desc, const char *param_str) {
+static int rdm_personality_description_response_cb(dmx_port_t dmx_num,
+                                                   rdm_header_t *header,
+                                                   void *pd, uint8_t *pdl_out,
+                                                   const char *param_str) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
@@ -237,9 +236,9 @@ static int rdm_personality_description_response_cb(
 
   return RDM_RESPONSE_TYPE_ACK;
 }
+
 static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
-                                       void *pd, uint8_t *pdl_out, void *param,
-                                       const rdm_pid_description_t *desc,
+                                       void *pd, uint8_t *pdl_out,
                                        const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -289,9 +288,10 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
   }
 }
 
-static int rdm_parameter_description_response_cb(
-    dmx_port_t dmx_num, rdm_header_t *header, void *pd, uint8_t *pdl_out,
-    void *param, const rdm_pid_description_t *desc, const char *param_str) {
+static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
+                                                 rdm_header_t *header, void *pd,
+                                                 uint8_t *pdl_out,
+                                                 const char *param_str) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT)
   {
     *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -514,7 +514,6 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
                                             rdm_header_t *header, void *pd,
                                             uint8_t *pdl_out,
-                                            const rdm_pid_description_t *desc,
                                             const char *param_str) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -534,8 +533,8 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
       rdm_pd_list(dmx_num, header->sub_device, pids, RDM_RESPONDER_PIDS_MAX);
 
   // Emplace the PIDs into the parameter data
-  for (int i = 0; i < num_pids && i < desc->pdl_size / sizeof(uint16_t); ++i) {
-    switch (desc->pid) {
+  for (int i = 0; i < num_pids && *pdl_out <= 231; ++i) {
+    switch (pids[i]) {
       // Minimum required PIDs are not included
       case RDM_PID_DISC_UNIQUE_BRANCH:
       case RDM_PID_DISC_MUTE:
@@ -699,7 +698,6 @@ bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_descr
 static int rdm_status_messages_response_cb(dmx_port_t dmx_num,
                                            rdm_header_t *header, void *pd,
                                            uint8_t *pdl_out,
-                                           const rdm_pid_description_t *desc,
                                            const char *param_str) {
   // TODO: error checking
 
@@ -716,7 +714,6 @@ static int rdm_status_messages_response_cb(dmx_port_t dmx_num,
 static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
                                           rdm_header_t *header, void *pd,
                                           uint8_t *pdl_out,
-                                          const rdm_pid_description_t *desc,
                                           const char *param_str) {
   // Verify data is valid
   const uint8_t status_type_requested = *(uint8_t *)pd;
@@ -748,7 +745,7 @@ static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
   } else {
     // When there aren't any queued messages respond with a status message
     header->pid = RDM_PID_STATUS_MESSAGE;
-    ack = rdm_status_messages_response_cb(dmx_num, header, pd, pdl_out, desc,
+    ack = rdm_status_messages_response_cb(dmx_num, header, pd, pdl_out,
                                           param_str);
   }
 

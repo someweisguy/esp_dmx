@@ -28,9 +28,7 @@ extern "C" {
  * function that is called when responding to RDM requests.
  */
 typedef int (*rdm_driver_cb_t)(dmx_port_t dmx_num, rdm_header_t *header,
-                               void *pd, uint8_t *pdl_out,
-                               const rdm_pid_description_t *desc,
-                               const char *param_str);
+                               void *pd, uint8_t *pdl, const char *param_str);
 
 /**
  * @brief Copies RDM UID from a source buffer directly into a destination

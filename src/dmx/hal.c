@@ -1003,7 +1003,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     dmx_read_rdm(dmx_num, NULL, pd, sizeof(pd));
     const char *param_str = driver->rdm_cbs[cb_num].param_str;
     response_type = driver->rdm_cbs[cb_num].driver_cb(
-        dmx_num, &header, pd, &pdl_out, desc, param_str);
+        dmx_num, &header, pd, &pdl_out, param_str);
 
     // Verify that the driver-side callback returned correctly
     if (pdl_out > sizeof(pd)) {
