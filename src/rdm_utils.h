@@ -319,34 +319,40 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             void *context, bool nvs);
 
 /**
- * @brief Copies a specified RDM parameter to a buffer.
+ * @brief Gets a pointer to the parameter stored in the RDM device, if the
+ * parameter exists.
+ *
+ * @note This function returns a pointer to the raw parameter data which is
+ * stored on the RDM device. It is possible to edit the data directly but this
+ * is not recommended for most use cases. The proper way to update RDM parameter
+ * data would be to use the function `rdm_set_parameter()` because it properly
+ * updates NVS and the RDM queue.
  *
  * @param dmx_num The DMX port number.
  * @param pid The parameter ID to get.
- * @param[out] param A pointer to a buffer into which to copy the parameter
- * data.
- * @param[inout] size The size of the parameter data. Upon getting the parameter
- * data, this value is set to the size of the parameter.
- * @return true on success.
- * @return false on failure.
+ * @param sub_device The sub-device number which owns the parameter.
+ * @return A pointer to the parameter data or NULL if the parameter does not
+ * exist.
  */
-bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                       size_t *size);
+void *rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
+                        rdm_sub_device_t sub_device);
 
 /**
- * @brief Sets the value of a specified RDM parameter. This function will set
- * the value of an RDM parameter even if the parameter does not support SET
+ * @brief Sets the value of a specified RDM parameter. This function will not
+ * set the value of an RDM parameter if the parameter does not support SET
  * requests.
  *
  * @param dmx_num The DMX port number.
  * @param pid The parameter ID to set.
+ * @param sub_device The sub-device number which owns the parameter.
  * @param[in] param A pointer to the new value to which to set the parameter.
  * @param size The size of the new value of the parameter.
  * @param add_to_queue True to add this parameter to the RDM message queue.
  * @return true on success.
  * @return false on failure.
  */
-bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
+bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid,
+                       rdm_sub_device_t sub_device, const void *param,
                        size_t size, bool add_to_queue);
 
 /**

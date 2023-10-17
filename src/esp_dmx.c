@@ -87,8 +87,8 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
 
   uint8_t current_personality;
 
-  const rdm_device_info_t *device_info =
-      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *device_info =
+      rdm_get_parameter(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (device_info == NULL) {
     const dmx_driver_personality_t *personality =
@@ -112,7 +112,8 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   // Get the required personality values from RDM device info or DMX driver
   uint8_t *current_personality;
   uint16_t *footprint;
-  rdm_device_info_t *device_info = rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *device_info =
+      rdm_get_parameter(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
   if (device_info == NULL) {
     dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;
     current_personality = &personality->current_personality;
@@ -141,8 +142,8 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_device_info_t *device_info =
-      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *device_info =
+      rdm_get_parameter(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
   if (device_info == NULL) {
     const dmx_driver_personality_t *personality =
         (void *)dmx_driver[dmx_num]->pd;
@@ -189,8 +190,8 @@ uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
 
   uint16_t dmx_start_address;
 
-  const rdm_device_info_t *device_info =
-      rdm_pd_find(dmx_num, RDM_PID_DEVICE_INFO);
+  rdm_device_info_t *device_info =
+      rdm_get_parameter(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (device_info == NULL) {
     const dmx_driver_personality_t *personality =
