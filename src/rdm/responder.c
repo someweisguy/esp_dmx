@@ -170,7 +170,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 }
 
 static int rdm_simple_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
-                                  void *pd, uint8_t *pdl_out, void *param,
+                                  void *pd, uint8_t *pdl_out,
                                   const rdm_pid_description_t *desc,
                                   const char *param_str) {
   // Return early if the sub-device is out of range
@@ -179,6 +179,7 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
+  void *param = rdm_pd_get(dmx_num, header->pid, header->sub_device);
   if (header->cc == RDM_CC_GET_COMMAND) {
     *pdl_out = rdm_pd_emplace(pd, param_str, param, desc->pdl_size, false);
   } else {
@@ -512,7 +513,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 
 static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
                                             rdm_header_t *header, void *pd,
-                                            uint8_t *pdl_out, void *param,
+                                            uint8_t *pdl_out,
                                             const rdm_pid_description_t *desc,
                                             const char *param_str) {
   // Return early if the sub-device is out of range
@@ -697,7 +698,7 @@ bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_descr
 
 static int rdm_status_messages_response_cb(dmx_port_t dmx_num,
                                            rdm_header_t *header, void *pd,
-                                           uint8_t *pdl_out, void *param,
+                                           uint8_t *pdl_out,
                                            const rdm_pid_description_t *desc,
                                            const char *param_str) {
   // TODO: error checking
@@ -714,7 +715,7 @@ static int rdm_status_messages_response_cb(dmx_port_t dmx_num,
 
 static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
                                           rdm_header_t *header, void *pd,
-                                          uint8_t *pdl_out, void *param,
+                                          uint8_t *pdl_out,
                                           const rdm_pid_description_t *desc,
                                           const char *param_str) {
   // Verify data is valid
@@ -747,8 +748,8 @@ static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
   } else {
     // When there aren't any queued messages respond with a status message
     header->pid = RDM_PID_STATUS_MESSAGE;
-    ack = rdm_status_messages_response_cb(dmx_num, header, pd, pdl_out, param,
-                                          desc, param_str);
+    ack = rdm_status_messages_response_cb(dmx_num, header, pd, pdl_out, desc,
+                                          param_str);
   }
 
   return ack;
