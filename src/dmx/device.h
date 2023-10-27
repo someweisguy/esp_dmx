@@ -1,12 +1,9 @@
 /**
- * @file driver.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2023-10-26
- * 
- * @copyright Copyright (c) 2023
- * 
+ * @file dmx/device.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
+ * @brief This header contains functions will allow for modification of the DMX
+ * device. This includes getting and setting the DMX start address, current
+ * personality, and information about the DMX personality.
  */
 #pragma once
 

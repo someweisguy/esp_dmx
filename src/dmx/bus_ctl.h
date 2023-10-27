@@ -1,12 +1,10 @@
 /**
- * @file driver.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2023-10-26
- * 
- * @copyright Copyright (c) 2023
- * 
+ * @file dmx/bus_ctl.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
+ * @brief This header defines the various functions that allow for control of
+ * the DMX bus. This includes reading and writing to the DMX bus as well as
+ * sending and receiving. This file also includes a function for waiting until
+ * this device releases control of the DMX bus.
  */
 #pragma once
 

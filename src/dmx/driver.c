@@ -9,7 +9,7 @@
 #include "rdm/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
-#include "esp_mac.h"
+#include "esp_mac.h"  // TODO: Make this hardware agnostic
 #endif
 
 const char *TAG = "dmx";  // The log tagline for the library.

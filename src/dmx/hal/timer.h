@@ -1,6 +1,6 @@
 /**
- * @file timer.h
- * @author Mitch Weisbrod
+ * @file dmx/hal/timer.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the timer Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the timer hardware.
  * The timer hardware is used for generating the timing for the DMX break and

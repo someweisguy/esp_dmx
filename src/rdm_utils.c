@@ -5,7 +5,7 @@
 
 #include "dmx/driver.h"
 #include "dmx/hal/nvs.h"
-#include "dmx/rw.h"
+#include "dmx/bus_ctl.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "esp_dmx.h"
