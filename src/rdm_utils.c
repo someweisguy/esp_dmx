@@ -3,14 +3,13 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "dmx/driver.h"
 #include "dmx/hal/nvs.h"
+#include "dmx/rw.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "esp_dmx.h"
-#include "rdm_types.h"
-
-#include "dmx/driver.h"
-#include "dmx/rw.h"
+#include "rdm/types.h"
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);

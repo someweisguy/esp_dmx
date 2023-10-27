@@ -6,7 +6,7 @@
 #include "dmx/sniffer.h"
 #include "dmx/struct.h"
 #include "endian.h"
-#include "rdm_types.h"
+#include "rdm/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"

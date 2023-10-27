@@ -10,7 +10,7 @@
  */
 #pragma once
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 
 #ifdef __cplusplus
 extern "C" {
