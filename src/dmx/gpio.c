@@ -1,6 +1,8 @@
 #include "gpio.h"
 
 #include "dmx/config.h"
+#include "dmx/struct.h"
+#include "dmx/uart.h"
 #include "hal/gpio_hal.h"
 
 struct dmx_gpio_t {
@@ -13,11 +15,49 @@ struct dmx_gpio_t {
 #endif
 };
 
-dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_handle,
-                                void *isr_context, int sniffer_pin) {
+static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
+  const int64_t now = dmx_timer_get_micros_since_boot();
+  dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  const dmx_port_t dmx_num = ((dmx_driver_t *)arg)->dmx_num;
+  int task_awoken = false;
+
+  if (dmx_gpio_read(driver->gpio)) {
+    /* If this ISR is called on a positive edge and the current DMX frame is in
+    a break and a negative edge timestamp has been recorded then a break has
+    just finished. Therefore the DMX break length is able to be recorded. It can
+    also be deduced that the driver is now in a DMX mark-after-break. */
+
+    if ((driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) &&
+        driver->last_neg_edge_ts > -1) {
+      driver->metadata.break_len = now - driver->last_neg_edge_ts;
+      driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
+      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
+    }
+    driver->last_pos_edge_ts = now;
+  } else {
+    /* If this ISR is called on a negative edge in a DMX mark-after-break then
+    the DMX mark-after-break has just finished. It can be recorded. Sniffer data
+    is now available to be read by the user. */
+
+    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_MAB) {
+      driver->metadata.mab_len = now - driver->last_pos_edge_ts;
+      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
+
+      // Send the sniffer data to the queue
+      xQueueOverwriteFromISR(driver->metadata_queue, &driver->metadata,
+                             &task_awoken);
+    }
+    driver->last_neg_edge_ts = now;
+  }
+
+  if (task_awoken) portYIELD_FROM_ISR();
+}
+
+dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_context,
+                                int sniffer_pin) {
   dmx_gpio_handle_t gpio = &dmx_gpio_context[dmx_num];
   gpio_set_intr_type(sniffer_pin, GPIO_INTR_ANYEDGE);
-  gpio_isr_handler_add(sniffer_pin, isr_handle, isr_context);
+  gpio_isr_handler_add(sniffer_pin, dmx_gpio_isr, isr_context);
   gpio->sniffer_pin = sniffer_pin;
   return gpio;
 }

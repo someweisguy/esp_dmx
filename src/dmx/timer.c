@@ -17,8 +17,50 @@ static struct dmx_timer_t {
   bool is_running;
 } dmx_timer_context[DMX_NUM_MAX] = {};
 
-dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
-                                  void *isr_context, int isr_flags) {
+static bool DMX_ISR_ATTR dmx_timer_isr(
+#if ESP_IDF_VERSION_MAJOR >= 5
+    gptimer_handle_t gptimer_handle,
+    const gptimer_alarm_event_data_t *event_data,
+#endif
+    void *arg) {
+  dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  dmx_uart_handle_t uart = driver->uart;
+  dmx_timer_handle_t timer = driver->timer;
+  int task_awoken = false;
+
+  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
+      dmx_uart_invert_tx(uart, 0);
+      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
+
+      // Reset the alarm for the end of the DMX mark-after-break
+      dmx_timer_set_alarm(timer, driver->mab_len, false);
+    } else {
+      // Write data to the UART
+      size_t write_size = driver->tx_size;
+      dmx_uart_write_txfifo(uart, driver->data, &write_size);
+      driver->head += write_size;
+
+      // Pause MAB timer alarm
+      dmx_timer_stop(timer);
+
+      // Enable DMX write interrupts
+      dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
+    }
+  } else if (driver->task_waiting) {
+    // Notify the task
+    xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
+                       &task_awoken); // TODO: return timeout?
+
+    // Pause the receive timer alarm
+    dmx_timer_stop(timer);
+  }
+
+  return task_awoken;
+}
+
+dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
+                                  int isr_flags) {
   dmx_timer_handle_t timer = &dmx_timer_context[dmx_num];
 
   // Initialize hardware timer
@@ -32,7 +74,7 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
   if (err) {
     return NULL;
   }
-  const gptimer_event_callbacks_t gptimer_cb = {.on_alarm = isr_handle};
+  const gptimer_event_callbacks_t gptimer_cb = {.on_alarm = dmx_timer_isr};
   gptimer_register_event_callbacks(timer->gptimer_handle, &gptimer_cb,
                                    isr_context);
   gptimer_enable(timer->gptimer_handle);
