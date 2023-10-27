@@ -8,11 +8,11 @@
 
 #include <stdint.h>
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "rdm/responder.h"
-#include "rdm_types.h"
+#include "rdm/types.h"
 #include "rdm_utils.h"
 
 #include "dmx/hal/gpio.h"

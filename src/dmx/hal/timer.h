@@ -10,7 +10,7 @@
  */
 #pragma once
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
