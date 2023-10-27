@@ -17,269 +17,9 @@
 
 const char *TAG = "dmx";  // The log tagline for the library
 
-enum dmx_interrupt_mask_t {
-  DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
-  DMX_INTR_RX_FRAMING_ERR = UART_INTR_PARITY_ERR | UART_INTR_FRAM_ERR,
-  DMX_INTR_RX_ERR = DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR,
-
-  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,
-  DMX_INTR_RX_DATA = UART_INTR_RXFIFO_FULL,
-  DMX_INTR_RX_ALL = DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR,
-
-  DMX_INTR_TX_DATA = UART_INTR_TXFIFO_EMPTY,
-  DMX_INTR_TX_DONE = UART_INTR_TX_DONE,
-  DMX_INTR_TX_ALL = DMX_INTR_TX_DATA | DMX_INTR_TX_DONE,
-};
-
 dmx_port_t rdm_binding_port;
 rdm_uid_t rdm_device_uid = {};
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
-
-static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
-  const int64_t now = dmx_timer_get_micros_since_boot();
-  dmx_driver_t *const driver = arg;
-  const dmx_port_t dmx_num = driver->dmx_num;
-  dmx_uart_handle_t uart = driver->uart;
-  dmx_timer_handle_t timer = driver->timer;
-  int task_awoken = false;
-
-  while (true) {
-    const uint32_t intr_flags = dmx_uart_get_interrupt_status(uart);
-    if (intr_flags == 0) break;
-
-    // DMX Receive ####################################################
-    if (intr_flags & DMX_INTR_RX_ALL) {
-      // Stop the DMX driver hardware timer if it is running
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      dmx_timer_stop(timer);
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-
-      // Read data into the DMX buffer if there is enough space
-      const bool is_in_break = (intr_flags & DMX_INTR_RX_BREAK);
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      if (driver->head >= 0 && driver->head < DMX_PACKET_SIZE_MAX) {
-        int read_len = DMX_PACKET_SIZE_MAX - driver->head - is_in_break;
-        dmx_uart_read_rxfifo(uart, &driver->data[driver->head], &read_len);
-        driver->head += read_len;
-        if (driver->head > driver->rx_size) {
-          driver->rx_size = driver->head;  // Update expected rx_size
-        }
-      } else {
-        if (driver->head > 0) {
-          // Record the number of slots received for error reporting
-          driver->head += dmx_uart_get_rxfifo_len(uart);
-        }
-        dmx_uart_rxfifo_reset(uart);
-      }
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-
-      // Handle DMX break condition
-      if (is_in_break) {
-        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        // Handle receiveing a valid packet with smaller than expected size
-        if (!(driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) && driver->head > 0 &&
-            driver->head < DMX_PACKET_SIZE_MAX) {
-          driver->rx_size = driver->head - 1;
-        }
-
-        // Set driver flags
-        driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
-        driver->head = 0;  // Driver is ready for data
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      }
-
-      // Set last slot timestamp, DMX break flag, and clear interrupts
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->last_slot_ts = now;
-      if (is_in_break) {
-        driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
-      } else {
-        driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
-      }
-      const int dmx_flags = driver->flags;
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
-
-      // Don't process data if end-of-packet condition already reached
-      if (dmx_flags & DMX_FLAGS_DRIVER_IS_IDLE) {
-        continue;
-      }
-
-      // Check for potential end-of-packet condition
-      int rdm_type = 0;
-      rdm_header_t header;
-      dmx_err_t err = DMX_OK;
-      if (intr_flags & DMX_INTR_RX_ERR) {
-        err = intr_flags & DMX_INTR_RX_FIFO_OVERFLOW
-                  ? DMX_ERR_UART_OVERFLOW   // UART overflow
-                  : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
-      } else if (driver->head > 16 &&
-                 driver->head ==
-                     dmx_read_rdm(driver->dmx_num, &header, NULL, 0)) {
-        rdm_type |= DMX_FLAGS_RDM_IS_VALID;
-        rdm_uid_t my_uid = rdm_device_uid;
-        *(uint8_t *)&my_uid.dev_id += dmx_num;  // Increment last octet
-
-        rdm_uid_get(driver->dmx_num, &my_uid);
-        if (header.cc == RDM_CC_DISC_COMMAND ||
-            header.cc == RDM_CC_GET_COMMAND ||
-            header.cc == RDM_CC_SET_COMMAND) {
-          rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
-        }
-        if (rdm_uid_is_broadcast(&header.dest_uid)) {
-          rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
-        }
-        if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-          rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
-        }
-        if (rdm_uid_is_target(&my_uid, &header.dest_uid)) {
-          rdm_type |= DMX_FLAGS_RDM_IS_RECIPIENT;
-        }
-      } else if (driver->head < driver->rx_size) {
-        continue;
-      }
-
-      // Set driver flags and notify task
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->flags |= (DMX_FLAGS_DRIVER_HAS_DATA | DMX_FLAGS_DRIVER_IS_IDLE);
-      driver->flags &= ~DMX_FLAGS_DRIVER_SENT_LAST;
-      driver->rdm_type = rdm_type;
-      if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, err, eSetValueWithOverwrite,
-                           &task_awoken);
-      }
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-    }
-
-    // DMX Transmit #####################################################
-    else if (intr_flags & DMX_INTR_TX_DATA) {
-      // Write data to the UART and clear the interrupt
-      size_t write_size = driver->tx_size - driver->head;
-      dmx_uart_write_txfifo(uart, &driver->data[driver->head], &write_size);
-      driver->head += write_size;
-      dmx_uart_clear_interrupt(uart, DMX_INTR_TX_DATA);
-
-      // Allow FIFO to empty when done writing data
-      if (driver->head == driver->tx_size) {
-        dmx_uart_disable_interrupt(uart, DMX_INTR_TX_DATA);
-      }
-    } else if (intr_flags & DMX_INTR_TX_DONE) {
-      // Disable write interrupts and clear the interrupt
-      dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
-      dmx_uart_clear_interrupt(uart, DMX_INTR_TX_DONE);
-
-      // Record timestamp, unset sending flag, and notify task
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
-      driver->last_slot_ts = now;
-      if (driver->task_waiting) {
-        xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eNoAction,
-                           &task_awoken);
-      }
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-
-      // Turn DMX bus around quickly if expecting an RDM response
-      bool expecting_response = false;
-      if (driver->rdm_type & DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH) {
-        expecting_response = true;
-        driver->head = 0;  // Not expecting a DMX break
-      } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_REQUEST) {
-        expecting_response = true;
-        driver->head = -1;  // Expecting a DMX break
-      }
-      if (expecting_response) {
-        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        driver->flags &=
-            ~(DMX_FLAGS_DRIVER_IS_IDLE | DMX_FLAGS_DRIVER_HAS_DATA);
-        dmx_uart_rxfifo_reset(uart);
-        dmx_uart_set_rts(uart, 1);
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      }
-    }
-  }
-
-  if (task_awoken) portYIELD_FROM_ISR();
-}
-
-static bool DMX_ISR_ATTR dmx_timer_isr(
-#if ESP_IDF_VERSION_MAJOR >= 5
-    gptimer_handle_t gptimer_handle,
-    const gptimer_alarm_event_data_t *event_data,
-#endif
-    void *arg) {
-  dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  dmx_uart_handle_t uart = driver->uart;
-  dmx_timer_handle_t timer = driver->timer;
-  int task_awoken = false;
-
-  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
-    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
-      dmx_uart_invert_tx(uart, 0);
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
-
-      // Reset the alarm for the end of the DMX mark-after-break
-      dmx_timer_set_alarm(timer, driver->mab_len, false);
-    } else {
-      // Write data to the UART
-      size_t write_size = driver->tx_size;
-      dmx_uart_write_txfifo(uart, driver->data, &write_size);
-      driver->head += write_size;
-
-      // Pause MAB timer alarm
-      dmx_timer_stop(timer);
-
-      // Enable DMX write interrupts
-      dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
-    }
-  } else if (driver->task_waiting) {
-    // Notify the task
-    xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
-                       &task_awoken); // TODO: return timeout?
-
-    // Pause the receive timer alarm
-    dmx_timer_stop(timer);
-  }
-
-  return task_awoken;
-}
-
-static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
-  const int64_t now = dmx_timer_get_micros_since_boot();
-  dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  const dmx_port_t dmx_num = ((dmx_driver_t *)arg)->dmx_num;
-  int task_awoken = false;
-
-  if (dmx_gpio_read(driver->gpio)) {
-    /* If this ISR is called on a positive edge and the current DMX frame is in
-    a break and a negative edge timestamp has been recorded then a break has
-    just finished. Therefore the DMX break length is able to be recorded. It can
-    also be deduced that the driver is now in a DMX mark-after-break. */
-
-    if ((driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) &&
-        driver->last_neg_edge_ts > -1) {
-      driver->metadata.break_len = now - driver->last_neg_edge_ts;
-      driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
-    }
-    driver->last_pos_edge_ts = now;
-  } else {
-    /* If this ISR is called on a negative edge in a DMX mark-after-break then
-    the DMX mark-after-break has just finished. It can be recorded. Sniffer data
-    is now available to be read by the user. */
-
-    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_MAB) {
-      driver->metadata.mab_len = now - driver->last_pos_edge_ts;
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
-
-      // Send the sniffer data to the queue
-      xQueueOverwriteFromISR(driver->metadata_queue, &driver->metadata,
-                             &task_awoken);
-    }
-    driver->last_neg_edge_ts = now;
-  }
-
-  if (task_awoken) portYIELD_FROM_ISR();
-}
 
 static void rdm_default_identify_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *context) {
@@ -503,14 +243,14 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
 
   // Initialize the UART peripheral
-  driver->uart = dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
+  driver->uart = dmx_uart_init(dmx_num, driver, intr_flags);
   if (driver->uart == NULL) {
     dmx_driver_delete(dmx_num);
     DMX_CHECK(driver->uart != NULL, false, "UART init error");
   }
 
   // Initialize the timer peripheral
-  driver->timer = dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
+  driver->timer = dmx_timer_init(dmx_num, driver, intr_flags);
   if (driver->timer == NULL) {
     dmx_driver_delete(dmx_num);
     DMX_CHECK(driver->timer != NULL, false, "timer init error");
@@ -1244,7 +984,7 @@ bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
   // Add the GPIO interrupt handler
-  driver->gpio = dmx_gpio_init(dmx_num, dmx_gpio_isr, driver, intr_pin);
+  driver->gpio = dmx_gpio_init(dmx_num, driver, intr_pin);
 
   return true;
 }

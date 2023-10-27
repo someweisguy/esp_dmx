@@ -48,13 +48,12 @@ typedef struct dmx_timer_t *dmx_timer_handle_t;
  * @brief Initializes the DMX timer.
  *
  * @param dmx_num The DMX port number.
- * @param[in] isr_handle The ISR function to be called when the timer completes.
  * @param[inout] isr_context Context to be used in in the DMX timer ISR.
  * @param isr_flags Interrupt flags to be used for the DMX timer ISR.
  * @return A handle to the DMX timer or NULL on failure.
  */
-dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
-                                  void *isr_context, int isr_flags);
+dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
+                                  int isr_flags);
 
 /**
  * @brief De-initializes the DMX timer.
