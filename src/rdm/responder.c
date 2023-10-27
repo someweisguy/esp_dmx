@@ -1,6 +1,7 @@
 #include "responder.h"
 
-#include "dmx/config.h"
+#include "dmx/device.h"
+#include "dmx/driver.h"
 #include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
 #include "endian.h"

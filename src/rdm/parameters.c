@@ -1,8 +1,8 @@
 #include "parameters.h"
 
-#include "dmx/config.h"
+#include "dmx/device.h"
+#include "dmx/driver.h"
 #include "dmx/struct.h"
-#include "esp_dmx.h"
 #include "rdm_utils.h"
 
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
