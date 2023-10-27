@@ -1,10 +1,10 @@
 #include "responder.h"
 
 #include "dmx/config.h"
-#include "dmx/nvs.h"
+#include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
-#include "esp_dmx.h"
 #include "endian.h"
+#include "esp_dmx.h"
 #include "rdm_utils.h"
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
