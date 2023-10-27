@@ -273,6 +273,9 @@ typedef struct dmx_config_t {
      for the device's operating software version. The descriptive text returned
      by this parameter is intended for display to the user.*/
   char software_version_label[33];
+  /** @brief This RDM parameter is used to get the descriptive ASCII text label
+   *  for this device. I.e. this is the name of the device. */ 
+  char device_label[33];
   /** @brief The current selected DMX personality of the device. The personality
      is the configured arrangement of DMX slots used by the device. Many devices
      may have multiple personalities from which to choose. These personalities

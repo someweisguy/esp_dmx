@@ -47,6 +47,7 @@ extern "C" {
       RDM_PRODUCT_CATEGORY_FIXTURE, /*product_category*/       \
       ESP_DMX_VERSION_ID,           /*software_version_id*/    \
       ESP_DMX_VERSION_LABEL,        /*software_version_label*/ \
+      "Default Device",             /*device_label*/           \
       1,                            /*current_personality*/    \
       {{1, "Default Personality"}}, /*personalities*/          \
       1,                            /*personality_count*/      \

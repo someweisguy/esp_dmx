@@ -108,6 +108,25 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          rdm_responder_cb_t cb, void *context);
 
 /**
+ * @brief Registers the default response to RDM_PID_DEVICE_LABEL requests.
+ * It is called when the DMX driver is initially installed.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param device_label A pointer to a null-terminated device label string 
+ * to use in RDM responses. This value is used to set the
+ * parameter to a default value when this function is called for the first time
+ * and is ignored (and therefore may be set to NULL) on subsequent calls.
+ * @param cb A callback which is called upon receiving a request for this PID.
+ * @param[inout] context A pointer to context which is used in the user
+ * callback.
+ * @return true if the PID response was registered.
+ * @return false if there is not enough memory to register additional responses.
+*/
+bool rdm_register_device_label(dmx_port_t dmx_num,
+                               const char *device_label,
+                               rdm_responder_cb_t cb, void *context);
+
+/**
  * @brief Registers the default response to RDM_PID_IDENTIFY_DEVICE requests.
  * This response is required by all RDM-capable devices. It is called when the
  * DMX driver is initially installed.
@@ -130,6 +149,14 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_responder_
 
 bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                   void *context);
+
+bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+                                        void *context);
+
+bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_description_t desc,
+                                               void* param, const char *param_str,
+                                               rdm_responder_cb_t cb, void *context);
+                                        
 
 /**
  * @brief Registers the default response to RDM_PID_DMX_START_ADDRESS requests.

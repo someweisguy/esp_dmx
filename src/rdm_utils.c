@@ -321,7 +321,6 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
         {
           ESP_LOGE(TAG, "Failed to add parmeter %d to parmeter list.", desc->pid);
         }
-        ESP_LOGE("RDM", "Added parameter: %d\n", desc->pid); //TODO remove this line after debug
     }
   }
 

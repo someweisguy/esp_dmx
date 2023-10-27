@@ -755,6 +755,8 @@ const char *dmx_get_personality_description(dmx_port_t dmx_num,
   return dmx_driver[dmx_num]->personalities[personality_num].description;
 }
 
+
+
 uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
