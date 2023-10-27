@@ -11,7 +11,6 @@
 
 #include "dmx/device.h"
 #include "dmx/driver.h"
-#include "dmx/io.h"
 #include "dmx/rw.h"
 #include "dmx_types.h"
 #include "rdm_types.h"

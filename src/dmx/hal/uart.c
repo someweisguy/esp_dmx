@@ -1,6 +1,5 @@
 #include "uart.h"
 
-#include "dmx/io.h"
 #include "dmx/struct.h"
 #include "driver/uart.h"
 #include "esp_dmx.h"

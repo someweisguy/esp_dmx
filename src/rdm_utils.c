@@ -11,7 +11,6 @@
 
 #include "dmx/driver.h"
 #include "dmx/rw.h"
-#include "dmx/io.h"
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);
