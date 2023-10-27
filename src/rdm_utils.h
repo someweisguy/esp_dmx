@@ -17,7 +17,6 @@
 #include "dmx_types.h"
 #include "rdm/responder.h"
 #include "rdm_types.h"
-#include "dmx/hal.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,7 +87,7 @@ void rdm_uid_get_binding(rdm_uid_t *uid);
  * @return true if the UIDs are equal.
  * @return false if the UIDs are not equal.
  */
-static inline bool DMX_ISR_ATTR rdm_uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
+static inline bool rdm_uid_is_eq(const rdm_uid_t *a, const rdm_uid_t *b) {
   return a->man_id == b->man_id && a->dev_id == b->dev_id;
 }
 
@@ -153,7 +152,7 @@ static inline bool rdm_uid_is_ge(const rdm_uid_t *a, const rdm_uid_t *b) {
  * @return true if the UID is a broadcast address.
  * @return false if the UID is not a broadcast address.
  */
-static inline bool DMX_ISR_ATTR rdm_uid_is_broadcast(const rdm_uid_t *uid) {
+static inline bool rdm_uid_is_broadcast(const rdm_uid_t *uid) {
   return uid->dev_id == 0xffffffff;
 }
 
@@ -164,7 +163,7 @@ static inline bool DMX_ISR_ATTR rdm_uid_is_broadcast(const rdm_uid_t *uid) {
  * @return true if the UID is null.
  * @return false if the UID is not null.
  */
-static inline bool DMX_ISR_ATTR rdm_uid_is_null(const rdm_uid_t *uid) {
+static inline bool rdm_uid_is_null(const rdm_uid_t *uid) {
   return uid->man_id == 0 && uid->dev_id == 0;
 }
 
@@ -178,7 +177,7 @@ static inline bool DMX_ISR_ATTR rdm_uid_is_null(const rdm_uid_t *uid) {
  * @return true if the UID is targeted by the alias UID.
  * @return false if the UID is not targeted by the alias UID.
  */
-static inline bool DMX_ISR_ATTR rdm_uid_is_target(const rdm_uid_t *uid,
+static inline bool rdm_uid_is_target(const rdm_uid_t *uid,
                                      const rdm_uid_t *alias) {
   return ((alias->man_id == 0xffff || alias->man_id == uid->man_id) &&
           alias->dev_id == 0xffffffff) ||

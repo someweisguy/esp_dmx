@@ -2,7 +2,6 @@
 
 #include <stdbool.h>
 
-#include "dmx/hal.h"
 #include "dmx/struct.h"
 
 #include "driver/gpio.h"
