@@ -3,9 +3,9 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "dmx/bus_ctl.h"
 #include "dmx/driver.h"
 #include "dmx/hal/nvs.h"
-#include "dmx/bus_ctl.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "esp_dmx.h"
@@ -42,9 +42,7 @@ void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   }
 }
 
-void rdm_uid_get_binding(rdm_uid_t *uid) {
-  rdm_uid_get(rdm_binding_port, uid);
-}
+void rdm_uid_get_binding(rdm_uid_t *uid) { rdm_uid_get(rdm_binding_port, uid); }
 
 static size_t rdm_pd_parse(const char *format) {
   int param_size = 0;
@@ -108,12 +106,12 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
   if (param_size == 0) {
     return 0;
   }
-  
+
   // Get the number of parameters that can be encoded
   int num_params_to_copy;
   if (format[strlen(format)] == '$' || format[strlen(format)] == 'a' ||
-       format[strlen(format)] == 'A' || format[strlen(format)] == 'v' ||
-       format[strlen(format)] == 'V') {
+      format[strlen(format)] == 'A' || format[strlen(format)] == 'v' ||
+      format[strlen(format)] == 'V') {
     num_params_to_copy = 1;  // Format string is a singleton
   } else {
     num_params_to_copy = num / param_size;
@@ -210,10 +208,9 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
 }
 
 bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            const rdm_pid_description_t *desc,
-                            const char *param_str, rdm_driver_cb_t driver_cb,
-                            void *param, rdm_responder_cb_t user_cb,
-                            void *context, bool nvs) {
+                     const rdm_pid_description_t *desc, const char *param_str,
+                     rdm_driver_cb_t driver_cb, void *param,
+                     rdm_responder_cb_t user_cb, void *context, bool nvs) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(desc != NULL);
@@ -238,7 +235,7 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
-  
+
   // Add the requested callback to the callback list
   driver->rdm_cbs[i].param_str = param_str;
   driver->rdm_cbs[i].param = param;
@@ -285,7 +282,7 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                        rdm_sub_device_t sub_device) {
+                 rdm_sub_device_t sub_device) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *pd = NULL;
@@ -302,9 +299,8 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
   return pd;
 }
 
-bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
-                       rdm_sub_device_t sub_device, const void *param,
-                       size_t size, bool add_to_queue) {
+bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
+                const void *param, size_t size, bool add_to_queue) {
   assert(param != NULL);
   assert(size > 0);
 
@@ -353,7 +349,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
 
     // Enqueue the RDM packet if desired
     if (add_to_queue) {
-      bool success; 
+      bool success;
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
         driver->rdm_queue[driver->rdm_queue_size] = pid;
@@ -370,4 +366,153 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
   }
 
   return ret;
+}
+
+bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
+                      const void *pd_in, void *pd_out, size_t *pdl,
+                      rdm_ack_t *ack) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(header != NULL);
+  assert(!rdm_uid_is_null(&header->dest_uid));
+  assert(!rdm_uid_is_broadcast(&header->src_uid));
+  assert(header->cc == RDM_CC_DISC_COMMAND ||
+         header->cc == RDM_CC_GET_COMMAND || header->cc == RDM_CC_SET_COMMAND);
+  assert(header->sub_device < 513 ||
+         (header->sub_device == RDM_SUB_DEVICE_ALL &&
+          header->cc != RDM_CC_GET_COMMAND));
+  assert(header->pdl <= 231);
+  assert(pdl != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Update the optional components of the header to allowed values
+  if (header->port_id == 0) {
+    header->port_id = dmx_num + 1;
+  }
+  if (rdm_uid_is_null(&header->src_uid)) {
+    rdm_uid_get(dmx_num, &header->src_uid);
+  }
+
+  // Set header values that the user cannot set themselves
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  header->tn = driver->tn;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  header->message_count = 0;  // Required for all controller requests
+
+  // Determine if a response is expected
+  const bool response_expected = !rdm_uid_is_broadcast(&header->dest_uid) ||
+                                 (header->pid == RDM_PID_DISC_UNIQUE_BRANCH &&
+                                  header->cc == RDM_CC_DISC_COMMAND);
+
+  // Block until the mutex can be taken
+  if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
+    return 0;
+  }
+
+  // Block until the driver is done sending
+  if (!dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23))) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return 0;
+  }
+
+  // Write and send the request
+  size_t size = dmx_write_rdm(dmx_num, header, pd_in);
+  dmx_send(dmx_num, size);
+
+  // Return early if a packet error occurred or if no response was expected
+  if (response_expected) {
+    dmx_packet_t packet;
+    // FIXME: setting the wait_ticks <= 3 causes instability on Arduino
+    size = dmx_receive(dmx_num, &packet, 10);
+    if (ack != NULL) {
+      ack->err = packet.err;
+      ack->size = size;
+    }
+    if (packet.err && packet.err != DMX_ERR_TIMEOUT) {
+      if (ack != NULL) {
+        ack->src_uid = (rdm_uid_t){0, 0};
+        ack->message_count = 0;
+        ack->type = RDM_RESPONSE_TYPE_INVALID;
+        ack->pid = 0;
+      }
+      xSemaphoreGiveRecursive(driver->mux);
+      return false;
+    } else if (size == 0) {
+      // TODO: remove this else if when refactoring dmx_receive()
+      if (ack != NULL) {
+        ack->src_uid = (rdm_uid_t){0, 0};
+        ack->message_count = 0;
+        ack->type = RDM_RESPONSE_TYPE_NONE;
+        ack->pid = 0;
+      }
+      xSemaphoreGiveRecursive(driver->mux);
+      return false;
+    }
+  } else {
+    if (ack != NULL) {
+      ack->err = DMX_OK;
+      ack->size = size;
+      ack->src_uid = (rdm_uid_t){0, 0};
+      ack->message_count = 0;
+      ack->type = RDM_RESPONSE_TYPE_NONE;
+      ack->pid = 0;
+    }
+    dmx_wait_sent(dmx_num, 2);
+    xSemaphoreGiveRecursive(driver->mux);
+    return false;
+  }
+
+  // Handle the RDM response packet
+  rdm_header_t resp;
+  rdm_response_type_t response_type;
+  if (!dmx_read_rdm(dmx_num, &resp, pd_out, *pdl)) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
+    resp.pdl = 0;
+  } else if (resp.response_type != RDM_RESPONSE_TYPE_ACK &&
+             resp.response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+             resp.response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+             resp.response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response_type
+  } else if (header->pid != RDM_PID_DISC_UNIQUE_BRANCH &&
+             (header->cc != (resp.cc - 1) || header->pid != resp.pid ||
+              header->tn != resp.tn ||
+              !rdm_uid_is_target(&resp.src_uid, &header->dest_uid) ||
+              !rdm_uid_is_eq(&resp.dest_uid, &header->src_uid))) {
+    response_type = RDM_RESPONSE_TYPE_INVALID;  // Invalid response format
+  } else {
+    response_type = resp.response_type;  // Response is ok
+  }
+  if (pdl != NULL) {
+    *pdl = resp.pdl;
+  }
+
+  uint32_t decoded;
+  // Handle the response based on the response type
+  if (response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+    // Get and convert the estimated response time to FreeRTOS ticks
+    decoded = pdDMX_MS_TO_TICKS(bswap16(*(uint16_t *)pd_out) * 10);
+  } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
+    // Get and report the received NACK reason
+    decoded = bswap16(*(uint16_t *)pd_out);
+  } else if (response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+    DMX_WARN("RDM_RESPONSE_TYPE_ACK_OVERFLOW is not yet supported.");  // TODO
+    decoded = 0;
+  } else {
+    // Do nothing when response_type is RDM_RESPONSE_TYPE_ACK
+    decoded = 0;
+  }
+
+  // Report the results back to the caller
+  if (ack != NULL) {
+    ack->type = response_type;
+    ack->src_uid = resp.src_uid;
+    ack->message_count = resp.message_count;
+    ack->timer = decoded;
+    ack->pid = resp.pid;
+  }
+
+  // Give the mutex back
+  xSemaphoreGiveRecursive(driver->mux);
+  return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
