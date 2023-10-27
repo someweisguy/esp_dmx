@@ -417,6 +417,9 @@ typedef struct rdm_ack_t {
   size_t size;
   /** @brief The UID of the device originating the response packet.*/
   rdm_uid_t src_uid;
+  /** @brief The PID of the response packet. It is typically the same PID as the
+   * RDM request. */
+  rdm_pid_t pid;
   /** @brief The type of the RDM response received.*/
   rdm_response_type_t type;
   /** @brief The message count field is used by a responder to indicate that
@@ -638,6 +641,20 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_t {
      personalities shall be consecutively numbered starting from 1.*/
   uint8_t personality_count;
 } rdm_dmx_personality_t;
+
+// TODO: docs
+typedef struct __attribute__((packed)) rdm_status_message_t {
+   uint16_t sub_device;
+   uint8_t type;
+   uint16_t id;
+   union {
+      struct {
+         uint16_t data1;
+         uint16_t data2;
+      };
+      uint16_t data[2];
+   };
+} rdm_status_message_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast

@@ -16,6 +16,10 @@
 #include "rdm_types.h"
 #include "rdm_utils.h"
 
+#include "dmx/gpio.h"
+#include "dmx/timer.h"
+#include "dmx/uart.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,6 +47,12 @@ enum dmx_flags_t {
   DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
 
+typedef struct rdm_pid_info_t {
+  rdm_pid_description_t desc;
+  const char *param_str;
+  bool is_persistent;
+} rdm_pid_info_t;
+
 /**
  * @brief Stores the DMX personality information of the DMX driver when RDM is
  * not enabled.*/
@@ -57,6 +67,10 @@ typedef struct dmx_driver_personality_t {
  * and RDM.*/
 typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
+
+  dmx_uart_handle_t uart;    // The handle to the UART HAL.
+  dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
+  dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
@@ -95,12 +109,17 @@ typedef struct dmx_driver_t {
   size_t num_rdm_cbs;            // The number of RDM callbacks registered.
   struct rdm_cb_table_t {
     rdm_pid_description_t desc;  // The parameter description.
-    void *param;                 // A pointer to the parameter data.
     const char *param_str;       // A parameter string describing the data.
+    bool non_volatile;                    // True if the parameter is non-volatile.
     rdm_driver_cb_t driver_cb;   // The driver-side callback function.
     rdm_responder_cb_t user_cb;  // The user-side callback function.
+    void *param;                 // A pointer to the parameter data.
     void *context;               // The contexted for the user-side callback.
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM callbacks.
+
+  uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
+  uint16_t rdm_queue_size;  // The index of the RDM message queue list.
+  uint16_t rdm_queue[RDM_RESPONDER_QUEUE_SIZE_MAX];  // The RDM queued message list.
 
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.

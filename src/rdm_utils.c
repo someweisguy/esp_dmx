@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "dmx/config.h"
-#include "dmx/hal.h"
 #include "dmx/nvs.h"
 #include "dmx/struct.h"
 #include "endian.h"
@@ -46,7 +45,7 @@ void rdm_uid_get_binding(rdm_uid_t *uid) {
   rdm_uid_get(rdm_binding_port, uid);
 }
 
-static size_t rdm_param_parse(const char *format) {
+static size_t rdm_pd_parse(const char *format) {
   int param_size = 0;
   for (const char *f = format; *f != '\0'; ++f) {
     size_t field_size = 0;
@@ -104,7 +103,7 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
   }
 
   // Ensure that the format string syntax is correct
-  const int param_size = rdm_param_parse(format);
+  const int param_size = rdm_pd_parse(format);
   if (param_size == 0) {
     return 0;
   }
@@ -209,58 +208,11 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
   return ret;
 }
 
-void *rdm_pd_find(dmx_port_t dmx_num, rdm_pid_t pid) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  void *ret = NULL;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_rdm_cbs; ++i) {
-    if (driver->rdm_cbs[i].desc.pid == pid) {
-      ret = driver->rdm_cbs[i].param;
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return ret;
-}
-
-static bool rdm_add_supported_parameter(dmx_port_t dmx_num, uint16_t pid)
-{
-  uint16_t *param = rdm_pd_find(dmx_num, RDM_PID_SUPPORTED_PARAMETERS);
-  if (param == NULL) {
-    ESP_LOGE(TAG, "RDM_PID_SUPPORTED_PARAMETERS needs to be added first");
-    return false;
-  }
-
-  //find next free slot in parameter list and insert the pid
-  for(int i = 0; i < RDM_RESPONDER_NUM_PIDS_OPTIONAL; i++)
-  {
-    if(param[i] == pid)
-    {
-      // Parameter already in parameter list, nothing to do
-      return true;
-    }
-
-    if(param[i] == 0)
-    {
-      param[i] = pid;
-      return true;
-    }
-  }
-
-  ESP_LOGE(TAG, "Not space left in parameter list. Increase RDM_MAX_NUM_ADDITIONAL_PARAMETERS and recompile");
-  return false;
-}
-
-bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             const rdm_pid_description_t *desc,
                             const char *param_str, rdm_driver_cb_t driver_cb,
                             void *param, rdm_responder_cb_t user_cb,
-                            void *context) {
+                            void *context, bool nvs) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(desc != NULL);
@@ -268,7 +220,7 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   if (sub_device != RDM_SUB_DEVICE_ROOT) {
-    ESP_LOGE(TAG, "Responses for multiple sub-devices are not yet supported.");
+    ESP_LOGE(TAG, "Multiple sub-devices are not yet supported.");
     return false;
   }
 
@@ -285,8 +237,6 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
-
-  // TODO: update number of unique parameters supported
   
   // Add the requested callback to the callback list
   driver->rdm_cbs[i].param_str = param_str;
@@ -295,79 +245,73 @@ bool rdm_register_parameter(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm_cbs[i].user_cb = user_cb;
   driver->rdm_cbs[i].driver_cb = driver_cb;
   driver->rdm_cbs[i].desc = *desc;
-
-  bool newCallback = i == driver->num_rdm_cbs;
-
-  if(newCallback) 
-  {
-    // If this parameter lies outside the minimum required parameter set, we
-    // need to put it into the supported_parameters list to let rdm masters know
-    // about it.
-    switch(desc->pid)
-    {
-      // minimum required parameters
-      case RDM_PID_DISC_UNIQUE_BRANCH:
-      case RDM_PID_DISC_MUTE:
-      case RDM_PID_DISC_UN_MUTE:
-      case RDM_PID_SUPPORTED_PARAMETERS:
-      case RDM_PID_PARAMETER_DESCRIPTION:
-      case RDM_PID_DEVICE_INFO:
-      case RDM_PID_SOFTWARE_VERSION_LABEL:
-      case RDM_PID_DMX_START_ADDRESS:
-      case RDM_PID_IDENTIFY_DEVICE:
-        break;
-      default:
-        if(!rdm_add_supported_parameter(dmx_num, desc->pid))
-        {
-          ESP_LOGE(TAG, "Failed to add parmeter %d to parmeter list.", desc->pid);
-        }
-    }
-  }
-
-  if(newCallback)
-  {
+  driver->rdm_cbs[i].non_volatile = nvs;
+  const bool added_cb = (i == driver->num_rdm_cbs);
+  if (added_cb) {
     ++driver->num_rdm_cbs;
   }
+
   return true;
 }
 
-bool rdm_get_parameter(dmx_port_t dmx_num, rdm_pid_t pid, void *param,
-                       size_t *size) {
+uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                     uint16_t *pids, uint32_t num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  // Stop writes to a null pointer array
+  if (pids == NULL) {
+    num = 0;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Copy the PIDs into the buffer
+  uint32_t num_pids = 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; num_pids < driver->num_rdm_cbs; ++num_pids) {
+    if (num_pids < num) {
+      pids[num_pids] = driver->rdm_cbs->desc.pid;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return num_pids;
+}
+
+void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
+                        rdm_sub_device_t sub_device) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *pd = NULL;
-  const rdm_pid_description_t *desc;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_rdm_cbs; ++i) {
     if (driver->rdm_cbs[i].desc.pid == pid) {
       pd = driver->rdm_cbs[i].param;
-      desc = &driver->rdm_cbs[i].desc;
       break;
-    }
-  }
-
-  // Copy the parameter data to the user's variable
-  if (pd != NULL) {
-    if (desc->data_type == RDM_DS_ASCII) {
-      *size = strnlen(pd, *size);
-      strncpy(param, pd, *size);
-    } else {
-      *size = *size < desc->pdl_size ? *size : desc->pdl_size;
-      memcpy(param, pd, *size);
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  return (pd != NULL);
+  return pd;
 }
 
-bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
-                       size_t size, bool nvs) {
+bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
+                       rdm_sub_device_t sub_device, const void *param,
+                       size_t size, bool add_to_queue) {
+  assert(param != NULL);
+  assert(size > 0);
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   bool ret;
   void *pd = NULL;
+  bool save_to_nvs = false;
   const rdm_pid_description_t *desc = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
@@ -375,6 +319,7 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
     if (driver->rdm_cbs[i].desc.pid == pid) {
       pd = driver->rdm_cbs[i].param;
       desc = &driver->rdm_cbs[i].desc;
+      save_to_nvs = driver->rdm_cbs[i].non_volatile;
       break;
     }
   }
@@ -393,16 +338,35 @@ bool rdm_set_parameter(dmx_port_t dmx_num, rdm_pid_t pid, const void *param,
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  // Copy the user's variable to NVS if desired
-  if (ret && nvs) {
-    if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
+  // Handle NVS and RDM queueing
+  if (ret) {
+    // Save to NVS if needed
+    if (save_to_nvs) {
+      if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
+        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+        driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+        DMX_WARN("unable to save PID 0x%04x to NVS", pid)
+      }
+    }
+
+    // Enqueue the RDM packet if desired
+    if (add_to_queue) {
+      bool success; 
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+      if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
+        driver->rdm_queue[driver->rdm_queue_size] = pid;
+        ++driver->rdm_queue_size;
+        success = true;
+      } else {
+        success = false;
+      }
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      if (!success) {
+        DMX_WARN("out of queue space");
+      }
     }
   }
-
-  // TODO: Send the update to the RDM queue
 
   return ret;
 }
@@ -437,7 +401,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   header->tn = driver->tn;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  header->message_count = 0;
+  header->message_count = 0;  // Required for all controller requests
 
   // Determine if a response is expected
   const bool response_expected = !rdm_uid_is_broadcast(&header->dest_uid) ||
@@ -473,6 +437,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
         ack->src_uid = (rdm_uid_t){0, 0};
         ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_INVALID;
+        ack->pid = 0;
       }
       xSemaphoreGiveRecursive(driver->mux);
       return false;
@@ -482,6 +447,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
         ack->src_uid = (rdm_uid_t){0, 0};
         ack->message_count = 0;
         ack->type = RDM_RESPONSE_TYPE_NONE;
+        ack->pid = 0;
       }
       xSemaphoreGiveRecursive(driver->mux);
       return false;
@@ -493,6 +459,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
       ack->src_uid = (rdm_uid_t){0, 0};
       ack->message_count = 0;
       ack->type = RDM_RESPONSE_TYPE_NONE;
+      ack->pid = 0;
     }
     dmx_wait_sent(dmx_num, 2);
     xSemaphoreGiveRecursive(driver->mux);
@@ -545,6 +512,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
     ack->src_uid = resp.src_uid;
     ack->message_count = resp.message_count;
     ack->timer = decoded;
+    ack->pid = resp.pid;
   }
 
   // Give the mutex back

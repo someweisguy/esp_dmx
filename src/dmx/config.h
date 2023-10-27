@@ -20,6 +20,12 @@ extern "C" {
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
 
 /** @brief Logs a warning message on the terminal if the condition is not met.*/
+#define DMX_ERR(format, ...)              \
+  do {                                    \
+    ESP_LOGE(TAG, format, ##__VA_ARGS__); \
+  } while (0);
+
+/** @brief Logs a warning message on the terminal if the condition is not met.*/
 #define DMX_WARN(format, ...)             \
   do {                                    \
     ESP_LOGW(TAG, format, ##__VA_ARGS__); \
@@ -71,6 +77,33 @@ extern "C" {
 /** @brief The maximum number of parameters that the RDM responder can
  * support.*/
 #define RDM_RESPONDER_PIDS_MAX (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
+
+#ifdef CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
+/** @brief The maximum number of queued messages that ther RDM responder can 
+ * support. It may be set using the Kconfig file.
+ */
+#define RDM_RESPONDER_QUEUE_SIZE_MAX CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
+#else
+/** @brief The maximum number of queued messages that ther RDM responder can 
+ * support.
+ */
+#define RDM_RESPONDER_QUEUE_SIZE_MAX 64
+#endif
+
+#if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
+/** @brief This macro sets certain functions used within DMX interrupt handlers
+ * to be placed within IRAM. The current hardware configuration of this device
+ * places the DMX driver functions within IRAM. */
+#define DMX_ISR_ATTR IRAM_ATTR
+/** @brief This macro is used to conditionally compile certain parts of code
+ * depending on whether or not the DMX driver is within IRAM.*/
+#define DMX_ISR_IN_IRAM
+#else
+/** @brief This macro sets certain functions used within DMX interrupt handlers
+ * to be placed within IRAM. Due to the current hardware configuration of this
+ * device, the DMX driver is not currently placed within IRAM. */
+#define DMX_ISR_ATTR
+#endif
 
 /** @brief Directs the DMX driver to use spinlocks in critical sections. This is
  * needed for devices which have multiple cores.*/

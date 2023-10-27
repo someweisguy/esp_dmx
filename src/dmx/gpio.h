@@ -8,7 +8,6 @@
  */
 #pragma once
 
-#include "dmx/hal.h"
 #include "dmx_types.h"
 #include "driver/gpio.h"
 #include "rdm_types.h"
@@ -46,14 +45,12 @@ typedef struct dmx_gpio_t *dmx_gpio_handle_t;
  * @brief Initializes the GPIO for the DMX sniffer.
  *
  * @param dmx_num The DMX port number.
- * @param[in] isr_handle The ISR function to be called the sniffer pin
- * transitions on any edge.
  * @param[in] isr_context Context to be used in the DMX GPIO ISR.
  * @param sniffer_pin The sniffer pin GPIO number.
  * @return A handle to the DMX GPIO or null on failure.
  */
-dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_handle,
-                                void *isr_context, int sniffer_pin);
+dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_context,
+                                int sniffer_pin);
 
 /**
  * @brief De-initializes the GPIO for the DMX sniffer.

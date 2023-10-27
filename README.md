@@ -568,6 +568,7 @@ Response information from requests is read into a `rdm_ack_t` pointer which is p
 - `err` evaluates to `true` if an error occurred reading DMX data. This field only indicates if an error occurred reading raw DMX data. It does not indicate if an invalid RDM packet was received. More information on error handling can be found in the [Error Handling](#error-handling) section.
 - `size` is the size of the received packet, including start code, RDM sub-start code, and checksum.
 - `src_uid` is the UID of the device originating the response packet.
+- `pid` is the PID of the response packet. This is typically the same as the PID which was sent in the request, but may differ for some requests.
 - `type` is the type of the RDM response received. It can be any of the RDM response types enumerated in [Response Types](#response-types).
 - `message_count` is used by an RDM responder to indicate that additional data is now available for collection by a controller.
 
