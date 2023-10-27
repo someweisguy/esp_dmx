@@ -1,6 +1,6 @@
 /**
- * @file types.h
- * @author Mitch Weisbrod
+ * @file rdm/types.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file contains constants and types used in RDM.
  */
 #pragma once
@@ -644,16 +644,16 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_t {
 
 // TODO: docs
 typedef struct __attribute__((packed)) rdm_status_message_t {
-   uint16_t sub_device;
-   uint8_t type;
-   uint16_t id;
-   union {
-      struct {
-         uint16_t data1;
-         uint16_t data2;
-      };
-      uint16_t data[2];
-   };
+  uint16_t sub_device;
+  uint8_t type;
+  uint16_t id;
+  union {
+    struct {
+      uint16_t data1;
+      uint16_t data2;
+    };
+    uint16_t data[2];
+  };
 } rdm_status_message_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices

@@ -1,11 +1,9 @@
 /**
  * @file esp_dmx.h
- * @author Mitch Weisbrod
- * @brief This is the main header file for esp_dmx. It contains required API
- * functions for the user. Notably, the functions in this header are not
- * hardware-dependent. The functions in this file do not interface with any of
- * the functions described in uart.h, timer.h, or nvs.h. This header includes
- * dmx/hal.h which contains functions that interface with hardware.
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
+ * @brief This is the main header file for esp_dmx. It includes the required
+ * header files for the basic operation of this library and defines macros to
+ * allow for users to quickly create functional DMX devices.
  */
 #pragma once
 
