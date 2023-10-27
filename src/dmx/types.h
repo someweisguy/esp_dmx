@@ -240,7 +240,7 @@ typedef unsigned int dmx_port_t;
 
 /** @brief Type which indicates errors, or lack thereof, for DMX operations.*/
 typedef enum dmx_err_t {
-   /** @brief DMX error value indicating no error.*/
+  /** @brief DMX error value indicating no error.*/
   DMX_OK = 0,
   /** @brief The DMX operation timed out.*/
   DMX_ERR_TIMEOUT = ESP_ERR_TIMEOUT,
@@ -256,7 +256,7 @@ typedef enum dmx_err_t {
 typedef struct dmx_config_t {
   /** @brief This field sets the size of the RDM responder parameter data. This
      is a heap-allocated array which stores all the RDM parameter data for the
-     RDM responder. RDM parameter data is then accessed through the various 
+     RDM responder. RDM parameter data is then accessed through the various
      rdm_get_ and rdm_set_ functions.*/
   size_t pd_size;
   /** @brief This field identifies the device model ID of the root device or
@@ -274,7 +274,7 @@ typedef struct dmx_config_t {
      by this parameter is intended for display to the user.*/
   char software_version_label[33];
   /** @brief This RDM parameter is used to get the descriptive ASCII text label
-   *  for this device. I.e. this is the name of the device. */ 
+   *  for this device. I.e. this is the name of the device. */
   char device_label[33];
   /** @brief The current selected DMX personality of the device. The personality
      is the configured arrangement of DMX slots used by the device. Many devices

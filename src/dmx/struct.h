@@ -8,18 +8,16 @@
 
 #include <stdint.h>
 
+#include "dmx/hal/gpio.h"
+#include "dmx/hal/timer.h"
+#include "dmx/hal/uart.h"
 #include "dmx/types.h"
+#include "esp_check.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "rdm/responder.h"
 #include "rdm/types.h"
 #include "rdm_utils.h"
-
-#include "dmx/hal/gpio.h"
-#include "dmx/hal/timer.h"
-#include "dmx/hal/uart.h"
-
-#include "esp_check.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,22 +80,24 @@ extern "C" {
 #ifdef CONFIG_RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS
 /** @brief The maximum number of optional parameters that the RDM responder can
  * support. This value is editable in the Kconfig.*/
-#define RDM_RESPONDER_NUM_PIDS_OPTIONAL (CONFIG_RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS)
+#define RDM_RESPONDER_NUM_PIDS_OPTIONAL \
+  (CONFIG_RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS)
 #else
 #define RDM_RESPONDER_NUM_PIDS_OPTIONAL 25
 #endif
 
 /** @brief The maximum number of parameters that the RDM responder can
  * support.*/
-#define RDM_RESPONDER_PIDS_MAX (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
+#define RDM_RESPONDER_PIDS_MAX \
+  (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
 
 #ifdef CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
-/** @brief The maximum number of queued messages that ther RDM responder can 
+/** @brief The maximum number of queued messages that ther RDM responder can
  * support. It may be set using the Kconfig file.
  */
 #define RDM_RESPONDER_QUEUE_SIZE_MAX CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
 #else
-/** @brief The maximum number of queued messages that ther RDM responder can 
+/** @brief The maximum number of queued messages that ther RDM responder can
  * support.
  */
 #define RDM_RESPONDER_QUEUE_SIZE_MAX 64
@@ -184,7 +184,7 @@ typedef struct dmx_driver_t {
   int16_t rx_size;  // The expected size of the incoming packet.
 
   // Driver state
-  uint8_t flags;     // Flags which indicate the current state of the driver.
+  uint8_t flags;  // Flags which indicate the current state of the driver.
   uint8_t rdm_type;  // Flags which indicate the RDM type of the most recent packet.
   uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
@@ -203,11 +203,11 @@ typedef struct dmx_driver_t {
   size_t pd_head;  // The amount of memory currently used for parameters.
 
   // RDM responder configuration
-  size_t num_rdm_cbs;            // The number of RDM callbacks registered.
+  size_t num_rdm_cbs;  // The number of RDM callbacks registered.
   struct rdm_cb_table_t {
     rdm_pid_description_t desc;  // The parameter description.
     const char *param_str;       // A parameter string describing the data.
-    bool non_volatile;                    // True if the parameter is non-volatile.
+    bool non_volatile;           // True if the parameter is non-volatile.
     rdm_driver_cb_t driver_cb;   // The driver-side callback function.
     rdm_responder_cb_t user_cb;  // The user-side callback function.
     void *param;                 // A pointer to the parameter data.
@@ -215,7 +215,7 @@ typedef struct dmx_driver_t {
   } rdm_cbs[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM callbacks.
 
   uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
-  uint16_t rdm_queue_size;  // The index of the RDM message queue list.
+  uint16_t rdm_queue_size;       // The index of the RDM message queue list.
   uint16_t rdm_queue[RDM_RESPONDER_QUEUE_SIZE_MAX];  // The RDM queued message list.
 
   // DMX sniffer configuration

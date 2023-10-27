@@ -97,8 +97,8 @@ void dmx_timer_start(dmx_timer_handle_t timer);
 
 /**
  * @brief Gets the number of microseconds that have elapsed since boot.
- * 
- * @return The number of microseconds since boot. 
+ *
+ * @return The number of microseconds since boot.
  */
 int64_t dmx_timer_get_micros_since_boot();
 
