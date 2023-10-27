@@ -6,10 +6,18 @@
 #include "dmx/sniffer.h"
 #include "dmx/struct.h"
 #include "endian.h"
+#include "rdm_types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"
 #endif
+
+const char *TAG = "dmx";  // The log tagline for the library.
+
+dmx_port_t rdm_binding_port;    // The DMX port which owns the RDM binding UID.
+rdm_uid_t rdm_device_uid = {};  // The UID of the RDM device.
+
+dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};  // The DMX drivers for each port.
 
 static void rdm_default_identify_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *context) {

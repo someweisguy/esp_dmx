@@ -1,5 +1,5 @@
 idf_component_register(
-  SRCS "src/esp_dmx.c" "src/rdm_utils.c" "src/dmx/hal/uart.c"
+  SRCS "src/rdm_utils.c" "src/dmx/hal/uart.c"
        "src/dmx/hal/timer.c" "src/dmx/hal/nvs.c" "src/dmx/hal/gpio.c"
        "src/rdm/controller.c" "src/rdm/responder.c" "src/rdm/parameters.c"
 
