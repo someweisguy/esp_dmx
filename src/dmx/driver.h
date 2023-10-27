@@ -1,12 +1,9 @@
 /**
- * @file driver.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2023-10-26
- * 
- * @copyright Copyright (c) 2023
- * 
+ * @file dmx/driver.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
+ * @brief This header defines functions which allow for installation and
+ * configuration of the DMX driver. This includes functions which modify DMX
+ * timing and can enable or disable the DMX driver.
  */
 #pragma once
 

@@ -1,12 +1,8 @@
 /**
- * @file driver.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2023-10-26
- * 
- * @copyright Copyright (c) 2023
- * 
+ * @file dmx/sniffer.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
+ * @brief This file contains functions which allow for the operation of the DMX
+ * sniffer.
  */
 #pragma once
 

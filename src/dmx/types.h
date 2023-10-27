@@ -1,6 +1,6 @@
 /**
- * @file types.h
- * @author Mitch Weisbrod
+ * @file dmx/types.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file contains constants and types used in DMX and RDM. It also
  * contains macros for checking DMX and RDM timing constraints.
  */

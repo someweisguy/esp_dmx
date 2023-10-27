@@ -9,9 +9,9 @@
  */
 #pragma once
 
+#include "dmx/bus_ctl.h"
 #include "dmx/device.h"
 #include "dmx/driver.h"
-#include "dmx/rw.h"
 #include "dmx/types.h"
 #include "rdm/types.h"
 

@@ -1,6 +1,6 @@
 /**
- * @file uart.h
- * @author Mitch Weisbrod
+ * @file dmx/hal/uart.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the UART Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the UART hardware.
  * The UART is used to send and receive DMX and RDM packets. DMX and RDM are

@@ -37,7 +37,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
 
   if (rdm_is_enabled) {
     rdm_pd_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
-                      &dmx_start_address, sizeof(uint16_t), true);
+               &dmx_start_address, sizeof(uint16_t), true);
   } else {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;
@@ -68,7 +68,6 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
 
   return current_personality;
 }
-
 
 bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
