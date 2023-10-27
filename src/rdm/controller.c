@@ -1,6 +1,7 @@
 #include "controller.h"
 
 #include "dmx/driver.h"
+#include "dmx/rw.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "rdm_utils.h"
