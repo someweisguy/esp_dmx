@@ -1,8 +1,8 @@
 #include "gpio.h"
 
 #include "dmx/config.h"
+#include "dmx/hal/uart.h"
 #include "dmx/struct.h"
-#include "dmx/uart.h"
 #include "hal/gpio_hal.h"
 
 struct dmx_gpio_t {

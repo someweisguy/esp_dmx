@@ -2,10 +2,10 @@
 
 #include "dmx/config.h"
 #include "dmx/struct.h"
-#include "dmx/uart.h"
-#include "dmx/timer.h"
-#include "dmx/gpio.h"
-#include "dmx/nvs.h"
+#include "dmx/hal/uart.h"
+#include "dmx/hal/timer.h"
+#include "dmx/hal/gpio.h"
+#include "dmx/hal/nvs.h"
 #include "endian.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5

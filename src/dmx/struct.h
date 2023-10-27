@@ -16,9 +16,9 @@
 #include "rdm_types.h"
 #include "rdm_utils.h"
 
-#include "dmx/gpio.h"
-#include "dmx/timer.h"
-#include "dmx/uart.h"
+#include "dmx/hal/gpio.h"
+#include "dmx/hal/timer.h"
+#include "dmx/hal/uart.h"
 
 #ifdef __cplusplus
 extern "C" {
