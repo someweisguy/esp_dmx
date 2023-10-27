@@ -1,7 +1,6 @@
 #include "responder.h"
 
 #include "dmx/config.h"
-#include "dmx/hal.h"
 #include "dmx/nvs.h"
 #include "dmx/struct.h"
 #include "esp_dmx.h"

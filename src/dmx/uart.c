@@ -1,7 +1,6 @@
 #include "uart.h"
 
 #include "dmx/config.h"
-#include "dmx/hal.h"
 #include "dmx/struct.h"
 #include "driver/uart.h"
 #include "esp_dmx.h"

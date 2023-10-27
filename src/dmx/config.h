@@ -90,6 +90,21 @@ extern "C" {
 #define RDM_RESPONDER_QUEUE_SIZE_MAX 64
 #endif
 
+#if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
+/** @brief This macro sets certain functions used within DMX interrupt handlers
+ * to be placed within IRAM. The current hardware configuration of this device
+ * places the DMX driver functions within IRAM. */
+#define DMX_ISR_ATTR IRAM_ATTR
+/** @brief This macro is used to conditionally compile certain parts of code
+ * depending on whether or not the DMX driver is within IRAM.*/
+#define DMX_ISR_IN_IRAM
+#else
+/** @brief This macro sets certain functions used within DMX interrupt handlers
+ * to be placed within IRAM. Due to the current hardware configuration of this
+ * device, the DMX driver is not currently placed within IRAM. */
+#define DMX_ISR_ATTR
+#endif
+
 /** @brief Directs the DMX driver to use spinlocks in critical sections. This is
  * needed for devices which have multiple cores.*/
 #define DMX_USE_SPINLOCK

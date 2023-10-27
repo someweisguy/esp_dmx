@@ -1,6 +1,5 @@
 #include "nvs.h"
 
-#include "dmx/hal.h"
 #include "dmx/struct.h"
 #include "esp_dmx.h"
 #include "nvs_flash.h"

@@ -1,7 +1,6 @@
 #include "parameters.h"
 
 #include "dmx/config.h"
-#include "dmx/hal.h"
 #include "dmx/struct.h"
 #include "esp_dmx.h"
 #include "rdm_utils.h"

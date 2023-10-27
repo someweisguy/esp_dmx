@@ -8,7 +8,6 @@
  */
 #pragma once
 
-#include "dmx/hal.h"
 #include "dmx_types.h"
 #include "driver/gpio.h"
 #include "rdm_types.h"
