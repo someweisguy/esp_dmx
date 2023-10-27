@@ -87,7 +87,7 @@ extern "C" {
 /** @brief The maximum number of queued messages that ther RDM responder can 
  * support.
  */
-#define RDM_RESPONDER_MAX_QUEUE_SIZE 64
+#define RDM_RESPONDER_QUEUE_SIZE_MAX 64
 #endif
 
 /** @brief Directs the DMX driver to use spinlocks in critical sections. This is
