@@ -16,6 +16,10 @@
 #include "rdm_types.h"
 #include "rdm_utils.h"
 
+#include "dmx/gpio.h"
+#include "dmx/timer.h"
+#include "dmx/uart.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -63,6 +67,10 @@ typedef struct dmx_driver_personality_t {
  * and RDM.*/
 typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
+
+  dmx_uart_handle_t uart;    // The handle to the UART HAL.
+  dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
+  dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
