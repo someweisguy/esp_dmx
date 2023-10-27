@@ -35,18 +35,12 @@ dmx_port_t rdm_binding_port;
 rdm_uid_t rdm_device_uid = {};
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};
 
-static struct dmx_context_t {
-  dmx_uart_handle_t uart;
-  dmx_timer_handle_t timer;
-  dmx_gpio_handle_t gpio;
-} dmx_context[DMX_NUM_MAX] = {};
-
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
-  dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
+  dmx_uart_handle_t uart = driver->uart;
+  dmx_timer_handle_t timer = driver->timer;
   int task_awoken = false;
 
   while (true) {
@@ -214,8 +208,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 #endif
     void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  dmx_uart_handle_t uart = dmx_context[driver->dmx_num].uart;
-  dmx_timer_handle_t timer = dmx_context[driver->dmx_num].timer;
+  dmx_uart_handle_t uart = driver->uart;
+  dmx_timer_handle_t timer = driver->timer;
   int task_awoken = false;
 
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
@@ -255,7 +249,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   const dmx_port_t dmx_num = ((dmx_driver_t *)arg)->dmx_num;
   int task_awoken = false;
 
-  if (dmx_gpio_read(dmx_context[dmx_num].gpio)) {
+  if (dmx_gpio_read(driver->gpio)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
@@ -509,28 +503,24 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   }
 
   // Initialize the UART peripheral
-  dmx_uart_handle_t uart =
-      dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
-  if (uart == NULL) {
+  driver->uart = dmx_uart_init(dmx_num, dmx_uart_isr, driver, intr_flags);
+  if (driver->uart == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(uart != NULL, false, "UART init error");
+    DMX_CHECK(driver->uart != NULL, false, "UART init error");
   }
-  dmx_context[dmx_num].uart = uart;
 
   // Initialize the timer peripheral
-  dmx_timer_handle_t timer =
-      dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
-  if (timer == NULL) {
+  driver->timer = dmx_timer_init(dmx_num, dmx_timer_isr, driver, intr_flags);
+  if (driver->timer == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(timer != NULL, false, "timer init error");
+    DMX_CHECK(driver->timer != NULL, false, "timer init error");
   }
-  dmx_context[dmx_num].timer = timer;
 
   // Enable reading on the DMX port
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-  dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
-  dmx_uart_set_rts(uart, 1);
+  dmx_uart_enable_interrupt(driver->uart, DMX_INTR_RX_ALL);
+  dmx_uart_set_rts(driver->uart, 1);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Give the mutex and return
@@ -542,8 +532,6 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Free driver mutex
@@ -569,12 +557,10 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-  dmx_timer_deinit(timer);
-  dmx_context[dmx_num].timer = NULL;
+  dmx_timer_deinit(driver->timer);
 
   // Disable UART module
-  dmx_uart_deinit(uart);
-  dmx_context[dmx_num].uart = NULL;
+  dmx_uart_deinit(driver->uart);
 
   // Free driver
   heap_caps_free(driver);
@@ -590,14 +576,13 @@ bool dmx_driver_disable(dmx_port_t dmx_num) {
             "driver is already disabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Disable receive interrupts
   bool ret = false;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (!(driver->flags & DMX_FLAGS_DRIVER_IS_SENDING)) {
-    dmx_uart_disable_interrupt(uart, DMX_INTR_RX_ALL);
-    dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
+    dmx_uart_disable_interrupt(driver->uart, DMX_INTR_RX_ALL);
+    dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
     driver->flags &= ~DMX_FLAGS_DRIVER_IS_ENABLED;
     ret = true;
   }
@@ -613,17 +598,16 @@ bool dmx_driver_enable(dmx_port_t dmx_num) {
             "driver is already enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Initialize driver flags and reenable interrupts
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   driver->head = -1;  // Wait for DMX break before reading data
   driver->flags |= (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
   driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_HAS_DATA);
-  dmx_uart_rxfifo_reset(uart);
-  dmx_uart_txfifo_reset(uart);
-  dmx_uart_enable_interrupt(uart, DMX_INTR_RX_ALL);
-  dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
+  dmx_uart_rxfifo_reset(driver->uart);
+  dmx_uart_txfifo_reset(driver->uart);
+  dmx_uart_enable_interrupt(driver->uart, DMX_INTR_RX_ALL);
+  dmx_uart_clear_interrupt(driver->uart, DMX_INTR_RX_ALL);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return true;
@@ -636,8 +620,7 @@ bool dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
   DMX_CHECK(dmx_rts_pin_is_valid(rts_pin), false, "rts_pin error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
-  return dmx_uart_set_pin(uart, tx_pin, rx_pin, rts_pin);
+  return dmx_uart_set_pin(dmx_driver[dmx_num]->uart, tx_pin, rx_pin, rts_pin);
 }
 
 uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
@@ -651,7 +634,7 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   }
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  dmx_uart_set_baud_rate(dmx_context[dmx_num].uart, baud_rate);
+  dmx_uart_set_baud_rate(dmx_driver[dmx_num]->uart, baud_rate);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return baud_rate;
@@ -662,7 +645,7 @@ uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
 
   uint32_t baud_rate;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  baud_rate = dmx_uart_get_baud_rate(dmx_context[dmx_num].uart);
+  baud_rate = dmx_uart_get_baud_rate(dmx_driver[dmx_num]->uart);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return baud_rate;
@@ -707,16 +690,15 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) && driver->rdm_type != 0) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     return 0;
-  } else if (dmx_uart_get_rts(uart) == 1) {
+  } else if (dmx_uart_get_rts(driver->uart) == 1) {
     // Flip the bus to stop writes from being overwritten by incoming data
-    dmx_uart_set_rts(uart, 0);
+    dmx_uart_set_rts(driver->uart, 0);
   }
   driver->tx_size = offset + size;  // Update driver transmit size
 
@@ -737,7 +719,6 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   size_t written = 0;
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Get pointers to driver data buffer locations and declare checksum
   uint16_t checksum = 0;
@@ -749,8 +730,8 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     return written;
-  } else if (dmx_uart_get_rts(uart) == 1) {
-    dmx_uart_set_rts(uart, 0);  // Stops writes from being overwritten
+  } else if (dmx_uart_get_rts(driver->uart) == 1) {
+    dmx_uart_set_rts(driver->uart, 0);  // Stops writes from being overwritten
   }
 
   if (header != NULL && !(header->cc == RDM_CC_DISC_COMMAND_RESPONSE &&
@@ -818,8 +799,6 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Set default return value and default values for output argument
   dmx_err_t err = DMX_OK;
@@ -844,12 +823,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Set the RTS pin to enable reading from the DMX bus
-  if (dmx_uart_get_rts(uart) == 0) {
+  if (dmx_uart_get_rts(driver->uart) == 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     driver->head = -1;  // Wait for DMX break before reading data
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-    dmx_uart_set_rts(uart, 1);
+    dmx_uart_set_rts(driver->uart, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
@@ -885,17 +864,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
       // Set an early timeout with the hardware timer
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      dmx_timer_set_counter(timer, elapsed);
-      dmx_timer_set_alarm(timer, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE,
-                          false);
-      dmx_timer_start(timer);
+      dmx_timer_set_counter(driver->timer, elapsed);
+      dmx_timer_set_alarm(driver->timer,
+                          RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE, false);
+      dmx_timer_start(driver->timer);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
 
     // Wait for a task notification
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    dmx_timer_stop(timer);
+    dmx_timer_stop(driver->timer);
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     if (!notified) {
@@ -1065,7 +1044,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->head = -1;  // Wait for DMX break before reading data
-      dmx_uart_set_rts(uart, 1);
+      dmx_uart_set_rts(driver->uart, 1);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
   }
@@ -1098,8 +1077,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  dmx_timer_handle_t timer = dmx_context[dmx_num].timer;
-  dmx_uart_handle_t uart = dmx_context[dmx_num].uart;
 
   // Block until the mutex can be taken
   if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
@@ -1144,9 +1121,9 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
   if (elapsed < timeout) {
-    dmx_timer_set_counter(timer, elapsed);
-    dmx_timer_set_alarm(timer, timeout, false);
-    dmx_timer_start(timer);
+    dmx_timer_set_counter(driver->timer, elapsed);
+    dmx_timer_set_alarm(driver->timer, timeout, false);
+    dmx_timer_start(driver->timer);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -1156,7 +1133,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     // FIXME: clean up this section
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, pdDMX_MS_TO_TICKS(23));
     if (!notified) {
-      dmx_timer_stop(timer);
+      dmx_timer_stop(driver->timer);
       xTaskNotifyStateClear(driver->task_waiting);
     }
     driver->task_waiting = NULL;
@@ -1168,9 +1145,9 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Turn the DMX bus around and get the send size
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (dmx_uart_get_rts(uart) == 1) {
+  if (dmx_uart_get_rts(driver->uart) == 1) {
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    dmx_uart_set_rts(uart, 0);
+    dmx_uart_set_rts(driver->uart, 0);
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -1224,11 +1201,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
 
     size_t write_size = driver->tx_size;
-    dmx_uart_write_txfifo(uart, driver->data, &write_size);
+    dmx_uart_write_txfifo(driver->uart, driver->data, &write_size);
     driver->head = write_size;
 
     // Enable DMX write interrupts
-    dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
+    dmx_uart_enable_interrupt(driver->uart, DMX_INTR_TX_ALL);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     // Send the packet by starting the DMX break
@@ -1236,11 +1213,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->head = 0;
     driver->flags |=
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
-    dmx_timer_set_counter(timer, 0);
-    dmx_timer_set_alarm(timer, driver->break_len, true);
-    dmx_timer_start(timer);
+    dmx_timer_set_counter(driver->timer, 0);
+    dmx_timer_set_alarm(driver->timer, driver->break_len, true);
+    dmx_timer_start(driver->timer);
 
-    dmx_uart_invert_tx(uart, 1);
+    dmx_uart_invert_tx(driver->uart, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
@@ -1267,9 +1244,7 @@ bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
   // Add the GPIO interrupt handler
-  dmx_gpio_handle_t gpio =
-      dmx_gpio_init(dmx_num, dmx_gpio_isr, driver, intr_pin);
-  dmx_context[dmx_num].gpio = gpio;
+  driver->gpio = dmx_gpio_init(dmx_num, dmx_gpio_isr, driver, intr_pin);
 
   return true;
 }
@@ -1281,8 +1256,7 @@ bool dmx_sniffer_disable(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Disable the interrupt and remove the interrupt handler
-  dmx_gpio_deinit(dmx_context[dmx_num].gpio);
-  dmx_context[dmx_num].gpio = NULL;
+  dmx_gpio_deinit(driver->gpio);
 
   // Deallocate the sniffer queue
   vQueueDelete(driver->metadata_queue);
