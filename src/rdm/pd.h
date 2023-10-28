@@ -2,7 +2,7 @@
  * @file rdm/pd.h
  * @author Mitch Weisbrod
  * @brief // TODO
- * 
+ *
  */
 #pragma once
 
@@ -27,9 +27,35 @@ typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
                                       void *pd, uint8_t *pdl_out,
                                       const char *format);
 
-// TODO docs
-uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                     uint16_t *pids, uint32_t num);
+// TODO: docs
+const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                           const rdm_pid_description_t *definition,
+                           const char *format, bool nvs,
+                           rdm_response_handler_t response_handler,
+                           void *default_value);
+
+// TODO: docs
+const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                             const rdm_pid_description_t *definition,
+                             const char *format, bool nvs,
+                             rdm_response_handler_t response_handler,
+                             rdm_pid_t alias, size_t offset);
+
+// TODO: docs
+bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              const rdm_pid_description_t *definition,
+                              const char *format,
+                              rdm_response_handler_t response_handler);
+
+// TODO: docs
+bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
+                                    rdm_sub_device_t sub_device, rdm_pid_t pid,
+                                    rdm_response_handler_t response_handler);
+
+// TODO: docs
+bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid, rdm_callback_t callback,
+                            void *context);
 
 /**
  * @brief Gets a pointer to the parameter stored in the RDM device, if the
@@ -67,36 +93,9 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
 bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
                 const void *data, size_t size, bool add_to_queue);
 
-// TODO: docs
-const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           const rdm_pid_description_t *definition,
-                           const char *format, bool nvs,
-                           rdm_response_handler_t response_handler,
-                           void *default_value);
-
-// TODO: docs
-const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             const rdm_pid_description_t *definition,
-                             const char *format, bool nvs,
-                             rdm_response_handler_t response_handler,
-                             rdm_pid_t alias, size_t offset);
-
-// TODO: docs
-bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              const rdm_pid_description_t *definition,
-                              const char *format,
-                              rdm_response_handler_t response_handler);
-
-// TODO: docs
-bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
-                                    rdm_sub_device_t sub_device,
-                                    rdm_pid_t pid,
-                                    rdm_response_handler_t response_handler);
-
-// TODO: docs
-bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            rdm_pid_t pid, rdm_callback_t callback,
-                            void *context);
+// TODO docs
+uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                     uint16_t *pids, uint32_t num);
 
 #ifdef __cplusplus
 }
