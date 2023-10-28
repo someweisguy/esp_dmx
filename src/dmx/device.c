@@ -1,6 +1,7 @@
 #include "dmx/device.h"
 
 #include "dmx/driver.h"
+#include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
 
 uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
@@ -9,17 +10,32 @@ uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
 
   uint16_t dmx_start_address;
 
-  const rdm_device_info_t *device_info =
-      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (device_info == NULL) {
-    const dmx_driver_personality_t *personality =
-        (void *)dmx_driver[dmx_num]->pd;
-    dmx_start_address = personality->dmx_start_address;
+  // Check if RDM is enabled on the driver
+  const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
+
+  /* If RDM is enabled, attempt to read the DMX start address from
+    RDM_PID_DEVICE_INFO. If RDM_PID_DEVICE_INFO doesn't exist, throw an error
+    and return 0.
+    If RDM is not enabled, the DMX start address can be read from
+    the device personality struct.*/
+
+  if (rdm_is_enabled) {
+    const rdm_device_info_t *dev_info =
+        rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+    if (dev_info != NULL) {
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      dmx_start_address = dev_info->dmx_start_address;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    } else {
+      DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
+      dmx_start_address = 0;
+    }
   } else {
-    dmx_start_address = device_info->dmx_start_address;
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    const dmx_driver_personality_t *device = (void *)dmx_driver[dmx_num]->pd;
+    dmx_start_address = device->dmx_start_address;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return dmx_start_address;
 }
@@ -32,20 +48,56 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   DMX_CHECK(dmx_get_start_address(dmx_num) != DMX_START_ADDRESS_NONE, false,
             "cannot set DMX start address");
 
-  // TODO: make a function to check if RDM is enabled on the driver
+  bool ret;
+
+  // Check if RDM is enabled on the driver
   const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
 
+  /* If RDM is enabled, check if RDM_PID_DMX_START address is registered on the
+    driver. If it is, simply call rdm_pd_set() to set the DMX start address. If
+    it isn't, check if RDM_PID_DMX_DEVICE_INFO is registered. If
+    RDM_PID_DEVICE_INFO is registered, make a deep copy of the device info,
+    update the DMX start address, and write the DMX start address. Then
+    explicitly call dmx_nvs_set() to update the start address in NVS. If neither
+    RDM_PID_DMX_START_ADDRESS nor RDM_PID_DEVICE_INFO are registered, throw an
+    error.
+    If RDM is not enabled, the DMX start address can be set to the device 
+    personality struct.*/
+
   if (rdm_is_enabled) {
-    rdm_pd_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
-               &dmx_start_address, sizeof(uint16_t), true);
+    const uint16_t *dmx_start_address_ptr =
+        rdm_pd_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT);
+    const rdm_device_info_t *device_info_ptr =
+        rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+    if (dmx_start_address_ptr != NULL) {
+      ret = rdm_pd_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
+                       &dmx_start_address, sizeof(uint16_t), true);
+    } else if (device_info_ptr != NULL) {
+      rdm_device_info_t device_info;
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      memcpy(&device_info, device_info_ptr, sizeof(rdm_device_info_t));
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      device_info.dmx_start_address = dmx_start_address;
+      ret = rdm_pd_set(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT,
+                       &device_info, sizeof(rdm_device_info_t), false);
+      if (ret) {
+        ret = dmx_nvs_set(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                          RDM_DS_UNSIGNED_WORD, &dmx_start_address,
+                          sizeof(uint16_t));
+      }
+    } else {
+      DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
+      ret = false;
+    }
   } else {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     dmx_driver_personality_t *personality = (void *)dmx_driver[dmx_num]->pd;
     personality->dmx_start_address = dmx_start_address;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    ret = true;
   }
 
-  return true;
+  return ret;
 }
 
 uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
