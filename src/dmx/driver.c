@@ -203,8 +203,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
       rdm_register_dmx_start_address(dmx_num, NULL, NULL);
     }
   } else {
-    dmx_driver_personality_t *dmx = rdm_pd_alloc(dmx_num, pd_size);
-    assert(dmx != NULL);
+    dmx_driver_personality_t *dmx = driver->pd;
 
     // Load the DMX start address from NVS
     uint16_t dmx_start_address;

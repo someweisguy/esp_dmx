@@ -260,51 +260,6 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
  */
 size_t rdm_pd_emplace_word(void *destination, uint16_t word);
 
-/**
- * @brief Allocates memory in the DMX driver for RDM parameter data. When the
- * DMX driver is installed a chunk of heap memory is allocated for parameter
- * data use. This function reserves a segment of this memory if there is enough
- * available. Therefore, this function does not call malloc().
- *
- * @note Once parameter data memory is allocated it cannot be freed. It is
- * important to ensure that this function is called only when it is certain that
- * memory will be used.
- *
- * @param dmx_num The DMX port number.
- * @param size The size of memory to allocate.
- * @return A pointer to the allocated memory or NULL on failure.
- */
-void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
-
-/**
- * @brief Registers a response callback to be called when a request is received
- * for a specified PID for this device. Callbacks may be overwritten, but they
- * may not be deleted. The pointers to the parameter and context are copied by
- * reference and must be valid throughout the lifetime of the DMX driver. The
- * maximum number of response callbacks that may be registered are defined by
- * "Max RDM responder PIDs" found in the kconfig.
- *
- * @param dmx_num The DMX port number.
- * @param sub_device The sub-device to which to register the response callback.
- * @param[in] desc A pointer to a descriptor for the PID to be registered.
- * @param[in] param_str A parameter string which defines how the parameter data
- * is emplaced into the RDM packet.
- * @param response_handler A driver-side callback function which is called when a
- * request for this PID is received.
- * @param[in] param A pointer to the parameter which can be used in the response
- * callback.
- * @param callback A user-side callback function which is called after a request
- * for this PID is handled.
- * @param[in] context A pointer to a user-defined context.
- * @param nvs True if this parameter should be saved to non-volatile memory.
- * @return true if the response was successfully registered.
- * @return false if the response was not registered.
- */
-bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                     const rdm_pid_description_t *description, const char *format,
-                     rdm_response_handler_t response_handler, void *data,
-                     rdm_callback_t callback, void *context, bool nvs);
-
 // TODO docs
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                      uint16_t *pids, uint32_t num);
