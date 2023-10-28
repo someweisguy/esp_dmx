@@ -1,7 +1,7 @@
 /**
- * @file 
+ * @file rdm/uid.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
- * @brief 
+ * @brief // TODO
  * 
  */
 #pragma once

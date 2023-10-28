@@ -1,7 +1,7 @@
 /**
  * @file rdm/pd.h
  * @author Mitch Weisbrod
- * @brief 
+ * @brief // TODO
  * 
  */
 #pragma once
@@ -24,7 +24,8 @@ extern "C" {
  * function that is called when responding to RDM requests.
  */
 typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
-                               void *pd, uint8_t *pdl, const char *format);
+                                      void *pd, uint8_t *pdl_out,
+                                      const char *format);
 
 // TODO docs
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
