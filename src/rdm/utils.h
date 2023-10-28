@@ -413,6 +413,12 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               const char *format,
                               rdm_driver_cb_t response_handler);
 
+// TODO: docs
+bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
+                                    rdm_sub_device_t sub_device,
+                                    rdm_pid_t pid,
+                                    rdm_driver_cb_t response_handler);
+
 #ifdef __cplusplus
 }
 #endif

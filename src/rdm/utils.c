@@ -686,6 +686,37 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return ret;
 }
 
-// TODO: overwrite response_handler
+bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
+                                    rdm_sub_device_t sub_device,
+                                    rdm_pid_t pid,
+                                    rdm_driver_cb_t response_handler) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(pid > 0);
+  assert(response_handler != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  bool ret = false;
+
+  // Find the parameter
+  uint32_t pdi = 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].definition.pid == pid) {
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->params[pdi].definition.pid != pid) {
+    return ret;  // Parameter does not exist
+  }
+
+  // The response handler can be updated
+  driver->params[pdi].response_handler = response_handler;
+  ret = true;
+  
+  return ret;
+}
 
 // TODO: register callback
