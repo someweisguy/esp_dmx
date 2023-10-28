@@ -419,6 +419,11 @@ bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
                                     rdm_pid_t pid,
                                     rdm_driver_cb_t response_handler);
 
+// TODO: docs
+bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid, rdm_responder_cb_t callback,
+                            void *context);
+
 #ifdef __cplusplus
 }
 #endif

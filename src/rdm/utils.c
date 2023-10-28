@@ -723,4 +723,34 @@ bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
   return ret;
 }
 
-// TODO: register callback
+bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid, rdm_responder_cb_t callback,
+                            void *context) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  bool ret = false;
+
+  // Find the parameter
+  uint32_t pdi = 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].definition.pid == pid) {
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->params[pdi].definition.pid != pid) {
+    return ret;  // Parameter does not exist
+  }
+
+  // The callback and context can be updated
+  driver->params[pdi].callback = callback;
+  driver->params[pdi].context = context;
+  ret = true;
+  
+  return ret;
+}
