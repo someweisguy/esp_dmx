@@ -530,6 +530,10 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   void *pd = NULL;
 
@@ -597,6 +601,10 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   void *pd = NULL;
 
@@ -658,6 +666,10 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   bool ret = false;
 
@@ -703,6 +715,10 @@ bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
   assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   bool ret = false;
 
@@ -733,6 +749,10 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(sub_device < 513);
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
   bool ret = false;
