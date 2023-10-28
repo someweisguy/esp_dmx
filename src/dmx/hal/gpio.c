@@ -1,8 +1,7 @@
 #include "gpio.h"
 
-#include "dmx/config.h"
+#include "dmx/hal/uart.h"
 #include "dmx/struct.h"
-#include "dmx/uart.h"
 #include "hal/gpio_hal.h"
 
 struct dmx_gpio_t {
@@ -18,7 +17,6 @@ struct dmx_gpio_t {
 static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  const dmx_port_t dmx_num = ((dmx_driver_t *)arg)->dmx_num;
   int task_awoken = false;
 
   if (dmx_gpio_read(driver->gpio)) {

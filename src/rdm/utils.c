@@ -1,14 +1,15 @@
-#include "rdm_utils.h"
+#include "rdm/utils.h"
 
 #include <ctype.h>
 #include <string.h>
 
-#include "dmx/config.h"
-#include "dmx/nvs.h"
+#include "dmx/bus_ctl.h"
+#include "dmx/driver.h"
+#include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "esp_dmx.h"
-#include "rdm_types.h"
+#include "rdm/types.h"
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {
   assert(destination != NULL);
@@ -41,9 +42,7 @@ void DMX_ISR_ATTR rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid) {
   }
 }
 
-void rdm_uid_get_binding(rdm_uid_t *uid) {
-  rdm_uid_get(rdm_binding_port, uid);
-}
+void rdm_uid_get_binding(rdm_uid_t *uid) { rdm_uid_get(rdm_binding_port, uid); }
 
 static size_t rdm_pd_parse(const char *format) {
   int param_size = 0;
@@ -107,12 +106,12 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
   if (param_size == 0) {
     return 0;
   }
-  
+
   // Get the number of parameters that can be encoded
   int num_params_to_copy;
   if (format[strlen(format)] == '$' || format[strlen(format)] == 'a' ||
-       format[strlen(format)] == 'A' || format[strlen(format)] == 'v' ||
-       format[strlen(format)] == 'V') {
+      format[strlen(format)] == 'A' || format[strlen(format)] == 'v' ||
+      format[strlen(format)] == 'V') {
     num_params_to_copy = 1;  // Format string is a singleton
   } else {
     num_params_to_copy = num / param_size;
@@ -209,10 +208,9 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
 }
 
 bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            const rdm_pid_description_t *desc,
-                            const char *param_str, rdm_driver_cb_t driver_cb,
-                            void *param, rdm_responder_cb_t user_cb,
-                            void *context, bool nvs) {
+                     const rdm_pid_description_t *desc, const char *param_str,
+                     rdm_driver_cb_t driver_cb, void *param,
+                     rdm_responder_cb_t user_cb, void *context, bool nvs) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(desc != NULL);
@@ -237,7 +235,7 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
-  
+
   // Add the requested callback to the callback list
   driver->rdm_cbs[i].param_str = param_str;
   driver->rdm_cbs[i].param = param;
@@ -284,7 +282,7 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                        rdm_sub_device_t sub_device) {
+                 rdm_sub_device_t sub_device) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   void *pd = NULL;
@@ -301,9 +299,8 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
   return pd;
 }
 
-bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
-                       rdm_sub_device_t sub_device, const void *param,
-                       size_t size, bool add_to_queue) {
+bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
+                const void *param, size_t size, bool add_to_queue) {
   assert(param != NULL);
   assert(size > 0);
 
@@ -352,7 +349,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
 
     // Enqueue the RDM packet if desired
     if (add_to_queue) {
-      bool success; 
+      bool success;
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
         driver->rdm_queue[driver->rdm_queue_size] = pid;

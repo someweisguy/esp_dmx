@@ -1,6 +1,6 @@
 /**
- * @file nvs.h
- * @author Mitch Weisbrod
+ * @file dmx/hal/nvs.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the non-volatile storage (NVS) Hardware Abstraction Layer
  * (HAL) of esp_dmx. It contains low-level functions to perform tasks relating
  * to the NVS hardware. NVS is needed for various DMX and RDM parameters which
@@ -9,8 +9,8 @@
  */
 #pragma once
 
-#include "dmx_types.h"
-#include "rdm_types.h"
+#include "dmx/types.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {

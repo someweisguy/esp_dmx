@@ -1,5 +1,5 @@
 /**
- * @file rdm_utils.h
+ * @file rdm/utils.h
  * @author Mitch Weisbrod
  * @brief This file contains some functions that can be helpful when performing
  * advanced operations on RDM packets. It is used throughout this library, but
@@ -14,9 +14,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "rdm/responder.h"
-#include "rdm_types.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -392,7 +392,6 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack);
-
 
 #ifdef __cplusplus
 }

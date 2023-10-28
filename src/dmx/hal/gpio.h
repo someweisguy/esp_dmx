@@ -1,6 +1,6 @@
 /**
- * @file gpio.h
- * @author Mitch Weisbrod
+ * @file dmx/hal/gpio.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the GPIO Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the GPIO hardware.
  * GPIO is needed for the DMX sniffer. This file is not considered part of the
@@ -8,9 +8,9 @@
  */
 #pragma once
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "driver/gpio.h"
-#include "rdm_types.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {

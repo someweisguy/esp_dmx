@@ -3,7 +3,6 @@
 #include <stdbool.h>
 
 #include "dmx/struct.h"
-
 #include "driver/gpio.h"
 
 static struct dmx_timer_t {
@@ -49,7 +48,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   } else if (driver->task_waiting) {
     // Notify the task
     xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
-                       &task_awoken); // TODO: return timeout?
+                       &task_awoken);  // TODO: return timeout?
 
     // Pause the receive timer alarm
     dmx_timer_stop(timer);
@@ -135,8 +134,8 @@ void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer,
 #endif
 }
 
-void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer,
-                                      uint64_t alarm, bool auto_reload) {
+void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm,
+                                      bool auto_reload) {
 #if ESP_IDF_VERSION_MAJOR >= 5
   const gptimer_alarm_config_t alarm_config = {
       .alarm_count = alarm,
