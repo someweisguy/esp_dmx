@@ -8,7 +8,6 @@
 #include "esp_dmx.h"
 #include "rdm/bus_ctl.h"
 #include "rdm/uid.h"
-#include "rdm/utils.h"
 
 static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
                                     void *pd, uint8_t *pdl_out,

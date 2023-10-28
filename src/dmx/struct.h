@@ -17,7 +17,7 @@
 #include "freertos/semphr.h"
 #include "rdm/responder.h"
 #include "rdm/types.h"
-#include "rdm/utils.h"
+#include "rdm/pd.h"
 
 #ifdef __cplusplus
 extern "C" {
