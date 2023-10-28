@@ -576,6 +576,8 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[pdi].format = format;
   driver->params[pdi].nvs = nvs;
   driver->params[pdi].response_handler = response_handler;
+  driver->params[pdi].callback = NULL;
+  // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
 
   return pd;
@@ -636,6 +638,8 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[pdi].format = format;
   driver->params[pdi].nvs = nvs;
   driver->params[pdi].response_handler = response_handler;
+  driver->params[pdi].callback = NULL;
+  // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
 
   return pd;
@@ -672,16 +676,16 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return ret;  // No space for new parameter definitions
   }
 
-  // The parameter can be successfully added to the driver now
-  ret = true;
-
   // Add the new parameter to the driver
   driver->params[pdi].data = NULL;
   driver->params[pdi].definition = *definition;
   driver->params[pdi].format = format;
   driver->params[pdi].nvs = false;
   driver->params[pdi].response_handler = response_handler;
+  driver->params[pdi].callback = NULL;
+  // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
+  ret = true;
 
   return ret;
 }
