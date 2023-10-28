@@ -206,7 +206,7 @@ typedef struct dmx_driver_t {
     void *data;                        // A pointer to the parameter data.
     rdm_pid_description_t definition;  // The parameter definition.
     const char *format;                // The parameter format.
-    bool nvs;                          // True if the parameter is non-volatile.
+    uint16_t nvs_alias;  // 0 if the parameter does not support NVS, or the PID that this parameter aliases. If this parameter supports NVS and does not alias another parameter, this value is the same as the definition PID.
     rdm_response_handler_t response_handler;  // The parameter response handler.
     rdm_callback_t callback;       // The parameter callback function.
     void *context;                     // Context for the callback function.

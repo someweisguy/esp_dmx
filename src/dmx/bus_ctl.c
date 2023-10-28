@@ -554,7 +554,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Update NVS values
-  if (driver->params[pdi].nvs) {
+  if (driver->params[pdi].nvs_alias) {
     if (!dmx_nvs_set(dmx_num, header.pid, description->data_type, parameter,
                      description->pdl_size)) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
