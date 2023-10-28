@@ -272,8 +272,8 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return ret;
 }
 
-void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                 rdm_sub_device_t sub_device) {
+const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
+                       rdm_sub_device_t sub_device) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(pid > 0);

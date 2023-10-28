@@ -183,44 +183,45 @@ static int rdm_personality_description_response_cb(dmx_port_t dmx_num,
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
-  rdm_device_info_t *di =
-      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, header->sub_device);
-  if(di == NULL)
-  {
-    //none of the error codes really fit, thus we just go with unknown pid
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  // rdm_device_info_t *di =
+  //     rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, header->sub_device);
+  // if(di == NULL)
+  // {
+  //   //none of the error codes really fit, thus we just go with unknown pid
+  //   *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
 
-  if(header->cc == RDM_CC_SET_COMMAND)
-  {      
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_WRITE_PROTECT);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  // if(header->cc == RDM_CC_SET_COMMAND)
+  // {      
+  //   *pdl_out = rdm_emplace_word(pd, RDM_NR_WRITE_PROTECT);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
 
-  if(header->pdl != 1)
-  {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  // if(header->pdl != 1)
+  // {
+  //   *pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
 
-  const uint8_t requestedPersonality = *((uint8_t*)pd);
-  const uint16_t footprint = (uint16_t)dmx_get_footprint(dmx_num, requestedPersonality);
-  const char* personalityDesc = dmx_get_personality_description(dmx_num, requestedPersonality);
+  // const uint8_t requestedPersonality = *((uint8_t*)pd);
+  // const uint16_t footprint = (uint16_t)dmx_get_footprint(dmx_num, requestedPersonality);
+  // const char* personalityDesc = dmx_get_personality_description(dmx_num, requestedPersonality);
   
-  if(personalityDesc == NULL)
-  {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  // if(personalityDesc == NULL)
+  // {
+  //   *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
 
-  memcpy(pd, &requestedPersonality, 1);
-  pd++;
-  rdm_emplace_word(pd, footprint);
-  pd += 2;
-  const size_t emplacedBytes = rdm_emplace(pd, "a$", personalityDesc, 32, false);
-  *pdl_out = 3 + emplacedBytes;
+  // memcpy(pd, &requestedPersonality, 1);
+  // pd++;
+  // rdm_emplace_word(pd, footprint);
+  // pd += 2;
+  // const size_t emplacedBytes = rdm_emplace(pd, "a$", personalityDesc, 32, false);
+  // *pdl_out = 3 + emplacedBytes;
 
+  // FIXME
   return RDM_RESPONSE_TYPE_ACK;
 }
 
@@ -233,46 +234,49 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
-  rdm_device_info_t *di =
-      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-  if(di == NULL)
-  {
-    //none of the error codes really fit, thus we just go with unknown pid
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID); 
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  // rdm_device_info_t *di =
+  //     rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+  // if(di == NULL)
+  // {
+  //   //none of the error codes really fit, thus we just go with unknown pid
+  //   *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID); 
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
 
-  if(header->cc == RDM_CC_GET_COMMAND)
-  {
-    const uint8_t data[] = {di->current_personality, di->personality_count};
-    memcpy(pd, data, 2);
-    *pdl_out = 2;
-    return RDM_RESPONSE_TYPE_ACK;
-  }
-  else if(header->cc == RDM_CC_SET_COMMAND)
-  {
-    if(header->pdl != 1)
-    {
-      *pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
-      return RDM_RESPONSE_TYPE_NACK_REASON;
-    }
+  // if(header->cc == RDM_CC_GET_COMMAND)
+  // {
+  //   const uint8_t data[] = {di->current_personality, di->personality_count};
+  //   memcpy(pd, data, 2);
+  //   *pdl_out = 2;
+  //   return RDM_RESPONSE_TYPE_ACK;
+  // }
+  // else if(header->cc == RDM_CC_SET_COMMAND)
+  // {
+  //   if(header->pdl != 1)
+  //   {
+  //     *pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+  //     return RDM_RESPONSE_TYPE_NACK_REASON;
+  //   }
 
-    const uint8_t requestedPersonality = *((uint8_t*)pd);
-    if(requestedPersonality >= di->personality_count)
-    {
-      *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
-      return RDM_RESPONSE_TYPE_NACK_REASON;
-    }
+  //   const uint8_t requestedPersonality = *((uint8_t*)pd);
+  //   if(requestedPersonality >= di->personality_count)
+  //   {
+  //     *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+  //     return RDM_RESPONSE_TYPE_NACK_REASON;
+  //   }
 
-    dmx_set_current_personality(dmx_num, requestedPersonality);
-    //note: we do not need to set it in nvs because that is done in hal.c:dmx_receive()
-    return RDM_RESPONSE_TYPE_ACK;
-  }
-  else
-  {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  //   dmx_set_current_personality(dmx_num, requestedPersonality);
+  //   //note: we do not need to set it in nvs because that is done in hal.c:dmx_receive()
+  //   return RDM_RESPONSE_TYPE_ACK;
+  // }
+  // else
+  // {
+  //   *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
+
+  // FIXME
+  return RDM_RESPONSE_TYPE_ACK;
 }
 
 static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,

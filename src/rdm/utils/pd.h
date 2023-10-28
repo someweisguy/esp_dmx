@@ -72,9 +72,10 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @param sub_device The sub-device number which owns the parameter.
  * @return A pointer to the parameter data or NULL if the parameter does not
  * exist.
+ * // TODO
  */
-void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                 rdm_sub_device_t sub_device);
+const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
+                       rdm_sub_device_t sub_device);
 
 /**
  * @brief Sets the value of a specified RDM parameter. This function will not
