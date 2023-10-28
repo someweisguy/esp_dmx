@@ -1,4 +1,4 @@
-#include "rdm/pd.h"
+#include "rdm/utils/pd.h"
 
 #include <string.h>
 
@@ -9,7 +9,7 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "rdm/types.h"
-#include "rdm/uid.h"
+#include "rdm/utils/uid.h"
 
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *definition,

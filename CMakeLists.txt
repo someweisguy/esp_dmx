@@ -4,7 +4,7 @@ idf_component_register(
        "src/dmx/device.c" "src/dmx/sniffer.c"
        
        "src/rdm/controller.c" "src/rdm/responder.c" "src/rdm/parameters.c"
-       "src/rdm/uid.c" "src/rdm/pd.c" "src/rdm/bus_ctl.c"
+       "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/bus_ctl.c"
   INCLUDE_DIRS "src" 
   REQUIRES driver esp_timer esp_common esp_hw_support nvs_flash
 )   

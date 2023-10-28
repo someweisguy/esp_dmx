@@ -4,8 +4,8 @@
 #include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
 #include "endian.h"
-#include "rdm/bus_ctl.h"
-#include "rdm/uid.h"
+#include "rdm/utils/bus_ctl.h"
+#include "rdm/utils/uid.h"
 
 size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
                        size_t size) {

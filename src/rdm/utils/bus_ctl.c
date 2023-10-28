@@ -1,4 +1,4 @@
-#include "rdm/bus_ctl.h"
+#include "rdm/utils/bus_ctl.h"
 
 #include <ctype.h>
 
@@ -6,7 +6,7 @@
 #include "dmx/driver.h"
 #include "dmx/struct.h"
 #include "endian.h"
-#include "rdm/uid.h"
+#include "rdm/utils/uid.h"
 
 size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
                              size_t num) {

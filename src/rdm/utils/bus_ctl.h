@@ -1,5 +1,5 @@
 /**
- * @file rdm/bus_ctl.h
+ * @file rdm/utils/bus_ctl.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief // TODO
  * 

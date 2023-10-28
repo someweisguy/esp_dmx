@@ -1,4 +1,4 @@
-#include "rdm/uid.h"
+#include "rdm/utils/uid.h"
 
 #include "dmx/struct.h"
 #include "endian.h"
