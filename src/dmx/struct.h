@@ -181,8 +181,7 @@ typedef struct dmx_driver_t {
 
   // Driver state
   uint8_t flags;  // Flags which indicate the current state of the driver.
-  uint8_t
-      rdm_type;  // Flags which indicate the RDM type of the most recent packet.
+  uint8_t rdm_type;  // Flags which indicate the RDM type of the most recent packet.
   uint8_t tn;  // The current RDM transaction number. Is incremented with every
                // RDM packet sent.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the
@@ -194,8 +193,7 @@ typedef struct dmx_driver_t {
     const char *description;  // A description of the personality.
   } personalities[DMX_PERSONALITY_COUNT_MAX];
   uint32_t break_len;  // Length in microseconds of the transmitted break.
-  uint32_t
-      mab_len;  // Length in microseconds of the transmitted mark-after-break.
+  uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
 
   // Parameter data
   void *pd;        // Allocated memory for DMX/RDM parameter data.
@@ -205,28 +203,24 @@ typedef struct dmx_driver_t {
   // RDM responder configuration
   uint32_t num_parameters;  // The number of RDM parameters registered.
   struct rdm_parameter_table_t {
-    void *data;                          // A pointer to the parameter data.
-    rdm_pid_description_t description;   // The parameter description.
-    bool is_non_volatile;                // True if the parameter is non-volatile.
-    const char *format;                  // A parameter string describing the data.
-    rdm_driver_cb_t response_handler;    // The driver-side callback function.
-    rdm_responder_cb_t callback;         // The user-side callback function.
-    void *context;                       // The contexted for the user-side callback.
-  } params[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM parameters.
+    void *data;                        // A pointer to the parameter data.
+    rdm_pid_description_t definition;  // The parameter definition.
+    const char *format;                // The parameter format.
+    bool nvs;                          // True if the parameter is non-volatile.
+    rdm_driver_cb_t response_handler;  // The parameter response handler.
+    rdm_responder_cb_t callback;       // The parameter callback function.
+    void *context;                     // Context for the callback function.
+  } params[RDM_RESPONDER_PIDS_MAX];  // A table containing RDM parameter information.
 
   uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
   uint16_t rdm_queue_size;       // The index of the RDM message queue list.
-  uint16_t
-      rdm_queue[RDM_RESPONDER_QUEUE_SIZE_MAX];  // The RDM queued message list.
+  uint16_t rdm_queue[RDM_RESPONDER_QUEUE_SIZE_MAX];  // The RDM queued message list.
 
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
-  QueueHandle_t
-      metadata_queue;        // The queue handle used to receive sniffer data.
-  int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the
-                             // sniffer pin.
-  int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the
-                             // sniffer pin.
+  QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
+  int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
+  int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;
 
 extern dmx_port_t rdm_binding_port;

@@ -436,12 +436,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   rdm_response_type_t response_type;
   uint32_t pdi = 0;  // Parameter data index
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].description.pid == header.pid) {
+    if (driver->params[pdi].definition.pid == header.pid) {
       break;
     }
   }
   if (pdi < driver->num_parameters) {
-    description = &driver->params[pdi].description;
+    description = &driver->params[pdi].definition;
     parameter = driver->params[pdi].data;
   } else {
     description = NULL;
@@ -554,7 +554,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Update NVS values
-  if (driver->params[pdi].is_non_volatile) {
+  if (driver->params[pdi].nvs) {
     if (!dmx_nvs_set(dmx_num, header.pid, description->data_type, parameter,
                      description->pdl_size)) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));

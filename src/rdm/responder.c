@@ -314,11 +314,11 @@ static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
   // Iterate the callback list to see if a callback with this PID exists
   for (int i = 0; i < driver->num_parameters; ++i)
   {
-    if (driver->params[i].description.pid == requestedPid)
+    if (driver->params[i].definition.pid == requestedPid)
     {
       //The pdl can be in range x014-0x34 depending on how long the parameter description string is.
       //There is no harm in always sending the full string, so we just do that.
-      *pdl_out = rdm_pd_emplace(pd, format, &driver->params[i].description, 0x34, false);
+      *pdl_out = rdm_pd_emplace(pd, format, &driver->params[i].definition, 0x34, false);
       return RDM_RESPONSE_TYPE_ACK;
     }
   }
