@@ -20,11 +20,11 @@ uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
     the device personality struct.*/
 
   if (rdm_is_enabled) {
-    const rdm_device_info_t *dev_info =
+    const rdm_device_info_t *device_info =
         rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-    if (dev_info != NULL) {
+    if (device_info != NULL) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      dmx_start_address = dev_info->dmx_start_address;
+      dmx_start_address = device_info->dmx_start_address;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     } else {
       DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
