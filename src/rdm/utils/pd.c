@@ -274,7 +274,16 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
 void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
                  rdm_sub_device_t sub_device) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+
   dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
 
   void *pd = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -294,6 +303,10 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
                 const void *data, size_t size, bool add_to_queue) {
   assert(data != NULL);
   assert(size > 0);
+  
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
