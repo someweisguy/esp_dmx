@@ -26,7 +26,7 @@ extern "C" {
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
  */
-typedef int (*rdm_driver_cb_t)(dmx_port_t dmx_num, rdm_header_t *header,
+typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
                                void *pd, uint8_t *pdl, const char *format);
 
 /**
@@ -302,8 +302,8 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
  */
 bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                      const rdm_pid_description_t *description, const char *format,
-                     rdm_driver_cb_t response_handler, void *data,
-                     rdm_responder_cb_t callback, void *context, bool nvs);
+                     rdm_response_handler_t response_handler, void *data,
+                     rdm_callback_t callback, void *context, bool nvs);
 
 // TODO docs
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -397,31 +397,31 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *definition,
                            const char *format, bool nvs,
-                           rdm_driver_cb_t response_handler,
+                           rdm_response_handler_t response_handler,
                            void *default_value);
 
 // TODO: docs
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                              const rdm_pid_description_t *definition,
                              const char *format, bool nvs,
-                             rdm_driver_cb_t response_handler, rdm_pid_t alias,
-                             size_t offset);
+                             rdm_response_handler_t response_handler,
+                             rdm_pid_t alias, size_t offset);
 
 // TODO: docs
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               const rdm_pid_description_t *definition,
                               const char *format,
-                              rdm_driver_cb_t response_handler);
+                              rdm_response_handler_t response_handler);
 
 // TODO: docs
 bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
                                     rdm_sub_device_t sub_device,
                                     rdm_pid_t pid,
-                                    rdm_driver_cb_t response_handler);
+                                    rdm_response_handler_t response_handler);
 
 // TODO: docs
 bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            rdm_pid_t pid, rdm_responder_cb_t callback,
+                            rdm_pid_t pid, rdm_callback_t callback,
                             void *context);
 
 #ifdef __cplusplus

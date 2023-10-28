@@ -78,7 +78,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
   return response_type;
 }
 
-bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
                                      void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -99,7 +99,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                 false);
 }
 
-bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
                             void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -134,7 +134,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                 false);
 }
 
-bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
                                void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -330,7 +330,7 @@ static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info,
-                              rdm_responder_cb_t cb, void *context) {
+                              rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -406,7 +406,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          const char *software_version_label,
-                                         rdm_responder_cb_t cb, void *context) {
+                                         rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -443,7 +443,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
 bool rdm_register_device_label(dmx_port_t dmx_num,
                                const char *device_label,
-                               rdm_responder_cb_t cb, void *context) {
+                               rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -478,7 +478,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num,
                                 true);
 }
 
-bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(cb != NULL, false, "cb is null");
@@ -555,7 +555,7 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
   return RDM_RESPONSE_TYPE_ACK;
 }
 
-bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
                                        void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -571,7 +571,7 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_responder_cb_t cb
 }
 
 
-bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context){
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -608,7 +608,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_responder_cb_t cb,
 }
 
 
-bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context)
 {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
@@ -636,7 +636,7 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_responder_
 }
 
 
-bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -664,7 +664,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_responder_cb_t cb,
                                 true);
 }
 
-bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
                                         void *context)
 {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
@@ -688,7 +688,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_responder_cb_t c
 }
 
 bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_description_t description,
-                                               void* data, const char *format, rdm_responder_cb_t cb,
+                                               void* data, const char *format, rdm_callback_t cb,
                                                void *context, bool nvs)
 {
   return rdm_pd_register(dmx_num, RDM_SUB_DEVICE_ROOT, &description, format,
@@ -752,7 +752,7 @@ static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
   return ack;
 }
 
-bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_responder_cb_t cb,
+bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
                                  void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");

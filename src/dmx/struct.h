@@ -207,8 +207,8 @@ typedef struct dmx_driver_t {
     rdm_pid_description_t definition;  // The parameter definition.
     const char *format;                // The parameter format.
     bool nvs;                          // True if the parameter is non-volatile.
-    rdm_driver_cb_t response_handler;  // The parameter response handler.
-    rdm_responder_cb_t callback;       // The parameter callback function.
+    rdm_response_handler_t response_handler;  // The parameter response handler.
+    rdm_callback_t callback;       // The parameter callback function.
     void *context;                     // Context for the callback function.
   } params[RDM_RESPONDER_NUM_PIDS_MAX];  // A table containing RDM parameter information.
 

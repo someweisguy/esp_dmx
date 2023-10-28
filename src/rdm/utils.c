@@ -209,8 +209,8 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
 
 bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                      const rdm_pid_description_t *description, const char *format,
-                     rdm_driver_cb_t response_handler, void *data,
-                     rdm_responder_cb_t callback, void *context, bool nvs) {
+                     rdm_response_handler_t response_handler, void *data,
+                     rdm_callback_t callback, void *context, bool nvs) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(description != NULL);
@@ -520,7 +520,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            const rdm_pid_description_t *definition,
                            const char *format, bool nvs,
-                           rdm_driver_cb_t response_handler,
+                           rdm_response_handler_t response_handler,
                            void *default_value) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
@@ -586,8 +586,8 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                              const rdm_pid_description_t *definition,
                              const char *format, bool nvs,
-                             rdm_driver_cb_t response_handler, rdm_pid_t alias,
-                             size_t offset) {
+                             rdm_response_handler_t response_handler,
+                             rdm_pid_t alias, size_t offset) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(definition != NULL);
@@ -648,7 +648,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               const rdm_pid_description_t *definition,
                               const char *format,
-                              rdm_driver_cb_t response_handler) {
+                              rdm_response_handler_t response_handler) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(definition != NULL);
@@ -693,7 +693,7 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
                                     rdm_sub_device_t sub_device,
                                     rdm_pid_t pid,
-                                    rdm_driver_cb_t response_handler) {
+                                    rdm_response_handler_t response_handler) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(pid > 0);
@@ -724,7 +724,7 @@ bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
 }
 
 bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            rdm_pid_t pid, rdm_responder_cb_t callback,
+                            rdm_pid_t pid, rdm_callback_t callback,
                             void *context) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
