@@ -250,7 +250,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
     if (driver->params[i].definition.pid == pid) {
       pd = driver->params[i].data;
       description = &driver->params[i].definition;
-      save_to_nvs = driver->params[i].nvs_alias;
+      save_to_nvs = driver->params[i].nvs;
       break;
     }
   }
@@ -513,7 +513,7 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[pdi].data = pd;
   driver->params[pdi].definition = *definition;
   driver->params[pdi].format = format;
-  driver->params[pdi].nvs_alias = (nvs ? definition->pid : 0);
+  driver->params[pdi].nvs = nvs;;
   driver->params[pdi].response_handler = response_handler;
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
@@ -580,7 +580,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[pdi].data = pd;
   driver->params[pdi].definition = *definition;
   driver->params[pdi].format = format;
-  driver->params[pdi].nvs_alias = (uint16_t)alias;
+  driver->params[pdi].nvs = nvs;
   driver->params[pdi].response_handler = response_handler;
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
@@ -629,7 +629,7 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[pdi].data = NULL;
   driver->params[pdi].definition = *definition;
   driver->params[pdi].format = format;
-  driver->params[pdi].nvs_alias = 0;
+  driver->params[pdi].nvs = false;
   driver->params[pdi].response_handler = response_handler;
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
