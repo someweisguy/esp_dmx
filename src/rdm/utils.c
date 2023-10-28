@@ -525,6 +525,7 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(definition != NULL);
+  assert(definition->pid > 0);
   assert(definition->pdl_size > 0);
   assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
@@ -591,6 +592,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(definition != NULL);
+  assert(definition->pid > 0);
   assert(definition->pdl_size > 0);
   assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
@@ -652,6 +654,7 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(definition != NULL);
+  assert(definition->pid > 0);
   assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
