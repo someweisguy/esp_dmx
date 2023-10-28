@@ -394,15 +394,24 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       rdm_ack_t *ack);
 
 // TODO: docs
-const void *rdm_pd_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                       const rdm_pid_description_t *definition,
-                       const char *format, bool nvs, void *default_value);
+const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                           const rdm_pid_description_t *definition,
+                           const char *format, bool nvs,
+                           rdm_driver_cb_t response_handler,
+                           void *default_value);
 
 // TODO: docs
-const void *rdm_pd_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                         const rdm_pid_description_t *definition,
-                         const char *format, bool nvs, rdm_pid_t alias,
-                         size_t offset);
+const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                             const rdm_pid_description_t *definition,
+                             const char *format, bool nvs,
+                             rdm_driver_cb_t response_handler, rdm_pid_t alias,
+                             size_t offset);
+
+// TODO: docs
+bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              const rdm_pid_description_t *definition,
+                              const char *format,
+                              rdm_driver_cb_t response_handler);
 
 #ifdef __cplusplus
 }

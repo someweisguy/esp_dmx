@@ -517,12 +517,16 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
 
-const void *rdm_pd_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                       const rdm_pid_description_t *definition, 
-                       const char *format, bool nvs, void *default_value) {
+const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                           const rdm_pid_description_t *definition,
+                           const char *format, bool nvs,
+                           rdm_driver_cb_t response_handler,
+                           void *default_value) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(definition != NULL);
+  assert(definition->pdl_size > 0);
+  assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -545,7 +549,7 @@ const void *rdm_pd_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   if (pdi == RDM_RESPONDER_PIDS_MAX) {  // TODO: rename to RDM_RESPONDER_NUM_PIDS_MAX
     return pd;  // No space for new parameter definitions
   }
-  
+
   // Reserve space for the parameter data in the driver
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->pd_head + definition->pdl_size <= driver->pd_size) {
@@ -564,25 +568,29 @@ const void *rdm_pd_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     memset(pd, 0, definition->pdl_size);
   } else {
     memcpy(pd, default_value, definition->pdl_size);
+  }
 
   // Add the new parameter to the driver
   driver->params[pdi].data = pd;
   driver->params[pdi].definition = *definition;
   driver->params[pdi].format = format;
   driver->params[pdi].nvs = nvs;
+  driver->params[pdi].response_handler = response_handler;
   ++driver->num_parameters;
-  }
 
   return pd;
 }
 
-const void *rdm_pd_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                         const rdm_pid_description_t *definition,
-                         const char *format, bool nvs, rdm_pid_t alias,
-                         size_t offset) {
+const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                             const rdm_pid_description_t *definition,
+                             const char *format, bool nvs,
+                             rdm_driver_cb_t response_handler, rdm_pid_t alias,
+                             size_t offset) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(definition != NULL);
+  assert(definition->pdl_size > 0);
+  assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -627,7 +635,57 @@ const void *rdm_pd_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[pdi].definition = *definition;
   driver->params[pdi].format = format;
   driver->params[pdi].nvs = nvs;
+  driver->params[pdi].response_handler = response_handler;
   ++driver->num_parameters;
 
   return pd;
 }
+
+bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              const rdm_pid_description_t *definition,
+                              const char *format,
+                              rdm_driver_cb_t response_handler) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(definition != NULL);
+  assert(response_handler != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  bool ret = false;
+
+  // Ensure that the parameter has not already been defined
+  uint32_t pdi = 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].definition.pid == definition->pid) {
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->params[pdi].definition.pid == definition->pid) {
+    return ret;  // Parameter already exists
+  }
+
+  // Check if there is space to add a new parameter definition
+  if (pdi == RDM_RESPONDER_PIDS_MAX) {
+    return ret;  // No space for new parameter definitions
+  }
+
+  // The parameter can be successfully added to the driver now
+  ret = true;
+
+  // Add the new parameter to the driver
+  driver->params[pdi].data = NULL;
+  driver->params[pdi].definition = *definition;
+  driver->params[pdi].format = format;
+  driver->params[pdi].nvs = false;
+  driver->params[pdi].response_handler = response_handler;
+  ++driver->num_parameters;
+
+  return ret;
+}
+
+// TODO: overwrite response_handler
+
+// TODO: register callback
