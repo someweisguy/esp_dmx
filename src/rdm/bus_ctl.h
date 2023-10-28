@@ -27,8 +27,7 @@ extern "C" {
  * @param num The size of the pd pointer. Used to prevent buffer overflows.
  * @return The size of the RDM packet that was read or 0 on error.
  */
-size_t dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
-                    size_t num);
+size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
 
 /**
  * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
@@ -43,7 +42,7 @@ size_t dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
  * @param[in] pd A pointer which stores parameter data to be written.
  * @return The size of the RDM packet that was written or 0 on error.
  */
-size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
+size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 
 /**
  * @brief Emplaces parameter data from a source buffer to a destination buffer.
@@ -108,8 +107,8 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
  * the source buffer.
  * @return The size of the data that was emplaced.
  */
-size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
-                      size_t num, bool emplace_nulls);
+size_t rdm_emplace(void *destination, const char *format, const void *source,
+                   size_t num, bool emplace_nulls);
 
 /**
  * @brief Emplaces a 16-bit word into a destination. Used as a convenience
@@ -119,7 +118,7 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
  * @param word The word to emplace.
  * @return The size of the word which was emplaced. Is always 2.
  */
-size_t rdm_pd_emplace_word(void *destination, uint16_t word);
+size_t rdm_emplace_word(void *destination, uint16_t word);
 
 /**
  * @brief Sends an RDM controller request and processes the response. This

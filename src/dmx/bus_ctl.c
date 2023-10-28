@@ -223,7 +223,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Return early if the packet is neither RDM nor an RDM request
   rdm_header_t header;
-  if (!dmx_read_rdm(dmx_num, &header, NULL, 0) ||
+  if (!rdm_read(dmx_num, &header, NULL, 0) ||
       (header.cc != RDM_CC_DISC_COMMAND && header.cc != RDM_CC_GET_COMMAND &&
        header.cc != RDM_CC_SET_COMMAND)) {
     xSemaphoreGiveRecursive(driver->mux);
@@ -267,11 +267,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       rdm_uid_is_broadcast(&header.src_uid)) {
     // The packet format is invalid (bad PDL, port ID, or source UID)
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+    pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
   } else if (pdi == driver->num_parameters) {
     // The requested PID is unknown
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+    pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
   } else if ((header.cc == RDM_CC_DISC_COMMAND &&
               description->cc != RDM_CC_DISC) ||
              (header.cc == RDM_CC_GET_COMMAND &&
@@ -280,18 +280,18 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
               !(description->cc & RDM_CC_SET))) {
     // The PID does not support the request command class
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    pdl_out = rdm_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
   } else if ((header.sub_device > 512 &&
               header.sub_device != RDM_SUB_DEVICE_ALL) ||
              (header.sub_device == RDM_SUB_DEVICE_ALL &&
               header.cc == RDM_CC_GET_COMMAND)) {
     // The sub-device is out of range
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
   } else {
     // Call the appropriate driver-side RDM callback to process the request
     pdl_out = 0;  // Set to default value for response handler
-    dmx_read_rdm(dmx_num, NULL, pd, sizeof(pd));
+    rdm_read(dmx_num, NULL, pd, sizeof(pd));
     const char *format = driver->params[pdi].format;
     response_type = driver->params[pdi].response_handler(dmx_num, &header, pd,
                                                          &pdl_out, format);
@@ -303,7 +303,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-      pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     } else if ((response_type != RDM_RESPONSE_TYPE_NONE &&
                 response_type != RDM_RESPONSE_TYPE_ACK &&
                 response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
@@ -320,7 +320,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-      pdl_out = rdm_pd_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     }
   }
 
@@ -346,7 +346,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Send the response packet
   if (response_type != RDM_RESPONSE_TYPE_NONE) {
-    const size_t response_size = dmx_write_rdm(dmx_num, &header, pd);
+    const size_t response_size = rdm_write(dmx_num, &header, pd);
     if (!dmx_send(dmx_num, response_size)) {
       DMX_WARN("PID 0x%04x did not send a response", header.pid);
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));

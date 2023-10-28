@@ -34,14 +34,14 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
 
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
-    rdm_pd_emplace(&branch, "uu$", pd, sizeof(branch), true);
+    rdm_emplace(&branch, "uu$", pd, sizeof(branch), true);
 
     // Respond if lower_bound <= my_uid <= upper_bound
     rdm_uid_t my_uid;
     rdm_uid_get(dmx_num, &my_uid);
     if (rdm_uid_is_ge(&my_uid, &branch.lower_bound) &&
         rdm_uid_is_le(&my_uid, &branch.upper_bound)) {
-      *pdl_out = rdm_pd_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
+      *pdl_out = rdm_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
       response_type = RDM_RESPONSE_TYPE_ACK;
     } else {
       response_type = RDM_RESPONSE_TYPE_NONE;
@@ -72,7 +72,7 @@ static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
         .binding_uid = binding_uid,
     };
 
-    *pdl_out = rdm_pd_emplace(pd, "wv$", &mute, sizeof(mute), false);
+    *pdl_out = rdm_emplace(pd, "wv$", &mute, sizeof(mute), false);
     response_type = RDM_RESPONSE_TYPE_ACK;
   }
 
@@ -160,15 +160,15 @@ static int rdm_simple_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
                                   const char *format) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
   void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
   if (header->cc == RDM_CC_GET_COMMAND) {
-    *pdl_out = rdm_pd_emplace(pd, format, data, 231, false);
+    *pdl_out = rdm_emplace(pd, format, data, 231, false);
   } else {
-    rdm_pd_emplace(data, format, pd, header->pdl, true);
+    rdm_emplace(data, format, pd, header->pdl, true);
   }
 
   return RDM_RESPONSE_TYPE_ACK;
@@ -179,7 +179,7 @@ static int rdm_personality_description_response_cb(dmx_port_t dmx_num,
                                                    void *pd, uint8_t *pdl_out,
                                                    const char *format) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -188,19 +188,19 @@ static int rdm_personality_description_response_cb(dmx_port_t dmx_num,
   if(di == NULL)
   {
     //none of the error codes really fit, thus we just go with unknown pid
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
   if(header->cc == RDM_CC_SET_COMMAND)
   {      
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_WRITE_PROTECT);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_WRITE_PROTECT);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
   if(header->pdl != 1)
   {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -210,15 +210,15 @@ static int rdm_personality_description_response_cb(dmx_port_t dmx_num,
   
   if(personalityDesc == NULL)
   {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
   memcpy(pd, &requestedPersonality, 1);
   pd++;
-  rdm_pd_emplace_word(pd, footprint);
+  rdm_emplace_word(pd, footprint);
   pd += 2;
-  const size_t emplacedBytes = rdm_pd_emplace(pd, "a$", personalityDesc, 32, false);
+  const size_t emplacedBytes = rdm_emplace(pd, "a$", personalityDesc, 32, false);
   *pdl_out = 3 + emplacedBytes;
 
   return RDM_RESPONSE_TYPE_ACK;
@@ -229,7 +229,7 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
                                        const char *format) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -238,7 +238,7 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
   if(di == NULL)
   {
     //none of the error codes really fit, thus we just go with unknown pid
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNKNOWN_PID); 
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID); 
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -253,14 +253,14 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
   {
     if(header->pdl != 1)
     {
-      *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+      *pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
       return RDM_RESPONSE_TYPE_NACK_REASON;
     }
 
     const uint8_t requestedPersonality = *((uint8_t*)pd);
     if(requestedPersonality >= di->personality_count)
     {
-      *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+      *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
       return RDM_RESPONSE_TYPE_NACK_REASON;
     }
 
@@ -270,7 +270,7 @@ static int rdm_personality_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
   }
   else
   {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 }
@@ -281,7 +281,7 @@ static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
                                                  const char *format) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT)
   {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -292,7 +292,7 @@ static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
   // 0x8000 to 0xFFDF is the allowed range for manufacturer specific pids
   if (requestedPid < RDM_PID_MANUFACTURER_SPECIFIC_BEGIN || requestedPid > RDM_PID_MANUFACTURER_SPECIFIC_END)
   {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -305,13 +305,13 @@ static int rdm_parameter_description_response_cb(dmx_port_t dmx_num,
     {
       //The pdl can be in range x014-0x34 depending on how long the parameter description string is.
       //There is no harm in always sending the full string, so we just do that.
-      *pdl_out = rdm_pd_emplace(pd, format, &driver->params[i].definition, 0x34, false);
+      *pdl_out = rdm_emplace(pd, format, &driver->params[i].definition, 0x34, false);
       return RDM_RESPONSE_TYPE_ACK;
     }
   }
 
   // no pid found
-  *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+  *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
   return RDM_RESPONSE_TYPE_NACK_REASON;
 }
 
@@ -511,13 +511,13 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
                                             const char *format) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
   if (header->cc != RDM_CC_GET_COMMAND) {
     // The supported params list is read-only
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -541,7 +541,7 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
       case RDM_PID_IDENTIFY_DEVICE:
         continue;
       default:
-        *pdl_out += rdm_pd_emplace_word(pd, pids[i]);
+        *pdl_out += rdm_emplace_word(pd, pids[i]);
         pd += sizeof(uint16_t);
     }
   }
@@ -719,7 +719,7 @@ static int rdm_status_messages_response_cb(dmx_port_t dmx_num,
       .type = RDM_STATUS_ADVISORY,
       .id = 0,
       .data = {}};
-  *pdl_out = rdm_pd_emplace(pd, "wbwww", &status_message, 1, false);
+  *pdl_out = rdm_emplace(pd, "wbwww", &status_message, 1, false);
   return RDM_RESPONSE_TYPE_ACK;
 }
 
@@ -733,7 +733,7 @@ static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
       status_type_requested != RDM_STATUS_ADVISORY &&
       status_type_requested != RDM_STATUS_WARNING &&
       status_type_requested != RDM_STATUS_ERROR) {
-    *pdl_out = rdm_pd_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }  // TODO: ensure error-checking is correct
 

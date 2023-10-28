@@ -8,8 +8,8 @@
 #include "endian.h"
 #include "rdm/uid.h"
 
-size_t DMX_ISR_ATTR dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header,
-                                 void *pd, size_t num) {
+size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
+                             size_t num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
@@ -114,7 +114,7 @@ size_t DMX_ISR_ATTR dmx_read_rdm(dmx_port_t dmx_num, rdm_header_t *header,
   return read;
 }
 
-size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
+size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL || pd != NULL, 0,
             "header is null and pd does not contain a UID");
@@ -143,8 +143,7 @@ size_t dmx_write_rdm(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
     // Copy the header, pd, message_len, and pdl into the driver
     const size_t copy_size = header->pdl <= 231 ? header->pdl : 231;
     header->message_len = copy_size + 24;
-    rdm_pd_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header),
-                   false);
+    rdm_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header), false);
     memcpy(pd_ptr, pd, copy_size);
 
     // Calculate and copy the checksum
@@ -242,8 +241,8 @@ static size_t rdm_pd_parse(const char *format) {
   return param_size;
 }
 
-size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
-                      size_t num, bool emplace_nulls) {
+size_t rdm_emplace(void *destination, const char *format, const void *source,
+                   size_t num, bool emplace_nulls) {
   assert(destination != NULL);
   assert(format != NULL);
   assert(source != NULL);
@@ -331,7 +330,7 @@ size_t rdm_pd_emplace(void *destination, const char *format, const void *source,
   return n;
 }
 
-size_t rdm_pd_emplace_word(void *destination, uint16_t word) {
+size_t rdm_emplace_word(void *destination, uint16_t word) {
   assert(destination != NULL);
 
   *(uint16_t *)destination = bswap16(word);
@@ -387,7 +386,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   // Write and send the request
-  size_t size = dmx_write_rdm(dmx_num, header, pd_in);
+  size_t size = rdm_write(dmx_num, header, pd_in);
   dmx_send(dmx_num, size);
 
   // Return early if a packet error occurred or if no response was expected
@@ -436,7 +435,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   // Handle the RDM response packet
   rdm_header_t resp;
   rdm_response_type_t response_type;
-  if (!dmx_read_rdm(dmx_num, &resp, pd_out, *pdl)) {
+  if (!rdm_read(dmx_num, &resp, pd_out, *pdl)) {
     response_type = RDM_RESPONSE_TYPE_INVALID;  // Data or checksum error
     resp.pdl = 0;
   } else if (resp.response_type != RDM_RESPONSE_TYPE_ACK &&
