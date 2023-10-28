@@ -32,7 +32,7 @@ uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
     }
   } else {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    const dmx_driver_personality_t *device = (void *)dmx_driver[dmx_num]->pd;
+    const dmx_driver_personality_t *device = dmx_driver[dmx_num]->pd;
     dmx_start_address = device->dmx_start_address;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
