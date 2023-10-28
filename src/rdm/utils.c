@@ -208,13 +208,13 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size) {
 }
 
 bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                     const rdm_pid_description_t *desc, const char *param_str,
-                     rdm_driver_cb_t driver_cb, void *param,
-                     rdm_responder_cb_t user_cb, void *context, bool nvs) {
+                     const rdm_pid_description_t *description, const char *format,
+                     rdm_driver_cb_t response_handler, void *data,
+                     rdm_responder_cb_t callback, void *context, bool nvs) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
-  assert(desc != NULL);
-  assert(driver_cb != NULL);
+  assert(description != NULL);
+  assert(response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
   if (sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -226,8 +226,8 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;
-  for (; i < driver->num_rdm_cbs; ++i) {
-    if (driver->rdm_cbs[i].desc.pid == desc->pid) break;
+  for (; i < driver->num_parameters; ++i) {
+    if (driver->params[i].description.pid == description->pid) break;
   }
 
   // Check if there is space for callbacks
@@ -237,16 +237,16 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Add the requested callback to the callback list
-  driver->rdm_cbs[i].param_str = param_str;
-  driver->rdm_cbs[i].param = param;
-  driver->rdm_cbs[i].context = context;
-  driver->rdm_cbs[i].user_cb = user_cb;
-  driver->rdm_cbs[i].driver_cb = driver_cb;
-  driver->rdm_cbs[i].desc = *desc;
-  driver->rdm_cbs[i].non_volatile = nvs;
-  const bool added_cb = (i == driver->num_rdm_cbs);
+  driver->params[i].format = format;
+  driver->params[i].data = data;
+  driver->params[i].context = context;
+  driver->params[i].callback = callback;
+  driver->params[i].response_handler = response_handler;
+  driver->params[i].description = *description;
+  driver->params[i].is_non_volatile = nvs;
+  const bool added_cb = (i == driver->num_parameters);
   if (added_cb) {
-    ++driver->num_rdm_cbs;
+    ++driver->num_parameters;
   }
 
   return true;
@@ -271,9 +271,9 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Copy the PIDs into the buffer
   uint32_t num_pids = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; num_pids < driver->num_rdm_cbs; ++num_pids) {
+  for (; num_pids < driver->num_parameters; ++num_pids) {
     if (num_pids < num) {
-      pids[num_pids] = driver->rdm_cbs->desc.pid;
+      pids[num_pids] = driver->params->description.pid;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -288,9 +288,9 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
   void *pd = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
-  for (int i = 0; i < driver->num_rdm_cbs; ++i) {
-    if (driver->rdm_cbs[i].desc.pid == pid) {
-      pd = driver->rdm_cbs[i].param;
+  for (int i = 0; i < driver->num_parameters; ++i) {
+    if (driver->params[i].description.pid == pid) {
+      pd = driver->params[i].data;
       break;
     }
   }
@@ -300,8 +300,8 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
 }
 
 bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
-                const void *param, size_t size, bool add_to_queue) {
-  assert(param != NULL);
+                const void *data, size_t size, bool add_to_queue) {
+  assert(data != NULL);
   assert(size > 0);
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -309,25 +309,25 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
   bool ret;
   void *pd = NULL;
   bool save_to_nvs = false;
-  const rdm_pid_description_t *desc = NULL;
+  const rdm_pid_description_t *description = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
-  for (int i = 0; i < driver->num_rdm_cbs; ++i) {
-    if (driver->rdm_cbs[i].desc.pid == pid) {
-      pd = driver->rdm_cbs[i].param;
-      desc = &driver->rdm_cbs[i].desc;
-      save_to_nvs = driver->rdm_cbs[i].non_volatile;
+  for (int i = 0; i < driver->num_parameters; ++i) {
+    if (driver->params[i].description.pid == pid) {
+      pd = driver->params[i].data;
+      description = &driver->params[i].description;
+      save_to_nvs = driver->params[i].is_non_volatile;
       break;
     }
   }
 
   // Copy the user's variable to the parameter data
-  if (pd != NULL && (desc->cc & RDM_CC_SET)) {
-    size = size < desc->pdl_size ? size : desc->pdl_size;
-    if (desc->data_type == RDM_DS_ASCII) {
-      strncpy(pd, param, size);
+  if (pd != NULL && (description->cc & RDM_CC_SET)) {
+    size = size < description->pdl_size ? size : description->pdl_size;
+    if (description->data_type == RDM_DS_ASCII) {
+      strncpy(pd, data, size);
     } else {
-      memcpy(pd, param, size);
+      memcpy(pd, data, size);
     }
     ret = true;
   } else {
@@ -339,7 +339,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
   if (ret) {
     // Save to NVS if needed
     if (save_to_nvs) {
-      if (!dmx_nvs_set(dmx_num, pid, desc->data_type, param, size)) {
+      if (!dmx_nvs_set(dmx_num, pid, description->data_type, data, size)) {
         taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
         driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
         taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));

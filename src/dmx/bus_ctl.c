@@ -428,39 +428,42 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   }
 
-  // Prepare the response packet parameter data and find the correct callback
-  rdm_response_type_t response_type;
+  // Prepare the response packet parameter data and find the response handler
   uint8_t pdl_out;
-  uint8_t pd[231];
-  int cb_num = 0;
-  for (; cb_num < driver->num_rdm_cbs; ++cb_num) {
-    if (driver->rdm_cbs[cb_num].desc.pid == header.pid) {
+  uint8_t pd[231];  // Parameter data. This array's length is the max pd size.
+  void *parameter;
+  const rdm_pid_description_t *description;
+  rdm_response_type_t response_type;
+  uint32_t pdi = 0;  // Parameter data index
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].description.pid == header.pid) {
       break;
     }
   }
-  const rdm_pid_description_t *desc;
-  void *param;
-  if (cb_num < driver->num_rdm_cbs) {
-    desc = &driver->rdm_cbs[cb_num].desc;
-    param = driver->rdm_cbs[cb_num].param;
+  if (pdi < driver->num_parameters) {
+    description = &driver->params[pdi].description;
+    parameter = driver->params[pdi].data;
   } else {
-    desc = NULL;
-    param = NULL;
+    description = NULL;
+    parameter = NULL;
   }
 
   // Determine how this device should respond to the request
   if (header.pdl > sizeof(pd) || header.port_id == 0 ||
       rdm_uid_is_broadcast(&header.src_uid)) {
-    // The packet format is invalid
+    // The packet format is invalid (bad PDL, port ID, or source UID)
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = rdm_pd_emplace_word(pd, RDM_NR_FORMAT_ERROR);
-  } else if (cb_num == driver->num_rdm_cbs) {
+  } else if (pdi == driver->num_parameters) {
     // The requested PID is unknown
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNKNOWN_PID);
-  } else if ((header.cc == RDM_CC_DISC_COMMAND && desc->cc != RDM_CC_DISC) ||
-             (header.cc == RDM_CC_GET_COMMAND && !(desc->cc & RDM_CC_GET)) ||
-             (header.cc == RDM_CC_SET_COMMAND && !(desc->cc & RDM_CC_SET))) {
+  } else if ((header.cc == RDM_CC_DISC_COMMAND &&
+              description->cc != RDM_CC_DISC) ||
+             (header.cc == RDM_CC_GET_COMMAND &&
+              !(description->cc & RDM_CC_GET)) ||
+             (header.cc == RDM_CC_SET_COMMAND &&
+              !(description->cc & RDM_CC_SET))) {
     // The PID does not support the request command class
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = rdm_pd_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
@@ -473,11 +476,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     pdl_out = rdm_pd_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
   } else {
     // Call the appropriate driver-side RDM callback to process the request
-    pdl_out = 0;
+    pdl_out = 0;  // Set to default value for response handler
     dmx_read_rdm(dmx_num, NULL, pd, sizeof(pd));
-    const char *param_str = driver->rdm_cbs[cb_num].param_str;
-    response_type = driver->rdm_cbs[cb_num].driver_cb(dmx_num, &header, pd,
-                                                      &pdl_out, param_str);
+    const char *format = driver->params[pdi].format;
+    rdm_driver_cb_t response_handler = driver->params[pdi].response_handler;
+    response_type = response_handler(dmx_num, &header, pd, &pdl_out, format);
 
     // Verify that the driver-side callback returned correctly
     if (pdl_out > sizeof(pd)) {
@@ -545,15 +548,15 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Call the user-side callback
-  if (cb_num < driver->num_rdm_cbs && driver->rdm_cbs[cb_num].user_cb != NULL) {
-    void *context = driver->rdm_cbs[cb_num].context;
-    driver->rdm_cbs[cb_num].user_cb(dmx_num, &header, context);
+  if (pdi < driver->num_parameters && driver->params[pdi].callback != NULL) {
+    void *context = driver->params[pdi].context;
+    driver->params[pdi].callback(dmx_num, &header, context);
   }
 
   // Update NVS values
-  if (driver->rdm_cbs[cb_num].non_volatile) {
-    if (!dmx_nvs_set(dmx_num, header.pid, desc->data_type, param,
-                     desc->pdl_size)) {
+  if (driver->params[pdi].is_non_volatile) {
+    if (!dmx_nvs_set(dmx_num, header.pid, description->data_type, parameter,
+                     description->pdl_size)) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));

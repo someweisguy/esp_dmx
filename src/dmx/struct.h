@@ -140,17 +140,9 @@ enum dmx_flags_t {
   DMX_FLAGS_RDM_IS_VALID = BIT0,      // The RDM packet is valid.
   DMX_FLAGS_RDM_IS_REQUEST = BIT1,    // The RDM packet is a request.
   DMX_FLAGS_RDM_IS_BROADCAST = BIT2,  // The RDM packet is a broadcast.
-  DMX_FLAGS_RDM_IS_RECIPIENT =
-      BIT3,  // The RDM packet is addressed to this device.
-  DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH =
-      BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
+  DMX_FLAGS_RDM_IS_RECIPIENT = BIT3,  // The RDM packet is addressed to this device.
+  DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH = BIT4,  // The RDM packet is a DISC_UNIQUE_BRANCH.
 };
-
-typedef struct rdm_pid_info_t {
-  rdm_pid_description_t desc;
-  const char *param_str;
-  bool is_persistent;
-} rdm_pid_info_t;
 
 /**
  * @brief Stores the DMX personality information of the DMX driver when RDM is
@@ -211,17 +203,16 @@ typedef struct dmx_driver_t {
   size_t pd_head;  // The amount of memory currently used for parameters.
 
   // RDM responder configuration
-  size_t num_rdm_cbs;  // The number of RDM callbacks registered.
-  struct rdm_cb_table_t {
-    rdm_pid_description_t desc;  // The parameter description.
-    const char *param_str;       // A parameter string describing the data.
-    bool non_volatile;           // True if the parameter is non-volatile.
-    rdm_driver_cb_t driver_cb;   // The driver-side callback function.
-    rdm_responder_cb_t user_cb;  // The user-side callback function.
-    void *param;                 // A pointer to the parameter data.
-    void *context;               // The contexted for the user-side callback.
-  } rdm_cbs[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM
-                                      // callbacks.
+  uint32_t num_parameters;  // The number of RDM parameters registered.
+  struct rdm_parameter_table_t {
+    void *data;                          // A pointer to the parameter data.
+    rdm_pid_description_t description;   // The parameter description.
+    bool is_non_volatile;                // True if the parameter is non-volatile.
+    const char *format;                  // A parameter string describing the data.
+    rdm_driver_cb_t response_handler;    // The driver-side callback function.
+    rdm_responder_cb_t callback;         // The user-side callback function.
+    void *context;                       // The contexted for the user-side callback.
+  } params[RDM_RESPONDER_PIDS_MAX];  // A table containing information on RDM parameters.
 
   uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
   uint16_t rdm_queue_size;       // The index of the RDM message queue list.

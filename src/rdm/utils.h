@@ -27,7 +27,7 @@ extern "C" {
  * function that is called when responding to RDM requests.
  */
 typedef int (*rdm_driver_cb_t)(dmx_port_t dmx_num, rdm_header_t *header,
-                               void *pd, uint8_t *pdl, const char *param_str);
+                               void *pd, uint8_t *pdl, const char *format);
 
 /**
  * @brief Copies RDM UID from a source buffer directly into a destination
@@ -289,11 +289,11 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
  * @param[in] desc A pointer to a descriptor for the PID to be registered.
  * @param[in] param_str A parameter string which defines how the parameter data
  * is emplaced into the RDM packet.
- * @param driver_cb A driver-side callback function which is called when a
+ * @param response_handler A driver-side callback function which is called when a
  * request for this PID is received.
  * @param[in] param A pointer to the parameter which can be used in the response
  * callback.
- * @param user_cb A user-side callback function which is called after a request
+ * @param callback A user-side callback function which is called after a request
  * for this PID is handled.
  * @param[in] context A pointer to a user-defined context.
  * @param nvs True if this parameter should be saved to non-volatile memory.
@@ -301,9 +301,9 @@ void *rdm_pd_alloc(dmx_port_t dmx_num, size_t size);
  * @return false if the response was not registered.
  */
 bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                     const rdm_pid_description_t *desc, const char *param_str,
-                     rdm_driver_cb_t driver_cb, void *param,
-                     rdm_responder_cb_t user_cb, void *context, bool nvs);
+                     const rdm_pid_description_t *description, const char *format,
+                     rdm_driver_cb_t response_handler, void *data,
+                     rdm_responder_cb_t callback, void *context, bool nvs);
 
 // TODO docs
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -343,7 +343,7 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
  * @return false on failure.
  */
 bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
-                const void *param, size_t size, bool add_to_queue);
+                const void *data, size_t size, bool add_to_queue);
 
 /**
  * @brief Sends an RDM controller request and processes the response. This
