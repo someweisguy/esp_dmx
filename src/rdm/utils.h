@@ -393,6 +393,17 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack);
 
+// TODO: docs
+const void *rdm_pd_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                       const rdm_pid_description_t *definition,
+                       const char *format, bool nvs, void *default_value);
+
+// TODO: docs
+const void *rdm_pd_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                         const rdm_pid_description_t *definition,
+                         const char *format, bool nvs, rdm_pid_t alias,
+                         size_t offset);
+
 #ifdef __cplusplus
 }
 #endif

@@ -227,7 +227,7 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Iterate the callback list to see if a callback with this PID exists
   int i = 0;
   for (; i < driver->num_parameters; ++i) {
-    if (driver->params[i].description.pid == description->pid) break;
+    if (driver->params[i].definition.pid == description->pid) break;
   }
 
   // Check if there is space for callbacks
@@ -242,8 +242,8 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[i].context = context;
   driver->params[i].callback = callback;
   driver->params[i].response_handler = response_handler;
-  driver->params[i].description = *description;
-  driver->params[i].is_non_volatile = nvs;
+  driver->params[i].definition = *description;
+  driver->params[i].nvs = nvs;
   const bool added_cb = (i == driver->num_parameters);
   if (added_cb) {
     ++driver->num_parameters;
@@ -273,7 +273,7 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; num_pids < driver->num_parameters; ++num_pids) {
     if (num_pids < num) {
-      pids[num_pids] = driver->params->description.pid;
+      pids[num_pids] = driver->params[num_pids].definition.pid;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -289,7 +289,7 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].description.pid == pid) {
+    if (driver->params[i].definition.pid == pid) {
       pd = driver->params[i].data;
       break;
     }
@@ -313,10 +313,10 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].description.pid == pid) {
+    if (driver->params[i].definition.pid == pid) {
       pd = driver->params[i].data;
-      description = &driver->params[i].description;
-      save_to_nvs = driver->params[i].is_non_volatile;
+      description = &driver->params[i].definition;
+      save_to_nvs = driver->params[i].nvs;
       break;
     }
   }
@@ -515,4 +515,119 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   // Give the mutex back
   xSemaphoreGiveRecursive(driver->mux);
   return (response_type == RDM_RESPONSE_TYPE_ACK);
+}
+
+const void *rdm_pd_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                       const rdm_pid_description_t *definition, 
+                       const char *format, bool nvs, void *default_value) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(definition != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  void *pd = NULL;
+
+  // Ensure that the parameter has not already been defined
+  uint32_t pdi = 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].definition.pid == definition->pid) {
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->params[pdi].definition.pid == definition->pid) {
+    return pd;  // Parameter already exists
+  }
+
+  // Check if there is space to add a new parameter definition
+  if (pdi == RDM_RESPONDER_PIDS_MAX) {  // TODO: rename to RDM_RESPONDER_NUM_PIDS_MAX
+    return pd;  // No space for new parameter definitions
+  }
+  
+  // Reserve space for the parameter data in the driver
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->pd_head + definition->pdl_size <= driver->pd_size) {
+    pd = driver->pd + driver->pd_head;
+    driver->pd_head += definition->pdl_size;
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (pd == NULL) {
+    return pd;  // No more reservable parameter data space
+  }
+
+  // Set the parameter to the default value
+  if (definition->data_type == RDM_DS_ASCII) {
+    strncpy(pd, default_value, definition->pdl_size);
+  } else if (default_value == NULL) {
+    memset(pd, 0, definition->pdl_size);
+  } else {
+    memcpy(pd, default_value, definition->pdl_size);
+
+  // Add the new parameter to the driver
+  driver->params[pdi].data = pd;
+  driver->params[pdi].definition = *definition;
+  driver->params[pdi].format = format;
+  driver->params[pdi].nvs = nvs;
+  ++driver->num_parameters;
+  }
+
+  return pd;
+}
+
+const void *rdm_pd_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                         const rdm_pid_description_t *definition,
+                         const char *format, bool nvs, rdm_pid_t alias,
+                         size_t offset) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(definition != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  void *pd = NULL;
+
+  // Ensure that the parameter has not already been defined
+  uint32_t pdi = 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].definition.pid == definition->pid) {
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->params[pdi].definition.pid == definition->pid) {
+    return pd;  // Parameter already exists
+  }
+
+  // Check if there is space to add a new parameter definition
+  if (pdi == RDM_RESPONDER_PIDS_MAX) {  // TODO: rename to RDM_RESPONDER_NUM_PIDS_MAX
+    return pd;  // No space for new parameter definitions
+  }
+  
+  // Find the parameter data to alias
+  uint32_t apdi = 0;  // Alias parameter data index
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; apdi < driver->num_parameters; ++apdi) {
+    if (driver->params[apdi].definition.pid == alias) {
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->params[apdi].definition.pid != alias) {
+    return pd;  // The alias has not been declared
+  } else if (driver->params[apdi].definition.pdl_size < offset) {
+    return pd;  // The alias offset is larger than the parameter pdl_size
+  }
+  pd = driver->params[apdi].data + offset;
+
+  // Add the new parameter to the driver
+  driver->params[pdi].data = pd;
+  driver->params[pdi].definition = *definition;
+  driver->params[pdi].format = format;
+  driver->params[pdi].nvs = nvs;
+  ++driver->num_parameters;
+
+  return pd;
 }
