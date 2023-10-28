@@ -88,7 +88,7 @@ extern "C" {
 
 /** @brief The maximum number of parameters that the RDM responder can
  * support.*/
-#define RDM_RESPONDER_PIDS_MAX \
+#define RDM_RESPONDER_NUM_PIDS_MAX \
   (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
 
 #ifdef CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
@@ -210,7 +210,7 @@ typedef struct dmx_driver_t {
     rdm_driver_cb_t response_handler;  // The parameter response handler.
     rdm_responder_cb_t callback;       // The parameter callback function.
     void *context;                     // Context for the callback function.
-  } params[RDM_RESPONDER_PIDS_MAX];  // A table containing RDM parameter information.
+  } params[RDM_RESPONDER_NUM_PIDS_MAX];  // A table containing RDM parameter information.
 
   uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
   uint16_t rdm_queue_size;       // The index of the RDM message queue list.

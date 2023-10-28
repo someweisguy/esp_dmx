@@ -231,7 +231,7 @@ bool rdm_pd_register(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Check if there is space for callbacks
-  if (i == RDM_RESPONDER_PIDS_MAX) {
+  if (i == RDM_RESPONDER_NUM_PIDS_MAX) {
     ESP_LOGE(TAG, "No more space for RDM callbacks");
     return false;
   }
@@ -546,7 +546,7 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Check if there is space to add a new parameter definition
-  if (pdi == RDM_RESPONDER_PIDS_MAX) {  // TODO: rename to RDM_RESPONDER_NUM_PIDS_MAX
+  if (pdi == RDM_RESPONDER_NUM_PIDS_MAX) {
     return pd;  // No space for new parameter definitions
   }
 
@@ -610,7 +610,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Check if there is space to add a new parameter definition
-  if (pdi == RDM_RESPONDER_PIDS_MAX) {  // TODO: rename to RDM_RESPONDER_NUM_PIDS_MAX
+  if (pdi == RDM_RESPONDER_NUM_PIDS_MAX) {
     return pd;  // No space for new parameter definitions
   }
   
@@ -668,7 +668,7 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Check if there is space to add a new parameter definition
-  if (pdi == RDM_RESPONDER_PIDS_MAX) {
+  if (pdi == RDM_RESPONDER_NUM_PIDS_MAX) {
     return ret;  // No space for new parameter definitions
   }
 

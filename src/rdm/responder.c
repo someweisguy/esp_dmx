@@ -528,9 +528,9 @@ static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
   }
 
   // Copy all PIDs into a temporary buffer
-  uint16_t pids[RDM_RESPONDER_PIDS_MAX];
-  const uint32_t num_pids =
-      rdm_pd_list(dmx_num, header->sub_device, pids, RDM_RESPONDER_PIDS_MAX);
+  uint16_t pids[RDM_RESPONDER_NUM_PIDS_MAX];
+  const uint32_t num_pids = rdm_pd_list(dmx_num, header->sub_device, pids,
+                                        RDM_RESPONDER_NUM_PIDS_MAX);
 
   // Emplace the PIDs into the parameter data
   for (int i = 0; i < num_pids && *pdl_out <= 231; ++i) {
