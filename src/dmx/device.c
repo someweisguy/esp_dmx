@@ -97,8 +97,9 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
 
   // Explicitly record the value to NVS
   if (ret) {
-    ret = dmx_nvs_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-                      &dmx_start_address, sizeof(uint16_t));
+    ret =
+        dmx_nvs_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
+                    RDM_DS_UNSIGNED_WORD, &dmx_start_address, sizeof(uint16_t));
   }
 
   return ret;
@@ -197,8 +198,8 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
 
   // Explicitly record the value to NVS
   if (ret) {
-    ret = dmx_nvs_set(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_DS_UNSIGNED_BYTE,
-                      &personality_num, sizeof(uint8_t));
+    ret = dmx_nvs_set(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT,
+                      RDM_DS_UNSIGNED_BYTE, &personality_num, sizeof(uint8_t));
   }
 
   return ret;

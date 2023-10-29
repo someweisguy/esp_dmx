@@ -209,9 +209,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     // Load the DMX start address from NVS
     uint16_t dmx_start_address;
     if (config->dmx_start_address == 0) {
-      size_t size = sizeof(dmx_start_address);
-      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_DS_UNSIGNED_WORD,
-                       &dmx_start_address, &size)) {
+      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
+                       RDM_DS_UNSIGNED_WORD, &dmx_start_address,
+                       sizeof(uint16_t))) {
         dmx_start_address = 1;
       }
     } else {
@@ -223,9 +223,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     if (config->current_personality == 0 &&
         dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_dmx_personality_t personality;
-      size_t size = sizeof(personality);
-      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_DS_BIT_FIELD,
-                       &personality, &size) ||
+      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT,
+                       RDM_DS_BIT_FIELD, &personality,
+                       sizeof(rdm_dmx_personality_t)) ||
           personality.personality_count != config->personality_count) {
         current_personality = 1;
       } else {

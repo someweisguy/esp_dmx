@@ -232,6 +232,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (packet != NULL) {
     packet->is_rdm = header.pid;
   }
+  const rdm_sub_device_t sub_device = header.sub_device;
 
   // Ignore the packet if it does not target this device
   rdm_uid_t my_uid;
@@ -369,8 +370,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Update NVS values
   if (driver->params[pdi].nvs) {
-    if (!dmx_nvs_set(dmx_num, header.pid, description->data_type, parameter,
-                     description->pdl_size)) {
+    if (!dmx_nvs_set(dmx_num, header.pid, sub_device, description->data_type,
+                     parameter, description->pdl_size)) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
