@@ -494,6 +494,7 @@ rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   pid = rdm_queue_peek(dmx_num);
   --dmx_driver[dmx_num]->rdm_queue_size;
+  dmx_driver[dmx_num]->rdm_queue_last_sent = pid;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return pid;
