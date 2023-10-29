@@ -202,14 +202,31 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_device_info_t *device_info =
-      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-  if (device_info == NULL) {
-    dmx_driver_personality_t *personality = dmx_driver[dmx_num]->pd;
-    return personality->personality_count;
+  uint8_t personality_count;
+
+  // Check if RDM is enabled on the driver
+  const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
+
+  if (rdm_is_enabled) {
+    // Get the personality count from the RDM device info
+    const rdm_device_info_t *device_info =
+        rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+    if (device_info != NULL) {
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      personality_count = device_info->current_personality;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    } else {
+      DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
+      personality_count = 0;
+    }
   } else {
-    return device_info->personality_count;
+    dmx_driver_personality_t *personality = dmx_driver[dmx_num]->pd;
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    personality_count = personality->personality_count;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
+
+  return personality_count;
 }
 
 const char *dmx_get_personality_description(dmx_port_t dmx_num,
@@ -232,11 +249,5 @@ size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {
             0, "personality_num is invalid");
 
   --personality_num;  // Personalities are indexed starting at 1
-
-  size_t fp;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  fp = dmx_driver[dmx_num]->personalities[personality_num].footprint;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return fp;
+  return dmx_driver[dmx_num]->personalities[personality_num].footprint;
 }
