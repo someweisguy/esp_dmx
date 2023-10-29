@@ -177,7 +177,20 @@ rdm_pid_t rdm_queue_peek(dmx_port_t dmx_num);
 // TODO: docs
 rdm_pid_t rdm_queue_get_last_sent(dmx_port_t dmx_num);
 
+// TODO: docs
 void rdm_set_boot_loader(dmx_port_t dmx_num);
+
+// TODO: docs
+bool rdm_status_push(dmx_port_t dmx_num, rdm_status_t status,
+                     const rdm_status_message_t *message);
+
+// TODO docs
+int rdm_status_peek(dmx_port_t dmx_num, rdm_status_t status,
+                    rdm_status_message_t *message);
+
+// TODO: docs
+int rdm_status_pop(dmx_port_t dmx_num, rdm_status_t status,
+                   rdm_status_message_t *message);
 
 #ifdef __cplusplus
 }

@@ -536,3 +536,39 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
   dmx_driver[dmx_num]->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 }
+
+bool rdm_status_push(dmx_port_t dmx_num, rdm_status_t status,
+                     const rdm_status_message_t *message) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(message != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  bool ret = false;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->rdm_status_queue_size < RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX) {
+    memcpy(&driver->rdm_status_queue[driver->rdm_status_queue_size], message,
+           sizeof(rdm_status_message_t));
+    ++driver->rdm_status_queue_size;
+    ret = true;
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return ret;
+}
+
+int rdm_status_peek(dmx_port_t dmx_num, rdm_status_t status,
+                    rdm_status_message_t *message) {
+  // TODO:
+  return 0;
+}
+
+int rdm_status_pop(dmx_port_t dmx_num, rdm_status_t status,
+                   rdm_status_message_t *message) {
+
+  // FIXME: how to pop only messages of a specific status?
+
+  // TODO:
+  return 0;
+}

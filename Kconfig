@@ -70,13 +70,22 @@ menu "DMX/RDM Configuration"
             the DMX driver supports. Increasing this number increases the size
             of the DMX driver.
     
-    config RDM_RESPONDER_MAX_QUEUE_SIZE
-        int "Max RDM responder queue size"
+    config RDM_RESPONDER_QUEUE_SIZE_MAX
+        int "The RDM responder queue size"
         range 0 65535
         default 32
         help
            This is the maximum number of queued messages which the DMX driver
            supports. Increasing this number increases the size of the DMX 
+           driver.
+
+    config RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX
+        int "The RDM responder status queue size"
+        range 0 65535
+        default 32
+        help
+           This is the maximum number of queued status messages which the DMX
+           driver supports. Increasing this number increases the size of the DMX
            driver.
 
 endmenu

@@ -91,16 +91,29 @@ extern "C" {
 #define RDM_RESPONDER_NUM_PIDS_MAX \
   (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
 
-#ifdef CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
-/** @brief The maximum number of queued messages that ther RDM responder can
+#ifdef CONFIG_RDM_RESPONDER_QUEUE_SIZE_MAX
+/** @brief The maximum number of queued messages that the RDM responder can
  * support. It may be set using the Kconfig file.
  */
-#define RDM_RESPONDER_QUEUE_SIZE_MAX CONFIG_RDM_RESPONDER_MAX_QUEUE_SIZE
+#define RDM_RESPONDER_QUEUE_SIZE_MAX CONFIG_RDM_RESPONDER_QUEUE_SIZE_MAX
 #else
-/** @brief The maximum number of queued messages that ther RDM responder can
+/** @brief The maximum number of queued messages that the RDM responder can
  * support.
  */
 #define RDM_RESPONDER_QUEUE_SIZE_MAX 64
+#endif
+
+#ifdef CONFIG_RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX
+/** @brief The maximum number of queued status messages that the RDM responder can
+ * support. It may be set using the Kconfig file.
+ */
+#define RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX \
+  CONFIG_RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX
+#else
+/** @brief The maximum number of queued status messages that the RDM responder
+ * can support.
+ */
+#define RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX 64
 #endif
 
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
@@ -215,6 +228,9 @@ typedef struct dmx_driver_t {
   uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
   uint16_t rdm_queue_size;       // The index of the RDM message queue list.
   uint16_t rdm_queue[RDM_RESPONDER_QUEUE_SIZE_MAX];  // The RDM queued message list.
+
+  uint16_t rdm_status_queue_size;
+  rdm_status_message_t rdm_status_queue[RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX];
 
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
