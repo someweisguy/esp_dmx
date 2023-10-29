@@ -232,7 +232,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (packet != NULL) {
     packet->is_rdm = header.pid;
   }
-  const rdm_sub_device_t sub_device = header.sub_device;
+  const rdm_pid_t pid_in = header.pid;
+  const rdm_sub_device_t sub_device_in = header.sub_device;
 
   // Ignore the packet if it does not target this device
   rdm_uid_t my_uid;
@@ -290,7 +291,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
   } else {
-    // Call the appropriate driver-side RDM callback to process the request
+    // Call the appropriate response handler to process the request
     pdl_out = 0;  // Set to default value for response handler
     rdm_read(dmx_num, NULL, pd, sizeof(pd));
     const char *format = driver->params[pdi].format;
@@ -300,9 +301,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Verify that the driver-side callback returned correctly
     if (pdl_out > sizeof(pd)) {
       DMX_WARN("PID 0x%04x pdl is too large", header.pid);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      rdm_set_boot_loader(dmx_num);
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
       pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     } else if ((response_type != RDM_RESPONSE_TYPE_NONE &&
@@ -317,9 +316,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                  response_type != RDM_RESPONSE_TYPE_NONE) &&
                 header.cc == RDM_CC_DISC_COMMAND)) {
       DMX_WARN("PID 0x%04x returned invalid response type", header.pid);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      rdm_set_boot_loader(dmx_num);
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
       pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
     }
@@ -350,9 +347,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     const size_t response_size = rdm_write(dmx_num, &header, pd);
     if (!dmx_send(dmx_num, response_size)) {
       DMX_WARN("PID 0x%04x did not send a response", header.pid);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      rdm_set_boot_loader(dmx_num);
     } else if (response_size > 0) {
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -370,12 +365,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Update NVS values
   if (driver->params[pdi].nvs) {
-    if (!dmx_nvs_set(dmx_num, header.pid, sub_device, description->data_type,
+    if (!dmx_nvs_set(dmx_num, pid_in, sub_device_in, description->data_type,
                      parameter, description->pdl_size)) {
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-      DMX_WARN("unable to save PID 0x%04x to NVS", header.pid);
+      rdm_set_boot_loader(dmx_num);
+      DMX_WARN("unable to save PID 0x%04x to NVS", pid_in);
     }
   }
 

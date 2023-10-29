@@ -168,6 +168,17 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack);
 
+// TODO: docs
+rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num);
+
+// TODO: docs
+rdm_pid_t rdm_queue_peek(dmx_port_t dmx_num);
+
+// TODO: docs
+rdm_pid_t rdm_queue_get_last_sent(dmx_port_t dmx_num);
+
+void rdm_set_boot_loader(dmx_port_t dmx_num);
+
 #ifdef __cplusplus
 }
 #endif

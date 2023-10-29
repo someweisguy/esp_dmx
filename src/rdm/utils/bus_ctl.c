@@ -485,3 +485,53 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   xSemaphoreGiveRecursive(driver->mux);
   return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
+
+rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  rdm_pid_t pid;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  pid = rdm_queue_peek(dmx_num);
+  --dmx_driver[dmx_num]->rdm_queue_size;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return pid;
+}
+
+rdm_pid_t rdm_queue_peek(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  rdm_pid_t pid;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  pid = driver->rdm_queue[driver->rdm_queue_size - 1];
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return pid;
+}
+
+rdm_pid_t rdm_queue_get_last_sent(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  rdm_pid_t pid;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  pid = driver->rdm_queue_last_sent;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return pid;
+}
+
+void rdm_set_boot_loader(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  dmx_driver[dmx_num]->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+}
