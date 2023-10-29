@@ -71,7 +71,10 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
         rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
     if (dmx_start_address_ptr != NULL) {
       ret = rdm_pd_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
-                       &dmx_start_address, sizeof(uint16_t), true);
+                       &dmx_start_address, sizeof(uint16_t));
+      if (ret) {
+        rdm_pd_enqueue(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT);
+      }
     } else if (device_info_ptr != NULL) {
       rdm_device_info_t device_info;
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -79,7 +82,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       device_info.dmx_start_address = dmx_start_address;
       ret = rdm_pd_set(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT,
-                       &device_info, sizeof(rdm_device_info_t), false);
+                       &device_info, sizeof(rdm_device_info_t));
     } else {
       DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
       ret = false;
@@ -167,7 +170,10 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
         rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
     if (current_personality_ptr != NULL) {
       ret = rdm_pd_set(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT,
-                       &personality_num, sizeof(uint8_t), true);
+                       &personality_num, sizeof(uint8_t));
+      if (ret) {
+        rdm_pd_enqueue(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT);
+      }
     } else if (device_info_ptr != NULL) {
       rdm_device_info_t device_info;
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -176,7 +182,7 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
       device_info.current_personality = personality_num;
       device_info.footprint = dmx_get_footprint(dmx_num, personality_num);
       ret = rdm_pd_set(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT,
-                       &device_info, sizeof(rdm_device_info_t), false);
+                       &device_info, sizeof(rdm_device_info_t));
     } else {
       DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
       ret = false;

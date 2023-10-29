@@ -53,7 +53,7 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, const uint8_t identify) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return rdm_pd_set(dmx_num, RDM_PID_IDENTIFY_DEVICE, 0, &identify,
-                    sizeof(uint8_t), true);
+                    sizeof(uint8_t));
 }
 
 bool rdm_get_dmx_start_address(dmx_port_t dmx_num,

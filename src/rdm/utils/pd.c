@@ -300,73 +300,89 @@ const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
 }
 
 bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
-                const void *data, size_t size, bool add_to_queue) {
+                const void *data, size_t size) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513 || sub_device == RDM_SUB_DEVICE_ALL);
+  assert(pid > 0);
   assert(data != NULL);
-  assert(size > 0);
+  assert(dmx_driver_is_installed(dmx_num));
   
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  if (size == 0) {
+    return true;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Find the parameter
+  uint32_t pdi = 0;  // Parameter data index
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].definition.pid == pid) {
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (pdi == driver->num_parameters) {
+    return false;  // Requested parameter does not exist
+  }
+
+  // Copy the user data to the parameter
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->params[pdi].definition.data_type == RDM_DS_ASCII) {
+    strncpy(driver->params[pdi].data, data, size);
+  } else {
+    memcpy(driver->params[pdi].data, data, size);
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+
+  return true;
+}
+
+bool rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
+                   rdm_sub_device_t sub_device) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513 || sub_device == RDM_SUB_DEVICE_ALL);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+
   // TODO
   DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
             "Multiple sub-devices are not yet supported.");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  bool ret;
-  void *pd = NULL;
-  bool save_to_nvs = false;
-  const rdm_pid_description_t *description = NULL;
+  // Find the parameter
+  uint32_t pdi = 0;  // Parameter data index
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  // Find parameter data and its descriptor
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].definition.pid == pid) {
-      pd = driver->params[i].data;
-      description = &driver->params[i].definition;
-      save_to_nvs = driver->params[i].nvs;
+  for (; pdi < driver->num_parameters; ++pdi) {
+    if (driver->params[pdi].definition.pid == pid) {
       break;
     }
   }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (pdi == driver->num_parameters) {
+    return false;  // Requested parameter does not exist
+  }
 
-  // Copy the user's variable to the parameter data
-  if (pd != NULL && (description->cc & RDM_CC_SET)) {
-    size = size < description->pdl_size ? size : description->pdl_size;
-    if (description->data_type == RDM_DS_ASCII) {
-      strncpy(pd, data, size);
-    } else {
-      memcpy(pd, data, size);
-    }
+  bool ret;
+
+  // Enqueue the parameter
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
+    driver->rdm_queue[driver->rdm_queue_size] = pid;
+    ++driver->rdm_queue_size;
     ret = true;
-  } else {
-    ret = false;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  // Handle NVS and RDM queueing
-  if (ret) {
-    // Save to NVS if needed
-    if (save_to_nvs) {
-      if (!dmx_nvs_set(dmx_num, pid, description->data_type, data, size)) {
-        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-        driver->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
-        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-        DMX_WARN("unable to save PID 0x%04x to NVS", pid)
-      }
-    }
-
-    // Enqueue the RDM packet if desired
-    if (add_to_queue) {
-      bool success;
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
-        driver->rdm_queue[driver->rdm_queue_size] = pid;
-        ++driver->rdm_queue_size;
-        success = true;
-      } else {
-        success = false;
-      }
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-      if (!success) {
-        DMX_WARN("out of queue space");
-      }
-    }
+  if (!ret) {
+    // This is not a hardware failure so don't set the bootloader flag
+    DMX_WARN("Unable to add PID 0x%04x to the RDM queue", pid);
+    ret = false;
   }
 
   return ret;

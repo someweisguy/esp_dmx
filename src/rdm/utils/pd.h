@@ -87,12 +87,15 @@ const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
  * @param sub_device The sub-device number which owns the parameter.
  * @param[in] param A pointer to the new value to which to set the parameter.
  * @param size The size of the new value of the parameter.
- * @param add_to_queue True to add this parameter to the RDM message queue.
  * @return true on success.
  * @return false on failure.
  */
 bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
-                const void *data, size_t size, bool add_to_queue);
+                const void *data, size_t size);
+
+// TODO docs
+bool rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
+                    rdm_sub_device_t sub_device);
 
 // TODO docs
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
