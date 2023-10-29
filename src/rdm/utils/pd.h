@@ -94,8 +94,8 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
                 const void *data, size_t size);
 
 // TODO docs
-bool rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
-                    rdm_sub_device_t sub_device);
+int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
+                   rdm_sub_device_t sub_device);
 
 // TODO docs
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,

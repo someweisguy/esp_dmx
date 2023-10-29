@@ -343,7 +343,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
   return true;
 }
 
-bool rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
+int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
                    rdm_sub_device_t sub_device) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513 || sub_device == RDM_SUB_DEVICE_ALL);
@@ -351,7 +351,7 @@ bool rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, -1,
             "Multiple sub-devices are not yet supported.");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -366,23 +366,27 @@ bool rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (pdi == driver->num_parameters) {
-    return false;  // Requested parameter does not exist
+    return -1;  // Requested parameter does not exist
   }
-
-  bool ret;
-
-  // Enqueue the parameter
+  
+  int ret = -1;
+ 
+  // Enqueue the parameter if it is not already queued
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
+    for (int i = 0; i < driver->rdm_queue_size; ++i) {
+      if (driver->rdm_queue[i] == pid) {
+        return i;  // PID is already queued
+      }
+    }
     driver->rdm_queue[driver->rdm_queue_size] = pid;
+    ret = driver->rdm_queue_size;
     ++driver->rdm_queue_size;
-    ret = true;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (!ret) {
+  if (ret == -1) {
     // This is not a hardware failure so don't set the bootloader flag
     DMX_WARN("Unable to add PID 0x%04x to the RDM queue", pid);
-    ret = false;
   }
 
   return ret;
