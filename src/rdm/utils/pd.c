@@ -376,12 +376,15 @@ int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
   if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
     for (int i = 0; i < driver->rdm_queue_size; ++i) {
       if (driver->rdm_queue[i] == pid) {
-        return i;  // PID is already queued
+        ret = i;  // PID is already queued
+        break;
       }
     }
-    driver->rdm_queue[driver->rdm_queue_size] = pid;
-    ret = driver->rdm_queue_size;
-    ++driver->rdm_queue_size;
+    if (ret == -1) {
+      driver->rdm_queue[driver->rdm_queue_size] = pid;
+      ret = driver->rdm_queue_size;
+      ++driver->rdm_queue_size;
+    }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (ret == -1) {
