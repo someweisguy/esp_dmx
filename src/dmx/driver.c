@@ -157,6 +157,14 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->num_parameters = 0;
   // The driver->params field is left uninitialized
 
+  // Initialize the RDM status queue
+  // TODO - implement in pd
+  // driver->rdm_status_threshold = (RDM_STATUS_ERROR - 2);  // Only report errors
+  // for (int i = 0; i < 3; ++i) {
+  //   driver->rdm_status[i].head = 0;
+  //   driver->rdm_status[i].tail = 0;  
+  // }
+
   // DMX sniffer configuration
   // The driver->metadata field is left uninitialized
   driver->metadata_queue = NULL;

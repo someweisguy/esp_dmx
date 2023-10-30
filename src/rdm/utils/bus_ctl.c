@@ -392,7 +392,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   // Return early if a packet error occurred or if no response was expected
   if (response_expected) {
     dmx_packet_t packet;
-    // FIXME: setting the wait_ticks <= 3 causes instability on Arduino
+    // TODO: setting the wait_ticks <= 3 causes instability on Arduino
     size = dmx_receive(dmx_num, &packet, 10);
     if (ack != NULL) {
       ack->err = packet.err;
@@ -487,31 +487,36 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
 }
 
 rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  rdm_pid_t pid;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  pid = rdm_queue_peek(dmx_num);
-  --dmx_driver[dmx_num]->rdm_queue_size;
-  dmx_driver[dmx_num]->rdm_queue_last_sent = pid;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return pid;
-}
-
-rdm_pid_t rdm_queue_peek(dmx_port_t dmx_num) {
-  assert(dmx_num < DMX_NUM_MAX);
+    assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   rdm_pid_t pid;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  pid = driver->rdm_queue[driver->rdm_queue_size - 1];
+  --driver->rdm_queue_size;
+  pid = driver->rdm_queue[driver->rdm_queue_size];
+  driver->rdm_queue_last_sent = pid;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return pid;
+}
+
+uint8_t rdm_queue_size(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  uint32_t size;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  size = driver->rdm_queue_size;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (size > 255) {
+    size = 255;  // RDM requires queue size to be clamped
+  }
+
+  return size;
 }
 
 rdm_pid_t rdm_queue_get_last_sent(dmx_port_t dmx_num) {
@@ -537,20 +542,27 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 }
 
-bool rdm_status_push(dmx_port_t dmx_num, rdm_status_t status,
-                     const rdm_status_message_t *message) {
+/* TODO
+bool rdm_status_push(dmx_port_t dmx_num, const rdm_status_message_t *message) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(message != NULL);
+  assert((message->type >= RDM_STATUS_ADVISORY &&
+          message->type <= RDM_STATUS_ERROR) ||
+         (message->type >= RDM_STATUS_ADVISORY_CLEARED &&
+          message->type <= RDM_STATUS_ERROR_CLEARED));
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   bool ret = false;
+
+  const uint32_t qi = (message->type & 0xf) - 2;  // Queue index
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->rdm_status_queue_size < RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX) {
-    memcpy(&driver->rdm_status_queue[driver->rdm_status_queue_size], message,
-           sizeof(rdm_status_message_t));
-    ++driver->rdm_status_queue_size;
+  const uint16_t new_tail =
+      (driver->rdm_status[qi].tail + 1) % RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX;
+  if (new_tail != driver->rdm_status[qi].head) {
+    driver->rdm_status[qi].queue[driver->rdm_status[qi].tail] = *message;
+    driver->rdm_status[qi].tail = new_tail;
     ret = true;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -558,17 +570,64 @@ bool rdm_status_push(dmx_port_t dmx_num, rdm_status_t status,
   return ret;
 }
 
-int rdm_status_peek(dmx_port_t dmx_num, rdm_status_t status,
+bool rdm_status_pop(dmx_port_t dmx_num, rdm_status_t status,
                     rdm_status_message_t *message) {
-  // TODO:
-  return 0;
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(message != NULL);
+  assert((status >= RDM_STATUS_ADVISORY && status <= RDM_STATUS_ERROR) ||
+         (status >= RDM_STATUS_ADVISORY_CLEARED &&
+          status <= RDM_STATUS_ERROR_CLEARED));
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  bool ret = false;
+
+  uint32_t qi = (status & 0xf) - 2;  // Queue index
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (;qi < 3; ++qi) {
+    if (driver->rdm_status[qi].head == driver->rdm_status[qi].tail) {
+      continue;  // Nothing to pop in this queue
+    }
+    const uint16_t new_head =
+        (driver->rdm_status[qi].head + 1) % RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX;
+    *message = driver->rdm_status[qi].queue[driver->rdm_status[qi].head];
+    driver->rdm_status[qi].head = new_head;
+    ret = true;
+    break;
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return ret;
 }
 
-int rdm_status_pop(dmx_port_t dmx_num, rdm_status_t status,
-                   rdm_status_message_t *message) {
+void rdm_status_clear(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
 
-  // FIXME: how to pop only messages of a specific status?
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // TODO:
-  return 0;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (int i = 0; i < 3; ++i) {
+    driver->rdm_queue[i].tail = driver->rdm_queue[i].head;
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 }
+
+
+rdm_status_t rdm_status_get_threshold(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  rdm_status_t threshold;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  threshold = driver->rdm_status_threshold
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return threshold;
+}
+
+void rdm_status_set_threshold(dmx_port_t dmx_num, rdm_status_t status);
+*/
