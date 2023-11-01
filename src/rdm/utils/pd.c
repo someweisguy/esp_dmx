@@ -74,7 +74,6 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->params[pdi].definition = *definition;
   driver->params[pdi].format = format;
   driver->params[pdi].nvs = nvs;
-  ;
   driver->params[pdi].response_handler = response_handler;
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
