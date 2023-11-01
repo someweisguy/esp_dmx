@@ -381,7 +381,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
                  rdm_simple_response_cb, device_info);
 
-  return true;
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_PID_DEVICE_INFO, cb, context);
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
@@ -412,7 +413,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
                  rdm_simple_response_cb, software_version_label);
 
-  return true;
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_PID_SOFTWARE_VERSION_LABEL, cb, context);
 }
 
 bool rdm_register_device_label(dmx_port_t dmx_num,
@@ -443,7 +445,8 @@ bool rdm_register_device_label(dmx_port_t dmx_num,
   rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
                  rdm_simple_response_cb, device_label);
 
-  return true;
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
 bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -452,34 +455,25 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // uint8_t *data =
-  //     rdm_pd_get(dmx_num, RDM_PID_IDENTIFY_DEVICE, RDM_SUB_DEVICE_ROOT);
-  // if (data == NULL) {
-  //   data = rdm_pd_alloc(dmx_num, sizeof(*data));
-  //   if (data == NULL) {
-  //     return false;
-  //   }
-  //   *data = 0;
-  // }
+  const rdm_pid_description_t pd_def = {.pid = RDM_PID_IDENTIFY_DEVICE,
+                                        .pdl_size = sizeof(uint8_t),
+                                        .data_type = RDM_DS_UNSIGNED_BYTE,
+                                        .cc = RDM_CC_GET_SET,
+                                        .unit = RDM_UNITS_NONE,
+                                        .prefix = RDM_PREFIX_NONE,
+                                        .min_value = 0,
+                                        .max_value = 1,
+                                        .default_value = 0,
+                                        .description = "Identify Device"};
+  const char *format = "b$";
+  const bool nvs = false;
 
-  // const rdm_pid_description_t description = {.pid = RDM_PID_IDENTIFY_DEVICE,
-  //                                     .pdl_size = sizeof(*data),
-  //                                     .data_type = RDM_DS_UNSIGNED_BYTE,
-  //                                     .cc = RDM_CC_GET_SET,
-  //                                     .unit = RDM_UNITS_NONE,
-  //                                     .prefix = RDM_PREFIX_NONE,
-  //                                     .min_value = 0,
-  //                                     .max_value = 1,
-  //                                     .default_value = 0,
-  //                                     .description = "Identify Device"};
-  // const char *format = "b$";
+  uint8_t default_value = 0;
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
+                 rdm_simple_response_cb, &default_value);
 
-  // return rdm_pd_register(dmx_num, RDM_SUB_DEVICE_ROOT, &description, format,
-  //                               rdm_simple_response_cb, data, cb, context,
-  //                               false);
-
-  // FIXME
-  return false;
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_PID_IDENTIFY_DEVICE, cb, context);
 }
 
 static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
@@ -543,7 +537,6 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
   // FIXME
   return false;
 }
-
 
 bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context){
@@ -620,31 +613,29 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(
+      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) != NULL,
+      false, "RDM_PID_DEVICE_INFO must be registered first");
 
-  // // DMX start address is stored within device info
-  // rdm_device_info_t *di =
-  //     rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-  // DMX_CHECK(di != NULL, false, "RDM_PID_DEVICE_INFO must be registered first");
-  // uint16_t *data = (void *)di + offsetof(rdm_device_info_t, dmx_start_address);
+  const rdm_pid_description_t pd_def = {.pid = RDM_PID_DMX_START_ADDRESS,
+                                        .pdl_size = sizeof(uint16_t),
+                                        .data_type = RDM_DS_UNSIGNED_WORD,
+                                        .cc = RDM_CC_GET_SET,
+                                        .unit = RDM_UNITS_NONE,
+                                        .prefix = RDM_PREFIX_NONE,
+                                        .min_value = 1,
+                                        .max_value = 512,
+                                        .default_value = 1,
+                                        .description = "DMX Start Address"};
+  const char *format = "w$";
+  const bool nvs = true;
 
-  // const rdm_pid_description_t description = {.pid = RDM_PID_DMX_START_ADDRESS,
-  //                                     .pdl_size = sizeof(*data),
-  //                                     .data_type = RDM_DS_UNSIGNED_WORD,
-  //                                     .cc = RDM_CC_GET_SET,
-  //                                     .unit = RDM_UNITS_NONE,
-  //                                     .prefix = RDM_PREFIX_NONE,
-  //                                     .min_value = 1,
-  //                                     .max_value = 512,
-  //                                     .default_value = 1,
-  //                                     .description = "DMX Start Address"};
-  // const char *format = "w$";
+  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
+                   rdm_simple_response_cb, RDM_PID_DEVICE_INFO,
+                   offsetof(rdm_device_info_t, dmx_start_address));
 
-  // return rdm_pd_register(dmx_num, RDM_SUB_DEVICE_ROOT, &description, format,
-  //                               rdm_simple_response_cb, data, cb, context,
-  //                               true);
-
-  // FIXME
-  return false;
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_PID_DEVICE_INFO, cb, context);
 }
 
 bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -684,19 +675,10 @@ bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_descr
   return false;
 }
 
-static int rdm_status_messages_response_cb(dmx_port_t dmx_num,
-                                           rdm_header_t *header, void *pd,
-                                           uint8_t *pdl_out,
-                                           const char *format) {
-  // TODO: error checking
-
-  // TODO: generate status messages for each sub-device
-  const rdm_status_message_t status_message = {
-      .sub_device = RDM_SUB_DEVICE_ROOT,
-      .type = RDM_STATUS_ADVISORY,
-      .id = 0,
-      .data = {}};
-  *pdl_out = rdm_emplace(pd, "wbwww", &status_message, 1, false);
+int rdm_status_messages_response_cb(dmx_port_t dmx_num, rdm_header_t *header,
+                                    void *pd, uint8_t *pdl_out,
+                                    const char *format) {
+  *pdl_out = 0;  // TODO: implement status messages
   return RDM_RESPONSE_TYPE_ACK;
 }
 
@@ -716,17 +698,9 @@ static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
 
   int ack;
 
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  uint8_t message_count = dmx_driver[dmx_num]->rdm_queue_size;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  if (message_count > 0) {
-    --message_count;
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    header->pid = dmx_driver[dmx_num]->rdm_queue[message_count];
-    dmx_driver[dmx_num]->rdm_queue_last_sent = header->pid;
-    dmx_driver[dmx_num]->rdm_queue_size = message_count;
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  // Pop a PID from the queue and attempt to serve the queued data
+  const rdm_pid_t queue_pid = rdm_queue_pop(dmx_num);
+  if (queue_pid != 0) {
 
     // TODO: get the PD and emplace it into pd
     
