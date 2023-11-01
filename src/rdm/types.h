@@ -581,9 +581,9 @@ typedef struct __attribute__((packed)) rdm_pid_description_t {
   /** @brief The manufacturer specific PID requested by the controller.*/
   uint16_t pid;
   /** @brief PDL Size defines the number used for the PDL field in all
-     GET_RESPONSE and SET messages associated with this PID. In the case of the
-     value of RDM_DS_ASCII, the PDL Size represents the maximum length of a
-     variable sized ASCII string.*/
+     GET_RESPONSE and SET messages associated with this PID. This field is often
+     the maximum possible size of the PDL not necessarily the absolute size of
+     the PDL.*/
   uint8_t pdl_size;
   /** @brief Data type defines the size of the data entries in the PD of the
      message for this PID. For example: unsigned 8-bit character versus signed
