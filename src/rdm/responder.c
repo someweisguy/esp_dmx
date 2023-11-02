@@ -542,72 +542,63 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context){
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(
+      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) != NULL,
+      false, "RDM_PID_DEVICE_INFO must be registered first");
 
-  // // Current personality is stored within device info
-  // rdm_device_info_t *di =
-  //     rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-  // DMX_CHECK(di != NULL, false, "RDM_PID_DEVICE_INFO must be registered first");
+  // Note: The personality is a strange parameter that needs a custom callback
+  //       because in the get case it behaves like two parameters.
+  //       The pd of get is a 2 byte array consisting of the current personality
+  //       and maximum number of personalities.
+  //       The pd of set is byte personality.
+  //       Thus we cannot use the rdm_simple_response_cb.
+  //       
 
-  // // Note: The personality is a strange parameter that needs a custom callback
-  // //       because in the get case it behaves like two parameters.
-  // //       The pd of get is a 2 byte array consisting of the current personality
-  // //       and maximum number of personalities.
-  // //       The pd of set is byte personality.
-  // //       Thus we cannot use the rdm_simple_response_cb.
-  // //       
+  const rdm_pid_description_t pd_def = {.pid = RDM_PID_DMX_PERSONALITY,
+                                    .pdl_size = 1,
+                                    .data_type = RDM_DS_UNSIGNED_BYTE,
+                                    .cc = RDM_CC_GET_SET,
+                                    .unit = RDM_UNITS_NONE,
+                                    .prefix = RDM_PREFIX_NONE,
+                                    .min_value = 1, 
+                                    .max_value = 255,
+                                    .default_value = 1, 
+                                    .description = "DMX Personality"};
+  const char *format = "bb$";
+  const bool nvs = false;
 
-  // uint8_t* data = &di->current_personality;
-
-  // const rdm_pid_description_t description = {.pid = RDM_PID_DMX_PERSONALITY,
-  //                                   .pdl_size = 1,
-  //                                   .data_type = RDM_DS_UNSIGNED_BYTE,
-  //                                   .cc = RDM_CC_GET_SET,
-  //                                   .unit = RDM_UNITS_NONE,
-  //                                   .prefix = RDM_PREFIX_NONE,
-  //                                   .min_value = 1, 
-  //                                   .max_value = 255,
-  //                                   .default_value = 1, 
-  //                                   .description = "DMX Personality"};
-
-  // return rdm_pd_register(dmx_num, RDM_SUB_DEVICE_ROOT, &description, "b$",
-  //                               rdm_personality_response_cb, data, cb, context,
-  //                               false);
-  
-  // FIXME
-  return false;
+  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
+                   rdm_personality_response_cb, RDM_PID_DEVICE_INFO,
+                   offsetof(rdm_device_info_t, current_personality));
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_PID_DMX_PERSONALITY, cb, context);
 }
 
-
-bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_callback_t cb,
-                                  void *context)
-{
+bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
+                                              rdm_callback_t cb,
+                                              void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(
+      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) != NULL,
+      false, "RDM_PID_DEVICE_INFO must be registered first");
 
-  // // Personality is stored within device info
-  // rdm_device_info_t *di =
-  //     rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-  // DMX_CHECK(di != NULL, false, "RDM_PID_DEVICE_INFO must be registered first");
+  const rdm_pid_description_t pd_def = {
+      .pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION,
+      .pdl_size = 35,
+      .data_type = RDM_DS_BIT_FIELD,
+      .cc = RDM_CC_GET,
+      .description = "DMX Personality Description"};
+  const char *format = "a$";
+  const bool nvs = false;
 
-  // const rdm_pid_description_t description = {.pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION,
-  //                                   .pdl_size = 35, // this is the max size, not necessarily the one we send 
-  //                                   .data_type = RDM_DS_BIT_FIELD,
-  //                                   .cc = RDM_CC_GET,
-  //                                   .unit = RDM_UNITS_NONE,
-  //                                   .prefix = RDM_PREFIX_NONE,
-  //                                   .min_value = 0, // has no meaning for RDM_DS_BIT_FIELD
-  //                                   .max_value = 0, // has no meaning for RDM_DS_BIT_FIELD
-  //                                   .default_value = 0, // has no meaning for RDM_DS_BIT_FIELD
-  //                                   .description = "DMX Personality Description"};
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format,
+                           rdm_personality_description_response_cb);
 
-  // return rdm_pd_register(dmx_num, RDM_SUB_DEVICE_ROOT, &description, NULL,
-  //                               rdm_personality_description_response_cb, NULL,
-  //                               cb, context, false);
-
-  // FIXME
-  return false;
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_PID_DMX_PERSONALITY_DESCRIPTION, cb,
+                                context);
 }
-
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context) {
@@ -643,6 +634,9 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
 {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  DMX_CHECK(
+      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) != NULL,
+      false, "RDM_PID_DEVICE_INFO must be registered first");
 
   // const rdm_pid_description_t description = {.pid = RDM_PID_PARAMETER_DESCRIPTION,
   //                                     .pdl_size = 0x34,                  // this is the max size, not necessarily the one we send
