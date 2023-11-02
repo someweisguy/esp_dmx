@@ -552,7 +552,6 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
   //       and maximum number of personalities.
   //       The pd of set is byte personality.
   //       Thus we cannot use the rdm_simple_response_cb.
-  //       
 
   const rdm_pid_description_t pd_def = {.pid = RDM_PID_DMX_PERSONALITY,
                                     .pdl_size = 1,
@@ -638,24 +637,20 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
       rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) != NULL,
       false, "RDM_PID_DEVICE_INFO must be registered first");
 
-  // const rdm_pid_description_t description = {.pid = RDM_PID_PARAMETER_DESCRIPTION,
-  //                                     .pdl_size = 0x34,                  // this is the max size, not necessarily the one we send
-  //                                     .data_type = RDM_DS_UNSIGNED_BYTE, // not really true but there is no data type for complex struct
-  //                                     .cc = RDM_CC_GET,
-  //                                     .unit = RDM_UNITS_NONE,
-  //                                     .prefix = RDM_PREFIX_NONE,
-  //                                     .min_value = 0,
-  //                                     .max_value = 0,
-  //                                     .default_value = 0,
-  //                                     .description = "Parameter Description"};
+  const rdm_pid_description_t pd_def = {
+      .pid = RDM_PID_PARAMETER_DESCRIPTION,
+      .pdl_size =
+          0x34,  // this is the max size, not necessarily the one we send
+      .data_type = RDM_DS_UNSIGNED_BYTE,  // not really true but there is no
+                                          // data type for complex struct
+      .cc = RDM_CC_GET,
+      .description = "Parameter Description"};
+  const char *format = "wbbbbbbddda$";
 
-  // const char *format = "wbbbbbbddda$";
-  // return rdm_pd_register(dmx_num, RDM_SUB_DEVICE_ROOT, &description, format,
-  //                               rdm_parameter_description_response_cb, NULL,
-  //                               NULL, NULL, false);
-
-  // FIXME
-  return false;
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format,
+                           rdm_parameter_description_response_cb);
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
+                                RDM_PID_PARAMETER_DESCRIPTION, cb, context);
 }
 
 bool rdm_register_manufacturer_specific_simple(dmx_port_t dmx_num, rdm_pid_description_t description,
