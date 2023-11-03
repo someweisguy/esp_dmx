@@ -216,13 +216,12 @@ typedef struct dmx_driver_t {
   // RDM responder configuration
   uint32_t num_parameters;  // The number of RDM parameters registered.
   struct rdm_parameter_table_t {
-    void *data;                        // A pointer to the parameter data.
-    rdm_pid_description_t definition;  // The parameter definition.
-    const char *format;                // The parameter format.
-    bool nvs;                          // True if the parameter is non-volatile.
-    rdm_response_handler_t response_handler;  // The parameter response handler.
-    rdm_callback_t callback;       // The parameter callback function.
-    void *context;                     // Context for the callback function.
+    rdm_pid_t pid;               // The PID of this parameter.
+    void *data;                  // A pointer to the parameter data.
+    rdm_pd_schema_t schema;      // The schema of the parameter.
+    rdm_pd_dimensions_t *dims;   // Optional dimensions for the parameter.
+    rdm_callback_t callback;     // The parameter callback function.
+    void *context;               // Context for the callback function.
   } params[RDM_RESPONDER_NUM_PIDS_MAX];  // A table containing RDM parameter information.
 
   uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.

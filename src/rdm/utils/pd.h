@@ -19,33 +19,23 @@
 extern "C" {
 #endif
 
-/**
- * @brief A function type for RDM responder callbacks. This is the type of
- * function that is called when responding to RDM requests.
- */
-typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
-                                      void *pd, uint8_t *pdl_out,
-                                      const char *format);
 
 // TODO: docs
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           const rdm_pid_description_t *definition,
-                           const char *format, bool nvs,
-                           rdm_response_handler_t response_handler,
-                           void *default_value);
+                           rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                           const rdm_pd_dimensions_t *dimensions,
+                           const void *init_value);
 
 // TODO: docs
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             const rdm_pid_description_t *definition,
-                             const char *format, bool nvs,
-                             rdm_response_handler_t response_handler,
+                             rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                             const rdm_pd_dimensions_t *dimensions,
                              rdm_pid_t alias, size_t offset);
 
 // TODO: docs
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              const rdm_pid_description_t *definition,
-                              const char *format,
-                              rdm_response_handler_t response_handler);
+                              rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                              const rdm_pd_dimensions_t *dimensions);
 
 // TODO: docs
 bool rdm_pd_update_response_handler(dmx_port_t dmx_num,

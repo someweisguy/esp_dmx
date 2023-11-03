@@ -12,16 +12,24 @@
 #include "rdm/utils/uid.h"
 
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           const rdm_pid_description_t *definition,
-                           const char *format, bool nvs,
-                           rdm_response_handler_t response_handler,
-                           void *default_value) {
+                           rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                           const rdm_pd_dimensions_t *dimensions,
+                           const void *init_value) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
-  assert(definition != NULL);
-  assert(definition->pid > 0);
-  assert(definition->pdl_size > 0);
-  assert(response_handler != NULL);
+  assert(pid > 0 && pid <= 0xffff);
+  assert(schema != NULL);
+  assert(schema->data_type <= 0xdf);
+  assert(schema->cc >= RDM_CC_DISC && schema->cc <= RDM_CC_GET_SET);
+  assert(schema->size > 0);
+  assert(schema->response_handler != NULL);
+  if (dimensions != NULL && pid >= 0x8000) {
+    assert((dimensions->units >= RDM_UNITS_NONE &&
+            dimensions->units <= RDM_UNITS_BYTES) ||
+           (dimensions->units >= 0x80 && dimensions->units <= 0xff));
+    assert(dimensions->prefix >= RDM_PREFIX_NONE &&
+           dimensions->prefix <= RDM_PREFIX_YOTTA);
+  }
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
@@ -35,12 +43,12 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   uint32_t pdi = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == definition->pid) {
+    if (driver->params[pdi].pid == pid) {
       break;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].definition.pid == definition->pid) {
+  if (driver->params[pdi].pid == pid) {
     return pd;  // Parameter already exists
   }
 
@@ -50,31 +58,39 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Reserve space for the parameter data in the driver
+  rdm_pd_dimensions_t *dims_ptr = NULL;
+  const size_t dims_size = pid < 0x8000 ? sizeof(rdm_pd_dimensions_t) : 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->pd_head + definition->pdl_size <= driver->pd_size) {
+  const size_t pdl_available = driver->pd_size - driver->pd_head;
+  if (schema->size + dims_size <= pdl_available) {
     pd = driver->pd + driver->pd_head;
-    driver->pd_head += definition->pdl_size;
+    driver->pd_head += schema->size;
+    if (dims_size > 0) {
+      dims_ptr = driver->pd + driver->pd_head;
+      driver->pd_head += dims_size;
+    }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (pd == NULL) {
+  if (schema->size + dims_size > pdl_available) {
     return pd;  // No more reservable parameter data space
+  }
+  if (dims_ptr != NULL) {
+    memcpy(dims_ptr, dimensions, dims_size);
   }
 
   // Set the parameter to the default value
-  if (definition->data_type == RDM_DS_ASCII) {
-    strncpy(pd, default_value, definition->pdl_size);
-  } else if (default_value == NULL) {
-    memset(pd, 0, definition->pdl_size);
+  if (schema->data_type == RDM_DS_ASCII) {
+    strncpy(pd, init_value, schema->size);
+  } else if (init_value == NULL) {
+    memset(pd, 0, schema->size);
   } else {
-    memcpy(pd, default_value, definition->pdl_size);
+    memcpy(pd, init_value, schema->size);
   }
 
   // Add the new parameter to the driver
   driver->params[pdi].data = pd;
-  driver->params[pdi].definition = *definition;
-  driver->params[pdi].format = format;
-  driver->params[pdi].nvs = nvs;
-  driver->params[pdi].response_handler = response_handler;
+  driver->params[pdi].schema = *schema;
+  driver->params[pdi].dims = dims_ptr;
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
@@ -83,16 +99,24 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             const rdm_pid_description_t *definition,
-                             const char *format, bool nvs,
-                             rdm_response_handler_t response_handler,
+                             rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                             const rdm_pd_dimensions_t *dimensions,
                              rdm_pid_t alias, size_t offset) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
-  assert(definition != NULL);
-  assert(definition->pid > 0);
-  assert(definition->pdl_size > 0);
-  assert(response_handler != NULL);
+  assert(pid > 0 && pid <= 0xffff);
+  assert(schema != NULL);
+  assert(schema->data_type <= 0xdf);
+  assert(schema->cc >= RDM_CC_DISC && schema->cc <= RDM_CC_GET_SET);
+  assert(schema->size > 0);
+  assert(schema->response_handler != NULL);
+  if (dimensions != NULL && pid >= 0x8000) {
+    assert((dimensions->units >= RDM_UNITS_NONE &&
+            dimensions->units <= RDM_UNITS_BYTES) ||
+           (dimensions->units >= 0x80 && dimensions->units <= 0xff));
+    assert(dimensions->prefix >= RDM_PREFIX_NONE &&
+           dimensions->prefix <= RDM_PREFIX_YOTTA);
+  }
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
@@ -106,12 +130,12 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   uint32_t pdi = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == definition->pid) {
+    if (driver->params[pdi].pid == pid) {
       break;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].definition.pid == definition->pid) {
+  if (driver->params[pdi].pid == pid) {
     return pd;  // Parameter already exists
   }
 
@@ -124,24 +148,22 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   uint32_t apdi = 0;  // Alias parameter data index
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; apdi < driver->num_parameters; ++apdi) {
-    if (driver->params[apdi].definition.pid == alias) {
+    if (driver->params[apdi].pid == alias) {
       break;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[apdi].definition.pid != alias) {
+  if (driver->params[apdi].pid != alias) {
     return pd;  // The alias has not been declared
-  } else if (driver->params[apdi].definition.pdl_size < offset) {
+  } else if (driver->params[apdi].schema.size < offset) {
     return pd;  // The alias offset is larger than the parameter pdl_size
   }
   pd = driver->params[apdi].data + offset;
 
   // Add the new parameter to the driver
   driver->params[pdi].data = pd;
-  driver->params[pdi].definition = *definition;
-  driver->params[pdi].format = format;
-  driver->params[pdi].nvs = nvs;
-  driver->params[pdi].response_handler = response_handler;
+  driver->params[pdi].schema = *schema;
+  // driver->params[pdi].dims = dims_ptr; // TODO
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
@@ -150,14 +172,23 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              const rdm_pid_description_t *definition,
-                              const char *format,
-                              rdm_response_handler_t response_handler) {
+                              rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                              const rdm_pd_dimensions_t *dimensions) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
-  assert(definition != NULL);
-  assert(definition->pid > 0);
-  assert(response_handler != NULL);
+  assert(pid > 0 && pid <= 0xffff);
+  assert(schema != NULL);
+  assert(schema->data_type <= 0xdf);
+  assert(schema->cc >= RDM_CC_DISC && schema->cc <= RDM_CC_GET_SET);
+  assert(schema->size > 0);
+  assert(schema->response_handler != NULL);
+  if (dimensions != NULL && pid >= 0x8000) {
+    assert((dimensions->units >= RDM_UNITS_NONE &&
+            dimensions->units <= RDM_UNITS_BYTES) ||
+           (dimensions->units >= 0x80 && dimensions->units <= 0xff));
+    assert(dimensions->prefix >= RDM_PREFIX_NONE &&
+           dimensions->prefix <= RDM_PREFIX_YOTTA);
+  }
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
@@ -171,12 +202,12 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   uint32_t pdi = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == definition->pid) {
+    if (driver->params[pdi].pid == pid) {
       break;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].definition.pid == definition->pid) {
+  if (driver->params[pdi].pid == pid) {
     return ret;  // Parameter already exists
   }
 
@@ -187,10 +218,8 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Add the new parameter to the driver
   driver->params[pdi].data = NULL;
-  driver->params[pdi].definition = *definition;
-  driver->params[pdi].format = format;
-  driver->params[pdi].nvs = false;
-  driver->params[pdi].response_handler = response_handler;
+  driver->params[pdi].schema = *schema;
+  // driver->params[pdi].dims = dims_ptr; // TODO
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
@@ -219,17 +248,17 @@ bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
   uint32_t pdi = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == pid) {
+    if (driver->params[pdi].pid == pid) {
       break;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].definition.pid != pid) {
+  if (driver->params[pdi].pid != pid) {
     return ret;  // Parameter does not exist
   }
 
   // The response handler can be updated
-  driver->params[pdi].response_handler = response_handler;
+  driver->params[pdi].schema.response_handler = response_handler;
   ret = true;
 
   return ret;
@@ -254,12 +283,12 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   uint32_t pdi = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == pid) {
+    if (driver->params[pdi].pid == pid) {
       break;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].definition.pid != pid) {
+  if (driver->params[pdi].pid != pid) {
     return ret;  // Parameter does not exist
   }
 
@@ -288,7 +317,7 @@ const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].definition.pid == pid) {
+    if (driver->params[i].pid == pid) {
       pd = driver->params[i].data;
       break;
     }
@@ -322,7 +351,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
   uint32_t pdi = 0;  // Parameter data index
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == pid) {
+    if (driver->params[pdi].pid == pid) {
       break;
     }
   }
@@ -334,7 +363,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
   // Copy the user data to the parameter
   if (driver->params[pdi].data != NULL) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (driver->params[pdi].definition.data_type == RDM_DS_ASCII) {
+    if (driver->params[pdi].schema.data_type == RDM_DS_ASCII) {
       strncpy(driver->params[pdi].data, data, size);
     } else {
       memcpy(driver->params[pdi].data, data, size);
@@ -363,7 +392,7 @@ int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
   uint32_t pdi = 0;  // Parameter data index
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == pid) {
+    if (driver->params[pdi].pid == pid) {
       break;
     }
   }
@@ -419,7 +448,7 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   for (; num_pids < driver->num_parameters; ++num_pids) {
     if (num_pids < num) {
-      pids[num_pids] = driver->params[num_pids].definition.pid;
+      pids[num_pids] = driver->params[num_pids].pid;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));

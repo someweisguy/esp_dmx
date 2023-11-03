@@ -386,14 +386,19 @@ typedef enum rdm_ds_t {
 /** @brief The units define the SI unit of a specific PID.*/
 typedef enum rdm_units_t {
   /** @brief An SI unit is not used.*/
-  RDM_UNITS_NONE = 0x00
+  RDM_UNITS_NONE = 0x00,
+  /** @brief The unit is bytes. When a prefix is used with this unit, the
+     multiplier refers to binary multiple. i.e. KILO means multiply by 1024.*/
+  RDM_UNITS_BYTES = 0x1c
 } rdm_units_t;
 
 /** @brief The prefix defines the SI prefix and multiplication factor of the
  * units*/
 typedef enum rdm_prefix_t {
   /** @brief Multiply by 1.*/
-  RDM_PREFIX_NONE = 0x00
+  RDM_PREFIX_NONE = 0x00,
+  /** @brief Multiply by 10E+24.*/
+  RDM_PREFIX_YOTTA = 0x1a
 } rdm_prefix_t;
 
 /** @brief Responders and controllers identify themselves with a 48-bit Unique
@@ -655,6 +660,34 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
     uint16_t data[2];
   };
 } rdm_status_message_t;
+
+/**
+ * @brief A function type for RDM responder callbacks. This is the type of
+ * function that is called when responding to RDM requests.
+ */
+typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
+                                      void *pd, uint8_t *pdl_out,
+                                      const char *format);
+
+// TODO: docs
+typedef struct rdm_pd_schema_t {
+    rdm_ds_t data_type;
+    rdm_pid_cc_t cc;
+    size_t size;
+    const char *format;
+    bool nvs;
+    rdm_response_handler_t response_handler;
+} rdm_pd_schema_t;
+
+// TODO: docs
+typedef struct rdm_pd_dimensions_t {
+  rdm_units_t units;
+  rdm_prefix_t prefix;
+  uint32_t min_value;
+  uint32_t max_value;
+  uint32_t default_value;
+  char description[33];
+} rdm_pd_dimensions_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
