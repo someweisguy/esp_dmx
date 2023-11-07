@@ -5,9 +5,9 @@
 #include "rdm/utils/uid.h"
 #include "rdm/utils/bus_ctl.h"
 
-static int rdm_default_discovery_cb(dmx_port_t dmx_num, rdm_header_t *header,
-                                    void *pd, uint8_t *pdl_out,
-                                    const char *format) {
+static int rdm_discovery_handler_default(dmx_port_t dmx_num,
+                                         rdm_header_t *header, void *pd,
+                                         uint8_t *pdl_out, const char *format) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     // Cannot respond to RDM_CC_DISC_COMMAND with NACK
@@ -86,7 +86,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .size = 0,
       .format = "",
       .nvs = false,
-      .response_handler = rdm_default_discovery_cb,
+      .response_handler = rdm_discovery_handler_default,
   };
 
   // Register the parameter
@@ -107,7 +107,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .size = sizeof(uint8_t),
       .format = "b$",
       .nvs = false,
-      .response_handler = rdm_default_discovery_cb,
+      .response_handler = rdm_discovery_handler_default,
   };
 
   // Register the parameter as an alias if RDM_PID_DISC_UN_MUTE exists
@@ -137,7 +137,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .size = sizeof(uint8_t),
       .format = "b$",
       .nvs = false,
-      .response_handler = rdm_default_discovery_cb,
+      .response_handler = rdm_discovery_handler_default,
   };
 
   // Register the parameter as an alias if RDM_PID_DISC_MUTE exists
