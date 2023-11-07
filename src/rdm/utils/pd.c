@@ -430,9 +430,45 @@ int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
 bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,
                             rdm_sub_device_t sub_device,
                             rdm_pid_description_t *description) {
-  // TODO
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(pid > 0);
+  assert(sub_device < 513);
+  assert(description != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
 
-  return false;
+  // 0x8000 to 0xFFDF is the allowed range for manufacturer specific PIDs
+  if (pid < RDM_PID_MANUFACTURER_SPECIFIC_BEGIN ||
+      pid > RDM_PID_MANUFACTURER_SPECIFIC_END) {
+    return false;
+  }
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Find parameter data and its descriptor
+  bool success = false;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (int i = 0; i < driver->num_parameters; ++i) {
+    if (driver->params[i].pid == pid) {
+      const rdm_pd_schema_t *schema = &driver->params[i].schema;
+      const rdm_pd_dimensions_t *dims = &driver->params[i].dims;
+      if (schema != NULL && dims != NULL) {
+        description->pid = pid;
+        description->pdl_size = schema->size;
+        description->data_type = schema->data_type;
+        description->cc = schema->cc;
+        description->unit = dims->units;
+        description->prefix = dims->prefix;
+        description->min_value = dims->min_value;
+        description->max_value = dims->max_value;
+        description->default_value = dims->default_value;
+        strncpy(description->description, dims->description, 32);
+      }
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return success;
 }
 
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
