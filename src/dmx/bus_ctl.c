@@ -248,19 +248,19 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   uint8_t pdl_out;
   uint8_t pd[231];  // Parameter data. This array's length is the max pd size.
   void *parameter;
-  const rdm_pid_description_t *description;
+  const rdm_pd_schema_t *schema;
   rdm_response_type_t response_type;
   uint32_t pdi = 0;  // Parameter data index
   for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].definition.pid == header.pid) {
+    if (driver->params[pdi].pid == header.pid) {
       break;
     }
   }
   if (pdi < driver->num_parameters) {
-    description = &driver->params[pdi].definition;
+    schema = &driver->params[pdi].schema;
     parameter = driver->params[pdi].data;
   } else {
-    description = NULL;
+    schema = NULL;
     parameter = NULL;
   }
 
@@ -275,11 +275,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
   } else if ((header.cc == RDM_CC_DISC_COMMAND &&
-              description->cc != RDM_CC_DISC) ||
+              schema->cc != RDM_CC_DISC) ||
              (header.cc == RDM_CC_GET_COMMAND &&
-              !(description->cc & RDM_CC_GET)) ||
+              !(schema->cc & RDM_CC_GET)) ||
              (header.cc == RDM_CC_SET_COMMAND &&
-              !(description->cc & RDM_CC_SET))) {
+              !(schema->cc & RDM_CC_SET))) {
     // The PID does not support the request command class
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
     pdl_out = rdm_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
@@ -294,9 +294,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Call the appropriate response handler to process the request
     pdl_out = 0;  // Set to default value for response handler
     rdm_read(dmx_num, NULL, pd, sizeof(pd));
-    const char *format = driver->params[pdi].format;
-    response_type = driver->params[pdi].response_handler(dmx_num, &header, pd,
-                                                         &pdl_out, format);
+    const char *format = driver->params[pdi].schema.format;
+    response_type = driver->params[pdi].schema.response_handler(
+        dmx_num, &header, pd, &pdl_out, format);
 
     // Verify that the driver-side callback returned correctly
     if (pdl_out > sizeof(pd)) {
@@ -364,9 +364,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Update NVS values
-  if (driver->params[pdi].nvs) {
-    if (!dmx_nvs_set(dmx_num, pid_in, sub_device_in, description->data_type,
-                     parameter, description->pdl_size)) {
+  if (driver->params[pdi].schema.nvs) {
+    if (!dmx_nvs_set(dmx_num, pid_in, sub_device_in, schema->data_type,
+                     parameter, schema->size)) {
       rdm_set_boot_loader(dmx_num);
       DMX_WARN("unable to save PID 0x%04x to NVS", pid_in);
     }
