@@ -1,19 +1,17 @@
 #include "product_info.h"
 
-#include "dmx/struct.h"
-#include "dmx/driver.h"
 #include "dmx/device.h"
+#include "dmx/driver.h"
 #include "dmx/hal/nvs.h"
+#include "dmx/struct.h"
+#include "rdm/responder/misc.h"
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info, rdm_callback_t cb,
                               void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  const rdm_device_info_t *device_info_ptr =
-      rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-  if (device_info_ptr == NULL) {
+  if (rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) == NULL) {
     // Ensure the user's default value is valid
     DMX_CHECK(device_info != NULL, false, "device_info is null");
     DMX_CHECK((device_info->dmx_start_address < DMX_PACKET_SIZE_MAX ||
@@ -56,53 +54,44 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     }
   }
 
-  const rdm_pid_description_t pd_def = {.pid = RDM_PID_DEVICE_INFO,
-                                        .pdl_size = sizeof(*device_info),
-                                        .data_type = RDM_DS_BIT_FIELD,
-                                        .cc = RDM_CC_GET,
-                                        .unit = RDM_UNITS_NONE,
-                                        .prefix = RDM_PREFIX_NONE,
-                                        .description = "Device Info"};
-  const char *format = "#0100hwwdwbbwwb$";
-  const bool nvs = true;
+  // Define the parameter
+  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
+  const rdm_pd_schema_t schema = {
+      .data_type = RDM_DS_BIT_FIELD,
+      .cc = RDM_CC_GET,
+      .size = sizeof(rdm_device_info_t),
+      .format = "#0100hwwdwbbwwb$",
+      .nvs = false,
+      .response_handler = rdm_response_handler_simple,
+  };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
-                 rdm_simple_response_cb, device_info);
-
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
-                                RDM_PID_DEVICE_INFO, cb, context);
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL, device_info);
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
-bool rdm_register_device_label(dmx_port_t dmx_num,
-                               const char *device_label,
+bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
                                rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  const char *device_label_ptr =
-      rdm_pd_get(dmx_num, RDM_PID_DEVICE_LABEL, RDM_SUB_DEVICE_ROOT);
-  if (device_label_ptr == NULL) {
-    DMX_CHECK(device_label != NULL, false,
-              "device_label is null");
-    DMX_CHECK(strnlen(device_label, 33) < 33, false,
-              "device_label error");
+  if (rdm_pd_get(dmx_num, RDM_PID_DEVICE_LABEL, RDM_SUB_DEVICE_ROOT) == NULL) {
+    DMX_CHECK(device_label != NULL, false, "device_label is null");
+    DMX_CHECK(strnlen(device_label, 33) < 33, false, "device_label error");
   }
 
-  const rdm_pid_description_t pd_def = {.pid = RDM_PID_DEVICE_LABEL,
-                                      .pdl_size = 32,
-                                      .data_type = RDM_DS_ASCII,
-                                      .cc = RDM_CC_GET,
-                                      .unit = RDM_UNITS_NONE,
-                                      .prefix = RDM_PREFIX_NONE,
-                                      .description = "Device Label"};
-  const char *format = "a$";
-  const bool nvs = true;
+  // Define the parameter
+  const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
+  const rdm_pd_schema_t schema = {
+      .data_type = RDM_DS_ASCII,
+      .cc = RDM_CC_GET_SET,
+      .size = 33,
+      .format = "a$",
+      .nvs = true,
+      .response_handler = rdm_response_handler_simple,
+  };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
-                 rdm_simple_response_cb, device_label);
-
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
-                                RDM_SUB_DEVICE_ROOT, cb, context);
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
+                 device_label);
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
@@ -110,29 +99,26 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-
-  const char *software_version_label_ptr =
-      rdm_pd_get(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL, RDM_SUB_DEVICE_ROOT);
-  if (software_version_label_ptr == NULL) {
+  if (rdm_pd_get(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
+                 RDM_SUB_DEVICE_ROOT) == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
     DMX_CHECK(strnlen(software_version_label, 33) < 33, false,
               "software_version_label error");
   }
 
-  const rdm_pid_description_t pd_def = {
-      .pid = RDM_PID_SOFTWARE_VERSION_LABEL,
-      .pdl_size = 32,
+  // Define the parameter
+  const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
+  const rdm_pd_schema_t schema = {
       .data_type = RDM_DS_ASCII,
       .cc = RDM_CC_GET,
-      .description = "Software Version Label"};
-  const char *format = "a$";
-  const bool nvs = false;
+      .size = 33,
+      .format = "a$",
+      .nvs = false,
+      .response_handler = rdm_response_handler_simple,
+  };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, &pd_def, format, nvs,
-                 rdm_simple_response_cb, software_version_label);
-
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT,
-                                RDM_PID_SOFTWARE_VERSION_LABEL, cb, context);
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
+                 software_version_label);
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
