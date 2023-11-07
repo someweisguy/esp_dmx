@@ -88,6 +88,11 @@ int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
                    rdm_sub_device_t sub_device);
 
 // TODO docs
+bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,
+                            rdm_sub_device_t sub_device,
+                            rdm_pid_description_t *description);
+
+// TODO docs
 uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                      uint16_t *pids, uint32_t num);
 
