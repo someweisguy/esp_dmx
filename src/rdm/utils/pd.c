@@ -450,7 +450,7 @@ bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,
   for (int i = 0; i < driver->num_parameters; ++i) {
     if (driver->params[i].pid == pid) {
       const rdm_pd_schema_t *schema = &driver->params[i].schema;
-      const rdm_pd_dimensions_t *dims = &driver->params[i].dims;
+      const rdm_pd_dimensions_t *dims = driver->params[i].dims;
       if (schema != NULL && dims != NULL) {
         description->pid = pid;
         description->pdl_size = schema->size;
@@ -462,6 +462,7 @@ bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,
         description->max_value = dims->max_value;
         description->default_value = dims->default_value;
         strncpy(description->description, dims->description, 32);
+        success = true;
       }
       break;
     }
