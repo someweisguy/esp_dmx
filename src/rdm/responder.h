@@ -6,12 +6,6 @@
  */
 #pragma once
 
-#include <stdint.h>
-
-#include "dmx/types.h"
-#include "rdm/parameters.h"
-#include "rdm/types.h"
-
 // #include "rdm/responder/device_config.h"  // TODO
 #include "rdm/responder/device_control.h"
 #include "rdm/responder/discovery.h"
@@ -26,13 +20,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-// TODO: docs
-bool rdm_register_manufacturer_specific_simple(
-    dmx_port_t dmx_num, rdm_pid_description_t description, void *data,
-    const char *format, rdm_callback_t cb, void *context, bool nvs);
-
 
 #ifdef __cplusplus
 }
