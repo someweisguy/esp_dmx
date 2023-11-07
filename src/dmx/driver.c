@@ -6,6 +6,7 @@
 #include "dmx/sniffer.h"
 #include "dmx/struct.h"
 #include "endian.h"
+#include "rdm/responder.h"
 #include "rdm/types.h"
 #include "rdm/utils/uid.h"
 
