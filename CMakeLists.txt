@@ -8,7 +8,7 @@ idf_component_register(
 
        "src/rdm/responder/discovery.c" "src/rdm/responder/product_info.c"
        "src/rdm/responder/rdm_info.c" "src/rdm/responder/device_control.c"
-       "src/rdm/responder/queue_status.c"
+       "src/rdm/responder/queue_status.c" "src/rdm/responder/misc.c"
   INCLUDE_DIRS "src" 
   REQUIRES driver esp_timer esp_common esp_hw_support nvs_flash
 )   
