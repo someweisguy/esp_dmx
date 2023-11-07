@@ -1,6 +1,9 @@
 #include "rdm_info.h"
 
+#include "dmx/driver.h"
 #include "dmx/struct.h"
+#include "rdm/utils/bus_ctl.h"
+#include "endian.h"
 
 static int rdm_supported_params_response_cb(dmx_port_t dmx_num,
                                             rdm_header_t *header, void *pd,

@@ -3,11 +3,12 @@ idf_component_register(
        "src/dmx/hal/gpio.c" "src/dmx/driver.c" "src/dmx/bus_ctl.c" 
        "src/dmx/device.c" "src/dmx/sniffer.c"
        
-       "src/rdm/controller.c" "src/rdm/responder.c" "src/rdm/parameters.c"
+       "src/rdm/controller.c" "src/rdm/parameters.c"
        "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/bus_ctl.c"
 
        "src/rdm/responder/discovery.c" "src/rdm/responder/product_info.c"
        "src/rdm/responder/rdm_info.c" "src/rdm/responder/device_control.c"
+       "src/rdm/responder/queue_status.c"
   INCLUDE_DIRS "src" 
   REQUIRES driver esp_timer esp_common esp_hw_support nvs_flash
 )   
