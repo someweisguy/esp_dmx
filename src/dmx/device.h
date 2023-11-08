@@ -67,9 +67,11 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
  * @param personality_num The personality number of the description to get.
  * Personality numbers are indexed starting at 1.
  * @return The description of the DMX personality or NULL on failure.
+ * // TODO: update docs
  */
-const char *dmx_get_personality_description(dmx_port_t dmx_num,
-                                            uint8_t personality_num);
+bool dmx_get_personality_description(
+    dmx_port_t dmx_num, uint8_t personality_num,
+    dmx_personality_description_t *description);
 
 /**
  * @brief Gets the footprint of the specified personality.

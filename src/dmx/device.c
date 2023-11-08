@@ -236,16 +236,24 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   return personality_count;
 }
 
-const char *dmx_get_personality_description(dmx_port_t dmx_num,
-                                            uint8_t personality_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, NULL, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), NULL, "driver is not installed");
+bool dmx_get_personality_description(
+    dmx_port_t dmx_num, uint8_t personality_num,
+    dmx_personality_description_t *description) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(description != NULL, false, "description is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   DMX_CHECK((personality_num > 0 &&
              personality_num <= dmx_get_personality_count(dmx_num)),
-            NULL, "personality_num is invalid");
+            false, "personality_num is invalid");
 
+  // Copy the values to the personality description struct
+  description->personality_num = personality_num;
+  description->footprint = dmx_get_footprint(dmx_num, personality_num);
   --personality_num;  // Personalities are indexed starting at 1
-  return dmx_driver[dmx_num]->personalities[personality_num].description;
+  strncpy(description->description,
+          dmx_driver[dmx_num]->personalities[personality_num].description, 32);
+
+  return true;
 }
 
 size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {
