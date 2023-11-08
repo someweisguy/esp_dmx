@@ -51,21 +51,14 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @brief Gets a pointer to the parameter stored in the RDM device, if the
  * parameter exists.
  *
- * @note This function returns a pointer to the raw parameter data which is
- * stored on the RDM device. It is possible to edit the data directly but this
- * is not recommended for most use cases. The proper way to update RDM parameter
- * data would be to use the function `rdm_pd_set()` because it properly
- * updates NVS and the RDM queue.
- *
  * @param dmx_num The DMX port number.
  * @param pid The parameter ID to get.
  * @param sub_device The sub-device number which owns the parameter.
  * @return A pointer to the parameter data or NULL if the parameter does not
  * exist.
- * // TODO
  */
-const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                       rdm_sub_device_t sub_device);
+void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
+                 rdm_sub_device_t sub_device);
 
 /**
  * @brief Sets the value of a specified RDM parameter. This function will not

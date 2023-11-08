@@ -300,22 +300,22 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return ret;
 }
 
-const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                       rdm_sub_device_t sub_device) {
+void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
+                 rdm_sub_device_t sub_device) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // TODO
   DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
             "Multiple sub-devices are not yet supported.");
 
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Find the parameter data
   void *pd = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  // Find parameter data and its descriptor
   for (int i = 0; i < driver->num_parameters; ++i) {
     if (driver->params[i].pid == pid) {
       pd = driver->params[i].data;
@@ -339,40 +339,35 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
   DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
             "Multiple sub-devices are not yet supported.");
 
-  bool ret = false;
+  size_t written = 0;
 
+  // Return early if nothing to write
   if (size == 0) {
-    return ret;
+    return written;
   }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Find the parameter
-  uint32_t pdi = 0;  // Parameter data index
+  // Find the parameter and copy the data
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == pid) {
+  for (int i = 0; i < driver->num_parameters; ++i) {
+    if (driver->params[i].pid == pid) {
+      void *pd = driver->params[i].data;
+      if (pd == NULL) {
+        break;  // Parameter data does not exist
+      }
+      if (driver->params[i].schema.data_type == RDM_DS_ASCII) {
+        strncpy(pd, data, size);
+      } else {
+        memcpy(pd, data, size);
+      }
+      written = size;
       break;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (pdi == driver->num_parameters) {
-    return ret;  // Requested parameter does not exist
-  }
-
-  // Copy the user data to the parameter
-  if (driver->params[pdi].data != NULL) {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (driver->params[pdi].schema.data_type == RDM_DS_ASCII) {
-      strncpy(driver->params[pdi].data, data, size);
-    } else {
-      memcpy(driver->params[pdi].data, data, size);
-    }
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    ret = true;
-  }
-
-  return ret;
+  
+  return written;
 }
 
 int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
