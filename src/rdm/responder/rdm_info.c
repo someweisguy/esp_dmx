@@ -6,9 +6,9 @@
 #include "rdm/responder/misc.h"
 #include "rdm/utils/bus_ctl.h"
 
-static int rdm_rh_supported_parameters(dmx_port_t dmx_num, rdm_header_t *header,
-                                       void *pd, uint8_t *pdl_out,
-                                       const char *format) {
+static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
+                                        rdm_header_t *header, void *pd,
+                                        uint8_t *pdl_out, const char *format) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -47,9 +47,9 @@ static int rdm_rh_supported_parameters(dmx_port_t dmx_num, rdm_header_t *header,
   return RDM_RESPONSE_TYPE_ACK;
 }
 
-static int rdm_rh_parameter_description(dmx_port_t dmx_num,
-                                        rdm_header_t *header, void *pd,
-                                        uint8_t *pdl_out, const char *format) {
+static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
+                                         rdm_header_t *header, void *pd,
+                                         uint8_t *pdl_out, const char *format) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
@@ -85,7 +85,7 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
       .size = 231 - (231 % sizeof(uint16_t)),
       .format = "w",
       .nvs = false,
-      .response_handler = rdm_rh_supported_parameters,
+      .response_handler = rdm_rhd_supported_parameters,
   };
 
   rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL);
@@ -105,7 +105,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
       .size = sizeof(rdm_pid_description_t),
       .format = "wbbb#00hbbddda$",
       .nvs = false,
-      .response_handler = rdm_rh_supported_parameters,
+      .response_handler = rdm_rhd_supported_parameters,
   };
 
   rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL);
