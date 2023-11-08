@@ -24,8 +24,8 @@ static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
     rdm_emplace(&personality_num, "b$", pd, 231, true);
 
     // Ensure the requested personality number is within bounds
-    if (personality_num < 1 ||
-        personality_num > dmx_get_personality_count(dmx_num)) {
+    if (personality_num < schema->min_value ||
+        personality_num > schema->max_value) {
       *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
       return RDM_RESPONSE_TYPE_NACK_REASON;
     }
@@ -52,8 +52,8 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
   rdm_emplace(&personality_num, "b$", pd, 231, true);
 
   // Ensure the requested personality number is within bounds
-  if (personality_num < 1 ||
-      personality_num > dmx_get_personality_count(dmx_num)) {
+  if (personality_num < schema->min_value ||
+      personality_num > schema->max_value) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }

@@ -510,6 +510,8 @@ int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header, void *
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
+  // TODO: if schema->data_type is byte/word/dword, check min/max
+
   void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
   if (header->cc == RDM_CC_GET_COMMAND) {
     *pdl_out = rdm_emplace(pd, schema->format, data, 231, false);
