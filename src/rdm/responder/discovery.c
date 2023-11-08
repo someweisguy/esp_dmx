@@ -103,10 +103,10 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_MUTE;
   const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_UNSIGNED_BYTE,
+      .data_type = RDM_DS_NOT_DEFINED,
       .cc = RDM_CC_DISC,
       .size = sizeof(uint8_t),
-      .format = "b$",
+      .format = "",
       .nvs = false,
       .response_handler = rdm_rh_discovery_default,
   };
@@ -131,10 +131,10 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
   const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_UNSIGNED_BYTE,
+      .data_type = RDM_DS_NOT_DEFINED,
       .cc = RDM_CC_DISC,
       .size = sizeof(uint8_t),
-      .format = "b$",
+      .format = "",
       .nvs = false,
       .response_handler = rdm_rh_discovery_default,
   };

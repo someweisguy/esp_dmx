@@ -10,10 +10,9 @@ int rdm_rhd_status_messages(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
   return RDM_RESPONSE_TYPE_ACK;
 }
 
-static int rdm_queued_message_response_cb(dmx_port_t dmx_num,
-                                          rdm_header_t *header, void *pd,
-                                          uint8_t *pdl_out,
-                                          const char *format) {
+static int rdm_rhd_queued_message(dmx_port_t dmx_num, rdm_header_t *header,
+                                  void *pd, uint8_t *pdl_out,
+                                  const char *format) {
   // Verify data is valid
   const uint8_t status_type_requested = *(uint8_t *)pd;
   if (status_type_requested != RDM_STATUS_GET_LAST_MESSAGE &&

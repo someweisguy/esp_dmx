@@ -13,10 +13,12 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
   const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_NOT_DEFINED,
+      .data_type = RDM_DS_UNSIGNED_BYTE,
       .cc = RDM_CC_GET_SET,
       .size = sizeof(uint8_t),
       .format = "b$",
+      .min_value = 0,
+      .max_value = 1,
       .nvs = false,
       .response_handler = rdm_response_handler_simple,
   };
