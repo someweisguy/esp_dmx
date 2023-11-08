@@ -2,7 +2,6 @@
 
 #include "dmx/driver.h"
 #include "dmx/struct.h"
-#include "rdm/responder/misc.h"
 
 bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context) {

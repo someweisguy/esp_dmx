@@ -4,7 +4,6 @@
 #include "dmx/driver.h"
 #include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
-#include "rdm/responder/misc.h"
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info, rdm_callback_t cb,

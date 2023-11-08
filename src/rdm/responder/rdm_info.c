@@ -3,7 +3,6 @@
 #include "dmx/driver.h"
 #include "dmx/struct.h"
 #include "endian.h"
-#include "rdm/responder/misc.h"
 #include "rdm/utils/bus_ctl.h"
 
 static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
