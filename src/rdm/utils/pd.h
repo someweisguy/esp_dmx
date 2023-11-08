@@ -47,6 +47,10 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             rdm_pid_t pid, rdm_callback_t callback,
                             void *context);
 
+// TODO: docs
+bool rdm_pd_exists(dmx_port_t dmx_num, rdm_pid_t pid,
+                   rdm_sub_device_t sub_device);
+
 /**
  * @brief Gets a pointer to the parameter stored in the RDM device, if the
  * parameter exists.
@@ -77,8 +81,12 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
                   rdm_sub_device_t sub_device, const void *data, size_t size);
 
 // TODO docs
-int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
-                   rdm_sub_device_t sub_device);
+uint32_t rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
+                        rdm_sub_device_t sub_device);
+
+// TODO: docs
+const rdm_pd_schema_t *rdm_pd_get_schema(dmx_port_t dmx_num, rdm_pid_t pid,
+                                         rdm_sub_device_t sub_device);
 
 // TODO docs
 bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,

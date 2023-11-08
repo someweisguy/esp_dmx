@@ -300,6 +300,32 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return ret;
 }
 
+bool rdm_pd_exists(dmx_port_t dmx_num, rdm_pid_t pid,
+                   rdm_sub_device_t sub_device) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Find the parameter data
+  bool pd_exists = false;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (int i = 0; i < driver->num_parameters; ++i) {
+    if (driver->params[i].pid == pid) {
+      pd_exists = true;
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return pd_exists;
+}
+
 void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
                  rdm_sub_device_t sub_device) {
   assert(dmx_num < DMX_NUM_MAX);
@@ -370,7 +396,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
   return written;
 }
 
-int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
+uint32_t rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
                    rdm_sub_device_t sub_device) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513 || sub_device == RDM_SUB_DEVICE_ALL);
@@ -378,48 +404,64 @@ int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, -1,
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
             "Multiple sub-devices are not yet supported.");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Find the parameter
-  uint32_t pdi = 0;  // Parameter data index
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == pid) {
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (pdi == driver->num_parameters) {
-    return -1;  // Requested parameter does not exist
+  // Parameter must exist to enqueue it
+  if (!rdm_pd_exists(dmx_num, pid, sub_device)) {
+    return 0;
   }
   
-  int ret = -1;
+  uint32_t queue_size = 0;
  
   // Enqueue the parameter if it is not already queued
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
+    bool pid_already_queued = false;
     for (int i = 0; i < driver->rdm_queue_size; ++i) {
       if (driver->rdm_queue[i] == pid) {
-        ret = i;  // PID is already queued
+        pid_already_queued = true;
         break;
       }
     }
-    if (ret == -1) {
+    if (!pid_already_queued) {
       driver->rdm_queue[driver->rdm_queue_size] = pid;
-      ret = driver->rdm_queue_size;
       ++driver->rdm_queue_size;
+      queue_size = driver->rdm_queue_size;
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (ret == -1) {
-    // This is not a hardware failure so don't set the bootloader flag
-    DMX_WARN("Unable to add PID 0x%04x to the RDM queue", pid);
-  }
 
-  return ret;
+  return queue_size;
+}
+
+const rdm_pd_schema_t *rdm_pd_get_schema(dmx_port_t dmx_num, rdm_pid_t pid,
+                                         rdm_sub_device_t sub_device) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < 513);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+   // Find the parameter schema
+  rdm_pd_schema_t *schema = NULL;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (int i = 0; i < driver->num_parameters; ++i) {
+    if (driver->params[i].pid == pid) {
+      schema = &driver->params[i].schema;
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return schema;
 }
 
 bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,
