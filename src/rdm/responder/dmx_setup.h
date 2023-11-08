@@ -5,6 +5,9 @@
  */
 #pragma once
 
+#include "dmx/types.h"
+#include "rdm/types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,8 +17,8 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context);
 
 // TODO docs
-bool rdm_register_dmx_personality_description(dmx_port_t dmx_num, rdm_callback_t cb,
-                                  void *context);
+bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
+                                              rdm_callback_t cb, void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_DMX_START_ADDRESS requests.

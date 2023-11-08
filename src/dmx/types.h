@@ -328,6 +328,13 @@ typedef struct dmx_packet_t {
   int is_rdm;
 } dmx_packet_t;
 
+// TODO: docs
+typedef struct __attribute__((packed)) dmx_personality_description_t {
+  uint8_t personality_num;
+  uint16_t footprint;
+  char description[33];
+} dmx_personality_description_t;
+
 /** @brief DMX start address which indicates the device does not have a DMX
  * start address.*/
 static const uint16_t DMX_START_ADDRESS_NONE = 0xffff;
