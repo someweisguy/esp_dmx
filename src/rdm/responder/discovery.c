@@ -7,7 +7,7 @@
 
 static int rdm_rh_discovery_default(dmx_port_t dmx_num, rdm_header_t *header,
                                     void *pd, uint8_t *pdl_out,
-                                    const char *format) {
+                                    const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     // Cannot respond to RDM_CC_DISC_COMMAND with NACK

@@ -5,14 +5,14 @@
 #include "rdm/utils/bus_ctl.h"
 
 int rdm_rhd_status_messages(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
-                            uint8_t *pdl_out, const char *format) {
+                            uint8_t *pdl_out, const rdm_pd_schema_t *schema) {
   *pdl_out = 0;  // TODO: implement status messages
   return RDM_RESPONSE_TYPE_ACK;
 }
 
 static int rdm_rhd_queued_message(dmx_port_t dmx_num, rdm_header_t *header,
                                   void *pd, uint8_t *pdl_out,
-                                  const char *format) {
+                                  const rdm_pd_schema_t *schema) {
   // Verify data is valid
   const uint8_t status_type_requested = *(uint8_t *)pd;
   if (status_type_requested != RDM_STATUS_GET_LAST_MESSAGE &&
@@ -35,7 +35,7 @@ static int rdm_rhd_queued_message(dmx_port_t dmx_num, rdm_header_t *header,
   } else {
     // When there aren't any queued messages respond with a status message
     header->pid = RDM_PID_STATUS_MESSAGE;
-    ack = rdm_rhd_status_messages(dmx_num, header, pd, pdl_out, format);
+    ack = rdm_rhd_status_messages(dmx_num, header, pd, pdl_out, schema->format);
   }
 
   return ack;

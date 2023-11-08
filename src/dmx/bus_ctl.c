@@ -294,9 +294,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Call the appropriate response handler to process the request
     pdl_out = 0;  // Set to default value for response handler
     rdm_read(dmx_num, NULL, pd, sizeof(pd));
-    const char *format = driver->params[pdi].schema.format;
     response_type = driver->params[pdi].schema.response_handler(
-        dmx_num, &header, pd, &pdl_out, format);
+        dmx_num, &header, pd, &pdl_out, schema);
 
     // Verify that the driver-side callback returned correctly
     if (pdl_out > sizeof(pd)) {

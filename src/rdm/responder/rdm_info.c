@@ -7,7 +7,8 @@
 
 static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
                                         rdm_header_t *header, void *pd,
-                                        uint8_t *pdl_out, const char *format) {
+                                        uint8_t *pdl_out,
+                                        const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -48,7 +49,8 @@ static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
 
 static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
                                          rdm_header_t *header, void *pd,
-                                         uint8_t *pdl_out, const char *format) {
+                                         uint8_t *pdl_out,
+                                         const rdm_pd_schema_t *schema) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
@@ -66,7 +68,7 @@ static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
-  *pdl_out = rdm_emplace(pd, format, &description,
+  *pdl_out = rdm_emplace(pd, schema->format, &description,
                          sizeof(rdm_pid_description_t), false);
   return RDM_RESPONSE_TYPE_ACK;
 }

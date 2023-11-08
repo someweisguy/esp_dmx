@@ -7,7 +7,7 @@
 
 static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
                                    void *pd, uint8_t *pdl_out,
-                                   const char *format) {
+                                   const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -17,7 +17,7 @@ static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
   if (header->cc == RDM_CC_GET_COMMAND) {
     const rdm_dmx_personality_t *data =
         rdm_pd_get(dmx_num, header->pid, header->sub_device);
-    *pdl_out = rdm_emplace(pd, format, data, 231, false);
+    *pdl_out = rdm_emplace(pd, schema->format, data, 231, false);
   } else {
     // Get the requested personality number from the parameter data
     uint8_t personality_num;
@@ -41,7 +41,7 @@ static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
 static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
                                                rdm_header_t *header, void *pd,
                                                uint8_t *pdl_out,
-                                               const char *format) {
+                                               const rdm_pd_schema_t *schema) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
@@ -67,7 +67,7 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
   }
 
   // Emplace the response
-  *pdl_out = rdm_emplace(pd, format, &pers_desc, 231, false);
+  *pdl_out = rdm_emplace(pd, schema->format, &pers_desc, 231, false);
   return RDM_RESPONSE_TYPE_ACK;
 }
 

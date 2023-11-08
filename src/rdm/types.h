@@ -662,18 +662,21 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
 } rdm_status_message_t;
 
 /**
+ * @brief The function type for user callbacks in RDM responses.
+ */
+typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
+                               void *context);
+
+// Forward declaration for use in rdm_response_handler_t
+typedef struct rdm_pd_schema_t rdm_pd_schema_t;
+
+/**
  * @brief A function type for RDM responder callbacks. This is the type of
  * function that is called when responding to RDM requests.
  */
 typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
                                       void *pd, uint8_t *pdl_out,
-                                      const char *format);
-
-/**
- * @brief The function type for user callbacks in RDM responses.
- */
-typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
-                               void *context);
+                                      const rdm_pd_schema_t *schema);
 
 // TODO: docs
 typedef struct rdm_pd_schema_t {

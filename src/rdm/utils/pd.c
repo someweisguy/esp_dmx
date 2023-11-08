@@ -503,7 +503,7 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
-                           uint8_t *pdl_out, const char *format) {
+                           uint8_t *pdl_out, const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -512,9 +512,9 @@ int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header, void *
 
   void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
   if (header->cc == RDM_CC_GET_COMMAND) {
-    *pdl_out = rdm_emplace(pd, format, data, 231, false);
+    *pdl_out = rdm_emplace(pd, schema->format, data, 231, false);
   } else {
-    rdm_emplace(data, format, pd, header->pdl, true);
+    rdm_emplace(data, schema->format, pd, header->pdl, true);
   }
 
   return RDM_RESPONSE_TYPE_ACK;
