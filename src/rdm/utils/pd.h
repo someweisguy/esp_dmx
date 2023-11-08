@@ -23,19 +23,16 @@ extern "C" {
 // TODO: docs
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            rdm_pid_t pid, const rdm_pd_schema_t *schema,
-                           const rdm_pd_dimensions_t *dimensions,
                            const void *init_value);
 
 // TODO: docs
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                              rdm_pid_t pid, const rdm_pd_schema_t *schema,
-                             const rdm_pd_dimensions_t *dimensions,
                              rdm_pid_t alias, size_t offset);
 
 // TODO: docs
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, const rdm_pd_schema_t *schema,
-                              const rdm_pd_dimensions_t *dimensions);
+                              rdm_pid_t pid, const rdm_pd_schema_t *schema);
 
 // TODO: docs
 bool rdm_pd_update_response_handler(dmx_port_t dmx_num,

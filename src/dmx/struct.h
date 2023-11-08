@@ -217,7 +217,6 @@ typedef struct dmx_driver_t {
     rdm_pid_t pid;               // The PID of this parameter.
     void *data;                  // A pointer to the parameter data.
     rdm_pd_schema_t schema;      // The schema of the parameter.
-    rdm_pd_dimensions_t *dims;   // Optional dimensions for the parameter.
     rdm_callback_t callback;     // The parameter callback function.
     void *context;               // Context for the callback function.
   } params[RDM_RESPONDER_NUM_PIDS_MAX];  // A table containing RDM parameter information.

@@ -91,7 +91,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   };
 
   // Register the parameter
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL);
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -114,12 +114,11 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Register the parameter as an alias if RDM_PID_DISC_UN_MUTE exists
   if (rdm_pd_get(dmx_num, RDM_PID_DISC_UN_MUTE, RDM_SUB_DEVICE_ROOT)) {
     const size_t offset = 0;  // Mute and un-mute are shared parameters
-    rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
+    rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
                      RDM_PID_DISC_UN_MUTE, offset);
   } else {
     const uint8_t init_value = 0;  // Initial value is un-muted
-    rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
-                   &init_value);
+    rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, &init_value);
   }
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
@@ -143,12 +142,11 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Register the parameter as an alias if RDM_PID_DISC_MUTE exists
   if (rdm_pd_get(dmx_num, RDM_PID_DISC_MUTE, RDM_SUB_DEVICE_ROOT)) {
     const size_t offset = 0;  // Mute and un-mute are shared parameters
-    rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
+    rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
                      RDM_PID_DISC_MUTE, offset);
   } else {
     const uint8_t init_value = 0;  // Initial value is un-muted
-    rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
-                   &init_value);
+    rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, &init_value);
   }
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }

@@ -65,7 +65,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL, device_info);
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, device_info);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -89,8 +89,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
-                 device_label);
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, device_label);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -118,7 +117,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
                  software_version_label);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }

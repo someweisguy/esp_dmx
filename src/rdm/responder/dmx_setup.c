@@ -98,7 +98,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_rhd_dmx_personality,
   };
 
-  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
+  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
                    RDM_PID_DEVICE_INFO,
                    offsetof(rdm_device_info_t, current_personality));
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
@@ -121,7 +121,7 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
       .response_handler = rdm_rhd_dmx_personality_description,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL);
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -143,7 +143,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, NULL,
+  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
                    RDM_PID_DEVICE_INFO,
                    offsetof(rdm_device_info_t, dmx_start_address));
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);

@@ -675,25 +675,40 @@ typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
 typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
                                void *context);
 
+/*
+used in rh:
+  data_type
+  cc
+  size
+  format
+  min_value
+  max_value
+
+not used:
+  nvs
+  response_handler
+  -units
+  -prefix
+  -default_value
+  -desc
+*/
+
+
 // TODO: docs
 typedef struct rdm_pd_schema_t {
     rdm_ds_t data_type;
     rdm_pid_cc_t cc;
     size_t size;
     const char *format;
+    uint32_t min_value;
+    uint32_t max_value;
+    uint32_t default_value;
+    rdm_units_t units;
+    rdm_prefix_t prefix;
+    const char *description;
     bool nvs;
     rdm_response_handler_t response_handler;
 } rdm_pd_schema_t;
-
-// TODO: docs
-typedef struct rdm_pd_dimensions_t {
-  rdm_units_t units;
-  rdm_prefix_t prefix;
-  uint32_t min_value;
-  uint32_t max_value;
-  uint32_t default_value;
-  char description[33];
-} rdm_pd_dimensions_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast

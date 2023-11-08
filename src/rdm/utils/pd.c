@@ -13,7 +13,6 @@
 
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            rdm_pid_t pid, const rdm_pd_schema_t *schema,
-                           const rdm_pd_dimensions_t *dimensions,
                            const void *init_value) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
@@ -23,13 +22,6 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(schema->cc >= RDM_CC_DISC && schema->cc <= RDM_CC_GET_SET);
   assert(schema->size > 0);
   assert(schema->response_handler != NULL);
-  if (dimensions != NULL && pid >= 0x8000) {
-    assert((dimensions->units >= RDM_UNITS_NONE &&
-            dimensions->units <= RDM_UNITS_BYTES) ||
-           (dimensions->units >= 0x80 && dimensions->units <= 0xff));
-    assert(dimensions->prefix >= RDM_PREFIX_NONE &&
-           dimensions->prefix <= RDM_PREFIX_YOTTA);
-  }
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
@@ -58,24 +50,15 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Reserve space for the parameter data in the driver
-  rdm_pd_dimensions_t *dims_ptr = NULL;
-  const size_t dims_size = pid < 0x8000 ? sizeof(rdm_pd_dimensions_t) : 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   const size_t pdl_available = driver->pd_size - driver->pd_head;
-  if (schema->size + dims_size <= pdl_available) {
+  if (schema->size <= pdl_available) {
     pd = driver->pd + driver->pd_head;
     driver->pd_head += schema->size;
-    if (dims_size > 0) {
-      dims_ptr = driver->pd + driver->pd_head;
-      driver->pd_head += dims_size;
-    }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (schema->size + dims_size > pdl_available) {
+  if (schema->size > pdl_available) {
     return pd;  // No more reservable parameter data space
-  }
-  if (dims_ptr != NULL) {
-    memcpy(dims_ptr, dimensions, dims_size);
   }
 
   // Set the parameter to the default value
@@ -90,7 +73,6 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Add the new parameter to the driver
   driver->params[pdi].data = pd;
   driver->params[pdi].schema = *schema;
-  driver->params[pdi].dims = dims_ptr;
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
@@ -100,7 +82,6 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                              rdm_pid_t pid, const rdm_pd_schema_t *schema,
-                             const rdm_pd_dimensions_t *dimensions,
                              rdm_pid_t alias, size_t offset) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
@@ -110,13 +91,6 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(schema->cc >= RDM_CC_DISC && schema->cc <= RDM_CC_GET_SET);
   assert(schema->size > 0);
   assert(schema->response_handler != NULL);
-  if (dimensions != NULL && pid >= 0x8000) {
-    assert((dimensions->units >= RDM_UNITS_NONE &&
-            dimensions->units <= RDM_UNITS_BYTES) ||
-           (dimensions->units >= 0x80 && dimensions->units <= 0xff));
-    assert(dimensions->prefix >= RDM_PREFIX_NONE &&
-           dimensions->prefix <= RDM_PREFIX_YOTTA);
-  }
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
@@ -163,7 +137,6 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Add the new parameter to the driver
   driver->params[pdi].data = pd;
   driver->params[pdi].schema = *schema;
-  // driver->params[pdi].dims = dims_ptr; // TODO
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
@@ -172,8 +145,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, const rdm_pd_schema_t *schema,
-                              const rdm_pd_dimensions_t *dimensions) {
+                              rdm_pid_t pid, const rdm_pd_schema_t *schema) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513);
   assert(pid > 0 && pid <= 0xffff);
@@ -182,13 +154,6 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(schema->cc >= RDM_CC_DISC && schema->cc <= RDM_CC_GET_SET);
   assert(schema->size > 0);
   assert(schema->response_handler != NULL);
-  if (dimensions != NULL && pid >= 0x8000) {
-    assert((dimensions->units >= RDM_UNITS_NONE &&
-            dimensions->units <= RDM_UNITS_BYTES) ||
-           (dimensions->units >= 0x80 && dimensions->units <= 0xff));
-    assert(dimensions->prefix >= RDM_PREFIX_NONE &&
-           dimensions->prefix <= RDM_PREFIX_YOTTA);
-  }
   assert(dmx_driver_is_installed(dmx_num));
 
   // TODO
@@ -219,7 +184,6 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Add the new parameter to the driver
   driver->params[pdi].data = NULL;
   driver->params[pdi].schema = *schema;
-  // driver->params[pdi].dims = dims_ptr; // TODO
   driver->params[pdi].callback = NULL;
   // driver->params[pdi].context does not need to be set to NULL yet
   ++driver->num_parameters;
@@ -487,18 +451,17 @@ bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,
   for (int i = 0; i < driver->num_parameters; ++i) {
     if (driver->params[i].pid == pid) {
       const rdm_pd_schema_t *schema = &driver->params[i].schema;
-      const rdm_pd_dimensions_t *dims = driver->params[i].dims;
-      if (schema != NULL && dims != NULL) {
+      if (schema != NULL) {
         description->pid = pid;
         description->pdl_size = schema->size;
         description->data_type = schema->data_type;
         description->cc = schema->cc;
-        description->unit = dims->units;
-        description->prefix = dims->prefix;
-        description->min_value = dims->min_value;
-        description->max_value = dims->max_value;
-        description->default_value = dims->default_value;
-        strncpy(description->description, dims->description, 32);
+        description->unit = schema->units;
+        description->prefix = schema->prefix;
+        description->min_value = schema->min_value;
+        description->max_value = schema->max_value;
+        description->default_value = schema->default_value;
+        strncpy(description->description, schema->description, 32);
         success = true;
       }
       break;
