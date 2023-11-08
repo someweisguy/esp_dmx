@@ -191,14 +191,12 @@ typedef struct dmx_driver_t {
   uint8_t *data;    // The buffer that stores the DMX packet.
   int16_t tx_size;  // The size of the outgoing packet.
   int16_t rx_size;  // The expected size of the incoming packet.
+  int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
   // Driver state
   uint8_t flags;  // Flags which indicate the current state of the driver.
   uint8_t rdm_type;  // Flags which indicate the RDM type of the most recent packet.
-  uint8_t tn;  // The current RDM transaction number. Is incremented with every
-               // RDM packet sent.
-  int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the
-                         // last slot of the previous data packet.
+  uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
 
   // DMX configuration
   struct dmx_personality_t {
