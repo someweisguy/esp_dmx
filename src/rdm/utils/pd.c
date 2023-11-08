@@ -327,8 +327,8 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
   return pd;
 }
 
-bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
-                const void *data, size_t size) {
+size_t rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
+                  rdm_sub_device_t sub_device, const void *data, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < 513 || sub_device == RDM_SUB_DEVICE_ALL);
   assert(pid > 0);
@@ -366,7 +366,7 @@ bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
     }
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  
+
   return written;
 }
 

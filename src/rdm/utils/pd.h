@@ -73,8 +73,8 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
  * @return true on success.
  * @return false on failure.
  */
-bool rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
-                const void *data, size_t size);
+size_t rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
+                  rdm_sub_device_t sub_device, const void *data, size_t size);
 
 // TODO docs
 int rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
