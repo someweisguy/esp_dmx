@@ -46,21 +46,17 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // const rdm_pid_description_t description = {.pid = RDM_PID_QUEUED_MESSAGE,
-  //                                     .pdl_size = 1,
-  //                                     .data_type = RDM_DS_NOT_DEFINED,
-  //                                     .cc = RDM_CC_GET,
-  //                                     .unit = RDM_UNITS_NONE,
-  //                                     .prefix = RDM_PREFIX_NONE,
-  //                                     .min_value = 0,
-  //                                     .max_value = 0,
-  //                                     .default_value = 0,
-  //                                     .description = "Queued Message"};
+  // Define the parameter
+  const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
+  const rdm_pd_schema_t schema = {
+      .data_type = RDM_DS_NOT_DEFINED,
+      .cc = RDM_CC_GET,
+      .size = sizeof(uint8_t),
+      .format = "b$",
+      .nvs = false,
+      .response_handler = rdm_rhd_queued_message,
+  };
 
-  // return rdm_pd_register(dmx_num, RDM_SUB_DEVICE_ROOT, &description, NULL,
-  //                               rdm_queued_message_response_cb, NULL, cb,
-  //                               context, false);
-
-  // FIXME
-  return false;
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema);
+  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
