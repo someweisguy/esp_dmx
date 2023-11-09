@@ -28,10 +28,9 @@ static int rdm_rhd_queued_message(dmx_port_t dmx_num, rdm_header_t *header,
   // Pop a PID from the queue and attempt to serve the queued data
   const rdm_pid_t queue_pid = rdm_queue_pop(dmx_num);
   if (queue_pid != 0) {
-
-    // TODO: get the PD and emplace it into pd
-    
-    ack = RDM_RESPONSE_TYPE_ACK;
+    // Call the response handler for the queued PID
+    header->pid = queue_pid;    
+    ack = rdm_pd_call_response_handler(dmx_num, header, pd, pdl_out);
   } else {
     // When there aren't any queued messages respond with a status message
     header->pid = RDM_PID_STATUS_MESSAGE;

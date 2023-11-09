@@ -502,6 +502,36 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return num_pids;
 }
 
+int rdm_pd_call_response_handler(dmx_port_t dmx_num, rdm_header_t *header,
+                                 void *pd, uint8_t *pdl_out) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(header != NULL);
+  assert(pdl_out != NULL);
+  assert(pd != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Find the parameter schema
+  const rdm_pd_schema_t *schema = NULL;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  for (int i = 0; i < driver->num_parameters; ++i) {
+    if (driver->params[i].pid == header->pid) {
+      schema = &driver->params[i].schema;
+      break;
+    }
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  // Guard against unknown PID
+  if (schema == NULL) {
+    *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  return schema->response_handler(dmx_num, header, pd, pdl_out, schema);
+}
+
 int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
                            uint8_t *pdl_out, const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range

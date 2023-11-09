@@ -95,6 +95,10 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                      uint16_t *pids, uint32_t num);
 
 // TODO: docs
+int rdm_pd_call_response_handler(dmx_port_t dmx_num, rdm_header_t *header,
+                                 void *pd, uint8_t *pdl_out);
+
+// TODO: docs
 int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
                                 void *pd, uint8_t *pdl_out,
                                 const rdm_pd_schema_t *schema);
