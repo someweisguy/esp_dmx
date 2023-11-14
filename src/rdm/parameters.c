@@ -2,6 +2,7 @@
 
 #include "dmx/device.h"
 #include "dmx/driver.h"
+#include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
 
 bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {

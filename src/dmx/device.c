@@ -32,7 +32,7 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   DMX_CHECK(dmx_get_start_address(dmx_num) != DMX_START_ADDRESS_NONE, false,
             "cannot set DMX start address");
 
-  bool ret;
+  bool ret = false;
 
   if (!rdm_is_enabled(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -50,7 +50,6 @@ bool dmx_set_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address) {
   } else if (!rdm_set_dmx_start_address(dmx_num, dmx_start_address)) {
     // An unusual error occurred
     DMX_ERR("unable to set DMX start address");
-    ret = false;
   }
 
   return ret;
