@@ -140,6 +140,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Driver state
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
+  driver->flags |= enable_rdm ? DMX_FLAGS_RDM_IS_ENABLED : 0;
   driver->rdm_type = 0;
   driver->tn = 0;
   driver->last_slot_ts = 0;
@@ -473,35 +474,6 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return mab_len;
-}
-
-bool rdm_disable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(rdm_is_enabled(dmx_num), false, "RDM is already disabled");
-
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  dmx_driver[dmx_num]->flags &= ~DMX_FLAGS_RDM_IS_ENABLED;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return true;
-}
-
-bool rdm_enable(dmx_port_t dmx_num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(!rdm_is_enabled(dmx_num), false, "RDM is already enabled");
-
-  if (dmx_driver[dmx_num]->pd_size >= 53) {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    dmx_driver[dmx_num]->flags |= DMX_FLAGS_RDM_IS_ENABLED;
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  } else {
-    DMX_ERR("RDM cannot be enabled");
-    return false;
-  }
-
-  return true;
 }
 
 bool rdm_is_enabled(dmx_port_t dmx_num) {

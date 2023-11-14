@@ -190,25 +190,6 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
 
 /**
- * @brief Disables RDM on the DMX driver.
- * 
- * @param dmx_num The DMX port number.
- * @return true on success.
- * @return false on failure.
- */
-bool rdm_disable(dmx_port_t dmx_num);
-
-/**
- * @brief Enables RDM on the DMX driver. RDM can only be enabled if enough RDM
- * parameter data space was reserved upon calling dmx_driver_install().
- *
- * @param dmx_num The DMX port number.
- * @return true on success.
- * @return false on failure.
- */
-bool rdm_enable(dmx_port_t dmx_num);
-
-/**
  * @brief Checks if RDM is enabled on the DMX driver.
  * 
  * @param dmx_num The DMX port number.
