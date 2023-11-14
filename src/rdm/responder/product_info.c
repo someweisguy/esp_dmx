@@ -55,16 +55,16 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_BIT_FIELD,
-      .cc = RDM_CC_GET,
-      .size = sizeof(rdm_device_info_t),
-      .format = "#0100hwwdwbbwwb$",
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_BIT_FIELD,
+                 .cc = RDM_CC_GET,
+                 .pdl_size = sizeof(rdm_device_info_t),
+                 .format = "#0100hwwdwbbwwb$"},
       .nvs = false,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, device_info);
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, device_info);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -79,16 +79,16 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_ASCII,
-      .cc = RDM_CC_GET_SET,
-      .size = 33,
-      .format = "a$",
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_ASCII,
+                 .cc = RDM_CC_GET_SET,
+                 .pdl_size = 33,
+                 .format = "a$"},
       .nvs = true,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema, device_label);
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, device_label);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -107,16 +107,16 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_ASCII,
-      .cc = RDM_CC_GET,
-      .size = 33,
-      .format = "a$",
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_ASCII,
+                 .cc = RDM_CC_GET,
+                 .pdl_size = 33,
+                 .format = "a$"},
       .nvs = false,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
+  rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def,
                  software_version_label);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }

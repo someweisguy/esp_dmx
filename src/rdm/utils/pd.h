@@ -22,17 +22,17 @@ extern "C" {
 
 // TODO: docs
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                           rdm_pid_t pid, const rdm_pd_definition_t *def,
                            const void *init_value);
 
 // TODO: docs
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             rdm_pid_t pid, const rdm_pd_schema_t *schema,
+                             rdm_pid_t pid, const rdm_pd_definition_t *def,
                              rdm_pid_t alias, size_t offset);
 
 // TODO: docs
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, const rdm_pd_schema_t *schema);
+                              rdm_pid_t pid, const rdm_pd_definition_t *def);
 
 // TODO: docs
 bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
@@ -44,7 +44,15 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             rdm_pid_t pid, rdm_callback_t callback,
                             void *context);
 
-// TODO: docs
+/**
+ * @brief Checks if an RDM parameter has been added to the DMX driver.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to check.
+ * @param sub_device The sub-device number which owns the parameter.
+ * @return true if the parameter has been added.
+ * @return false if the parameter has not been added.
+ */
 bool rdm_pd_exists(dmx_port_t dmx_num, rdm_pid_t pid,
                    rdm_sub_device_t sub_device);
 
@@ -62,9 +70,7 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
                  rdm_sub_device_t sub_device);
 
 /**
- * @brief Sets the value of a specified RDM parameter. This function will not
- * set the value of an RDM parameter if the parameter does not support SET
- * requests.
+ * @brief Sets the value of a specified RDM parameter.
  *
  * @param dmx_num The DMX port number.
  * @param pid The parameter ID to set.
@@ -77,9 +83,10 @@ void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
 size_t rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
                   rdm_sub_device_t sub_device, const void *data, size_t size);
 
-// TODO docs
-uint32_t rdm_pd_enqueue(dmx_port_t dmx_num, rdm_pid_t pid,
-                        rdm_sub_device_t sub_device);
+// TODO: docs
+size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_pid_t pid,
+                            rdm_sub_device_t sub_device, const void *data,
+                            size_t size);
 
 // TODO: docs
 const rdm_pd_schema_t *rdm_pd_get_schema(dmx_port_t dmx_num, rdm_pid_t pid,

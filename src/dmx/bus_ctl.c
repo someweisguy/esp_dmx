@@ -257,7 +257,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     }
   }
   if (pdi < driver->num_parameters) {
-    schema = &driver->params[pdi].schema;
+    schema = &driver->params[pdi].definition.schema;
     parameter = driver->params[pdi].data;
   } else {
     schema = NULL;
@@ -294,7 +294,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Call the appropriate response handler to process the request
     pdl_out = 0;  // Set to default value for response handler
     rdm_read(dmx_num, NULL, pd, sizeof(pd));
-    response_type = driver->params[pdi].schema.response_handler(
+    response_type = driver->params[pdi].definition.response_handler(
         dmx_num, &header, pd, &pdl_out, schema);
 
     // Verify that the driver-side callback returned correctly
@@ -363,9 +363,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Update NVS values
-  if (driver->params[pdi].schema.nvs) {
+  if (driver->params[pdi].definition.nvs) {
     if (!dmx_nvs_set(dmx_num, pid_in, sub_device_in, schema->data_type,
-                     parameter, schema->size)) {
+                     parameter, schema->pdl_size)) {
       rdm_set_boot_loader(dmx_num);
       DMX_WARN("unable to save PID 0x%04x to NVS", pid_in);
     }

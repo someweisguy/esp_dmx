@@ -667,8 +667,15 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
 typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
                                void *context);
 
-// Forward declaration for use in rdm_response_handler_t
-typedef struct rdm_pd_schema_t rdm_pd_schema_t;
+// TODO: docs
+typedef struct rdm_pd_schema_t {
+  rdm_ds_t data_type;
+  rdm_pid_cc_t cc;
+  size_t pdl_size;
+  uint32_t min_value;
+  uint32_t max_value;
+  const char *format;
+} rdm_pd_schema_t;
 
 /**
  * @brief A function type for RDM responder callbacks. This is the type of
@@ -679,20 +686,16 @@ typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
                                       const rdm_pd_schema_t *schema);
 
 // TODO: docs
-typedef struct rdm_pd_schema_t {
-    rdm_ds_t data_type;
-    rdm_pid_cc_t cc;
-    size_t size;
-    const char *format;
-    uint32_t min_value;
-    uint32_t max_value;
-    uint32_t default_value;
-    rdm_units_t units;
-    rdm_prefix_t prefix;
-    const char *description;
-    bool nvs;
-    rdm_response_handler_t response_handler;
-} rdm_pd_schema_t;
+typedef struct rdm_pd_definition_t {
+  rdm_pd_schema_t schema;
+  bool nvs;
+  size_t pd_size;
+  rdm_response_handler_t response_handler;
+  uint32_t default_value;
+  rdm_units_t units;
+  rdm_prefix_t prefix;
+  const char *description;
+} rdm_pd_definition_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast

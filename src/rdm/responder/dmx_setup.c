@@ -88,19 +88,18 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_UNSIGNED_BYTE,
-      .cc = RDM_CC_GET_SET,
-      .size = sizeof(rdm_dmx_personality_t),
-      .format = "bb$",
-      .min_value = 1,
-      .max_value = dmx_get_personality_count(dmx_num),
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_UNSIGNED_BYTE,
+                 .cc = RDM_CC_GET_SET,
+                 .pdl_size = sizeof(rdm_dmx_personality_t),
+                 .format = "bb$",
+                 .min_value = 1,
+                 .max_value = dmx_get_personality_count(dmx_num)},
       .nvs = false,
       .response_handler = rdm_rhd_dmx_personality,
   };
 
-  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
-                   RDM_PID_DEVICE_INFO,
+  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, RDM_PID_DEVICE_INFO,
                    offsetof(rdm_device_info_t, current_personality));
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
@@ -113,18 +112,18 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_ASCII,
-      .cc = RDM_CC_GET,
-      .size = 35,
-      .format = "bwa$",
-      .min_value = 1,
-      .max_value = dmx_get_personality_count(dmx_num),
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_ASCII,
+                 .cc = RDM_CC_GET,
+                 .pdl_size = 35,
+                 .format = "bwa$",
+                 .min_value = 1,
+                 .max_value = dmx_get_personality_count(dmx_num)},
       .nvs = false,
       .response_handler = rdm_rhd_dmx_personality_description,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema);
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -137,19 +136,18 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
 
     // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_UNSIGNED_WORD,
-      .cc = RDM_CC_GET_SET,
-      .size = sizeof(uint16_t),
-      .format = "w$",
-      .min_value = 1,
-      .max_value = 512,
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_UNSIGNED_WORD,
+                 .cc = RDM_CC_GET_SET,
+                 .pdl_size = sizeof(uint16_t),
+                 .format = "w$",
+                 .min_value = 1,
+                 .max_value = 512},
       .nvs = true,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema,
-                   RDM_PID_DEVICE_INFO,
+  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, RDM_PID_DEVICE_INFO,
                    offsetof(rdm_device_info_t, dmx_start_address));
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }

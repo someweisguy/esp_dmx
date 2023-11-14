@@ -47,15 +47,15 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_NOT_DEFINED,
-      .cc = RDM_CC_GET,
-      .size = sizeof(uint8_t),
-      .format = "b$",
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_NOT_DEFINED,
+                 .cc = RDM_CC_GET,
+                 .pdl_size = sizeof(uint8_t),
+                 .format = "b$"},
       .nvs = false,
       .response_handler = rdm_rhd_queued_message,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema);
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }

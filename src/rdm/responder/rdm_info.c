@@ -80,16 +80,16 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_SUPPORTED_PARAMETERS;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_UNSIGNED_WORD,
-      .cc = RDM_CC_GET,
-      .size = 231 - (231 % sizeof(uint16_t)),
-      .format = "w",
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_UNSIGNED_WORD,
+                 .cc = RDM_CC_GET,
+                 .pdl_size = 231 - (231 % sizeof(uint16_t)),
+                 .format = "w"},
       .nvs = false,
       .response_handler = rdm_rhd_supported_parameters,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema);
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
@@ -100,15 +100,15 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_PARAMETER_DESCRIPTION;
-  const rdm_pd_schema_t schema = {
-      .data_type = RDM_DS_BIT_FIELD,
-      .cc = RDM_CC_GET,
-      .size = sizeof(rdm_pid_description_t),
-      .format = "wbbb#00hbbddda$",
+  const rdm_pd_definition_t def = {
+      .schema = {.data_type = RDM_DS_BIT_FIELD,
+                 .cc = RDM_CC_GET,
+                 .pdl_size = sizeof(rdm_pid_description_t),
+                 .format = "wbbb#00hbbddda$"},
       .nvs = false,
       .response_handler = rdm_rhd_supported_parameters,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &schema);
+  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
   return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
