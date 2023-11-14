@@ -140,7 +140,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Driver state
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
-  driver->flags |= enable_rdm ? DMX_FLAGS_RDM_IS_ENABLED : 0;
   driver->rdm_type = 0;
   driver->tn = 0;
   driver->last_slot_ts = 0;
@@ -480,7 +479,7 @@ bool rdm_is_enabled(dmx_port_t dmx_num) {
   bool is_enabled;
   if (dmx_driver_is_installed(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    is_enabled = dmx_driver[dmx_num]->flags & DMX_FLAGS_RDM_IS_ENABLED;
+    is_enabled = dmx_driver[dmx_num]->pd_size < 53;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     is_enabled = false;

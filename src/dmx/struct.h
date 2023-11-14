@@ -149,7 +149,6 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
   DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
   DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
-  DMX_FLAGS_RDM_IS_ENABLED = BIT8,      // RDM is enabled on the driver.
 
   DMX_FLAGS_RDM_IS_VALID = BIT0,      // The RDM packet is valid.
   DMX_FLAGS_RDM_IS_REQUEST = BIT1,    // The RDM packet is a request.
@@ -195,7 +194,7 @@ typedef struct dmx_driver_t {
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
   // Driver state
-  uint16_t flags;  // Flags which indicate the current state of the driver.
+  uint8_t flags;  // Flags which indicate the current state of the driver.
   uint8_t rdm_type;  // Flags which indicate the RDM type of the most recent packet.
   uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
 
