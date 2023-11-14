@@ -62,9 +62,15 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // DMX getter can be called
-  *dmx_start_address = dmx_get_start_address(dmx_num);
-  return (dmx_start_address != 0);
+  if (rdm_is_enabled(dmx_num)) {
+    const void *pd =
+        rdm_pd_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT);
+    memcpy(dmx_start_address, pd, sizeof(uint16_t));
+  } else {
+    *dmx_start_address = dmx_get_start_address(dmx_num);
+  }
+
+  return (*dmx_start_address != 0);
 }
 
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
@@ -74,8 +80,24 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
             "dmx_start_address error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // DMX setter can be called
-  return dmx_set_start_address(dmx_num, dmx_start_address);
+  bool ret;
+
+  if (rdm_is_enabled(dmx_num)) {
+    ret = rdm_pd_set_and_queue(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                               RDM_SUB_DEVICE_ROOT, &dmx_start_address,
+                               sizeof(uint16_t));
+
+    // Explicitly record the value to NVS
+    if (ret) {
+      // FIXME: deferred NVS
+      dmx_nvs_set(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
+                  RDM_DS_UNSIGNED_WORD, &dmx_start_address, sizeof(uint16_t));
+    }
+  } else {
+    ret = dmx_set_start_address(dmx_num, dmx_start_address);
+  }
+
+  return ret;
 }
 
 size_t rdm_get_device_label(dmx_port_t dmx_num, char *label, size_t label_len) {
