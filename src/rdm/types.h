@@ -103,7 +103,12 @@ typedef enum rdm_pid_t {
   RDM_PID_COMMS_STATUS = 0x0015,
 
   // Category: Status Collection
-
+  
+  /** @brief The RDM_PID_QUEUED_MESSAGE parameter shall be used to retrieve a
+     message from the responder's message queue. The message count field of all
+     response messages defines the number of messages that are queued in the
+     responder. Each RDM_PID_QUEUED_MESSAGE response shall be composed of a
+     single message response.*/
   RDM_PID_QUEUED_MESSAGE = 0x0020,
   RDM_PID_STATUS_MESSAGE = 0x0030,
   RDM_PID_STATUS_ID_DESCRIPTION = 0x0031,
