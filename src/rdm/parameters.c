@@ -137,10 +137,10 @@ bool rdm_get_current_personality(dmx_port_t dmx_num,
 
 bool rdm_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(personality_num > 0 &&
-                personality_num < dmx_get_personality_count(dmx_num),
-            0, "personality error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            false, "personality_num error");
 
   bool ret;
 
