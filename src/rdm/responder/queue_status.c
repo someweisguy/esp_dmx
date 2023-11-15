@@ -4,8 +4,9 @@
 #include "dmx/struct.h"
 #include "rdm/utils/bus_ctl.h"
 
-int rdm_rhd_status_messages(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
-                            uint8_t *pdl_out, const rdm_pd_schema_t *schema) {
+static int rdm_rhd_status_messages(dmx_port_t dmx_num, rdm_header_t *header,
+                                   void *pd, uint8_t *pdl_out,
+                                   const rdm_pd_schema_t *schema) {
   *pdl_out = 0;  // TODO: implement status messages
   return RDM_RESPONSE_TYPE_ACK;
 }
@@ -29,7 +30,7 @@ static int rdm_rhd_queued_message(dmx_port_t dmx_num, rdm_header_t *header,
   const rdm_pid_t queue_pid = rdm_queue_pop(dmx_num);
   if (queue_pid != 0) {
     // Call the response handler for the queued PID
-    header->pid = queue_pid;    
+    header->pid = queue_pid;
     ack = rdm_pd_call_response_handler(dmx_num, header, pd, pdl_out);
   } else {
     // When there aren't any queued messages respond with a status message
@@ -59,6 +60,6 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_rhd_queued_message,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }

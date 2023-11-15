@@ -1,8 +1,8 @@
 #include "rdm/responder/dmx_setup.h"
 
+#include "dmx/device.h"
 #include "dmx/driver.h"
 #include "dmx/struct.h"
-#include "dmx/device.h"
 #include "rdm/utils/bus_ctl.h"
 
 static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
@@ -72,7 +72,7 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
 }
 
 bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
-                                  void *context){
+                                  void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   DMX_CHECK(rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT),
@@ -100,9 +100,9 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_rhd_dmx_personality,
   };
 
-  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, RDM_PID_DEVICE_INFO,
+  rdm_pd_add_alias(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, RDM_PID_DEVICE_INFO,
                    offsetof(rdm_device_info_t, current_personality));
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
 bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
@@ -125,8 +125,8 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
       .response_handler = rdm_rhd_dmx_personality_description,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -136,7 +136,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT),
             false, "RDM_PID_DEVICE_INFO must be registered first");
 
-    // Define the parameter
+  // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
   const rdm_pd_definition_t def = {
       .schema = {.data_type = RDM_DS_UNSIGNED_WORD,
@@ -150,7 +150,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_response_handler_simple,
   };
 
-  rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, RDM_PID_DEVICE_INFO,
+  rdm_pd_add_alias(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, RDM_PID_DEVICE_INFO,
                    offsetof(rdm_device_info_t, dmx_start_address));
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }

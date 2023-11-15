@@ -90,8 +90,8 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_rhd_supported_parameters,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
 bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -108,9 +108,9 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
                  .format = "wbbb#00hbbddda$"},
       .alloc_size = 0,  // Parameter is deterministic
       .nvs = false,
-      .response_handler = rdm_rhd_supported_parameters,
+      .response_handler = rdm_rhd_parameter_description,
   };
 
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }

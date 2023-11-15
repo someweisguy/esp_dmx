@@ -21,28 +21,31 @@ extern "C" {
 
 
 // TODO: docs
-const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           rdm_pid_t pid, const rdm_pd_definition_t *def,
+const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_pid_t pid,
+                           rdm_sub_device_t sub_device,
+                           const rdm_pd_definition_t *def,
                            const void *init_value);
 
 // TODO: docs
-const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             rdm_pid_t pid, const rdm_pd_definition_t *def,
-                             rdm_pid_t alias, size_t offset);
+const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_pid_t pid,
+                             rdm_sub_device_t sub_device,
+                             const rdm_pd_definition_t *def, rdm_pid_t alias,
+                             size_t offset);
 
 // TODO: docs
-bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, const rdm_pd_definition_t *def);
+bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_pid_t pid,
+                              rdm_sub_device_t sub_device,
+                              const rdm_pd_definition_t *def);
 
 // TODO: docs
-bool rdm_pd_update_response_handler(dmx_port_t dmx_num,
-                                    rdm_sub_device_t sub_device, rdm_pid_t pid,
+bool rdm_pd_update_response_handler(dmx_port_t dmx_num, rdm_pid_t pid,
+                                    rdm_sub_device_t sub_device,
                                     rdm_response_handler_t response_handler);
 
 // TODO: docs
-bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            rdm_pid_t pid, rdm_callback_t callback,
-                            void *context);
+bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                            rdm_sub_device_t sub_device,
+                            rdm_callback_t callback, void *context);
 
 /**
  * @brief Checks if an RDM parameter has been added to the DMX driver.

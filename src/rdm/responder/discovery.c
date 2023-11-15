@@ -1,9 +1,9 @@
 #include "discovery.h"
 
-#include "dmx/struct.h"
 #include "dmx/driver.h"
-#include "rdm/utils/uid.h"
+#include "dmx/struct.h"
 #include "rdm/utils/bus_ctl.h"
+#include "rdm/utils/uid.h"
 
 static int rdm_rh_discovery_default(dmx_port_t dmx_num, rdm_header_t *header,
                                     void *pd, uint8_t *pdl_out,
@@ -82,19 +82,20 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
   const rdm_pd_definition_t def = {
-      .schema = {
-        .data_type = RDM_DS_NOT_DEFINED,
-        .cc = RDM_CC_DISC,
-        .pdl_size = 0,
-        .format = "",
-      },
+      .schema =
+          {
+              .data_type = RDM_DS_NOT_DEFINED,
+              .cc = RDM_CC_DISC,
+              .pdl_size = 0,
+              .format = "",
+          },
       .nvs = false,
       .response_handler = rdm_rh_discovery_default,
   };
 
   // Register the parameter
-  rdm_pd_add_deterministic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def);
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -105,12 +106,10 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_MUTE;
   const rdm_pd_definition_t def = {
-      .schema = {
-        .data_type = RDM_DS_NOT_DEFINED,
-        .cc = RDM_CC_DISC,
-        .pdl_size = 0,
-        .format = "",
-      },
+      .schema = {.data_type = RDM_DS_NOT_DEFINED,
+                 .cc = RDM_CC_DISC,
+                 .pdl_size = 0,
+                 .format = ""},
       .nvs = false,
       .alloc_size = sizeof(uint8_t),
       .response_handler = rdm_rh_discovery_default,
@@ -119,13 +118,13 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Register the parameter as an alias if RDM_PID_DISC_UN_MUTE exists
   if (rdm_pd_get(dmx_num, RDM_PID_DISC_UN_MUTE, RDM_SUB_DEVICE_ROOT)) {
     const size_t offset = 0;  // Mute and un-mute are shared parameters
-    rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def,
+    rdm_pd_add_alias(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
                      RDM_PID_DISC_UN_MUTE, offset);
   } else {
     const uint8_t init_value = 0;  // Initial value is un-muted
-    rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, &init_value);
+    rdm_pd_add_new(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, &init_value);
   }
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -136,12 +135,10 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
   const rdm_pd_definition_t def = {
-      .schema = {
-        .data_type = RDM_DS_NOT_DEFINED,
-        .cc = RDM_CC_DISC,
-        .pdl_size = 0,
-        .format = "",
-      },
+      .schema = {.data_type = RDM_DS_NOT_DEFINED,
+                 .cc = RDM_CC_DISC,
+                 .pdl_size = 0,
+                 .format = ""},
       .nvs = false,
       .alloc_size = sizeof(uint8_t),
       .response_handler = rdm_rh_discovery_default,
@@ -150,11 +147,11 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Register the parameter as an alias if RDM_PID_DISC_MUTE exists
   if (rdm_pd_get(dmx_num, RDM_PID_DISC_MUTE, RDM_SUB_DEVICE_ROOT)) {
     const size_t offset = 0;  // Mute and un-mute are shared parameters
-    rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def,
-                     RDM_PID_DISC_MUTE, offset);
+    rdm_pd_add_alias(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, RDM_PID_DISC_MUTE,
+                     offset);
   } else {
     const uint8_t init_value = 0;  // Initial value is un-muted
-    rdm_pd_add_new(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &def, &init_value);
+    rdm_pd_add_new(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, &init_value);
   }
-  return rdm_pd_update_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+  return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
