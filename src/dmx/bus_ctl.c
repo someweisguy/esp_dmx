@@ -335,7 +335,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   header.src_uid = my_uid;
   header.response_type = response_type;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  header.message_count = driver->rdm_queue_size;
+  header.message_count = driver->rdm_queue_size;  // TODO: use function
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   header.cc += 1;  // Set to RDM_CC_x_COMMAND_RESPONSE
   header.pdl = pdl_out;
@@ -345,7 +345,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (response_type != RDM_RESPONSE_TYPE_NONE) {
     const size_t response_size = rdm_write(dmx_num, &header, pd);
     if (!dmx_send(dmx_num, response_size)) {
-      DMX_WARN("PID 0x%04x did not send a response", header.pid);
+      const int64_t micros_elapsed =
+          dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
+      // TODO: generate more debug info: i.e. GET/SET/DISC request?
+      DMX_WARN("PID 0x%04x did not send a response (size: %i, time: %lli us)",
+               header.pid, response_size, micros_elapsed);
       rdm_set_boot_loader(dmx_num);
     } else if (response_size > 0) {
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
