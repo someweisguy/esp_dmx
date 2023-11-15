@@ -106,7 +106,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     dmx_driver_delete(dmx_num);
     DMX_CHECK(data != NULL, false, "DMX driver buffer malloc error");
   }
-  bzero(data, DMX_PACKET_SIZE_MAX);
+  bzero(data, DMX_PACKET_SIZE_MAX);  // FIXME: use memset()
 
   // Allocate the RDM parameter buffer
   bool enable_rdm;
@@ -196,22 +196,21 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
         .sub_device_count = 0,  // Sub-devices must be registered
         .sensor_count = 0,      // Sensors must be registered
     };
-    rdm_register_supported_parameters(dmx_num, NULL, NULL);
     rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
     rdm_register_disc_un_mute(dmx_num, NULL, NULL);
     rdm_register_disc_mute(dmx_num, NULL, NULL);
     rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
-    rdm_register_device_label(dmx_num, config->device_label, NULL, NULL);
     rdm_register_software_version_label(dmx_num, config->software_version_label,
                                         NULL, NULL);
     rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-    rdm_register_dmx_personality(dmx_num, NULL, NULL);
-    rdm_register_dmx_personality_description(dmx_num, NULL, NULL);
-    rdm_register_parameter_description(dmx_num, NULL, NULL);
-
     if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_register_dmx_start_address(dmx_num, NULL, NULL);
     }
+    rdm_register_supported_parameters(dmx_num, NULL, NULL);
+    rdm_register_device_label(dmx_num, config->device_label, NULL, NULL);
+    rdm_register_dmx_personality(dmx_num, NULL, NULL);
+    rdm_register_dmx_personality_description(dmx_num, NULL, NULL);
+    rdm_register_parameter_description(dmx_num, NULL, NULL);
   } else {
     dmx_driver_personality_t *dmx = driver->pd;
 
