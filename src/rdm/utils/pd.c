@@ -541,11 +541,16 @@ int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
 
   // TODO: if schema->data_type is byte/word/dword, check min/max
 
-  void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
   if (header->cc == RDM_CC_GET_COMMAND) {
+    const void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
     *pdl_out = rdm_emplace(pd, schema->format, data, 231, false);
   } else {
-    rdm_emplace(data, schema->format, pd, header->pdl, true);
+    // Deserialize the packet parameter data
+    rdm_emplace(pd, schema->format, pd, header->pdl, true);
+    if (!rdm_pd_set(dmx_num, header->pid, header->sub_device, pd, header->pdl)) {
+      *pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      return RDM_RESPONSE_TYPE_NACK_REASON;
+    }
   }
 
   return RDM_RESPONSE_TYPE_ACK;
