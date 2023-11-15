@@ -1,6 +1,6 @@
 /**
- * @file timer.h
- * @author Mitch Weisbrod
+ * @file dmx/hal/timer.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the timer Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the timer hardware.
  * The timer hardware is used for generating the timing for the DMX break and
@@ -10,7 +10,7 @@
  */
 #pragma once
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "driver/gptimer.h"
@@ -48,13 +48,12 @@ typedef struct dmx_timer_t *dmx_timer_handle_t;
  * @brief Initializes the DMX timer.
  *
  * @param dmx_num The DMX port number.
- * @param[in] isr_handle The ISR function to be called when the timer completes.
  * @param[inout] isr_context Context to be used in in the DMX timer ISR.
  * @param isr_flags Interrupt flags to be used for the DMX timer ISR.
  * @return A handle to the DMX timer or NULL on failure.
  */
-dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_handle,
-                                  void *isr_context, int isr_flags);
+dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
+                                  int isr_flags);
 
 /**
  * @brief De-initializes the DMX timer.
@@ -98,8 +97,8 @@ void dmx_timer_start(dmx_timer_handle_t timer);
 
 /**
  * @brief Gets the number of microseconds that have elapsed since boot.
- * 
- * @return The number of microseconds since boot. 
+ *
+ * @return The number of microseconds since boot.
  */
 int64_t dmx_timer_get_micros_since_boot();
 

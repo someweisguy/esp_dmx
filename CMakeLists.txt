@@ -1,7 +1,14 @@
 idf_component_register(
-  SRCS "src/esp_dmx.c" "src/rdm_utils.c" "src/dmx/uart.c" "src/dmx/timer.c"
-       "src/dmx/nvs.c" "src/dmx/gpio.c" "src/dmx/hal.c" "src/rdm/controller.c"
-       "src/rdm/responder.c" "src/rdm/parameters.c"
+  SRCS "src/dmx/hal/uart.c" "src/dmx/hal/timer.c" "src/dmx/hal/nvs.c"
+       "src/dmx/hal/gpio.c" "src/dmx/driver.c" "src/dmx/bus_ctl.c" 
+       "src/dmx/device.c" "src/dmx/sniffer.c"
+       
+       "src/rdm/controller.c" "src/rdm/parameters.c"
+       "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/bus_ctl.c"
+
+       "src/rdm/responder/discovery.c" "src/rdm/responder/product_info.c"
+       "src/rdm/responder/rdm_info.c" "src/rdm/responder/device_control.c"
+       "src/rdm/responder/queue_status.c" "src/rdm/responder/dmx_setup.c" 
   INCLUDE_DIRS "src" 
   REQUIRES driver esp_timer esp_common esp_hw_support nvs_flash
 )   

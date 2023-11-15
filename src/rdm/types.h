@@ -1,6 +1,6 @@
 /**
- * @file types.h
- * @author Mitch Weisbrod
+ * @file rdm/types.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file contains constants and types used in RDM.
  */
 #pragma once
@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
@@ -103,7 +103,12 @@ typedef enum rdm_pid_t {
   RDM_PID_COMMS_STATUS = 0x0015,
 
   // Category: Status Collection
-
+  
+  /** @brief The RDM_PID_QUEUED_MESSAGE parameter shall be used to retrieve a
+     message from the responder's message queue. The message count field of all
+     response messages defines the number of messages that are queued in the
+     responder. Each RDM_PID_QUEUED_MESSAGE response shall be composed of a
+     single message response.*/
   RDM_PID_QUEUED_MESSAGE = 0x0020,
   RDM_PID_STATUS_MESSAGE = 0x0030,
   RDM_PID_STATUS_ID_DESCRIPTION = 0x0031,
@@ -386,14 +391,19 @@ typedef enum rdm_ds_t {
 /** @brief The units define the SI unit of a specific PID.*/
 typedef enum rdm_units_t {
   /** @brief An SI unit is not used.*/
-  RDM_UNITS_NONE = 0x00
+  RDM_UNITS_NONE = 0x00,
+  /** @brief The unit is bytes. When a prefix is used with this unit, the
+     multiplier refers to binary multiple. i.e. KILO means multiply by 1024.*/
+  RDM_UNITS_BYTES = 0x1c
 } rdm_units_t;
 
 /** @brief The prefix defines the SI prefix and multiplication factor of the
  * units*/
 typedef enum rdm_prefix_t {
   /** @brief Multiply by 1.*/
-  RDM_PREFIX_NONE = 0x00
+  RDM_PREFIX_NONE = 0x00,
+  /** @brief Multiply by 10E+24.*/
+  RDM_PREFIX_YOTTA = 0x1a
 } rdm_prefix_t;
 
 /** @brief Responders and controllers identify themselves with a 48-bit Unique
@@ -417,6 +427,9 @@ typedef struct rdm_ack_t {
   size_t size;
   /** @brief The UID of the device originating the response packet.*/
   rdm_uid_t src_uid;
+  /** @brief The PID of the response packet. It is typically the same PID as the
+   * RDM request. */
+  rdm_pid_t pid;
   /** @brief The type of the RDM response received.*/
   rdm_response_type_t type;
   /** @brief The message count field is used by a responder to indicate that
@@ -578,9 +591,9 @@ typedef struct __attribute__((packed)) rdm_pid_description_t {
   /** @brief The manufacturer specific PID requested by the controller.*/
   uint16_t pid;
   /** @brief PDL Size defines the number used for the PDL field in all
-     GET_RESPONSE and SET messages associated with this PID. In the case of the
-     value of RDM_DS_ASCII, the PDL Size represents the maximum length of a
-     variable sized ASCII string.*/
+     GET_RESPONSE and SET messages associated with this PID. This field is often
+     the maximum possible size of the PDL not necessarily the absolute size of
+     the PDL.*/
   uint8_t pdl_size;
   /** @brief Data type defines the size of the data entries in the PD of the
      message for this PID. For example: unsigned 8-bit character versus signed
@@ -638,6 +651,56 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_t {
      personalities shall be consecutively numbered starting from 1.*/
   uint8_t personality_count;
 } rdm_dmx_personality_t;
+
+// TODO: docs
+typedef struct __attribute__((packed)) rdm_status_message_t {
+  uint16_t sub_device;
+  uint8_t type;
+  uint16_t id;
+  union {
+    struct {
+      uint16_t data1;
+      uint16_t data2;
+    };
+    uint16_t data[2];
+  };
+} rdm_status_message_t;
+
+/**
+ * @brief The function type for user callbacks in RDM responses.
+ */
+typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
+                               void *context);
+
+// TODO: docs
+typedef struct rdm_pd_schema_t {
+  rdm_ds_t data_type;
+  rdm_pid_cc_t cc;
+  size_t pdl_size;
+  uint32_t min_value;
+  uint32_t max_value;
+  const char *format;
+} rdm_pd_schema_t;
+
+/**
+ * @brief A function type for RDM responder callbacks. This is the type of
+ * function that is called when responding to RDM requests.
+ */
+typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
+                                      void *pd, uint8_t *pdl_out,
+                                      const rdm_pd_schema_t *schema);
+
+// TODO: docs
+typedef struct rdm_pd_definition_t {
+  rdm_pd_schema_t schema;
+  bool nvs;
+  size_t pd_size;
+  rdm_response_handler_t response_handler;
+  uint32_t default_value;
+  rdm_units_t units;
+  rdm_prefix_t prefix;
+  const char *description;
+} rdm_pd_definition_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast

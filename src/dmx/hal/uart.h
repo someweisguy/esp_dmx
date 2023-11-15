@@ -1,6 +1,6 @@
 /**
- * @file uart.h
- * @author Mitch Weisbrod
+ * @file dmx/hal/uart.h
+ * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the UART Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the UART hardware.
  * The UART is used to send and receive DMX and RDM packets. DMX and RDM are
@@ -10,12 +10,26 @@
  */
 #pragma once
 
-#include "dmx_types.h"
+#include "dmx/types.h"
 #include "hal/uart_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+enum dmx_interrupt_mask_t {
+  DMX_INTR_RX_FIFO_OVERFLOW = UART_INTR_RXFIFO_OVF,
+  DMX_INTR_RX_FRAMING_ERR = UART_INTR_PARITY_ERR | UART_INTR_FRAM_ERR,
+  DMX_INTR_RX_ERR = DMX_INTR_RX_FIFO_OVERFLOW | DMX_INTR_RX_FRAMING_ERR,
+
+  DMX_INTR_RX_BREAK = UART_INTR_BRK_DET,
+  DMX_INTR_RX_DATA = UART_INTR_RXFIFO_FULL,
+  DMX_INTR_RX_ALL = DMX_INTR_RX_DATA | DMX_INTR_RX_BREAK | DMX_INTR_RX_ERR,
+
+  DMX_INTR_TX_DATA = UART_INTR_TXFIFO_EMPTY,
+  DMX_INTR_TX_DONE = UART_INTR_TX_DONE,
+  DMX_INTR_TX_ALL = DMX_INTR_TX_DATA | DMX_INTR_TX_DONE,
+};
 
 /**
  * @brief A handle to the DMX UART.
@@ -25,12 +39,11 @@ typedef struct dmx_uart_t *dmx_uart_handle_t;
 /**
  * @brief Initializes the UART for DMX.
  *
- * @param[in] isr_handle The ISR function to be called when servicing the UART.
  * @param[inout] isr_context Context to be used in the DMX UART ISR.
  * @return A handle to the DMX UART or NULL on failure.
  */
-dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_handle,
-                                void *isr_context, int isr_flags);
+dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_context,
+                                int isr_flags);
 
 /**
  * @brief De-initializes the UART.
