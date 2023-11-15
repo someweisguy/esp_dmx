@@ -208,7 +208,7 @@ typedef struct dmx_driver_t {
 
   // Parameter data
   void *pd;        // Allocated memory for DMX/RDM parameter data.
-  size_t pd_size;  // The size of the allocated memory.
+  size_t pd_alloc_size;  // The size of the allocated memory.
   size_t pd_head;  // The amount of memory currently used for parameters.
 
   // RDM responder configuration

@@ -52,7 +52,7 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Reserve space for the parameter data in the driver
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const size_t pdl_available = driver->pd_size - driver->pd_head;
+  const size_t pdl_available = driver->pd_alloc_size - driver->pd_head;
   if (def->alloc_size <= pdl_available) {
     pd = driver->pd + driver->pd_head;
     driver->pd_head += def->alloc_size;
@@ -326,7 +326,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(pid > 0);
   assert(data != NULL);
   assert(dmx_driver_is_installed(dmx_num));
-  
+
   // TODO
   DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
             "Multiple sub-devices are not yet supported.");
@@ -527,8 +527,9 @@ int rdm_pd_call_response_handler(dmx_port_t dmx_num, rdm_header_t *header,
   return def->response_handler(dmx_num, header, pd, pdl_out, schema);
 }
 
-int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
-                           uint8_t *pdl_out, const rdm_pd_schema_t *schema) {
+int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
+                                void *pd, uint8_t *pdl_out,
+                                const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);

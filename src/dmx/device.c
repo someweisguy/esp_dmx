@@ -83,7 +83,7 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
             false, "personality_num error");
 
   bool ret;
-  
+
   if (!rdm_is_enabled(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     dmx_driver_personality_t *personality = dmx_driver[dmx_num]->pd;
@@ -111,7 +111,7 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   uint8_t personality_count;
 
   // Check if RDM is enabled on the driver
-  const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
+  const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_alloc_size >= 53);
 
   if (rdm_is_enabled) {
     // Get the personality count from the RDM device info

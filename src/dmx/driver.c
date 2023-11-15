@@ -110,16 +110,16 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Allocate the RDM parameter buffer
   bool enable_rdm;
-  size_t pd_size;
+  size_t pd_alloc_size;
   if (config->pd_size < 53) {
     // Allocate space for DMX start address and personality info
-    pd_size = sizeof(dmx_driver_personality_t);
+    pd_alloc_size = sizeof(dmx_driver_personality_t);
     enable_rdm = false;
   } else {
-    pd_size = config->pd_size;
+    pd_alloc_size = config->pd_size;
     enable_rdm = true;
   }
-  uint8_t *pd = heap_caps_malloc(pd_size, MALLOC_CAP_8BIT);
+  uint8_t *pd = heap_caps_malloc(pd_alloc_size, MALLOC_CAP_8BIT);
   if (pd == NULL) {
     dmx_driver_delete(dmx_num);
     DMX_CHECK(pd != NULL, false, "DMX driver pd buffer malloc error");
@@ -148,7 +148,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
 
-  driver->pd_size = pd_size;
+  driver->pd_alloc_size = pd_alloc_size;
   driver->pd = pd;
   driver->pd_head = 0;
 
@@ -160,10 +160,10 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Initialize the RDM status queue
   // TODO - implement in pd
-  // driver->rdm_status_threshold = (RDM_STATUS_ERROR - 2);  // Only report errors
-  // for (int i = 0; i < 3; ++i) {
+  // driver->rdm_status_threshold = (RDM_STATUS_ERROR - 2);  // Only report
+  // errors for (int i = 0; i < 3; ++i) {
   //   driver->rdm_status[i].head = 0;
-  //   driver->rdm_status[i].tail = 0;  
+  //   driver->rdm_status[i].tail = 0;
   // }
 
   // DMX sniffer configuration
@@ -478,7 +478,7 @@ bool rdm_is_enabled(dmx_port_t dmx_num) {
   bool is_enabled;
   if (dmx_driver_is_installed(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    is_enabled = dmx_driver[dmx_num]->pd_size < 53;
+    is_enabled = dmx_driver[dmx_num]->pd_alloc_size < 53;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     is_enabled = false;
