@@ -95,7 +95,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
                  .format = "bb$",
                  .min_value = 1,
                  .max_value = dmx_get_personality_count(dmx_num)},
-      .pd_size = sizeof(rdm_dmx_personality_t),
+      .alloc_size = sizeof(rdm_dmx_personality_t),
       .nvs = false,
       .response_handler = rdm_rhd_dmx_personality,
   };
@@ -120,7 +120,7 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
                  .format = "bwa$",
                  .min_value = 1,
                  .max_value = dmx_get_personality_count(dmx_num)},
-      .pd_size = 0,  // Parameter is deterministic
+      .alloc_size = 0,  // Parameter is deterministic
       .nvs = false,
       .response_handler = rdm_rhd_dmx_personality_description,
   };
@@ -145,7 +145,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
                  .format = "w$",
                  .min_value = 1,
                  .max_value = 512},
-      .pd_size = sizeof(uint16_t),
+      .alloc_size = sizeof(uint16_t),
       .nvs = true,
       .response_handler = rdm_response_handler_simple,
   };

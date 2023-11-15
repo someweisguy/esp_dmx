@@ -21,7 +21,7 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(def != NULL);
   assert(def->schema.data_type <= 0xdf);
   assert(def->schema.cc >= RDM_CC_DISC && def->schema.cc <= RDM_CC_GET_SET);
-  assert(def->pd_size > 0);
+  assert(def->alloc_size > 0);
   assert(def->response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -53,12 +53,12 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Reserve space for the parameter data in the driver
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   const size_t pdl_available = driver->pd_size - driver->pd_head;
-  if (def->pd_size <= pdl_available) {
+  if (def->alloc_size <= pdl_available) {
     pd = driver->pd + driver->pd_head;
-    driver->pd_head += def->pd_size;
+    driver->pd_head += def->alloc_size;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (def->pd_size > pdl_available) {
+  if (def->alloc_size > pdl_available) {
     return pd;  // No more reservable parameter data space
   }
 
@@ -90,7 +90,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(def != NULL);
   assert(def->schema.data_type <= 0xdf);
   assert(def->schema.cc >= RDM_CC_DISC && def->schema.cc <= RDM_CC_GET_SET);
-  assert(def->pd_size > 0);
+  assert(def->alloc_size > 0);
   assert(def->response_handler != NULL);
   assert(alias > 0 && alias <= 0xffff);
   assert(dmx_driver_is_installed(dmx_num));
@@ -131,7 +131,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->params[apdi].pid != alias) {
     return pd;  // The alias has not been declared
-  } else if (driver->params[apdi].definition.pd_size < offset) {
+  } else if (driver->params[apdi].definition.alloc_size < offset) {
     return pd;  // The alias offset is larger than the parameter pdl_size
   }
   pd = driver->params[apdi].data + offset;

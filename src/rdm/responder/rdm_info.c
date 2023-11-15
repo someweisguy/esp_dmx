@@ -85,7 +85,7 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
                  .cc = RDM_CC_GET,
                  .pdl_size = 0,
                  .format = "w"},
-      .pd_size = 0,  // Parameter is deterministic
+      .alloc_size = 0,  // Parameter is deterministic
       .nvs = false,
       .response_handler = rdm_rhd_supported_parameters,
   };
@@ -106,7 +106,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
                  .cc = RDM_CC_GET,
                  .pdl_size = sizeof(uint16_t),
                  .format = "wbbb#00hbbddda$"},
-      .pd_size = 0,  // Parameter is deterministic
+      .alloc_size = 0,  // Parameter is deterministic
       .nvs = false,
       .response_handler = rdm_rhd_supported_parameters,
   };

@@ -112,7 +112,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
         .format = "",
       },
       .nvs = false,
-      .pd_size = sizeof(uint8_t),
+      .alloc_size = sizeof(uint8_t),
       .response_handler = rdm_rh_discovery_default,
   };
 
@@ -143,7 +143,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
         .format = "",
       },
       .nvs = false,
-      .pd_size = sizeof(uint8_t),
+      .alloc_size = sizeof(uint8_t),
       .response_handler = rdm_rh_discovery_default,
   };
 
