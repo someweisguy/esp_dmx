@@ -61,31 +61,15 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
 
   uint8_t current_personality;
 
-  // Check if RDM is enabled on the driver
-  const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
-
-  /* If RDM is enabled, attempt to read the current personality from
-    RDM_PID_DEVICE_INFO. If RDM_PID_DEVICE_INFO doesn't exist, throw an error
-    and return 0.
-    If RDM is not enabled, the current personality can be read from
-    the device personality struct.*/
-
-  if (rdm_is_enabled) {
-    const rdm_device_info_t *device_info =
-        rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-    if (device_info != NULL) {
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      current_personality = device_info->current_personality;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    } else {
-      DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
-      current_personality = 0;
-    }
-  } else {
+  if (!rdm_is_enabled(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     const dmx_driver_personality_t *device = dmx_driver[dmx_num]->pd;
     current_personality = device->current_personality;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  } else {
+    rdm_dmx_personality_t pers;
+    rdm_get_current_personality(dmx_num, &pers);
+    current_personality = pers.current_personality;
   }
 
   return current_personality;
@@ -99,52 +83,20 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
             false, "personality_num error");
 
   bool ret;
-
-  // Check if RDM is enabled on the driver
-  const bool rdm_is_enabled = (dmx_driver[dmx_num]->pd_size >= 53);
-
-  /* If RDM is enabled, check if RDM_PID_DMX_PERSONALITY is registered on the
-    driver. If it is, simply call rdm_pd_set() to set the personality. If
-    it isn't, check if RDM_PID_DMX_DEVICE_INFO is registered. If
-    RDM_PID_DEVICE_INFO is registered, make a deep copy of the device info,
-    update the personality, and call rdm_pd_set() on the new device info. Then
-    explicitly call dmx_nvs_set() to update the current personality in NVS. If
-    neither RDM_PID_DMX_PERSONALITY nor RDM_PID_DEVICE_INFO are registered,
-    throw an error.
-    If RDM is not enabled, the personality can be set to
-    the device personality struct.*/
-
-  if (rdm_is_enabled) {
-    const uint8_t *current_personality_ptr =
-        rdm_pd_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT);
-    const rdm_device_info_t *device_info_ptr =
-        rdm_pd_get(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-    if (current_personality_ptr != NULL) {
-      ret = rdm_pd_set(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT,
-                       &personality_num, sizeof(uint8_t));
-    } else if (device_info_ptr != NULL) {
-      rdm_device_info_t device_info;
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      memcpy(&device_info, device_info_ptr, sizeof(rdm_device_info_t));
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-      device_info.current_personality = personality_num;
-      device_info.footprint = dmx_get_footprint(dmx_num, personality_num);
-      ret = rdm_pd_set(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT,
-                       &device_info, sizeof(rdm_device_info_t));
-    } else {
-      DMX_ERR("RDM_PID_DEVICE_INFO must be registered");
-      ret = false;
-    }
-  } else {
+  
+  if (!rdm_is_enabled(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     dmx_driver_personality_t *personality = dmx_driver[dmx_num]->pd;
     personality->current_personality = personality_num;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     ret = true;
+  } else {
+    ret = rdm_set_current_personality(dmx_num, personality_num);
   }
 
   // Explicitly record the value to NVS
   if (ret) {
+    // FIXME: deferred NVS
     ret = dmx_nvs_set(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT,
                       RDM_DS_UNSIGNED_BYTE, &personality_num, sizeof(uint8_t));
   }

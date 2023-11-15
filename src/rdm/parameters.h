@@ -83,6 +83,13 @@ bool rdm_get_dmx_start_address(dmx_port_t dmx_num, uint16_t *dmx_start_address);
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
                                const uint16_t dmx_start_address);
 
+// TODO docs
+bool rdm_get_current_personality(dmx_port_t dmx_num,
+                                 rdm_dmx_personality_t *personality);
+
+// TODO: docs
+bool rdm_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num);
+
 /** 
  * @brief Gets the device label.
  * 
