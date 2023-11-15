@@ -21,7 +21,6 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(def != NULL);
   assert(def->schema.data_type <= 0xdf);
   assert(def->schema.cc >= RDM_CC_DISC && def->schema.cc <= RDM_CC_GET_SET);
-  assert(def->schema.pdl_size > 0);
   assert(def->response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -72,6 +71,7 @@ const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Add the new parameter to the driver
+  driver->params[pdi].pid = pid;
   driver->params[pdi].data = pd;
   driver->params[pdi].definition = *def;
   driver->params[pdi].callback = NULL;
@@ -136,6 +136,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   pd = driver->params[apdi].data + offset;
 
   // Add the new parameter to the driver
+  driver->params[pdi].pid = pid;
   driver->params[pdi].data = pd;
   driver->params[pdi].definition = *def;
   driver->params[pdi].callback = NULL;
@@ -152,7 +153,6 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(def != NULL);
   assert(def->schema.data_type <= 0xdf);
   assert(def->schema.cc >= RDM_CC_DISC && def->schema.cc <= RDM_CC_GET_SET);
-  assert(def->schema.pdl_size > 0);
   assert(def->response_handler != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -182,6 +182,7 @@ bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Add the new parameter to the driver
+  driver->params[pdi].pid = pid;
   driver->params[pdi].data = NULL;
   driver->params[pdi].definition = *def;
   driver->params[pdi].callback = NULL;
