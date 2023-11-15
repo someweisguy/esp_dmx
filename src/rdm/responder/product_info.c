@@ -54,7 +54,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   }
 
   // Define the parameter
-  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
+  const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
   const rdm_pd_definition_t def = {
       .schema = {.data_type = RDM_DS_BIT_FIELD,
                  .cc = RDM_CC_GET,
