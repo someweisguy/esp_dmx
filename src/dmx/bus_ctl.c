@@ -362,8 +362,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     driver->params[pdi].callback(dmx_num, &header, context);
   }
 
+  if (driver->params[pdi].definition.nvs && parameter == NULL) {
+    ESP_LOGI(TAG, "null pd %i", pid_in);
+  }
+
   // Update NVS values
-  if (driver->params[pdi].definition.nvs) {
+  if (driver->params[pdi].definition.nvs && parameter != NULL) {
     if (!dmx_nvs_set(dmx_num, pid_in, sub_device_in, schema->data_type,
                      parameter, schema->pdl_size)) {
       rdm_set_boot_loader(dmx_num);

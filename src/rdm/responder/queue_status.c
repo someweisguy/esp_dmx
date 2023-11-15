@@ -34,7 +34,9 @@ static int rdm_rhd_queued_message(dmx_port_t dmx_num, rdm_header_t *header,
   } else {
     // When there aren't any queued messages respond with a status message
     header->pid = RDM_PID_STATUS_MESSAGE;
-    ack = rdm_rhd_status_messages(dmx_num, header, pd, pdl_out, schema->format);
+    const rdm_pd_schema_t *new_schema =
+        rdm_pd_get_schema(dmx_num, header->pid, header->sub_device);
+    ack = rdm_rhd_status_messages(dmx_num, header, pd, pdl_out, new_schema);
   }
 
   return ack;
@@ -52,6 +54,7 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
                  .cc = RDM_CC_GET,
                  .pdl_size = sizeof(uint8_t),
                  .format = "b$"},
+      .pd_size = 0,  // Parameter is deterministic
       .nvs = false,
       .response_handler = rdm_rhd_queued_message,
   };

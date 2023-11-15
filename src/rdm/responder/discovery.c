@@ -134,7 +134,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   // Define the parameter
-  const rdm_pid_t pid = RDM_PID_DISC_MUTE;
+  const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
   const rdm_pd_definition_t def = {
       .schema = {
         .data_type = RDM_DS_NOT_DEFINED,

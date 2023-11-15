@@ -18,6 +18,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
                  .min_value = 0,
                  .max_value = 1,
                  .format = "b$"},
+      .pd_size = sizeof(uint8_t),
       .nvs = false,
       .response_handler = rdm_response_handler_simple,
   };
