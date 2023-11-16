@@ -1,7 +1,5 @@
 #include "rdm/utils/bus_ctl.h"
 
-#include <ctype.h>
-
 #include "dmx/bus_ctl.h"
 #include "dmx/driver.h"
 #include "dmx/struct.h"
@@ -143,7 +141,7 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
     // Copy the header, pd, message_len, and pdl into the driver
     const size_t copy_size = header->pdl <= 231 ? header->pdl : 231;
     header->message_len = copy_size + 24;
-    rdm_emplace(header_ptr, "#cc01hbuubbbwbwb", header, sizeof(*header), false);
+    rdm_pd_serialize(header_ptr, sizeof(*header), "#cc01hbuubbbwbwb", header);
     memcpy(pd_ptr, pd, copy_size);
 
     // Calculate and copy the checksum
@@ -193,141 +191,6 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return written;
-}
-
-static size_t rdm_pd_parse(const char *format) {
-  int param_size = 0;
-  for (const char *f = format; *f != '\0'; ++f) {
-    size_t field_size = 0;
-    if (*f == 'b' || *f == 'B') {
-      field_size = sizeof(uint8_t);  // Handle 8-bit byte
-    } else if (*f == 'w' || *f == 'W') {
-      field_size = sizeof(uint16_t);  // Handle 16-bit word
-    } else if (*f == 'd' || *f == 'D') {
-      field_size = sizeof(uint32_t);  // Handle 32-bit dword
-    } else if (*f == 'u' || *f == 'U') {
-      field_size = sizeof(rdm_uid_t);  // Handle 48-bit UID
-    } else if (*f == 'v' || *f == 'V') {
-      DMX_CHECK(f[1] == '\0' || f[1] == '$', 0,
-                "Optional UID not at end of parameter.");
-      field_size = sizeof(rdm_uid_t);
-    } else if (*f == 'a' || *f == 'A') {
-      // Handle ASCII string
-      DMX_CHECK(f[1] == '\0' || f[1] == '$', 0,
-                "String not at end of parameter.");
-      field_size = 32;
-    } else if (*f == '#') {
-      // Handle integer literal
-      ++f;  // Ignore '#' character
-      int num_chars = 0;
-      for (; num_chars <= 16; ++num_chars) {
-        if (!isxdigit((int)f[num_chars])) break;
-      }
-      DMX_CHECK(num_chars <= 16, 0, "Integer literal is too big");
-      field_size = (num_chars / 2) + (num_chars % 2);
-      f += num_chars;
-      DMX_CHECK(*f == 'h' || *f == 'H', 0,
-                "Improperly terminated integer literal.");
-    } else if (*f == '$') {
-      DMX_CHECK(f[1] == '\0', 0, "Improperly placed end-of-parameter anchor.");
-    } else {
-      DMX_CHECK(1, 0, "Unknown symbol '%c' found at index %i.", *f, f - format);
-    }
-
-    // Ensure format size doesn't exceed MDB size.
-    DMX_CHECK(param_size + field_size <= 231, 0, "Parameter is too big.");
-    param_size += field_size;
-  }
-  return param_size;
-}
-
-size_t rdm_emplace(void *destination, const char *format, const void *source,
-                   size_t num, bool emplace_nulls) {
-  assert(destination != NULL);
-  assert(format != NULL);
-  assert(source != NULL);
-
-  // Clamp the size to the maximum parameter data length
-  if (num > 231) {
-    num = 231;
-  }
-
-  // Ensure that the format string syntax is correct
-  const int param_size = rdm_pd_parse(format);
-  if (param_size == 0) {
-    return 0;
-  }
-
-  // Get the number of parameters that can be encoded
-  int num_params_to_copy;
-  if (format[strlen(format)] == '$' || format[strlen(format)] == 'a' ||
-      format[strlen(format)] == 'A' || format[strlen(format)] == 'v' ||
-      format[strlen(format)] == 'V') {
-    num_params_to_copy = 1;  // Format string is a singleton
-  } else {
-    num_params_to_copy = num / param_size;
-  }
-
-  // Encode the fields into the destination
-  size_t n = 0;
-  for (int i = 0; i < num_params_to_copy; ++i) {
-    for (const char *f = format; *f != '\0'; ++f) {
-      if (*f == 'b' || *f == 'B') {
-        if (destination != NULL) {
-          *(uint8_t *)(destination + n) = *(uint8_t *)(source + n);
-        }
-        n += sizeof(uint8_t);
-      } else if (*f == 'w' || *f == 'W') {
-        if (destination != NULL) {
-          *(uint16_t *)(destination + n) = bswap16(*(uint16_t *)(source + n));
-        }
-        n += sizeof(uint16_t);
-      } else if (*f == 'd' || *f == 'D') {
-        if (destination != NULL) {
-          *(uint32_t *)(destination + n) = bswap32(*(uint32_t *)(source + n));
-        }
-        n += sizeof(uint32_t);
-      } else if (*f == 'u' || *f == 'U' || *f == 'v' || *f == 'V') {
-        if ((*f == 'v' || *f == 'V') && !emplace_nulls && source != NULL &&
-            rdm_uid_is_null(source + n)) {
-          break;  // Optional UIDs will be at end of parameter string
-        }
-        if (destination != NULL && source != NULL) {
-          rdm_uidmove(destination + n, source + n);
-        }
-        n += sizeof(rdm_uid_t);
-      } else if (*f == 'a' || *f == 'A') {
-        size_t len;
-        if (source != NULL) {
-          const size_t max_len = (num - n) < 32 ? (num - n) : 32;
-          len = strnlen(source + n, max_len);
-        } else {
-          len = 32;
-        }
-        if (destination != NULL && source != NULL) {
-          memmove(destination + n, source + n, len);
-          if (emplace_nulls) {
-            *(uint8_t *)(destination + n + len) = 0;
-          }
-        }
-        n += len + emplace_nulls;
-        break;
-      } else if (*f == '#') {
-        ++f;  // Skip '#' character
-        char *end_ptr;
-        const uint64_t literal = strtol(f, &end_ptr, 16);
-        const int literal_len = ((end_ptr - f) / 2) + ((end_ptr - f) % 2);
-        if (destination != NULL) {
-          for (int j = 0, k = literal_len - 1; j < literal_len; ++j, --k) {
-            ((uint8_t *)destination + n)[j] = ((uint8_t *)&literal)[k];
-          }
-        }
-        f = end_ptr;
-        n += literal_len;
-      }
-    }
-  }
-  return n;
 }
 
 size_t rdm_emplace_word(void *destination, uint16_t word) {

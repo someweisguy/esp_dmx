@@ -58,7 +58,7 @@ static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
 
   // Get the requested PID and avoid undefined behavior (strict aliasing rule)
   uint16_t requested_pid;
-  rdm_emplace(&requested_pid, "w$", pd, sizeof(uint16_t), true);
+  rdm_pd_deserialize(&requested_pid, sizeof(requested_pid), "w$", pd);
 
   // Get the PID description - fails if no PID or description found
   rdm_pid_description_t description;
@@ -67,9 +67,8 @@ static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
     *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
-
-  *pdl_out = rdm_emplace(pd, schema->format, &description,
-                         sizeof(rdm_pid_description_t), false);
+  
+  *pdl_out = rdm_pd_serialize(pd, 231, schema->format, &description);
   return RDM_RESPONSE_TYPE_ACK;
 }
 

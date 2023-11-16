@@ -17,11 +17,11 @@ static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
   if (header->cc == RDM_CC_GET_COMMAND) {
     const rdm_dmx_personality_t *data =
         rdm_pd_get(dmx_num, header->pid, header->sub_device);
-    *pdl_out = rdm_emplace(pd, schema->format, data, 231, false);
+    *pdl_out = rdm_pd_serialize(pd, 231, schema->format, data);
   } else {
     // Get the requested personality number from the parameter data
     uint8_t personality_num;
-    rdm_emplace(&personality_num, "b$", pd, 231, true);
+    rdm_pd_deserialize(&personality_num, sizeof(personality_num), "b$", pd);
 
     // Ensure the requested personality number is within bounds
     if (personality_num < schema->min_value ||
@@ -49,7 +49,7 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
 
   // Get the requested personality number from the parameter data
   uint8_t personality_num;
-  rdm_emplace(&personality_num, "b$", pd, 231, true);
+  rdm_pd_deserialize(&personality_num, sizeof(personality_num), "b$", pd);
 
   // Ensure the requested personality number is within bounds
   if (personality_num < schema->min_value ||
@@ -67,7 +67,7 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
   }
 
   // Emplace the response
-  *pdl_out = rdm_emplace(pd, schema->format, &pers_desc, 231, false);
+  *pdl_out = rdm_pd_serialize(pd, 231, schema->format, &pers_desc);
   return RDM_RESPONSE_TYPE_ACK;
 }
 

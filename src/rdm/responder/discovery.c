@@ -28,14 +28,14 @@ static int rdm_rh_discovery_default(dmx_port_t dmx_num, rdm_header_t *header,
 
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
-    rdm_emplace(&branch, "uu$", pd, sizeof(branch), true);
+    rdm_pd_deserialize(&branch, sizeof(branch), "uu$", pd);
 
     // Respond if lower_bound <= my_uid <= upper_bound
     rdm_uid_t my_uid;
     rdm_uid_get(dmx_num, &my_uid);
     if (rdm_uid_is_ge(&my_uid, &branch.lower_bound) &&
         rdm_uid_is_le(&my_uid, &branch.upper_bound)) {
-      *pdl_out = rdm_emplace(pd, "u$", &my_uid, sizeof(my_uid), false);
+      *pdl_out = rdm_pd_serialize(pd, 231, "u$", &my_uid);
       response_type = RDM_RESPONSE_TYPE_ACK;
     } else {
       response_type = RDM_RESPONSE_TYPE_NONE;
@@ -67,7 +67,7 @@ static int rdm_rh_discovery_default(dmx_port_t dmx_num, rdm_header_t *header,
         .binding_uid = binding_uid,
     };
 
-    *pdl_out = rdm_emplace(pd, "wv$", &mute, sizeof(mute), false);
+    *pdl_out = rdm_pd_serialize(pd, 231, "wv", &mute);
     response_type = RDM_RESPONSE_TYPE_ACK;
   }
 

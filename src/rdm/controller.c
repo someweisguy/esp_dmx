@@ -24,8 +24,7 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = sizeof(*branch);
 
   rdm_disc_unique_branch_t pd;
-  size_t pdl = 0;
-  rdm_emplace(&pd, "uu$", branch, sizeof(pd), false);
+  size_t pdl = rdm_pd_serialize(&pd, sizeof(pd), "uu$", branch);
   return rdm_send_request(dmx_num, header, &pd, NULL, &pdl, ack);
 }
 
@@ -46,7 +45,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
-    rdm_emplace(mute, "wv$", &pd, sizeof(*mute), true);
+    rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
   }
 
   return ret;
@@ -69,7 +68,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
-    rdm_emplace(mute, "wv$", &pd, sizeof(*mute), true);
+    rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
   }
 
   return ret;
@@ -253,8 +252,8 @@ bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret) {
-    rdm_emplace(device_info, "#0100hwwdwbbwwb$", &pd, sizeof(*device_info),
-                true);
+    rdm_pd_deserialize(device_info, sizeof(*device_info), "#0100hwwdwbbwwb$",
+                       &pd);
   }
 
   return ret;
@@ -339,7 +338,8 @@ bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret) {
-    rdm_emplace(dmx_start_address, "w$", &pd, sizeof(*dmx_start_address), true);
+    rdm_pd_deserialize(dmx_start_address, sizeof(*dmx_start_address), "w$",
+                       &pd);
   }
 
   return ret;
@@ -361,6 +361,6 @@ bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
 
   uint16_t pd;
   size_t pdl = sizeof(pd);
-  rdm_emplace(&pd, "w$", &dmx_start_address, pdl, false);
+  rdm_pd_serialize(&pd, sizeof(pd), "w$", &dmx_start_address);
   return rdm_send_request(dmx_num, header, &pd, NULL, &pdl, ack);
 }

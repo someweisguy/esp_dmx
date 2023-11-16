@@ -1,5 +1,6 @@
 #include "rdm/utils/pd.h"
 
+#include <ctype.h>
 #include <string.h>
 
 #include "dmx/bus_ctl.h"
@@ -543,10 +544,10 @@ int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
 
   if (header->cc == RDM_CC_GET_COMMAND) {
     const void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
-    *pdl_out = rdm_emplace(pd, schema->format, data, 231, false);
+    *pdl_out = rdm_pd_serialize(pd, 231, schema->format, data);
   } else {
-    // Deserialize the packet parameter data
-    rdm_emplace(pd, schema->format, pd, header->pdl, true);
+    // Deserialize the packet parameter data in place
+    rdm_pd_deserialize(pd, header->pdl, schema->format, pd);
     if (!rdm_pd_set(dmx_num, header->pid, header->sub_device, pd, header->pdl)) {
       *pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
       return RDM_RESPONSE_TYPE_NACK_REASON;
@@ -554,4 +555,175 @@ int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
   }
 
   return RDM_RESPONSE_TYPE_ACK;
+}
+
+static size_t rdm_pd_get_size(const char *pd_format) {
+  size_t param_size = 0;
+  for (const char *c = pd_format; *c != '\0'; ++c) {
+    size_t field_size = 0;
+    switch (*c) {
+      case 'b':
+      case 'B':
+        field_size = sizeof(uint8_t);
+        break;
+      case 'w':
+      case 'W':
+        field_size = sizeof(uint16_t);
+        break;
+      case 'd':
+      case 'D':
+        field_size = sizeof(uint32_t);
+        break;
+      case 'v':
+      case 'V':
+        if (c[1] != '\0' && c[1] != '$') {
+          return 0;  // Optional UID not at end of parameter
+        }
+        field_size = sizeof(rdm_uid_t);
+        break;
+      case 'u':
+      case 'U':
+        field_size = sizeof(rdm_uid_t);
+        break;
+      case 'a':
+      case 'A':
+        if (c[1] != '\0' && c[1] != '$') {
+          return 0;  // ASCII not at end of parameter
+        }
+        field_size = 32;  // Size of ASCII string
+        break;
+      case '#':
+        ++c;  // Ignore '#' character
+        size_t num_chars = 0;
+        for (; num_chars <= 16; ++num_chars) {
+          if (!isxdigit((int)c[num_chars])) break;
+        }
+        if (num_chars > 16) {
+          return 0;  // Integer literal too big
+        }
+        field_size = (num_chars / 2) + (num_chars % 2);
+        c += num_chars;  // Skip integer literal and 'h' terminator
+        break;
+      case '$':
+        if (c[1] != '\0') {
+          return 0;  // Improper end-of-parameter anchor
+        }
+        break;
+      default:
+        return 0;  // Invalid character in format string
+    }
+    param_size += field_size;
+
+    if (param_size > 231) {
+      return 0;  // Parameter is too big
+    }
+  }
+
+  return param_size;
+}
+
+static size_t rdm_pd_encode(void *destination, size_t len, const char *format,
+                            const void *source, bool encode_nulls) {
+  assert(destination != NULL);
+  assert(format != NULL);
+  assert(source != NULL);
+
+  // Get the max size of the parameter
+  const size_t format_size = rdm_pd_get_size(format);
+  assert(format_size > 0);
+
+  // Determine how many parameters to write to the destination
+  uint32_t num_params;
+  switch (format[strlen(format)]) {
+    case '$':
+    case 'a':
+    case 'A':
+    case 'v':
+    case 'V':
+      num_params = 1;  // Parameter is singleton
+      break;
+    default:
+      if (format_size < len) {
+        num_params = len / format_size;
+      } else {
+        num_params = 0;
+      }
+      break;
+  }
+
+  size_t written = 0;
+  for (int params_written = 0; params_written < num_params; ++params_written) {
+    for (char c = *format; c != '\0'; c = *(++format)) {
+      size_t field_size;
+      if (c == 'b' || c == 'B') {
+        field_size = sizeof(uint8_t);
+        memmove(destination, source, field_size);
+      } else if (c == 'w' || c == 'W') {
+        uint16_t temp;
+        field_size = sizeof(uint16_t);
+        memcpy(&temp, source, field_size);
+        temp = bswap16(temp);
+        memcpy(destination, &temp, field_size);
+      } else if (c == 'd' || c == 'D') {
+        uint32_t temp;
+        field_size = sizeof(uint32_t);
+        memcpy(&temp, source, field_size);
+        temp = bswap32(temp);
+        memcpy(destination, &temp, field_size);
+      } else if (c == 'u' || c == 'U' || c == 'v' || c == 'V') {
+        rdm_uid_t temp;
+        field_size = sizeof(rdm_uid_t);
+        memcpy(&temp, source, field_size);
+        if ((c == 'v' || c == 'V') && !encode_nulls && rdm_uid_is_null(&temp)) {
+          break;
+        }
+        temp.man_id = bswap16(temp.man_id);
+        temp.dev_id = bswap32(temp.dev_id);
+        memcpy(destination, &temp, field_size);
+      } else if (c == 'a' || c == 'A') {
+        field_size = strnlen(source, 32);
+        memmove(destination, source, field_size);
+        if (encode_nulls) {
+          memset(destination + field_size, '\0', 1);
+        }
+        field_size += (encode_nulls ? 1 : 0);
+      } else if (c == '#') {
+        ++format;
+        char *end_ptr;
+        uint64_t temp = strtol(format, &end_ptr, 16);
+        field_size = ((end_ptr - format) / 2) + ((end_ptr - format) % 2);
+        for (int i = 0, j = field_size - 1; i < field_size; ++i, --j) {
+          ((uint8_t *)destination)[i] = ((uint8_t *)&temp)[j];
+        }
+        format = end_ptr;
+      } else if (c == '$') {
+        break;
+      } else {
+        __unreachable();
+      }
+      destination += field_size;
+      source += field_size;
+      written += field_size;
+    }
+  }
+
+  return written;
+}
+
+size_t rdm_pd_serialize(void *destination, size_t len, const char *format,
+                        const void *source) {
+  assert(destination != NULL);
+  assert(format != NULL);
+  assert(source != NULL);
+
+  return rdm_pd_encode(destination, len, format, source, false);
+}
+
+size_t rdm_pd_deserialize(void *destination, size_t len, const char *format,
+                          const void *source) {
+  assert(destination != NULL);
+  assert(format != NULL);
+  assert(source != NULL);
+
+  return rdm_pd_encode(destination, len, format, source, true);
 }

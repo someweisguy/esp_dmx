@@ -107,8 +107,9 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
  * the source buffer.
  * @return The size of the data that was emplaced.
  */
-size_t rdm_emplace(void *destination, const char *format, const void *source,
-                   size_t num, bool emplace_nulls);
+// TODO
+// size_t rdm_emplace(void *destination, const char *format, const void *source,
+//                    size_t num, bool emplace_nulls);
 
 /**
  * @brief Emplaces a 16-bit word into a destination. Used as a convenience

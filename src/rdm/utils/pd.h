@@ -112,6 +112,13 @@ int rdm_pd_call_response_handler(dmx_port_t dmx_num, rdm_header_t *header,
 int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
                                 void *pd, uint8_t *pdl_out,
                                 const rdm_pd_schema_t *schema);
+// TODO: docs
+size_t rdm_pd_serialize(void *destination, size_t len, const char *format,
+                        const void *source);
+
+// TODO: docs
+size_t rdm_pd_deserialize(void *destination, size_t len, const char *format,
+                          const void *source);
 
 #ifdef __cplusplus
 }
