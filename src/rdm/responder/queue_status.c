@@ -20,7 +20,7 @@ static int rdm_rhd_queued_message(dmx_port_t dmx_num, rdm_header_t *header,
       status_type_requested != RDM_STATUS_ADVISORY &&
       status_type_requested != RDM_STATUS_WARNING &&
       status_type_requested != RDM_STATUS_ERROR) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }  // TODO: ensure error-checking is correct
 

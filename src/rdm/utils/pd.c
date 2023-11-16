@@ -523,7 +523,7 @@ int rdm_pd_call_response_handler(dmx_port_t dmx_num, rdm_header_t *header,
 
   // Guard against unknown PID
   if (def == NULL) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -536,7 +536,7 @@ int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
                                 const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -549,7 +549,7 @@ int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
     // Deserialize the packet parameter data in place
     rdm_pd_deserialize(pd, header->pdl, schema->format, pd);
     if (!rdm_pd_set(dmx_num, header->pid, header->sub_device, pd, header->pdl)) {
-      *pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
       return RDM_RESPONSE_TYPE_NACK_REASON;
     }
   }
@@ -726,4 +726,20 @@ size_t rdm_pd_deserialize(void *destination, size_t len, const char *format,
   assert(source != NULL);
 
   return rdm_pd_encode(destination, len, format, source, true);
+}
+
+
+/**
+ * @brief Emplaces a 16-bit word into a destination. Used as a convenience
+ * function for quickly emplacing NACK reasons and timer values.
+ *
+ * @param[out] destination A pointer to a destination buffer.
+ * @param word The word to emplace.
+ * @return The size of the word which was emplaced. Is always 2.
+ */
+size_t rdm_pd_serialize_word(void *destination, uint16_t word) {
+  assert(destination != NULL);
+  word = bswap16(word);
+  memmove(destination, &word, sizeof(word));
+  return sizeof(word);
 }

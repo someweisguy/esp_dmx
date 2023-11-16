@@ -193,13 +193,6 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
   return written;
 }
 
-size_t rdm_emplace_word(void *destination, uint16_t word) {
-  assert(destination != NULL);
-
-  *(uint16_t *)destination = bswap16(word);
-  return sizeof(word);
-}
-
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack) {

@@ -11,7 +11,7 @@ static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
                                         const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -20,7 +20,7 @@ static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
   const uint32_t num_pids = rdm_pd_list(dmx_num, header->sub_device, pids,
                                         RDM_RESPONDER_NUM_PIDS_MAX);
   if (num_pids == 0) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -39,7 +39,7 @@ static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
         // Minimum required PIDs are not reported
         continue;
       default:
-        *pdl_out += rdm_emplace_word(pd, pids[i]);
+        *pdl_out += rdm_pd_serialize_word(pd, pids[i]);
         pd += sizeof(uint16_t);
     }
   }
@@ -52,7 +52,7 @@ static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
                                          uint8_t *pdl_out,
                                          const rdm_pd_schema_t *schema) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -64,7 +64,7 @@ static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
   rdm_pid_description_t description;
   if (!rdm_pd_get_description(dmx_num, requested_pid, header->sub_device,
                               &description)) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
   

@@ -120,6 +120,16 @@ size_t rdm_pd_serialize(void *destination, size_t len, const char *format,
 size_t rdm_pd_deserialize(void *destination, size_t len, const char *format,
                           const void *source);
 
+/**
+ * @brief Serializes a 16-bit word into a destination. Used as a convenience
+ * function for quickly emplacing NACK reasons and timer values.
+ *
+ * @param[out] destination A pointer to a destination buffer.
+ * @param word The word to serialize.
+ * @return The size of the word which was written. Is always 2.
+ */
+size_t rdm_pd_serialize_word(void *destination, uint16_t word);
+
 #ifdef __cplusplus
 }
 #endif

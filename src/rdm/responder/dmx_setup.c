@@ -10,7 +10,7 @@ static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
                                    const rdm_pd_schema_t *schema) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -26,7 +26,7 @@ static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,
     // Ensure the requested personality number is within bounds
     if (personality_num < schema->min_value ||
         personality_num > schema->max_value) {
-      *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+      *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
       return RDM_RESPONSE_TYPE_NACK_REASON;
     }
 
@@ -43,7 +43,7 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
                                                uint8_t *pdl_out,
                                                const rdm_pd_schema_t *schema) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -54,7 +54,7 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
   // Ensure the requested personality number is within bounds
   if (personality_num < schema->min_value ||
       personality_num > schema->max_value) {
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
@@ -62,7 +62,7 @@ static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
   dmx_personality_description_t pers_desc;
   if (!dmx_get_personality_description(dmx_num, personality_num, &pers_desc)) {
     // This code should not run
-    *pdl_out = rdm_emplace_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 

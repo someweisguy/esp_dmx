@@ -112,16 +112,6 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 //                    size_t num, bool emplace_nulls);
 
 /**
- * @brief Emplaces a 16-bit word into a destination. Used as a convenience
- * function for quickly emplacing NACK reasons and timer values.
- *
- * @param[out] destination A pointer to a destination buffer.
- * @param word The word to emplace.
- * @return The size of the word which was emplaced. Is always 2.
- */
-size_t rdm_emplace_word(void *destination, uint16_t word);
-
-/**
  * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
  * packet. It performs error checking on the written packet to ensure that it

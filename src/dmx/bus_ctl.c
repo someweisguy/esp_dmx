@@ -269,11 +269,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       rdm_uid_is_broadcast(&header.src_uid)) {
     // The packet format is invalid (bad PDL, port ID, or source UID)
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_emplace_word(pd, RDM_NR_FORMAT_ERROR);
+    pdl_out = rdm_pd_serialize_word(pd, RDM_NR_FORMAT_ERROR);
   } else if (pdi == driver->num_parameters) {
     // The requested PID is unknown
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_emplace_word(pd, RDM_NR_UNKNOWN_PID);
+    pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
   } else if ((header.cc == RDM_CC_DISC_COMMAND &&
               schema->cc != RDM_CC_DISC) ||
              (header.cc == RDM_CC_GET_COMMAND &&
@@ -282,14 +282,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
               !(schema->cc & RDM_CC_SET))) {
     // The PID does not support the request command class
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_emplace_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
   } else if ((header.sub_device > 512 &&
               header.sub_device != RDM_SUB_DEVICE_ALL) ||
              (header.sub_device == RDM_SUB_DEVICE_ALL &&
               header.cc == RDM_CC_GET_COMMAND)) {
     // The sub-device is out of range
     response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-    pdl_out = rdm_emplace_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
   } else {
     // Call the appropriate response handler to process the request
     pdl_out = 0;  // Set to default value for response handler
@@ -302,7 +302,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       DMX_WARN("PID 0x%04x pdl is too large", header.pid);
       rdm_set_boot_loader(dmx_num);
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-      pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
     } else if ((response_type != RDM_RESPONSE_TYPE_NONE &&
                 response_type != RDM_RESPONSE_TYPE_ACK &&
                 response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
@@ -317,7 +317,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       DMX_WARN("PID 0x%04x returned invalid response type", header.pid);
       rdm_set_boot_loader(dmx_num);
       response_type = RDM_RESPONSE_TYPE_NACK_REASON;
-      pdl_out = rdm_emplace_word(pd, RDM_NR_HARDWARE_FAULT);
+      pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
     }
   }
 
