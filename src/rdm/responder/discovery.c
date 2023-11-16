@@ -109,9 +109,9 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .schema = {.data_type = RDM_DS_NOT_DEFINED,
                  .cc = RDM_CC_DISC,
                  .pdl_size = 0,
+                 .alloc_size = sizeof(uint8_t),
                  .format = ""},
       .nvs = false,
-      .alloc_size = sizeof(uint8_t),
       .response_handler = rdm_rh_discovery_default,
   };
 
@@ -138,9 +138,9 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .schema = {.data_type = RDM_DS_NOT_DEFINED,
                  .cc = RDM_CC_DISC,
                  .pdl_size = 0,
+                 .alloc_size = sizeof(uint8_t),
                  .format = ""},
       .nvs = false,
-      .alloc_size = sizeof(uint8_t),
       .response_handler = rdm_rh_discovery_default,
   };
 

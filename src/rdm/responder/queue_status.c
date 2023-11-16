@@ -54,8 +54,8 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
       .schema = {.data_type = RDM_DS_NOT_DEFINED,
                  .cc = RDM_CC_GET,
                  .pdl_size = sizeof(uint8_t),
+                 .alloc_size = 0,  // Parameter is deterministic
                  .format = "b$"},
-      .alloc_size = 0,  // Parameter is deterministic
       .nvs = false,
       .response_handler = rdm_rhd_queued_message,
   };

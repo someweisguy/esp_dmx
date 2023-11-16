@@ -679,6 +679,7 @@ typedef struct rdm_pd_schema_t {
   size_t pdl_size;
   uint32_t min_value;
   uint32_t max_value;
+  size_t alloc_size;
   const char *format;
 } rdm_pd_schema_t;
 
@@ -694,7 +695,6 @@ typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
 typedef struct rdm_pd_definition_t {
   rdm_pd_schema_t schema;
   bool nvs;
-  size_t alloc_size;
   rdm_response_handler_t response_handler;
   uint32_t default_value;
   rdm_units_t units;
