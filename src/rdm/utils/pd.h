@@ -19,7 +19,6 @@
 extern "C" {
 #endif
 
-
 // TODO: docs
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_sub_device_t sub_device,
@@ -49,7 +48,7 @@ bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_pid_t pid,
 
 /**
  * @brief Checks if an RDM parameter has been added to the DMX driver.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param pid The parameter ID to check.
  * @param sub_device The sub-device number which owns the parameter.
@@ -69,8 +68,8 @@ bool rdm_pd_exists(dmx_port_t dmx_num, rdm_pid_t pid,
  * @return A pointer to the parameter data or NULL if the parameter does not
  * exist.
  */
-void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                 rdm_sub_device_t sub_device);
+const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
+                       rdm_sub_device_t sub_device);
 
 /**
  * @brief Sets the value of a specified RDM parameter.
