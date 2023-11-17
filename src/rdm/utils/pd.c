@@ -643,7 +643,7 @@ static size_t rdm_pd_encode(void *destination, size_t len, const char *format,
       num_params = 1;  // Parameter is singleton
       break;
     default:
-      if (format_size < len) {
+      if (format_size <= len) {
         num_params = len / format_size;
       } else {
         num_params = 0;
