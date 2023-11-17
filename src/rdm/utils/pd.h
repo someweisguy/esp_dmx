@@ -19,19 +19,64 @@
 extern "C" {
 #endif
 
-// TODO: docs
+/**
+ * @brief Adds a new parameter to the RDM parameter manager.
+ *
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to add.
+ * @param sub_device The sub-device to which to add the parameter.
+ * @param[in] def A pointer to a struct containing a definition of the
+ * parameter. This definition is copied into the RDM parameter manager. It does
+ * not need to be valid throughout the lifetime of the DMX driver.
+ * @param[in] init_value The initial value of the RDM parameter.
+ * @return A pointer to the parameter data within the RDM parameter manager on
+ * success, NULL on failure.
+ */
 const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_pid_t pid,
                            rdm_sub_device_t sub_device,
                            const rdm_pd_definition_t *def,
                            const void *init_value);
 
-// TODO: docs
+/**
+ * @brief Adds a parameter to the RDM parameter manager as an alias of a
+ * currently existing RDM parameter. This is used for RDM parameters which are
+ * contained within other RDM parameters. For example, RDM_PID_DMX_START_ADDRESS
+ * is contained with RDM_PID_DEVICE_INFO. The parameter which is aliased must
+ * exist within the parameter manager before the aliasing parameter may be
+ * added.
+ *
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to add.
+ * @param sub_device The sub-device to which to add the parameter.
+ * @param[in] def A pointer to a struct containing a definition of the
+ * parameter. This definition is copied into the RDM parameter manager. It does
+ * not need to be valid throughout the lifetime of the DMX driver.
+ * @param alias The parameter ID of the parameter which is being aliased.
+ * @param offset The relative offset of the aliased data. It is recommended to
+ * use the offsetof() macro to define data offsets.
+ * @return A pointer to the parameter data within the RDM parameter manager on
+ * success, NULL on failure.
+ */
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_pid_t pid,
                              rdm_sub_device_t sub_device,
                              const rdm_pd_definition_t *def, rdm_pid_t alias,
                              size_t offset);
 
-// TODO: docs
+/**
+ * @brief Adds a deterministic parameter to the RDM parameter manager. A
+ * deterministic parameter does not occupy any space in the RDM parameter
+ * manager. Instead, its value is computed when it is requested by an RDM
+ * controller.
+ *
+ * @param dmx_num The DMX port number.
+ * @param pid The parameter ID to add.
+ * @param sub_device The sub-device to which to add the parameter.
+ * @param[in] def A pointer to a struct containing a definition of the
+ * parameter. This definition is copied into the RDM parameter manager. It does
+ * not need to be valid throughout the lifetime of the DMX driver.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_pid_t pid,
                               rdm_sub_device_t sub_device,
                               const rdm_pd_definition_t *def);
