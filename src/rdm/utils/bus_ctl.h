@@ -44,69 +44,6 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
  */
 size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 
-/**
- * @brief Emplaces parameter data from a source buffer to a destination buffer.
- * It is necessary to emplace parameter data before it is written and read to
- * ensure it is formatted correctly for the RDM data bus or for the ESP32's
- * memory. Emplacing data swaps the endianness of each parameter field and also
- * optionally writes null terminators for strings and writes optional UID
- * fields. The destination buffer and the source buffer may overlap.
- *
- * Parameter fields are emplaced using a format string. This provides the
- * instructions on how data is written. Fields are written in the order provided
- * in the format string. The following characters can be used to write parameter
- * data:
- * - 'b' writes an 8-bit byte of data.
- * - 'w' writes a 16-bit word of data.
- * - 'd' writes a 32-bit dword of data.
- * - 'u' writes a 48-bit UID.
- * - 'v' writes an optional 48-bit UID if the UID is not 0000:00000000. Optional
- *   UIDs must be at the end of the format string.
- * - 'a' writes an ASCII string. ASCII strings may be up to 32 characters long
- *   and may or may not be null-terminated. An ASCII string must be at the end
- *   of the format string.
- *
- * Integer literals may be written by beginning the integer with '#' and writing
- * the literal in hexadecimal form. Integer literals must be terminated with an
- * 'h' character. For example, the integer 0xbeef is represented as "#beefh".
- * Integer literals are written regardless of what the underlying value is. This
- * is used for situations such as emplacing a rdm_device_info_t wherein the
- * first two bytes are 0x01 and 0x00.
- *
- * Parameters will continue to be emplaced as long as the number of bytes
- * written does not exceed the size of the destination buffer, as provided in
- * the num argument. A single parameter may be emplaced instead of multiple by
- * including a '$' character at the end of the format string.
- *
- * Null terminators are not used for strings sent on the RDM data bus. When
- * emplacing data onto the RDM data bus, the emplace_nulls argument should be
- * set to false. When emplacing into ESP32 memory to be read by the caller,
- * emplace_nulls should be set to true to ensure that strings are null
- * terminated. Setting emplace_nulls to true will also affect optional UID
- * fields by emplacing a 0000:00000000 into the destination buffer when an
- * optional UID is not present in the source buffer. When emplace_nulls is
- * false, optional UIDs will not be emplaced when its value is 0000:00000000. It
- * is considered good practice to set emplace_nulls to true when the destination
- * buffer is intended to be read by the user, and false when the destination
- * buffer will be sent on the RDM data bus.
- *
- * Example format strings and their corresponding PIDs are included below.
- *
- * RDM_PID_DISC_UNIQUE_BRANCH: "uu$"
- * RDM_PID_DISC_MUTE: "wv$"
- * RDM_PID_DEVICE_INFO: "#0100hwwdwbbwwb$"
- * RDM_PID_SOFTWARE_VERSION_LABEL: "a$"
- * RDM_PID_DMX_START_ADDRESS: "w$"
- *
- * @param[out] destination The destination into which to emplace the data.
- * @param[in] format The format string which instructs the function how to
- * emplace data.
- * @param[in] source The source buffer which is emplaced into the destination.
- * @param num The maximum number of bytes to emplace.
- * @param emplace_nulls True to emplace null terminators and optional UIDs into
- * the source buffer.
- * @return The size of the data that was emplaced.
- */
 // TODO
 // size_t rdm_emplace(void *destination, const char *format, const void *source,
 //                    size_t num, bool emplace_nulls);

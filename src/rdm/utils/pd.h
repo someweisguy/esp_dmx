@@ -111,11 +111,108 @@ int rdm_pd_call_response_handler(dmx_port_t dmx_num, rdm_header_t *header,
 int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
                                 void *pd, uint8_t *pdl_out,
                                 const rdm_pd_schema_t *schema);
-// TODO: docs
+/**
+ * @brief Converts RDM data from a format which can be accessed in code to a
+ * format which is compatible with the RDM bus. This is needed because the RDM
+ * bus requires all data to be big-endian. The destination and source buffers
+ * may overlap.
+ *
+ * Parameter fields are serialized using a format string. This provides the
+ * instructions on how data is written. Fields are written in the order provided
+ * in the format string. The following characters can be used to write parameter
+ * data:
+ * - 'b' writes an 8-bit byte of data.
+ * - 'w' writes a 16-bit word of data.
+ * - 'd' writes a 32-bit dword of data.
+ * - 'u' writes a 48-bit UID.
+ * - 'v' writes an optional 48-bit UID if the UID is not 0000:00000000. Optional
+ *   UIDs must be at the end of the format string.
+ * - 'a' writes an ASCII string. ASCII strings may be up to 32 characters long
+ *   and may or may not be null-terminated. An ASCII string must be at the end
+ *   of the format string.
+ *
+ * Integer literals may be written by beginning the integer with '#' and writing
+ * the literal in hexadecimal form. Integer literals must be terminated with an
+ * 'h' character. For example, the integer 0xbeef is represented as "#beefh".
+ * Integer literals are written regardless of what the underlying value is. This
+ * is used for situations such as serializing a rdm_device_info_t wherein the
+ * first two bytes are 0x01 and 0x00.
+ *
+ * Parameters will continue to be serialized as long as the number of bytes
+ * written does not exceed the size of the destination buffer, as provided in
+ * the num argument. A single parameter may be written instead of multiple by
+ * including a '$' character at the end of the format string.
+ *
+ * To deserialize data, the function rdm_pd_deserialize() should be used.
+ *
+ * Example format strings and their corresponding PIDs are included below.
+ *
+ * RDM_PID_DISC_UNIQUE_BRANCH: "uu$"
+ * RDM_PID_DISC_MUTE: "wv$"
+ * RDM_PID_DEVICE_INFO: "#0100hwwdwbbwwb$"
+ * RDM_PID_SOFTWARE_VERSION_LABEL: "a$"
+ * RDM_PID_DMX_START_ADDRESS: "w$"
+ *
+ * @param[out] destination The destination into which to serialize the data.
+ * @param len The maximum number of bytes to write.
+ * @param[in] format The format string which instructs the function how to
+ * format data.
+ * @param[in] source The source buffer which is serialized into the destination.
+ * @return The size of the data that was written.
+ */
 size_t rdm_pd_serialize(void *destination, size_t len, const char *format,
                         const void *source);
 
-// TODO: docs
+/**
+ * @brief Converts RDM data from a format which can be read from the RDM bus to
+ * a format which can be accessed in code. This is needed because the RDM bus
+ * requires all data to be big-endian. The destination and source buffers may
+ * overlap.
+ *
+ * Parameter fields are serialized using a format string. This provides the
+ * instructions on how data is written. Fields are written in the order provided
+ * in the format string. The following characters can be used to write parameter
+ * data:
+ * - 'b' writes an 8-bit byte of data.
+ * - 'w' writes a 16-bit word of data.
+ * - 'd' writes a 32-bit dword of data.
+ * - 'u' writes a 48-bit UID.
+ * - 'v' writes an optional 48-bit UID if the UID is not 0000:00000000. Optional
+ *   UIDs must be at the end of the format string.
+ * - 'a' writes an ASCII string. ASCII strings may be up to 32 characters long
+ *   and may or may not be null-terminated. An ASCII string must be at the end
+ *   of the format string.
+ *
+ * Integer literals may be written by beginning the integer with '#' and writing
+ * the literal in hexadecimal form. Integer literals must be terminated with an
+ * 'h' character. For example, the integer 0xbeef is represented as "#beefh".
+ * Integer literals are written regardless of what the underlying value is. This
+ * is used for situations such as serializing a rdm_device_info_t wherein the
+ * first two bytes are 0x01 and 0x00.
+ *
+ * Parameters will continue to be deserialized as long as the number of bytes
+ * written does not exceed the size of the destination buffer, as provided in
+ * the num argument. A single parameter may be written instead of multiple by
+ * including a '$' character at the end of the format string.
+ *
+ * To serialize data, the function rdm_pd_serialize() should be used.
+ *
+ * Example format strings and their corresponding PIDs are included below.
+ *
+ * RDM_PID_DISC_UNIQUE_BRANCH: "uu$"
+ * RDM_PID_DISC_MUTE: "wv$"
+ * RDM_PID_DEVICE_INFO: "#0100hwwdwbbwwb$"
+ * RDM_PID_SOFTWARE_VERSION_LABEL: "a$"
+ * RDM_PID_DMX_START_ADDRESS: "w$"
+ *
+ * @param[out] destination The destination into which to deserialize the data.
+ * @param len The maximum number of bytes to write.
+ * @param[in] format The format string which instructs the function how to
+ * format data.
+ * @param[in] source The source buffer which is deserialized into the
+ * destination.
+ * @return The size of the data that was written.
+ */
 size_t rdm_pd_deserialize(void *destination, size_t len, const char *format,
                           const void *source);
 
