@@ -371,6 +371,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Update NVS values
+  // FIXME: make a deferred NVS system that fires on DMX packets instead of RDM
   if (driver->params[pdi].definition.nvs && parameter != NULL) {
     if (!dmx_nvs_set(dmx_num, pid_in, sub_device_in, schema->data_type,
                      parameter, schema->pdl_size)) {
