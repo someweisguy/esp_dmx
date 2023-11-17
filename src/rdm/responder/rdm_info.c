@@ -17,15 +17,14 @@ static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
 
   // Copy all PIDs into a temporary buffer
   uint16_t pids[RDM_RESPONDER_NUM_PIDS_MAX];
-  const uint32_t num_pids = rdm_pd_list(dmx_num, header->sub_device, pids,
-                                        RDM_RESPONDER_NUM_PIDS_MAX);
-  if (num_pids == 0) {
+  size_t len = rdm_pd_list(dmx_num, header->sub_device, pids, sizeof(pids));
+  if (len == 0) {
     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
 
   // Emplace the PIDs into the parameter data
-  for (int i = 0; i < num_pids && *pdl_out < 230; ++i) {
+  for (int i = 0; i < (len * sizeof(uint16_t)) && *pdl_out < 230; ++i) {
     switch (pids[i]) {
       case RDM_PID_DISC_UNIQUE_BRANCH:
       case RDM_PID_DISC_MUTE:
