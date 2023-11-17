@@ -50,7 +50,7 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
 
     // Copy the header and pd from the driver
     if (header != NULL) {
-      // Copy header without emplace so this function can be used in IRAM ISR
+      // Copy header without deserialize so this function can be used in ISR
       for (int i = 0; i < sizeof(rdm_header_t); ++i) {
         ((uint8_t *)header)[i] = header_ptr[i];
       }

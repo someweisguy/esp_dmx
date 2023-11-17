@@ -44,10 +44,6 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
  */
 size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
 
-// TODO
-// size_t rdm_emplace(void *destination, const char *format, const void *source,
-//                    size_t num, bool emplace_nulls);
-
 /**
  * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
