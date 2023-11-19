@@ -13,466 +13,285 @@
 #include "rdm/utils/bus_ctl.h"
 #include "rdm/utils/uid.h"
 
-const void *rdm_pd_add_new(dmx_port_t dmx_num, rdm_pid_t pid,
-                           rdm_sub_device_t sub_device,
-                           const rdm_pd_definition_t *def,
-                           const void *init_value) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513);
-  assert(pid > 0 && pid <= 0xffff);
-  assert(def != NULL);
-  assert(def->schema.data_type <= 0xdf);
-  assert(def->schema.cc >= RDM_CC_DISC && def->schema.cc <= RDM_CC_GET_SET);
-  assert(def->schema.alloc_size > 0);
-  assert(def->response_handler != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
+static int rdm_pd_get_index(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid) {
+  int pd_index = 0;
   dmx_driver_t *const driver = dmx_driver[dmx_num];
-  void *pd = NULL;
-
-  // Ensure that the parameter has not already been defined
-  uint32_t pdi = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == pid) {
+  for (; pd_index < driver->rdm.param_count; ++pd_index) {
+    if (driver->rdm.params[pd_index].definition->pid == pid) {
       break;
     }
   }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].pid == pid) {
-    return pd;  // Parameter already exists
-  }
-
-  // Check if there is space to add a new parameter definition
-  if (pdi == RDM_RESPONDER_NUM_PIDS_MAX) {
-    return pd;  // No space for new parameter definitions
-  }
-
-  // Reserve space for the parameter data in the driver
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const size_t pdl_available = driver->pd_alloc_size - driver->pd_head;
-  if (def->schema.alloc_size <= pdl_available) {
-    pd = driver->pd + driver->pd_head;
-    driver->pd_head += def->schema.alloc_size;
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (def->schema.alloc_size > pdl_available) {
-    return pd;  // No more reservable parameter data space
-  }
-
-  // Set the parameter to the default value
-  if (def->schema.data_type == RDM_DS_ASCII) {
-    strncpy(pd, init_value, def->schema.pdl_size);
-  } else if (init_value == NULL) {
-    memset(pd, 0, def->schema.pdl_size);
-  } else {
-    memcpy(pd, init_value, def->schema.pdl_size);
-  }
-
-  // Add the new parameter to the driver
-  driver->params[pdi].pid = pid;
-  driver->params[pdi].data = pd;
-  driver->params[pdi].definition = *def;
-  driver->params[pdi].callback = NULL;
-  // driver->params[pdi].context does not need to be set to NULL yet
-  ++driver->num_parameters;
-
-  return pd;
+  return pd_index;
 }
 
-const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_pid_t pid,
-                             rdm_sub_device_t sub_device,
-                             const rdm_pd_definition_t *def, rdm_pid_t alias,
-                             size_t offset) {
-  assert(sub_device < 513);
-  assert(pid > 0 && pid <= 0xffff);
-  assert(def != NULL);
-  assert(def->schema.data_type <= 0xdf);
-  assert(def->schema.cc >= RDM_CC_DISC && def->schema.cc <= RDM_CC_GET_SET);
-  assert(def->schema.alloc_size > 0);
-  assert(def->response_handler != NULL);
-  assert(alias > 0 && alias <= 0xffff);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  void *pd = NULL;
-
-  // Ensure that the parameter has not already been defined
-  uint32_t pdi = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == pid) {
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].pid == pid) {
-    return pd;  // Parameter already exists
-  }
-
-  // Check if there is space to add a new parameter definition
-  if (pdi == RDM_RESPONDER_NUM_PIDS_MAX) {
-    return pd;  // No space for new parameter definitions
-  }
-
-  // Find the parameter data to alias
-  uint32_t apdi = 0;  // Alias parameter data index
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; apdi < driver->num_parameters; ++apdi) {
-    if (driver->params[apdi].pid == alias) {
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[apdi].pid != alias) {
-    return pd;  // The alias has not been declared
-  } else if (driver->params[apdi].definition.schema.alloc_size < offset) {
-    return pd;  // The alias offset is larger than the parameter pdl_size
-  }
-  pd = driver->params[apdi].data + offset;
-
-  // Add the new parameter to the driver
-  driver->params[pdi].pid = pid;
-  driver->params[pdi].data = pd;
-  driver->params[pdi].definition = *def;
-  driver->params[pdi].callback = NULL;
-  // driver->params[pdi].context does not need to be set to NULL yet
-  ++driver->num_parameters;
-
-  return pd;
-}
-
-bool rdm_pd_add_deterministic(dmx_port_t dmx_num, rdm_pid_t pid,
-                              rdm_sub_device_t sub_device,
-                              const rdm_pd_definition_t *def) {
-  assert(sub_device < 513);
-  assert(pid > 0 && pid <= 0xffff);
-  assert(def != NULL);
-  assert(def->schema.data_type <= 0xdf);
-  assert(def->schema.cc >= RDM_CC_DISC && def->schema.cc <= RDM_CC_GET_SET);
-  assert(def->response_handler != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  bool ret = false;
-
-  // Ensure that the parameter has not already been defined
-  uint32_t pdi = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == pid) {
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].pid == pid) {
-    return ret;  // Parameter already exists
-  }
-
-  // Check if there is space to add a new parameter definition
-  if (pdi == RDM_RESPONDER_NUM_PIDS_MAX) {
-    return ret;  // No space for new parameter definitions
-  }
-
-  // Add the new parameter to the driver
-  driver->params[pdi].pid = pid;
-  driver->params[pdi].data = NULL;
-  driver->params[pdi].definition = *def;
-  driver->params[pdi].callback = NULL;
-  // driver->params[pdi].context does not need to be set to NULL yet
-  ++driver->num_parameters;
-  ret = true;
-
-  return ret;
-}
-
-bool rdm_pd_update_response_handler(dmx_port_t dmx_num, rdm_pid_t pid,
-                                    rdm_sub_device_t sub_device,
-                                    rdm_response_handler_t response_handler) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513);
-  assert(pid > 0);
-  assert(response_handler != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  bool ret = false;
-
-  // Find the parameter
-  uint32_t pdi = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == pid) {
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].pid != pid) {
-    return ret;  // Parameter does not exist
-  }
-
-  // The response handler can be updated
-  driver->params[pdi].definition.response_handler = response_handler;
-  ret = true;
-
-  return ret;
-}
-
-bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                            rdm_sub_device_t sub_device,
-                            rdm_callback_t callback, void *context) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513);
-  assert(pid > 0);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-  bool ret = false;
-
-  // Find the parameter
-  uint32_t pdi = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == pid) {
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->params[pdi].pid != pid) {
-    return ret;  // Parameter does not exist
-  }
-
-  // The callback and context can be updated
-  driver->params[pdi].callback = callback;
-  driver->params[pdi].context = context;
-  ret = true;
-
-  return ret;
-}
-
-bool rdm_pd_exists(dmx_port_t dmx_num, rdm_pid_t pid,
-                   rdm_sub_device_t sub_device) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Find the parameter data
-  bool pd_exists = false;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].pid == pid) {
-      pd_exists = true;
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return pd_exists;
-}
-
-const void *rdm_pd_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                       rdm_sub_device_t sub_device) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513);
-  assert(pid > 0);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Find the parameter data
-  void *pd = NULL;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].pid == pid) {
-      pd = driver->params[i].data;
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return pd;
-}
-
-size_t rdm_pd_set(dmx_port_t dmx_num, rdm_pid_t pid,
-                  rdm_sub_device_t sub_device, const void *data, size_t size) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513 || sub_device == RDM_SUB_DEVICE_ALL);
-  assert(pid > 0);
-  assert(data != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  size_t written = 0;
-
-  // Return early if nothing to write
-  if (size == 0) {
-    return written;
+static size_t rdm_pd_set_variable(dmx_port_t dmx_num,
+                                  rdm_sub_device_t sub_device, rdm_pid_t pid,
+                                  const void *data, size_t size, bool enqueue) {
+  // Guard against writing to null pointer
+  if (data == NULL) {
+    size = 0;
   }
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Find the parameter and copy the data
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].pid == pid) {
-      void *pd = driver->params[i].data;
-      if (pd == NULL) {
-        break;  // Parameter data does not exist
-      }
-      if (driver->params[i].definition.schema.data_type == RDM_DS_ASCII) {
-        strncpy(pd, data, size);
-      } else {
-        memcpy(pd, data, size);
-      }
-      written = size;
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return written;
-}
-
-size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_pid_t pid,
-                            rdm_sub_device_t sub_device, const void *data,
-                            size_t size) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513 || sub_device == RDM_SUB_DEVICE_ALL);
-  assert(pid > 0);
-  assert(data != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  const size_t written = rdm_pd_set(dmx_num, pid, sub_device, data, size);
-  if (written > 0) {
-    dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-    // Enqueue the parameter if it is not already queued
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (driver->rdm_queue_size < RDM_RESPONDER_QUEUE_SIZE_MAX) {
-      bool pid_already_queued = false;
-      for (int i = 0; i < driver->rdm_queue_size; ++i) {
-        if (driver->rdm_queue[i] == pid) {
-          pid_already_queued = true;
-          break;
-        }
-      }
-      if (!pid_already_queued) {
-        driver->rdm_queue[driver->rdm_queue_size] = pid;
-        ++driver->rdm_queue_size;
-      }
-    }
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  }
-
-  return written;
-}
-
-const rdm_pd_schema_t *rdm_pd_get_schema(dmx_port_t dmx_num, rdm_pid_t pid,
-                                         rdm_sub_device_t sub_device) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < 513);
-  assert(pid > 0);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // TODO
-  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
-            "Multiple sub-devices are not yet supported.");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Find the parameter schema
-  rdm_pd_schema_t *schema = NULL;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].pid == pid) {
-      schema = &driver->params[i].definition.schema;
-      break;
-    }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return schema;
-}
-
-bool rdm_pd_get_description(dmx_port_t dmx_num, rdm_pid_t pid,
-                            rdm_sub_device_t sub_device,
-                            rdm_pid_description_t *description) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(pid > 0);
-  assert(sub_device < 513);
-  assert(description != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // 0x8000 to 0xFFDF is the allowed range for manufacturer specific PIDs
-  if (pid < RDM_PID_MANUFACTURER_SPECIFIC_BEGIN ||
-      pid > RDM_PID_MANUFACTURER_SPECIFIC_END) {
+  // Ensure the parameter has already been defined
+  const int pd_index = rdm_pd_get_index(dmx_num, sub_device, pid);
+  if (pd_index == driver->rdm.param_count) {
     return false;
   }
+  struct rdm_pd_vector_s *const pd_vector = &driver->rdm.params[pd_index];
+
+  // Attempt to memcpy
+  if (pd_vector->storage_type == RDM_PD_FLAG_VARIABLE) {
+    if (size > pd_vector->size) {
+      size = pd_vector->size;
+    }
+    if (size > 0) {
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      memcpy(pd_vector->data.value, data, size);
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      int flags = RDM_PD_FLAG_UPDATED | (enqueue ? RDM_PD_FLAG_QUEUED : 0);
+      pd_vector->flags |= flags;
+    }
+  } else {
+    size = 0;  // Don't write to a non-variable value
+  }
+
+  return size;
+}
+
+const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                                const rdm_pd_definition_t *definition,
+                                const void *init_value, size_t size) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(definition != NULL);
+  assert(definition->pid > 0);
+  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
+          definition->ds <= RDM_DS_SIGNED_DWORD) ||
+         (definition->ds >= 0x80 || definition->ds <= 0xdf));
+  assert(definition->pid_cc >= RDM_CC_DISC &&
+         definition->pid_cc <= RDM_CC_GET_SET);
+  assert(definition->response_handler != NULL);
+  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
+           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
+         definition->description == NULL);
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, NULL,
+            "Multiple sub-devices are not yet supported.");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Find parameter data and its descriptor
-  bool success = false;
+  // Ensure the parameter has not already been defined
+  const int pd_index = rdm_pd_get_index(dmx_num, sub_device, definition->pid);
+  if (pd_index < dmx_driver[dmx_num]->rdm.param_count) {
+    return NULL;
+  }
+
+  // Ensure there is space for new parameter definitions
+  if (pd_index == RDM_RESPONDER_NUM_PIDS_MAX) {
+    return NULL;
+  }
+
+  // Reserve space for the parameter in the RDM driver
+  void *pd = NULL;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].pid == pid) {
-      const rdm_pd_definition_t *def = &driver->params[i].definition;
-      if (def != NULL) {
-        description->pid = pid;
-        description->pdl_size = def->schema.pdl_size;
-        description->data_type = def->schema.data_type;
-        description->cc = def->schema.cc;
-        description->unit = def->units;
-        description->prefix = def->prefix;
-        description->min_value = def->schema.min_value;
-        description->max_value = def->schema.max_value;
-        description->default_value = def->default_value;
-        strncpy(description->description, def->description, 32);
-        success = true;
-      }
-      break;
+  if (size > 0 && size <= driver->rdm.pd_available) {
+    // Allocate space in the parameter data buffer
+    pd = driver->rdm.pd;
+    driver->rdm.pd_available -= size;
+    driver->rdm.pd += size;
+
+    // Set the parameter to the default value
+    if (definition->ds == RDM_DS_ASCII) {
+      strncpy(pd, init_value, size);
+    } else if (init_value != NULL) {
+      memcpy(pd, init_value, size);
+    } else {
+      memset(pd, 0, size);
     }
+  }
+  if (pd != NULL) {
+    // Update the parameter vectors
+    struct rdm_pd_vector_s *const pd_vector = &driver->rdm.params[pd_index];
+    pd_vector->callback = NULL;
+    // Don't need to set context to NULL until callback is not NULL
+    pd_vector->flags = 0;
+    pd_vector->size = size;
+    pd_vector->data.value = pd;
+    pd_vector->storage_type = RDM_PD_FLAG_VARIABLE;
+    pd_vector->definition = definition;
+    ++driver->rdm.param_count;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  return success;
+  return pd;
 }
 
-size_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                    void *destination, size_t size) {
+const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                             const rdm_pd_definition_t *definition,
+                             rdm_pid_t alias, size_t offset, size_t size) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(definition != NULL);
+  assert(definition->pid > 0);
+  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
+          definition->ds <= RDM_DS_SIGNED_DWORD) ||
+         (definition->ds >= 0x80 || definition->ds <= 0xdf));
+  assert(definition->pid_cc >= RDM_CC_DISC &&
+         definition->pid_cc <= RDM_CC_GET_SET);
+  assert(definition->response_handler != NULL);
+  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
+           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
+         definition->description == NULL);
+  assert(alias > 0);
+  assert(size > 0);
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, NULL,
+            "Multiple sub-devices are not yet supported.");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Ensure the parameter has not already been defined
+  const int pd_index = rdm_pd_get_index(dmx_num, sub_device, definition->pid);
+  if (pd_index < dmx_driver[dmx_num]->rdm.param_count) {
+    return NULL;
+  }
+
+  // Ensure there is space for new parameter definitions
+  if (pd_index == RDM_RESPONDER_NUM_PIDS_MAX) {
+    return NULL;
+  }
+
+  // Add the parameter vector
+  void *pd = NULL;
+  // Find the parameter data alias
+  for (int i = 0; i < driver->rdm.param_count; ++i) {
+    if (driver->rdm.params[i].definition->pid == alias) {
+      if (offset + size >= driver->rdm.params[i].size) {
+        break;  // Alias offset or size is too big
+      }
+      if (driver->rdm.params[i].definition->non_volatile &&
+          definition->non_volatile) {
+        break;  // Non-volatile parameter can't alias non-volatile parameter
+      }
+      pd = driver->rdm.params[i].data.value + offset;
+      break;
+    }
+  }
+  if (pd != NULL) {
+    // Update the parameter vectors
+    struct rdm_pd_vector_s *const pd_vector = &driver->rdm.params[pd_index];
+    pd_vector->callback = NULL;
+    // Don't need to set context to NULL until callback is not NULL
+    pd_vector->flags = 0;
+    pd_vector->size = size;
+    pd_vector->data.value = pd;
+    pd_vector->storage_type = RDM_PD_FLAG_VARIABLE;
+    pd_vector->definition = definition;
+    ++driver->rdm.param_count;
+  }
+
+  return pd;
+}
+
+rdm_pd_getter_t rdm_pd_add_deterministic(dmx_port_t dmx_num,
+                                         rdm_sub_device_t sub_device,
+                                         const rdm_pd_definition_t *definition,
+                                         rdm_pd_getter_t getter) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(definition != NULL);
+  assert(definition->pid > 0);
+  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
+          definition->ds <= RDM_DS_SIGNED_DWORD) ||
+         (definition->ds >= 0x80 || definition->ds <= 0xdf));
+  assert(definition->pid_cc >= RDM_CC_DISC &&
+         definition->pid_cc <= RDM_CC_GET_SET);
+  assert(definition->response_handler != NULL);
+  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
+           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
+         definition->description == NULL);
+  assert(getter != NULL);
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, NULL,
+            "Multiple sub-devices are not yet supported.");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Ensure the parameter has not already been defined
+  const int pd_index = rdm_pd_get_index(dmx_num, sub_device, definition->pid);
+  if (pd_index < dmx_driver[dmx_num]->rdm.param_count) {
+    return NULL;
+  }
+
+  // Ensure there is space for new parameter definitions
+  if (pd_index == RDM_RESPONDER_NUM_PIDS_MAX) {
+    return NULL;
+  }
+
+  // Add the parameter vector
+  struct rdm_pd_vector_s *const pd_vector = &driver->rdm.params[pd_index];
+  pd_vector->callback = NULL;
+  // Don't need to set context to NULL until callback is not NULL
+  pd_vector->flags = 0;
+  pd_vector->size = 0;
+  pd_vector->data.getter = getter;
+  pd_vector->storage_type = RDM_PD_FLAG_DETERMINISTIC;
+  pd_vector->definition = definition;
+  ++driver->rdm.param_count;
+
+  return getter;
+}
+
+bool rdm_pd_update_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid, rdm_callback_t callback,
+                            void *context) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Ensure the parameter has already been defined
+  const int pd_index = rdm_pd_get_index(dmx_num, sub_device, pid);
+  if (pd_index == driver->rdm.param_count) {
+    return false;
+  }
+  struct rdm_pd_vector_s *const pd_vector = &driver->rdm.params[pd_index];
+
+  // Update the callback and context
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  pd_vector->callback = callback;
+  pd_vector->context = context;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return true;
+}
+
+bool rdm_pd_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                   rdm_pid_t pid) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  return rdm_pd_get_index(dmx_num, sub_device, pid) <
+         dmx_driver[dmx_num]->rdm.param_count;
+}
+
+uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                     void *destination, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -487,80 +306,67 @@ size_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     size = 0;
   }
 
-  size_t total_size = 0;
+  uint32_t count = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (total_size + sizeof(uint16_t) < size) {
-      memcpy(destination, &driver->params[i].pid, sizeof(uint16_t));
-      destination += sizeof(uint16_t);
-    }
-    total_size += sizeof(uint16_t);
-  }
+  // FIXME: implement
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  return total_size;
+  return count;
 }
 
-int rdm_pd_call_response_handler(dmx_port_t dmx_num, rdm_header_t *header,
-                                 void *pd, uint8_t *pdl_out) {
+const void *rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                       rdm_pid_t pid, void *destination, size_t dest_size,
+                       const void *args) {
   assert(dmx_num < DMX_NUM_MAX);
-  assert(header != NULL);
-  assert(pdl_out != NULL);
-  assert(pd != NULL);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Find the parameter schema
-  const rdm_pd_definition_t *def = NULL;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  for (int i = 0; i < driver->num_parameters; ++i) {
-    if (driver->params[i].pid == header->pid) {
-      def = &driver->params[i].definition;
-      break;
+  // Ensure the parameter has already been defined
+  const int pd_index = rdm_pd_get_index(dmx_num, sub_device, pid);
+  if (pd_index == driver->rdm.param_count) {
+    return NULL;
+  }
+  struct rdm_pd_vector_s *const pd_vector = &driver->rdm.params[pd_index];
+
+  // Guard against writing to null pointer
+  if (destination == NULL) {
+    dest_size = 0;
+  }
+
+  // Return early if there is nowhere to write data
+  const void *ret = driver->rdm.params[pd_index].data.value;
+  if (dest_size == 0) {
+    return ret;
+  }
+
+  // Copy the parameter data to the destination buffer
+  if (pd_vector->storage_type == RDM_PD_FLAG_VARIABLE) {
+    if (dest_size > pd_vector->size) {
+      dest_size = pd_vector->size;  // Guard against out-of-bounds error
     }
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  // Guard against unknown PID
-  if (def == NULL) {
-    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
-
-  const rdm_pd_schema_t *schema = &def->schema;
-  return def->response_handler(dmx_num, header, pd, pdl_out, schema);
-}
-
-int rdm_response_handler_simple(dmx_port_t dmx_num, rdm_header_t *header,
-                                void *pd, uint8_t *pdl_out,
-                                const rdm_pd_schema_t *schema) {
-  // Return early if the sub-device is out of range
-  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
-
-  // TODO: if schema->data_type is byte/word/dword, check min/max
-
-  if (header->cc == RDM_CC_GET_COMMAND) {
-    const void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
-    *pdl_out = rdm_pd_serialize(pd, 231, schema->format, data);
+    if (dest_size > 0) {
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      memcpy(destination, pd_vector->data.value, dest_size);
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    }
+  } else if (pd_vector->storage_type == RDM_PD_FLAG_DETERMINISTIC) {
+    pd_vector->data.getter(dmx_num, sub_device, destination, dest_size, args);
   } else {
-    // Deserialize the packet parameter data in place
-    rdm_pd_deserialize(pd, header->pdl, schema->format, pd);
-    if (!rdm_pd_set(dmx_num, header->pid, header->sub_device, pd, header->pdl)) {
-      *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
-      return RDM_RESPONSE_TYPE_NACK_REASON;
-    }
+    __unreachable();
   }
 
-  return RDM_RESPONSE_TYPE_ACK;
+  return ret;
 }
 
-static size_t rdm_pd_get_size(const char *pd_format) {
+size_t rdm_pd_get_size(const char *format) {
   size_t param_size = 0;
-  for (const char *c = pd_format; *c != '\0'; ++c) {
+  for (const char *c = format; *c != '\0'; ++c) {
     size_t field_size = 0;
     switch (*c) {
       case 'b':
@@ -621,6 +427,81 @@ static size_t rdm_pd_get_size(const char *pd_format) {
   }
 
   return param_size;
+}
+
+size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                  rdm_pid_t pid, const void *data, size_t size) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  const bool enqueue = false;
+  return rdm_pd_set_variable(dmx_num, sub_device, pid, data, size, enqueue);
+}
+
+size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid, const void *data, size_t size) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, 0,
+            "Multiple sub-devices are not yet supported.");
+
+  const bool enqueue = true;
+  return rdm_pd_set_variable(dmx_num, sub_device, pid, data, size, enqueue);
+}
+
+rdm_response_type_t rdm_pd_handle_response(dmx_port_t dmx_num,
+                                           rdm_header_t *header, void *pd,
+                                           uint8_t *pdl_out) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(header != NULL);
+  assert(pdl_out != NULL);
+  assert(pd != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Ensure the source UID is valid and packet targets this device
+  rdm_uid_t this_uid;
+  rdm_uid_get(dmx_num, &this_uid);
+  if (rdm_uid_is_broadcast(&header->src_uid) ||
+      !rdm_uid_is_target(&this_uid, &header->dest_uid)) {
+    return RDM_RESPONSE_TYPE_NONE;
+  }
+
+  // Ensure header is formatted properly
+  if (header->pdl > 231 || header->port_id == 0 ||
+      (header->cc != RDM_CC_DISC_COMMAND && header->cc != RDM_CC_GET_COMMAND &&
+       header->cc != RDM_CC_SET_COMMAND)) {
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_FORMAT_ERROR);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  // Ensure the parameter has already been defined
+  int pd_index = rdm_pd_get_index(dmx_num, header->sub_device, header->pid);
+  if (pd_index == driver->rdm.param_count) {
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+  const rdm_pd_definition_t *def = &driver->rdm.params[pd_index].definition;
+
+  // Ensure the command class is valid
+  if ((header->cc == RDM_CC_DISC_COMMAND && !(def->pid_cc & RDM_CC_DISC)) ||
+      (header->cc == RDM_CC_GET_COMMAND && !(def->pid_cc & RDM_CC_GET)) ||
+      (header->cc == RDM_CC_SET_COMMAND && !(def->pid_cc & RDM_CC_SET))) {
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  // The header is valid - call the response handler
+  return def->response_handler(dmx_num, &def, header, pd, pdl_out);
 }
 
 static size_t rdm_pd_encode(void *destination, size_t len, const char *format,
@@ -729,18 +610,77 @@ size_t rdm_pd_deserialize(void *destination, size_t len, const char *format,
   return rdm_pd_encode(destination, len, format, source, true);
 }
 
-
-/**
- * @brief Emplaces a 16-bit word into a destination. Used as a convenience
- * function for quickly emplacing NACK reasons and timer values.
- *
- * @param[out] destination A pointer to a destination buffer.
- * @param word The word to emplace.
- * @return The size of the word which was emplaced. Is always 2.
- */
 size_t rdm_pd_serialize_word(void *destination, uint16_t word) {
   assert(destination != NULL);
   word = bswap16(word);
   memmove(destination, &word, sizeof(word));
   return sizeof(word);
+}
+
+size_t rdm_pd_get_description(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              rdm_pid_t pid,
+                              rdm_pid_description_t *description) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Only manufacturer-specific parameters may have a description
+  if (pid < RDM_PID_MANUFACTURER_SPECIFIC_BEGIN ||
+      pid > RDM_PID_MANUFACTURER_SPECIFIC_END) {
+    return 0;
+  }
+
+  size_t written = 0;
+  // FIXME: implement
+  // for (int i = 0; i < driver->num_parameters; ++i) {
+  //   if (driver->params[i].pid == pid) {
+  //     const rdm_pd_definition_t *def = &driver->params[i].definition;
+  //     if (description != NULL) {
+  //       description->pid = pid;
+  //       description->pdl_size = def->schema.pdl_size;
+  //       description->data_type = def->schema.data_type;
+  //       description->cc = def->schema.cc;
+  //       description->unit = def->units;
+  //       description->prefix = def->prefix;
+  //       description->min_value = def->schema.min_value;
+  //       description->max_value = def->schema.max_value;
+  //       description->default_value = def->default_value;
+  //       strncpy(description->description, def->description, 32);
+  //     }
+  //     written = 20 + strnlen(def->description, 32);
+  //     break;
+  //   }
+  // }
+
+  return written;
+}
+
+rdm_response_type_t rdm_response_handler_simple(dmx_port_t dmx_num,
+                                                const rdm_pd_definition_t *def,
+                                                rdm_header_t *header, void *pd,
+                                                uint8_t *pdl_out) {
+  // Return early if the sub-device is out of range
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+
+  // FIXME: implement
+  // TODO: if schema->data_type is byte/word/dword, check min/max
+  // if (header->cc == RDM_CC_GET_COMMAND) {
+  //   const void *data = rdm_pd_get(dmx_num, header->pid, header->sub_device);
+  //   *pdl_out = rdm_pd_serialize(pd, 231, schema->format, data);
+  // } else {
+  //   // Deserialize the packet parameter data in place
+  //   rdm_pd_deserialize(pd, header->pdl, schema->format, pd);
+  //   if (!rdm_pd_set(dmx_num, header->pid, header->sub_device, pd,
+  //   header->pdl)) {
+  //     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
+  //     return RDM_RESPONSE_TYPE_NACK_REASON;
+  //   }
+  // }
+
+  return RDM_RESPONSE_TYPE_ACK;
 }

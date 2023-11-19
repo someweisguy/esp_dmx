@@ -33,6 +33,9 @@ extern "C" {
 typedef enum rdm_sub_device_t {
   /** @brief Sub-device which respresents the root of a RDM device.*/
   RDM_SUB_DEVICE_ROOT = 0,
+  /** @brief The sub-device maximum. All sub-devices numbers must be less than
+     this value unless using RDM_SUB_DEVICE ALL.*/
+  RDM_SUB_DEVICE_MAX = 513,
   /** @brief The RDM sub-device number which can be used to address all
      sub-devices of an RDM device in a request.*/
   RDM_SUB_DEVICE_ALL = 0xffff
@@ -672,35 +675,7 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
 typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
                                void *context);
 
-// TODO: docs
-typedef struct rdm_pd_schema_t {
-  rdm_ds_t data_type;
-  rdm_pid_cc_t cc;
-  size_t pdl_size;
-  uint32_t min_value;
-  uint32_t max_value;
-  size_t alloc_size;
-  const char *format;
-} rdm_pd_schema_t;
 
-/**
- * @brief A function type for RDM responder callbacks. This is the type of
- * function that is called when responding to RDM requests.
- */
-typedef int (*rdm_response_handler_t)(dmx_port_t dmx_num, rdm_header_t *header,
-                                      void *pd, uint8_t *pdl_out,
-                                      const rdm_pd_schema_t *schema);
-
-// TODO: docs
-typedef struct rdm_pd_definition_t {
-  rdm_pd_schema_t schema;
-  bool nvs;
-  rdm_response_handler_t response_handler;
-  uint32_t default_value;
-  rdm_units_t units;
-  rdm_prefix_t prefix;
-  const char *description;
-} rdm_pd_definition_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
