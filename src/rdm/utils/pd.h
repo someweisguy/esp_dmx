@@ -31,11 +31,6 @@ enum rdm_pd_flags_e {
   RDM_PD_FLAG_QUEUED = BIT6,
 };
 
-typedef struct rdm_pd_limit_s {
-  uint32_t max;
-  uint32_t min;
-} rdm_pd_limit_t;
-
 typedef struct rdm_pd_definition_s rdm_pd_definition_t;
 
 /**
@@ -48,17 +43,20 @@ typedef rdm_response_type_t (*rdm_response_handler_t)(
 
 typedef struct rdm_pd_definition_s {
   rdm_pid_t pid;
-  rdm_ds_t ds;
   rdm_pid_cc_t pid_cc;
+  rdm_response_handler_t response_handler;
+  bool non_volatile;
   struct rdm_pd_format_s {
     struct rdm_pd_format_cc_s {
       const char *request;
       const char *response;
     } get, set;
   } format;
-  rdm_pd_limit_t limit;
-  rdm_response_handler_t response_handler;
-  bool non_volatile;
+  rdm_ds_t ds;
+  struct rdm_pd_limit_s {
+    uint32_t max;
+    uint32_t min;
+  } limit;
   rdm_units_t units;
   rdm_prefix_t prefix;
   uint32_t default_value;
