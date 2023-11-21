@@ -39,7 +39,7 @@ typedef struct rdm_pd_definition_s rdm_pd_definition_t;
  */
 typedef rdm_response_type_t (*rdm_response_handler_t)(
     dmx_port_t dmx_num, const rdm_pd_definition_t *def, rdm_header_t *header,
-    void *pd, uint8_t *pdl_out);
+    void *pd, size_t *pdl_out, size_t pdl_size);
 
 typedef struct rdm_pd_definition_s {
   rdm_pid_t pid;
@@ -71,7 +71,8 @@ typedef size_t (*rdm_pd_getter_t)(dmx_port_t dmx_num,
 
 const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                 const rdm_pd_definition_t *definition,
-                                const void *init_value, size_t size);
+                                const void *init_value, size_t size,
+                                bool enqueue);
 
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                              const rdm_pd_definition_t *definition,
@@ -129,6 +130,10 @@ rdm_response_type_t rdm_response_handler_simple(dmx_port_t dmx_num,
                                                 const rdm_pd_definition_t *def,
                                                 rdm_header_t *header, void *pd,
                                                 uint8_t *pdl_out);
+
+const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
+                                                 rdm_sub_device_t sub_device,
+                                                 rdm_pid_t pid);
 
 #ifdef __cplusplus
 }

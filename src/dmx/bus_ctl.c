@@ -221,48 +221,132 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     return packet_size;
   }
 
-  // Return early if the packet is neither RDM nor an RDM request
+  // TODO: Return early if RDM is disabled
+
+  // Validate checksum and get the packet header
   rdm_header_t header;
-  if (!rdm_read(dmx_num, &header, NULL, 0) ||
-      (header.cc != RDM_CC_DISC_COMMAND && header.cc != RDM_CC_GET_COMMAND &&
+  if (!rdm_read(dmx_num, &header, NULL, 0)) {
+    xSemaphoreGiveRecursive(driver->mux);
+    return packet_size;
+  }
+
+  // Validate packet targets this device and is a request
+  rdm_uid_t this_uid;
+  rdm_uid_get(dmx_num, &this_uid);
+  if (!rdm_uid_is_target(&this_uid, &header.dest_uid) ||
+      (header.cc != RDM_CC_DISC_COMMAND &&
+       header.cc != RDM_CC_GET_COMMAND &&
        header.cc != RDM_CC_SET_COMMAND)) {
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
-  if (packet != NULL) {
-    packet->is_rdm = header.pid;
-  }
-  const rdm_pid_t pid_in = header.pid;
-  const rdm_sub_device_t sub_device_in = header.sub_device;
 
-  // Ignore the packet if it does not target this device
-  rdm_uid_t my_uid;
-  rdm_uid_get(dmx_num, &my_uid);
-  if (!rdm_uid_is_target(&my_uid, &header.dest_uid)) {
-    // The packet should be ignored
-    xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
-  }
-
-  // Prepare the response packet parameter data and find the response handler
   uint8_t pdl_out;
-  uint8_t pd[231];  // Parameter data. This array's length is the max pd size.
-  void *parameter;
-  const rdm_pd_schema_t *schema;
+  uint8_t pd[231 + 1];
   rdm_response_type_t response_type;
-  uint32_t pdi = 0;  // Parameter data index
-  for (; pdi < driver->num_parameters; ++pdi) {
-    if (driver->params[pdi].pid == header.pid) {
-      break;
+
+  // Get parameter definition
+  const rdm_pd_definition_t *def =
+      rdm_pd_get_definition(dmx_num, header.sub_device, header.pid);
+  if (def == NULL) {
+    // TODO: rdm_write_word(pd, RDM_NR_UNKNOWN_PID);  // Don't serialize yet!
+    pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
+    response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+  } else {
+    // Validate header against parameter definition
+    // TODO
+
+    // Read the parameter data and deserialize it in place
+    rdm_read(dmx_num, NULL, pd, sizeof(pd));
+    const char *format;
+    switch (header.cc) {
+      case RDM_CC_DISC_COMMAND:
+      case RDM_CC_GET_COMMAND:
+        format = def->format.get.request;
+        break;
+      default:
+        format = def->format.set.request;
+    }
+    rdm_pd_deserialize(pd, sizeof(pd), format, pd);
+
+    // Handle the response and validate response type
+    const rdm_pid_t pid = header.pid;
+    pdl_out = 0;
+    response_type = def->response_handler(dmx_num, def, &header, pd, &pdl_out);
+    if ((response_type != RDM_RESPONSE_TYPE_NONE &&
+         response_type != RDM_RESPONSE_TYPE_ACK &&
+         response_type != RDM_RESPONSE_TYPE_ACK_TIMER &&
+         response_type != RDM_RESPONSE_TYPE_NACK_REASON &&
+         response_type != RDM_RESPONSE_TYPE_ACK_OVERFLOW) ||
+        (response_type == RDM_RESPONSE_TYPE_NONE &&
+         (header.pid != RDM_PID_DISC_UNIQUE_BRANCH ||
+          !rdm_uid_is_broadcast(&header.dest_uid))) ||
+        ((response_type != RDM_RESPONSE_TYPE_ACK &&
+          response_type != RDM_RESPONSE_TYPE_NONE) &&
+         header.cc == RDM_CC_DISC_COMMAND)) {
+      DMX_WARN("PID 0x%04x returned invalid response type", pid);
+      rdm_set_boot_loader(dmx_num);
+      response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+      pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
     }
   }
-  if (pdi < driver->num_parameters) {
-    schema = &driver->params[pdi].definition.schema;
-    parameter = driver->params[pdi].data;
-  } else {
-    schema = NULL;
-    parameter = NULL;
+
+  if (response_type != RDM_RESPONSE_TYPE_NONE) {
+    // Serialize the parameter data in place
+    const char *format;
+    if (response_type == RDM_RESPONSE_TYPE_ACK ||
+        response_type == RDM_RESPONSE_TYPE_ACK_OVERFLOW) {
+      switch (header.cc) {
+        case RDM_CC_DISC_COMMAND:
+        case RDM_CC_GET_COMMAND:
+          format = def->format.get.response;
+          break;
+        default:
+          format = def->format.set.response;
+      }
+    } else if (response_type == RDM_RESPONSE_TYPE_NACK_REASON ||
+              response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
+      format = "w$";
+    } else {
+      format = NULL;
+    }
+    pdl_out = rdm_pd_serialize(pd, sizeof(pd), format, pd);
+    if (pdl_out > 231) {
+      DMX_WARN("PID 0x%04x pdl is too large", header.pid);
+      rdm_set_boot_loader(dmx_num);
+      response_type = RDM_RESPONSE_TYPE_NACK_REASON;
+      pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
+    }
+    
+    // Update header to response values
+    header.message_len = 24 + pdl_out;  // Set for user callback
+    header.dest_uid = header.src_uid;
+    header.src_uid = this_uid;
+    header.response_type = response_type;
+    header.message_count = rdm_queue_size(dmx_num);
+    header.cc += 1;  // Set to RDM_CC_x_COMMAND_RESPONSE
+    header.pdl = pdl_out;
+    // These fields should not change: tn, sub_device, and pid
+
+    // Send the RDM response
+    const size_t response_size = rdm_write(dmx_num, &header, pd);
+    if (!dmx_send(dmx_num, response_size)) {
+      const int64_t micros_elapsed =
+          dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
+      // TODO: generate more debug info: i.e. GET/SET/DISC request?
+      DMX_WARN("PID 0x%04x did not send a response (size: %i, time: %lli us)",
+               header.pid, response_size, micros_elapsed);
+      rdm_set_boot_loader(dmx_num);
+    } else if (response_size > 0) {
+      dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      driver->head = -1;  // Wait for DMX break before reading data
+      dmx_uart_set_rts(driver->uart, 1);
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    }
   }
+
+
 
   // Determine how this device should respond to the request
   if (header.pdl > sizeof(pd) || header.port_id == 0 ||

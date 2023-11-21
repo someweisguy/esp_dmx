@@ -105,6 +105,19 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
   return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
+static size_t rdm_personality_description_wrapper(dmx_port_t dmx_num,
+                                                  rdm_sub_device_t sub_device,
+                                                  void *destination,
+                                                  size_t dest_size,
+                                                  va_list va) {
+  if (dest_size < sizeof(rdm_pid_description_t)) {
+    return 0;  // Insufficient output size
+  }
+
+  const uint8_t pid = va_arg(va, uint8_t);
+  return rdm_pd_get_description(dmx_num, sub_device, pid, destination);
+}
+
 bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
                                               rdm_callback_t cb,
                                               void *context) {
@@ -125,7 +138,8 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
       .response_handler = rdm_rhd_dmx_personality_description,
   };
 
-  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
+                           rdm_personality_description_wrapper);
   return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 

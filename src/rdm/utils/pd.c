@@ -63,7 +63,8 @@ static size_t rdm_pd_set_variable(dmx_port_t dmx_num,
 
 const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                 const rdm_pd_definition_t *definition,
-                                const void *init_value, size_t size) {
+                                const void *init_value, size_t size,
+                                bool enqueue) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(definition != NULL);
@@ -212,6 +213,7 @@ rdm_pd_getter_t rdm_pd_add_deterministic(dmx_port_t dmx_num,
   assert(definition->pid_cc >= RDM_CC_DISC &&
          definition->pid_cc <= RDM_CC_GET_SET);
   assert(definition->response_handler != NULL);
+  assert(definition->non_volatile == false);
   assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
            definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
          definition->description == NULL);
@@ -306,12 +308,12 @@ uint32_t rdm_pd_list(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     size = 0;
   }
 
-  uint32_t count = 0;
+  // uint32_t count = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   // FIXME: implement
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  return count;
+  return size;
 }
 
 const void *rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -468,40 +470,45 @@ rdm_response_type_t rdm_pd_handle_response(dmx_port_t dmx_num,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Ensure the source UID is valid and packet targets this device
-  rdm_uid_t this_uid;
-  rdm_uid_get(dmx_num, &this_uid);
-  if (rdm_uid_is_broadcast(&header->src_uid) ||
-      !rdm_uid_is_target(&this_uid, &header->dest_uid)) {
-    return RDM_RESPONSE_TYPE_NONE;
-  }
+  // // Ensure the source UID is valid and packet targets this device
+  // rdm_uid_t this_uid;
+  // rdm_uid_get(dmx_num, &this_uid);
+  // if (rdm_uid_is_broadcast(&header->src_uid) ||
+  //     !rdm_uid_is_target(&this_uid, &header->dest_uid)) {
+  //   return RDM_RESPONSE_TYPE_NONE;
+  // }
 
-  // Ensure header is formatted properly
-  if (header->pdl > 231 || header->port_id == 0 ||
-      (header->cc != RDM_CC_DISC_COMMAND && header->cc != RDM_CC_GET_COMMAND &&
-       header->cc != RDM_CC_SET_COMMAND)) {
-    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_FORMAT_ERROR);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  // // Ensure header is formatted properly
+  // if (header->pdl > 231 || header->port_id == 0 ||
+  //     (header->cc != RDM_CC_DISC_COMMAND && header->cc != RDM_CC_GET_COMMAND &&
+  //      header->cc != RDM_CC_SET_COMMAND)) {
+  //   *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_FORMAT_ERROR);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
 
-  // Ensure the parameter has already been defined
-  int pd_index = rdm_pd_get_index(dmx_num, header->sub_device, header->pid);
-  if (pd_index == driver->rdm.param_count) {
-    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
-  const rdm_pd_definition_t *def = &driver->rdm.params[pd_index].definition;
+  // // Ensure the parameter has already been defined
+  // int pd_index = rdm_pd_get_index(dmx_num, header->sub_device, header->pid);
+  // if (pd_index == driver->rdm.param_count) {
+  //   *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
+  // const rdm_pd_definition_t *def = &driver->rdm.params[pd_index].definition;
 
-  // Ensure the command class is valid
-  if ((header->cc == RDM_CC_DISC_COMMAND && !(def->pid_cc & RDM_CC_DISC)) ||
-      (header->cc == RDM_CC_GET_COMMAND && !(def->pid_cc & RDM_CC_GET)) ||
-      (header->cc == RDM_CC_SET_COMMAND && !(def->pid_cc & RDM_CC_SET))) {
-    *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
-    return RDM_RESPONSE_TYPE_NACK_REASON;
-  }
+  // // Ensure the command class is valid
+  // if ((header->cc == RDM_CC_DISC_COMMAND && !(def->pid_cc & RDM_CC_DISC)) ||
+  //     (header->cc == RDM_CC_GET_COMMAND && !(def->pid_cc & RDM_CC_GET)) ||
+  //     (header->cc == RDM_CC_SET_COMMAND && !(def->pid_cc & RDM_CC_SET))) {
+  //   *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+  //   return RDM_RESPONSE_TYPE_NACK_REASON;
+  // }
 
-  // The header is valid - call the response handler
-  return def->response_handler(dmx_num, &def, header, pd, pdl_out);
+  const rdm_pd_definition_t *def =
+      rdm_pd_get_definition(dmx_num, header->sub_device, header->pid);
+  if (def == NULL) {
+      *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_UNKNOWN_PID);
+      return RDM_RESPONSE_TYPE_NACK_REASON;
+  }
+  return def->response_handler(dmx_num, &def, header, pd, pdl_out, 231);
 }
 
 static size_t rdm_pd_encode(void *destination, size_t len, const char *format,
@@ -683,4 +690,25 @@ rdm_response_type_t rdm_response_handler_simple(dmx_port_t dmx_num,
   // }
 
   return RDM_RESPONSE_TYPE_ACK;
+}
+
+const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
+                                                 rdm_sub_device_t sub_device,
+                                                 rdm_pid_t pid) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // TODO
+  DMX_CHECK(sub_device == RDM_SUB_DEVICE_ROOT, NULL,
+            "Multiple sub-devices are not yet supported.");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Ensure the parameter has already been defined
+  const int pd_index = rdm_pd_get_index(dmx_num, sub_device, pid);
+  if (pd_index == driver->rdm.param_count) {
+    return NULL;
+  }
+  return driver->rdm.params[pd_index].definition;
 }

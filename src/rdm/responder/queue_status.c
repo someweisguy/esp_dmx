@@ -60,6 +60,6 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_rhd_queued_message,
   };
 
-  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, NULL);
   return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }

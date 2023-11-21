@@ -61,12 +61,12 @@ static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
 
   // Get the PID description - fails if no PID or description found
   rdm_pid_description_t description;
-  if (!rdm_pd_get_description(dmx_num, requested_pid, header->sub_device,
+  if (!rdm_pd_get_description(dmx_num, header->sub_device, requested_pid,
                               &description)) {
     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
     return RDM_RESPONSE_TYPE_NACK_REASON;
   }
-  
+
   *pdl_out = rdm_pd_serialize(pd, 231, schema->format, &description);
   return RDM_RESPONSE_TYPE_ACK;
 }
@@ -88,7 +88,8 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_rhd_supported_parameters,
   };
 
-  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
+                           rdm_pd_list);
   return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
@@ -109,6 +110,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
       .response_handler = rdm_rhd_parameter_description,
   };
 
-  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
+                           rdm_pd_get_description);
   return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }

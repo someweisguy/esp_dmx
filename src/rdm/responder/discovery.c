@@ -94,7 +94,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   };
 
   // Register the parameter
-  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def);
+  rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, NULL);
   return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
 }
 
