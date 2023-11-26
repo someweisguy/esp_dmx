@@ -148,15 +148,15 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
 
-  driver->pd_alloc_size = pd_alloc_size;
-  driver->pd = pd;
-  driver->pd_head = 0;
+  driver->rdm.heap_available = pd_alloc_size;
+  driver->rdm.heap_ptr = pd + pd_alloc_size;
+
+  driver->rdm.definition_count = 0;
+  driver->rdm.parameter_count = 0;
 
   // RDM responder configuration
-  driver->rdm_queue_size = 0;
-  driver->rdm_queue_last_sent = 0;  // A queued message has not yet been sent
-  driver->num_parameters = 0;
-  // The driver->params field is left uninitialized
+  driver->rdm.queue_size = 0;
+  driver->rdm.queue_last_sent = 0;  // A queued message has not yet been sent
 
   // Initialize the RDM status queue
   // TODO - implement in pd
@@ -297,9 +297,9 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
     heap_caps_free(driver->data);
   }
 
-  // Free RDM parameter data buffer
-  if (driver->pd != NULL) {
-    heap_caps_free(driver->pd);
+  // Free RDM parameter heap
+  if (driver->rdm.heap_ptr != NULL) {
+    heap_caps_free(driver->rdm.heap_ptr - driver->rdm.heap_available);
   }
 
   // Free hardware timer ISR

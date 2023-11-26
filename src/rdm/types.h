@@ -675,8 +675,6 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
 typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
                                void *context);
 
-
-
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
  * messages.*/

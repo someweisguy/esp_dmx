@@ -203,38 +203,31 @@ typedef struct dmx_driver_t {
     uint16_t footprint;       // The DMX footprint of the personality.
     const char *description;  // A description of the personality.
   } personalities[DMX_PERSONALITY_COUNT_MAX];
+
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
 
 
   struct rdm_driver_t {
-    void *pd;  // Allocated memory for DMX/RDM parameter data.
-    size_t pd_available;
-
-    // RDM responder configuration
-    // uint32_t num_parameters;  // The number of RDM parameters registered.
-    // struct rdm_parameter_table_t {
-    //   rdm_pid_t pid;               // The PID of this parameter.
-    //   void *data;                  // A pointer to the parameter data.
-    //   uint8_t flags;
-    //   rdm_pd_definition_t definition;  // The definition of the parameter.
-    //   rdm_callback_t callback;     // The parameter callback function.
-    //   void *context;               // Context for the callback function.
-    // } params[RDM_RESPONDER_NUM_PIDS_MAX];  // A table containing RDM parameter information.
-
-    uint32_t param_count;
-    struct rdm_pd_vector_s {
+    void *heap_ptr;  // Allocated memory for DMX/RDM parameter data.
+    size_t heap_available;
+    
+    uint32_t definition_count;
+    struct rdm_pd_dictionary_s {
       const rdm_pd_definition_t *definition;
-      enum rdm_pd_storage_type_e storage_type;
-      union rdm_pd_u {
-        void *value;
-        rdm_pd_getter_t getter;
-      } data;
-      size_t size;
-      uint8_t flags;
       rdm_callback_t callback;
       void *context;
-    } params[RDM_RESPONDER_NUM_PIDS_MAX];
+    } dictionary[RDM_RESPONDER_NUM_PIDS_MAX];
+
+    uint32_t parameter_count;
+    struct rdm_pd_s {
+      rdm_pid_t id;
+      void *data;
+      uint8_t flags;
+    } parameter[RDM_RESPONDER_NUM_PIDS_MAX];
+
+    uint16_t queue_last_sent;  // The PID of the last sent queued message.
+    uint16_t queue_size;       // The index of the RDM message queue list.
 
   } rdm;
 
@@ -242,106 +235,36 @@ typedef struct dmx_driver_t {
 
 
   /*
+  
+  size_t rdm_write(dmx_num, *header, *format, *pd, size_t n);
+  size_t rdm_write_ack(dmx_num, *header, *format, *pd, n);
+  size_t rdm_write_ack_timer(dmx_num, *header, timer);
+  size_t rdm_write_nack_reason(dmx_num, *header, nr, n)
+  size_t rdm_write_ack_overflow(dmx_num, *header, *format, *pd, n, page)
 
+  bool rdm_read_header(dmx_num, *header);
+  size_t rdm_read_pd(dmx_num, *format, *pd, n);
 
+  size_t rh(dmx_num, const *def, const *header, void *ctx) {
 
-  typedef struct rdm_pd_definition_s {
-    rdm_pid_t pid;
-    rdm_pd_storage_type_t storage_type;
-    rdm_ds_t ds;
-    rdm_pid_cc_t pid_cc;
-    struct rdm_pd_format_s {
-      struct rdm_pd_format_cc_s {
-        const char *request;
-        const char *response;
-      } get, set;
-    } format;
-    rdm_response_handler_t response_handler;
-    rdm_units_t units;
-    rdm_prefix_t prefix;
-    uint32_t default_value;
-    const char *description;
-  } rdm_pd_definition_t;
+    size_t pdl;
+    char pd[231];
 
+    if (header->cc == RDM_CC_GET_COMMAND) {
+      pdl = def->getter(pd, ctx, sizeof(pd));
+      if (pdl == 0) {
+        return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+      }
+    } else {
+      size_t n = rdm_read_pd(dmx_num, def->format.get.format, pd, sizeof(pd));
+      def->setter(ctx, pd, n);
+      pdl = 0;
+    }
 
-
-
-
-  typedef struct rdm_pd_format_t {
-    struct get {
-      const char *request;
-      const char *response;
-    };
-    struct set {
-      const char *request;
-      const char *response;
-    };
-  } rdm_pd_format_t;
-
-  typedef struct rdm_pd_limits_t {
-    uint32_t min;
-    uint32_t max;
-  } rdm_pd_limits_t;
-
-  static int rdm_rhd(dmx_port_t dmx_num, const rdm_limits_t *limits, 
-                     rdm_header_t *header, void *pd, uint8_t *pdl_out);
-
-  typedef struct rdm_pd_definition_t {
-    uint32_t default_value;
-    rdm_units_t units;
-    rdm_prefix_t prefix
-    const char *description;
-  } rdm_pd_definition_t
-
-  uint32_t parameter_count;
-  struct rdm_param_vector_t {
-    rdm_pid_t pid;
-    uint8_t flags;
-    uint8_t pid_cc;
-    union {
-      struct {
-        void *data;
-        size_t alloc_size;
-      };
-      rdm_pd_getter_t getter;
-    };
-    rdm_pd_format_t format;
-    rdm_pd_limits_t limits;
-    rdm_response_handler_t response_handler;
-    const rdm_pd_definition_t *definition;
-  } paramvs[RDM_RESPONDER_NUM_PIDS_MAX];
-
-  const void *rdm_pd_add_variable(dmx_port_t dmx_num, 
-                                  rdm_sub_device_t sub_device, rdm_pid_t pid,
-                                  const rdm_param_vector_t *v, 
-                                  const void *init_value);
-
-  done:
-    rdm_ds_t data_type;  // rdm_pd_get_ds(*format);
-    rdm_pid_cc_t cc;
-    size_t pdl_size;  // rdm_pd_get_size(*format);
-    uint32_t min_value;
-    uint32_t max_value;
-    size_t alloc_size;
-    const char *format;
-
-    rdm_response_handler_t response_handler;
-
-
-  required:
-
-
-  manufacturer specific only:
-    uint32_t default_value;
-    rdm_units_t units;
-    rdm_prefix_t prefix;
-    const char *description;
-
+    return rdm_write_ack(dmx_num, header, pd, pdl);
+  }
   */
 
-  uint16_t rdm_queue_last_sent;  // The PID of the last sent queued message.
-  uint16_t rdm_queue_size;       // The index of the RDM message queue list.
-  uint16_t rdm_queue[RDM_RESPONDER_QUEUE_SIZE_MAX];  // The RDM queued message list.
 
   // TODO: implement status using space in pd
   // uint8_t rdm_status_threshold;
