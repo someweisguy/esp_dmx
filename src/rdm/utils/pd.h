@@ -43,26 +43,32 @@ typedef struct rdm_pd_definition_s {
   const char *description;
 } rdm_pd_definition_t;
 
+// TODO: docs, not thread-safe
 int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
                           const rdm_pd_definition_t *definition);
 
+// TODO: docs, not thread-safe
 bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                          rdm_callback_t callback, void *context);
 
 const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
                                                  rdm_pid_t pid);
 
+// TODO: docs, not thread-safe
 const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                 rdm_pid_t pid, bool non_volatile,
                                 const void *init_value, size_t size);
 
+// TODO: docs, not thread-safe
 const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                              rdm_pid_t pid, bool non_volatile, rdm_pid_t alias,
                              size_t offset);
 
+// TODO: docs, not thread-safe
 const void *rdm_pd_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               rdm_pid_t pid, void *data);
 
+// TODO: docs, returned pointer is not thread-safe
 const void *rdm_pd_get_pointer(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid);
 
@@ -81,6 +87,7 @@ uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num);
 
 rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num);
 
+// TODO: docs, not thread-safe
 rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
