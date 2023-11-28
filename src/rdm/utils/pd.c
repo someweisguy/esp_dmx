@@ -454,8 +454,9 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
     if (driver->rdm.parameter[i].flags & FLAGS == FLAGS) {
       const rdm_pid_t pid = driver->rm.parameter[i].id;
       const rdm_pd_definition_t *def = rdm_pd_get_definition(dmx_num, pid);
-      dmx_nvs_set(dmx_num, pid, 0, def->ds, driver->rdm.parameter[i].data,
-                  def->alloc_size);
+      // TODO: implement sub-devices
+      dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
+                  driver->rdm.parameter[i].data, def->alloc_size);
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->rdm.parameter[i].flags &= ~RDM_PD_FLAGS_UPDATED;
       --driver->rdm.nvs_update_count;
