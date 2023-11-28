@@ -417,7 +417,7 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
   return pid;
 }
 
-rdm_pid_t rdm_queue_get_last_sent(dmx_port_t dmx_num) {
+rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
