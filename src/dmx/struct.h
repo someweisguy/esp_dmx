@@ -225,6 +225,7 @@ typedef struct dmx_driver_t {
       void *data;
       uint8_t flags;
     } parameter[RDM_RESPONDER_NUM_PIDS_MAX];
+    uint32_t nvs_update_count;
 
     uint16_t queue_last_sent;  // The PID of the last sent queued message.
     uint16_t queue_size;       // The index of the RDM message queue list.

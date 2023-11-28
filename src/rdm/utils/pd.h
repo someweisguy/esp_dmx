@@ -75,11 +75,13 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             rdm_pid_t pid, const void *source, size_t size);
 
-uint8_t rdm_pd_queue_size(dmx_port_t dmx_num);
-
 rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num);
 
+uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num);
+
 rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num);
+
+rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
 }
