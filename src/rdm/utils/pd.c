@@ -406,7 +406,7 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
     for (int i = 0; i < driver->rdm.parameter_count; ++i) {
       if (driver->rdm.parameter[i].flags & RDM_PD_FLAGS_QUEUED) {
         pid = driver->rdm.parameter[i].id;
-        driver->rdm.parameter[i].flags & ~RDM_PD_FLAGS_QUEUED;
+        driver->rdm.parameter[i].flags &= ~RDM_PD_FLAGS_QUEUED;
         --driver->rdm.queue_size;
         break;
       }
