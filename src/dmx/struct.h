@@ -224,6 +224,7 @@ typedef struct dmx_driver_t {
       rdm_pid_t id;
       void *data;
       uint8_t flags;
+      bool is_queued;
     } parameter[RDM_RESPONDER_NUM_PIDS_MAX];
 
     uint32_t nvs_commit_size;

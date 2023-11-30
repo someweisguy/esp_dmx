@@ -15,7 +15,6 @@
 
 enum rdm_pd_flags_e {
   RDM_PD_FLAGS_UPDATED = BIT0,
-  RDM_PD_FLAGS_QUEUED = BIT1,
   RDM_PD_FLAGS_NON_VOLATILE = BIT2,
   RDM_PD_FLAGS_CONST = BIT3,
 };
@@ -61,6 +60,7 @@ static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
 
   struct rdm_pd_s *entry = &driver->rdm.parameter[driver->rdm.parameter_count];
   ++driver->rdm.parameter_count;
+  entry->is_queued = false;
 
   return entry;
 }
@@ -373,7 +373,8 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
-  entry->flags |= RDM_PD_FLAGS_UPDATED | RDM_PD_FLAGS_QUEUED;
+  entry->flags |= RDM_PD_FLAGS_UPDATED;
+  entry->is_queued = true;
   ++driver->rdm.queue_size;
   if (entry->flags & RDM_PD_FLAGS_NON_VOLATILE) {
     ++driver->rdm.nvs_commit_size;
@@ -393,9 +394,9 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->rdm.queue_size > 0) {
     for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-      if (driver->rdm.parameter[i].flags & RDM_PD_FLAGS_QUEUED) {
+      if (driver->rdm.parameter[i].is_queued) {
         pid = driver->rdm.parameter[i].id;
-        driver->rdm.parameter[i].flags &= ~RDM_PD_FLAGS_QUEUED;
+        driver->rdm.parameter[i].is_queued = false;
         --driver->rdm.queue_size;
         break;
       }
