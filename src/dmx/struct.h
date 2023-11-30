@@ -247,24 +247,6 @@ typedef struct dmx_driver_t {
   bool rdm_read_header(dmx_num, *header);
   size_t rdm_read_pd(dmx_num, *format, *pd, n);
 
-  size_t rh(dmx_num, const *def, const *header, void *ctx) {
-
-    size_t pdl;
-    char pd[231];
-
-    if (header->cc == RDM_CC_GET_COMMAND) {
-      pdl = def->getter(pd, ctx, sizeof(pd));
-      if (pdl == 0) {
-        return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
-      }
-    } else {
-      size_t n = rdm_read_pd(dmx_num, def->format.get.format, pd, sizeof(pd));
-      def->setter(ctx, pd, n);
-      pdl = 0;
-    }
-
-    return rdm_write_ack(dmx_num, header, pd, pdl);
-  }
   */
 
 
