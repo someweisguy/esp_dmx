@@ -337,7 +337,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   memcpy(entry->data, source, size);
   entry->flags |= RDM_PD_FLAGS_UPDATED;
   if (entry->flags & RDM_PD_FLAGS_NON_VOLATILE) {
-    ++driver->rdm.nvs_update_count;
+    ++dmx_driver[dmx_num]->rdm.nvs_update_count;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -451,8 +451,8 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
   // Iterate through parameters and commit the first found value to NVS
   const int FLAGS = (RDM_PD_FLAGS_NON_VOLATILE | RDM_PD_FLAGS_UPDATED);
   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if (driver->rdm.parameter[i].flags & FLAGS == FLAGS) {
-      const rdm_pid_t pid = driver->rm.parameter[i].id;
+    if ((driver->rdm.parameter[i].flags & FLAGS) == FLAGS) {
+      const rdm_pid_t pid = driver->rdm.parameter[i].id;
       const rdm_pd_definition_t *def = rdm_pd_get_definition(dmx_num, pid);
       // TODO: implement sub-devices
       dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
