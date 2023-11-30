@@ -77,7 +77,7 @@ int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
          (definition->ds >= 0x80 && definition->ds <= 0xdf));
   assert(definition->pid_cc >= RDM_CC_DISC &&
          definition->pid_cc <= RDM_CC_GET_SET);
-  assert(definition->response_handler != NULL);
+  assert(definition->get.handler != NULL || definition->set.handler != NULL);
   assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
            definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
          definition->description == NULL);

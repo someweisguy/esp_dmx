@@ -16,12 +16,7 @@
 extern "C" {
 #endif
 
-typedef struct rdm_pd_definition_s rdm_pd_definition_t;
-
-typedef size_t (*rdm_response_handler_t)(dmx_port_t dmx_num,
-                                         const rdm_pd_definition_t *definition,
-                                         const rdm_header_t *header);
-
+// TODO: docs
 typedef struct rdm_pd_definition_s {
   rdm_pid_t pid;
   size_t alloc_size;
@@ -31,8 +26,10 @@ typedef struct rdm_pd_definition_s {
     struct {
       const char *format;
     } request, response;
+    size_t (*handler)(dmx_port_t dmx_num,
+                      const struct rdm_pd_definition_s *definition,
+                      const rdm_header_t *header);
   } get, set;
-  rdm_response_handler_t response_handler;
   uint8_t pdl_size;
   uint32_t max_value;
   uint32_t min_value;
@@ -71,19 +68,25 @@ const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 const void *rdm_pd_get_pointer(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid);
 
+// TODO: docs
 size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                   rdm_pid_t pid, void *destination, size_t size);
 
+// TODO: docs
 size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                   rdm_pid_t pid, const void *source, size_t size);
 
+// TODO: docs
 size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             rdm_pid_t pid, const void *source, size_t size);
 
+// TODO: docs
 rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num);
 
+// TODO: docs
 uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num);
 
+// TODO: docs
 rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num);
 
 // TODO: docs, not thread-safe
