@@ -14,9 +14,10 @@
 #include "rdm/utils/uid.h"
 
 enum rdm_pd_flags_e {
-  RDM_PD_FLAGS_UPDATED = BIT0,
-  RDM_PD_FLAGS_NON_VOLATILE = BIT2,
-  RDM_PD_FLAGS_CONST = BIT3,
+  RDM_PD_FLAGS_VARIABLE = 0,
+  RDM_PD_FLAGS_NON_VOLATILE,
+  RDM_PD_FLAGS_NON_VOLATILE_STAGED,
+  RDM_PD_FLAGS_CONST,
 };
 
 static struct rdm_pd_s *rdm_pd_get_entry(dmx_port_t dmx_num,
@@ -43,7 +44,7 @@ static struct rdm_pd_s *rdm_pd_get_entry(dmx_port_t dmx_num,
 
 static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
                                          rdm_sub_device_t sub_device,
-                                         rdm_pid_t pid) {
+                                         rdm_pid_t pid, int flags) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
@@ -60,6 +61,7 @@ static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
 
   struct rdm_pd_s *entry = &driver->rdm.parameter[driver->rdm.parameter_count];
   ++driver->rdm.parameter_count;
+  entry->flags = flags;
   entry->is_queued = false;
 
   return entry;
@@ -162,7 +164,8 @@ const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there are no available entries
-  struct rdm_pd_s *entry = rdm_pd_add_entry(dmx_num, sub_device, pid);
+  struct rdm_pd_s *entry =
+      rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_VARIABLE);
   if (entry == NULL) {
     return NULL;
   }
@@ -223,8 +226,14 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return NULL;
   }
 
+  // Non-volatile parameters cannot alias const parameters
+  if (alias_entry->flags == RDM_PD_FLAGS_CONST && non_volatile) {
+    non_volatile = false;
+  }
+
   // Return early if there is not enough space for a new entry
-  struct rdm_pd_s *entry = rdm_pd_add_entry(dmx_num, sub_device, pid);
+  struct rdm_pd_s *entry =
+      rdm_pd_add_entry(dmx_num, sub_device, pid, alias_entry->flags);
   if (entry == NULL) {
     return NULL;
   }
@@ -232,13 +241,13 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Assign the parameter
   entry->id = pid;
   entry->data = alias_entry->data + offset;
-  entry->flags = non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : 0;
+  entry->flags = non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : alias_entry->flags;
 
   return entry->data;
 }
 
-const void *rdm_pd_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, void *data) {
+const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                             rdm_pid_t pid, void *data) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
@@ -250,7 +259,8 @@ const void *rdm_pd_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there is not enough space for a new entry
-  struct rdm_pd_s *entry = rdm_pd_add_entry(dmx_num, sub_device, pid);
+  struct rdm_pd_s *entry =
+      rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_CONST);
   if (entry == NULL) {
     return NULL;
   }
@@ -335,8 +345,8 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
-  entry->flags |= RDM_PD_FLAGS_UPDATED;
-  if (entry->flags & RDM_PD_FLAGS_NON_VOLATILE) {
+  if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
+    entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
     ++dmx_driver[dmx_num]->rdm.nvs_commit_size;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -373,11 +383,11 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
-  entry->flags |= RDM_PD_FLAGS_UPDATED;
   entry->is_queued = true;
   ++driver->rdm.queue_size;
-  if (entry->flags & RDM_PD_FLAGS_NON_VOLATILE) {
-    ++driver->rdm.nvs_commit_size;
+  if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
+    entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
+    ++dmx_driver[dmx_num]->rdm.nvs_commit_size;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -450,16 +460,15 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
   }
 
   // Iterate through parameters and commit the first found value to NVS
-  const int FLAGS = (RDM_PD_FLAGS_NON_VOLATILE | RDM_PD_FLAGS_UPDATED);
   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if ((driver->rdm.parameter[i].flags & FLAGS) == FLAGS) {
+    if (driver->rdm.parameter[i].flags == RDM_PD_FLAGS_NON_VOLATILE_STAGED) {
       const rdm_pid_t pid = driver->rdm.parameter[i].id;
       const rdm_pd_definition_t *def = rdm_pd_get_definition(dmx_num, pid);
       // TODO: implement sub-devices
       dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
                   driver->rdm.parameter[i].data, def->alloc_size);
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->rdm.parameter[i].flags &= ~RDM_PD_FLAGS_UPDATED;
+      driver->rdm.parameter[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
       --driver->rdm.nvs_commit_size;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       return driver->rdm.parameter[i].id;

@@ -8,7 +8,6 @@
 
 #include <stdbool.h>
 
-
 #include "dmx/types.h"
 #include "rdm/responder.h"
 #include "rdm/types.h"
@@ -65,8 +64,8 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                              size_t offset);
 
 // TODO: docs, not thread-safe
-const void *rdm_pd_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, void *data);
+const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                             rdm_pid_t pid, void *data);
 
 // TODO: docs, returned pointer is not thread-safe
 const void *rdm_pd_get_pointer(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
