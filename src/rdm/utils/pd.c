@@ -337,7 +337,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   memcpy(entry->data, source, size);
   entry->flags |= RDM_PD_FLAGS_UPDATED;
   if (entry->flags & RDM_PD_FLAGS_NON_VOLATILE) {
-    ++dmx_driver[dmx_num]->rdm.nvs_update_count;
+    ++dmx_driver[dmx_num]->rdm.nvs_commit_size;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -376,7 +376,7 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   entry->flags |= RDM_PD_FLAGS_UPDATED | RDM_PD_FLAGS_QUEUED;
   ++driver->rdm.queue_size;
   if (entry->flags & RDM_PD_FLAGS_NON_VOLATILE) {
-    ++driver->rdm.nvs_update_count;
+    ++driver->rdm.nvs_commit_size;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -444,7 +444,7 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Guard against unnecessarily iterating through all parameters
-  if (driver->rdm.nvs_update_count == 0) {
+  if (driver->rdm.nvs_commit_size == 0) {
     return 0;
   }
 
@@ -459,7 +459,7 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
                   driver->rdm.parameter[i].data, def->alloc_size);
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->rdm.parameter[i].flags &= ~RDM_PD_FLAGS_UPDATED;
-      --driver->rdm.nvs_update_count;
+      --driver->rdm.nvs_commit_size;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       return driver->rdm.parameter[i].id;
     }
