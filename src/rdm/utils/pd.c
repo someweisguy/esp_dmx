@@ -466,12 +466,14 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
       const rdm_pid_t pid = driver->rdm.parameter[i].id;
       const rdm_pd_definition_t *def = rdm_pd_get_definition(dmx_num, pid);
       // TODO: implement sub-devices
-      dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
+      bool success = dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
                   driver->rdm.parameter[i].data, def->alloc_size);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->rdm.parameter[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
-      --driver->rdm.staged_count;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      if (success) {
+        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+        driver->rdm.parameter[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
+        --driver->rdm.staged_count;
+        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      }
       return driver->rdm.parameter[i].id;
     }
   }
