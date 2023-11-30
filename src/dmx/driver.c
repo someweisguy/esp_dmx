@@ -153,11 +153,11 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   driver->rdm.definition_count = 0;
   driver->rdm.parameter_count = 0;
-  driver->rdm.nvs_commit_size = 0;
+  driver->rdm.staged_count = 0;
 
   // RDM responder configuration
-  driver->rdm.queue_size = 0;
-  driver->rdm.queue_last_sent = 0;  // A queued message has not yet been sent
+  driver->rdm.queue_count = 0;
+  driver->rdm.previous_popped = 0;  // A queued message has not yet been sent
 
   // Initialize the RDM status queue
   // TODO - implement in pd

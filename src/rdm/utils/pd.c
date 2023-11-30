@@ -347,7 +347,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   memcpy(entry->data, source, size);
   if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
     entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
-    ++dmx_driver[dmx_num]->rdm.nvs_commit_size;
+    ++dmx_driver[dmx_num]->rdm.staged_count;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -384,10 +384,10 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
   entry->is_queued = true;
-  ++driver->rdm.queue_size;
+  ++driver->rdm.queue_count;
   if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
     entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
-    ++dmx_driver[dmx_num]->rdm.nvs_commit_size;
+    ++dmx_driver[dmx_num]->rdm.staged_count;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -402,16 +402,17 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
 
   rdm_pid_t pid = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->rdm.queue_size > 0) {
+  if (driver->rdm.queue_count > 0) {
     for (int i = 0; i < driver->rdm.parameter_count; ++i) {
       if (driver->rdm.parameter[i].is_queued) {
         pid = driver->rdm.parameter[i].id;
         driver->rdm.parameter[i].is_queued = false;
-        --driver->rdm.queue_size;
+        --driver->rdm.queue_count;
         break;
       }
     }
   }
+  driver->rdm.previous_popped = pid;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return pid;
@@ -425,7 +426,7 @@ uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num) {
 
   uint32_t size;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  size = driver->rdm.queue_size;
+  size = driver->rdm.queue_count;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (size > 255) {
     size = 255;  // RDM requires queue size to be clamped
@@ -442,7 +443,7 @@ rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num) {
 
   rdm_pid_t pid;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  pid = driver->rdm.queue_last_sent;
+  pid = driver->rdm.previous_popped;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return pid;
@@ -455,7 +456,7 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Guard against unnecessarily iterating through all parameters
-  if (driver->rdm.nvs_commit_size == 0) {
+  if (driver->rdm.staged_count == 0) {
     return 0;
   }
 
@@ -469,7 +470,7 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
                   driver->rdm.parameter[i].data, def->alloc_size);
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->rdm.parameter[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
-      --driver->rdm.nvs_commit_size;
+      --driver->rdm.staged_count;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       return driver->rdm.parameter[i].id;
     }
