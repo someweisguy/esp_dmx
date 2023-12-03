@@ -13,21 +13,6 @@
 extern "C" {
 #endif
 
-/*
-
-size_t rdm_write(dmx_num, *header, *format, *pd, size_t n);
-size_t rdm_write_ack(dmx_num, *header, *format, *pd, n);
-size_t rdm_write_ack_timer(dmx_num, *header, timer);
-size_t rdm_write_nack_reason(dmx_num, *header, nr, n)
-size_t rdm_write_ack_overflow(dmx_num, *header, *format, *pd, n, page)
-
-size_t rdm_read_pd(dmx_num, *format, *pd, n);
-
-*/
-
-
-
-
 /**
  * @brief Reads an RDM packet from the DMX driver buffer. Header information is
  * emplaced into a header pointer so that it may be read by the caller.
@@ -71,11 +56,15 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
 size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header, 
                              rdm_nr_t nack_reason);
 
-// TODO: docs
-size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
-                        rdm_sub_device_t sub_device, rdm_pid_t pid, rdm_cc_t cc,
-                        const char *format, const void *pd, size_t pdl,
-                        rdm_ack_t *ack);
+// TODO:
+// size_t rdm_write_ack_timer(dmx_port_t dmx_num, const rdm_header_t *header,
+//                            TickType_t ready_ticks);
+
+// // TODO:
+// size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
+//                               const char *format, const void *pd, size_t pdl,
+//                               int page);
+
 /**
  * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
@@ -119,10 +108,11 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
  * RDM response.
  * @return true if an RDM_RESPONSE_TYPE_ACK response was received.
  * @return false if any other response type was received.
- */
-// bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-//                       const void *pd_in, void *pd_out, size_t *pdl,
-//                       rdm_ack_t *ack);
+ */ // TODO: docs
+size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
+                        rdm_sub_device_t sub_device, rdm_pid_t pid, rdm_cc_t cc,
+                        const char *format, const void *pd, size_t pdl,
+                        rdm_ack_t *ack);
 
 // TODO: docs
 void rdm_set_boot_loader(dmx_port_t dmx_num);
