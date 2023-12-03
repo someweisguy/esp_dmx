@@ -21,7 +21,7 @@ static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   return success;
 }
 
-bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
+bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                  const rdm_disc_unique_branch_t *branch,
                                  rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -38,25 +38,19 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                           branch, sizeof(*branch), ack);
 }
 
-bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
+bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                         rdm_disc_mute_t *mute, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // TODO: move to args
-  const rdm_uid_t *dest_uid = &header->dest_uid;
 
   rdm_pid_t pid = RDM_PID_DISC_MUTE;
   return rdm_send_mute_static(dmx_num, dest_uid, pid, mute, ack);
 }
 
-bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
+bool rdm_send_disc_un_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                            rdm_disc_mute_t *mute, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // TODO: move to args
-  const rdm_uid_t *dest_uid = &header->dest_uid;
 
   rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
   return rdm_send_mute_static(dmx_num, dest_uid, pid, mute, ack);
@@ -82,7 +76,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   stack[0].lower_bound = (rdm_uid_t){0, 0};
   stack[0].upper_bound = RDM_UID_MAX;
 
-  rdm_header_t header;   // Send and receive header information.
+  rdm_uid_t dest_uid;
   rdm_disc_mute_t mute;  // Mute parameters returned from devices.
   rdm_ack_t ack;         // Request response information.
   int num_found = 0;
@@ -91,8 +85,8 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
   xSemaphoreTakeRecursive(driver->mux, 0);
 
   // Un-mute all devices
-  header.dest_uid = RDM_UID_BROADCAST_ALL;
-  rdm_send_disc_un_mute(dmx_num, &header, NULL, NULL);
+  dest_uid = RDM_UID_BROADCAST_ALL;
+  rdm_send_disc_un_mute(dmx_num, &dest_uid, NULL, NULL);
 
   while (stack_size > 0) {
     // Pop a DISC_UNIQUE_BRANCH instruction parameter from the stack
@@ -101,21 +95,10 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
     size_t attempts = 0;
     if (rdm_uid_is_eq(&branch->lower_bound, &branch->upper_bound)) {
       // Can't branch further so attempt to mute the device
-      header.dest_uid = branch->lower_bound;
+      dest_uid = branch->lower_bound;
       do {
-        rdm_send_disc_mute(dmx_num, &header, &mute, &ack);
+        rdm_send_disc_mute(dmx_num, &dest_uid, &mute, &ack);
       } while (ack.type != RDM_RESPONSE_TYPE_ACK && ++attempts < 3);
-
-      // TODO: remove this workaround?
-      // Attempt to fix possible error where responder is flipping its own UID
-      if (ack.type != RDM_RESPONSE_TYPE_ACK) {
-        uint64_t uid = bswap64(((uint64_t)branch->lower_bound.man_id << 32) |
-                               branch->lower_bound.dev_id) >>
-                       16;
-        header.dest_uid.man_id = uid >> 32;
-        header.dest_uid.dev_id = uid;
-        rdm_send_disc_mute(dmx_num, &header, &mute, &ack);
-      }
 
       // Call the callback function and report a device has been found
       if (ack.type == RDM_RESPONSE_TYPE_ACK) {
@@ -125,7 +108,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
     } else {
       // Search the current branch in the RDM address space
       do {
-        rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
+        rdm_send_disc_unique_branch(dmx_num, branch, &ack);
       } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
       if (ack.type != RDM_RESPONSE_TYPE_NONE) {
         bool devices_remaining = true;
@@ -143,9 +126,9 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
           do {
             // Attempt to mute the device
             attempts = 0;
-            header.dest_uid = ack.src_uid;
+            dest_uid = ack.src_uid;
             do {
-              rdm_send_disc_mute(dmx_num, &header, &mute, &ack);
+              rdm_send_disc_mute(dmx_num, &dest_uid, &mute, &ack);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
 
             // Call the callback function and report a device has been found
@@ -157,7 +140,7 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
             // Check if there are more devices in this branch
             attempts = 0;
             do {
-              rdm_send_disc_unique_branch(dmx_num, &header, branch, &ack);
+              rdm_send_disc_unique_branch(dmx_num, branch, &ack);
             } while (ack.type == RDM_RESPONSE_TYPE_NONE && ++attempts < 3);
           } while (ack.type == RDM_RESPONSE_TYPE_ACK);
           devices_remaining = (ack.err && ack.err != DMX_ERR_TIMEOUT);

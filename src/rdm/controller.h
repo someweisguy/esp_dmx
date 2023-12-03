@@ -46,7 +46,7 @@ typedef void (*rdm_disc_cb_t)(dmx_port_t dmx_num, rdm_uid_t uid, int num_found,
  * @return false if no response was received, was improperly formatted, or an
  * RDM_RESPONSE_TYPE_ACK was not received.
  */
-bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
+bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                  const rdm_disc_unique_branch_t *branch,
                                  rdm_ack_t *ack);
 
@@ -69,7 +69,7 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
  * @return false if no response was received, the response was improperly
  * formatted, or an RDM_RESPONSE_TYPE_ACK was not received.
  */
-bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
+bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                         rdm_disc_mute_t *mute, rdm_ack_t *ack);
 
 /**
@@ -91,7 +91,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
  * @return false if no response was received, the response was improperly
  * formatted, or an RDM_RESPONSE_TYPE_ACK was not received.
  */
-bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
+bool rdm_send_disc_un_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                            rdm_disc_mute_t *mute, rdm_ack_t *ack);
 
 /**
