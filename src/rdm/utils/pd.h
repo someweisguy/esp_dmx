@@ -17,8 +17,8 @@ extern "C" {
 #endif
 
 // FIXME
-#define rdm_pd_format_is_valid(f) (true)
-// #define rdm_pd_format_is_valid(f) ((f) != NULL && rdm_pd_format_get_max_size(f) > 0)
+#define rdm_pd_format_is_valid(f) \
+  ((f) != NULL && rdm_pd_format_get_max_size(f) > 0)
 
 // TODO: docs
 typedef struct rdm_pd_definition_s {
