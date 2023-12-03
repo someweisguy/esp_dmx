@@ -31,7 +31,7 @@ extern "C" {
 
 // TODO: docs
 #define rdm_cc_is_valid(cc) (((cc) >> 8) < 0x4 && ((cc) & 0xf) < 0x2)
-#define rdm_cc_is_request(cc) ((cc) & 0x1)
+#define rdm_cc_is_request(cc) (((cc) & 0x1) == 0)
 #define rdm_response_type_is_valid(t) \
   ((t) >= RDM_RESPONSE_TYPE_ACK && (t) <= RDM_RESPONSE_TYPE_ACK_OVERFLOW)
 
