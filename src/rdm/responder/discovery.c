@@ -23,7 +23,7 @@ static size_t rdm_discovery_default_handler(
 
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
-    const char *format = definition->get.request.format;
+    const char *format = "uu$";
     rdm_read_pd(dmx_num, format, &branch, sizeof(branch));
 
     // Respond if branch.lower_bound <= this_uid <= branch.upper_bound
@@ -58,7 +58,7 @@ static size_t rdm_discovery_default_handler(
     // Get the mute control field of this port
     mute.control_field = 0; // TODO
 
-    const char *format = definition->get.response.format;
+    const char *format = "wv";
     return rdm_write_ack(dmx_num, header, format, &mute, sizeof(mute));
   }
 }
@@ -78,7 +78,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_discovery_default_handler,
-              .request.format = "uu$",
+              .request.format = NULL,
               .response.format = NULL},
       .set = {.handler = NULL,
               .request.format = NULL,
@@ -99,30 +99,45 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // // Define the parameter
-  // const rdm_pid_t pid = RDM_PID_DISC_MUTE;
-  // const rdm_pd_definition_t def = {
-  //     .schema = {.data_type = RDM_DS_NOT_DEFINED,
-  //                .cc = RDM_CC_DISC,
-  //                .pdl_size = 0,
-  //                .alloc_size = sizeof(uint8_t),
-  //                .format = ""},
-  //     .nvs = false,
-  //     .response_handler = rdm_rh_discovery_default,
-  // };
+  // Add the parameter as a new variable or as an alias to its counterpart
+  const bool nvs = false;
+  const rdm_pid_t pid = RDM_PID_DISC_MUTE;
+  const rdm_pid_t alias_pid = RDM_PID_DISC_UN_MUTE;
+  if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, alias_pid) == NULL) {
+    const uint8_t init_value = 0;
+    if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
+                            sizeof(init_value)) == NULL) {
+      return false;
+    }
+  } else {
+    const size_t offset = 0;
+    if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, alias_pid,
+                         offset) == NULL) {
+      return false;
+    }
+  }
 
-  // // Register the parameter as an alias if RDM_PID_DISC_UN_MUTE exists
-  // if (rdm_pd_get(dmx_num, RDM_PID_DISC_UN_MUTE, RDM_SUB_DEVICE_ROOT)) {
-  //   const size_t offset = 0;  // Mute and un-mute are shared parameters
-  //   rdm_pd_add_alias(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
-  //                    RDM_PID_DISC_UN_MUTE, offset);
-  // } else {
-  //   const uint8_t init_value = 0;  // Initial value is un-muted
-  //   rdm_pd_add_new(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, &init_value);
-  // }
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
+  // Define the parameter
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .alloc_size = sizeof(uint8_t),
+      .pid_cc = RDM_CC_DISC,
+      .ds = RDM_DS_NOT_DEFINED,
+      .get = {.handler = rdm_discovery_default_handler,
+              .request.format = NULL,
+              .response.format = NULL},
+      .set = {.handler = NULL,
+              .request.format = NULL,
+              .response.format = NULL},
+      .pdl_size = 0,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_pd_set_definition(dmx_num, pid, &definition);
 
-  return false;
+  return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -130,28 +145,43 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // // Define the parameter
-  // const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
-  // const rdm_pd_definition_t def = {
-  //     .schema = {.data_type = RDM_DS_NOT_DEFINED,
-  //                .cc = RDM_CC_DISC,
-  //                .pdl_size = 0,
-  //                .alloc_size = sizeof(uint8_t),
-  //                .format = ""},
-  //     .nvs = false,
-  //     .response_handler = rdm_rh_discovery_default,
-  // };
+  // Add the parameter as a new variable or as an alias to its counterpart
+  const bool nvs = false;
+  const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
+  const rdm_pid_t alias_pid = RDM_PID_DISC_MUTE;
+  if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, alias_pid) == NULL) {
+    const uint8_t init_value = 0;
+    if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
+                            sizeof(init_value)) == NULL) {
+      return false;
+    }
+  } else {
+    const size_t offset = 0;
+    if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, alias_pid,
+                         offset) == NULL) {
+      return false;
+    }
+  }
 
-  // // Register the parameter as an alias if RDM_PID_DISC_MUTE exists
-  // if (rdm_pd_get(dmx_num, RDM_PID_DISC_MUTE, RDM_SUB_DEVICE_ROOT)) {
-  //   const size_t offset = 0;  // Mute and un-mute are shared parameters
-  //   rdm_pd_add_alias(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, RDM_PID_DISC_MUTE,
-  //                    offset);
-  // } else {
-  //   const uint8_t init_value = 0;  // Initial value is un-muted
-  //   rdm_pd_add_new(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, &init_value);
-  // }
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
+  // Define the parameter
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .alloc_size = sizeof(uint8_t),
+      .pid_cc = RDM_CC_DISC,
+      .ds = RDM_DS_NOT_DEFINED,
+      .get = {.handler = rdm_discovery_default_handler,
+              .request.format = NULL,
+              .response.format = NULL},
+      .set = {.handler = NULL,
+              .request.format = NULL,
+              .response.format = NULL},
+      .pdl_size = 0,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_pd_set_definition(dmx_num, pid, &definition);
 
-  return false;
+  return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
