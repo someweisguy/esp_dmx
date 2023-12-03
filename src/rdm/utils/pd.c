@@ -295,7 +295,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(alias_def != NULL && alias_def->alloc_size > 0);
 
   // Fail early if there is no space for the alias parameter data
-  assert(definition->alloc_size < offset + alias_def->alloc_size);
+  assert(definition->alloc_size <= offset + alias_def->alloc_size);
 
   // Return early if the variable already exists
   struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
