@@ -18,7 +18,7 @@ static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
     const char *format = "wv";
     rdm_read_pd(dmx_num, format, mute, sizeof(*mute));
   }
-  return success;
+  return (ack != NULL && ack->type == RDM_RESPONSE_TYPE_ACK);
 }
 
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
@@ -34,8 +34,9 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
   const char *format = "uu$";
 
-  return rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, format,
-                          branch, sizeof(*branch), ack);
+  rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, format, branch,
+                   sizeof(*branch), ack);
+  return (ack != NULL && ack->type == RDM_RESPONSE_TYPE_ACK);
 }
 
 bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
