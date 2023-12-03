@@ -129,8 +129,8 @@ static bool rdm_send_disc(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 }
 
 static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
-                                  rdm_pid_t pid, rdm_disc_mute_t *mute,
-                                  rdm_ack_t *ack) {
+                                 rdm_pid_t pid, rdm_disc_mute_t *mute,
+                                 rdm_ack_t *ack) {
   bool success = rdm_send_disc(dmx_num, dest_uid, pid, NULL, NULL, 0, ack);
   if (success && mute != NULL) {
     const char *format = "wv";
@@ -169,7 +169,6 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
 bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
                            rdm_disc_mute_t *mute, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   // TODO: move to args
