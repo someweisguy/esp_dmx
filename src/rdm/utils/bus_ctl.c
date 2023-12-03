@@ -13,9 +13,8 @@ static size_t rdm_format_encode(void *restrict dest,
                                 const void *restrict src, size_t src_size,
                                 bool encode_nulls) {
   assert(dest != NULL);
+  assert(rdm_pd_format_is_valid(format));
   assert(src != NULL);
-
-  // This function assumes that the format string is valid
 
   size_t encoded = 0;
   while (src_size > 0) {
@@ -304,7 +303,7 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
   assert(dmx_num < DMX_NUM_MAX);
   assert(header != NULL);
   assert(rdm_cc_is_request(header->cc));
-  // TODO: assert(rdm_pd_format_is_valid(format));
+  assert(rdm_pd_format_is_valid(format));
   assert(format != NULL || pd == NULL);
   assert(pd != NULL || pdl == 0);
   assert(pdl < 231);
@@ -332,7 +331,7 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
   assert(dmx_num < DMX_NUM_MAX);
   assert(header != NULL);
   assert(rdm_cc_is_request(header->cc));
-  // TODO: assert(rdm_pd_format_is_valid(format));
+  assert(rdm_pd_format_is_valid(format));
   assert(dmx_driver_is_installed(dmx_num));
 
   // PDL is a single word
