@@ -234,7 +234,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   rdm_uid_t this_uid;
   rdm_uid_get(dmx_num, &this_uid);
   if (!rdm_uid_is_target(&this_uid, &header.dest_uid) ||
-      rdm_cc_is_request(header.cc)) {
+      !rdm_cc_is_request(header.cc)) {
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
