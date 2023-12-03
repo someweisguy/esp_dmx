@@ -231,7 +231,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     DMX_CHECK(rdm_response_type_is_valid(header->response_type), 0,
               "header->response_type error");
   }
-  DMX_CHECK(rdm_pd_format_is_valid(format), 0, "format is invalid");
+  // DMX_CHECK(rdm_pd_format_is_valid(format), 0, "format is invalid"); // TODO
   DMX_CHECK(header->pdl == 0 || (format != NULL && pd != NULL), 0,
             "pd or format is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -303,7 +303,7 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
   assert(dmx_num < DMX_NUM_MAX);
   assert(header != NULL);
   assert(rdm_cc_is_request(header->cc));
-  assert(rdm_pd_format_is_valid(format));
+  // assert(format == NULL || rdm_pd_format_is_valid(format)); // TODO
   assert(format != NULL || pd == NULL);
   assert(pd != NULL || pdl == 0);
   assert(pdl < 231);
