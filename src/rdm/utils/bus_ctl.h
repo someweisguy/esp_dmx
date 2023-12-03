@@ -122,6 +122,9 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
 // TODO: docs
 void rdm_set_boot_loader(dmx_port_t dmx_num);
 
+// TODO: docs
+size_t rdm_get_transaction_num(dmx_port_t dmx_num);
+
 // // TODO: docs
 // bool rdm_status_push(dmx_port_t dmx_num, const rdm_status_message_t *message);
 

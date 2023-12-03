@@ -477,6 +477,18 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 }
 
+size_t rdm_get_transaction_num(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  size_t tn;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  tn = dmx_driver[dmx_num]->tn;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return tn;
+}
+
 /* TODO
 bool rdm_status_push(dmx_port_t dmx_num, const rdm_status_message_t *message) {
   assert(dmx_num < DMX_NUM_MAX);
