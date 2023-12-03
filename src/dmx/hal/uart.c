@@ -109,7 +109,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                   ? DMX_ERR_UART_OVERFLOW   // UART overflow
                   : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
       } else if (driver->head > 16 &&
-                 driver->head == rdm_read_header(driver->dmx_num, &header)) {
+                 rdm_read_header(driver->dmx_num, &header) && 
+                 driver->head == header.message_len + 2) {
         rdm_type |= DMX_FLAGS_RDM_IS_VALID;
         rdm_uid_t my_uid = rdm_device_uid;
         *(uint8_t *)&my_uid.dev_id += dmx_num;  // Increment last octet
