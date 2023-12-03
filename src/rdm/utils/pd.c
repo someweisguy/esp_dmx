@@ -349,8 +349,8 @@ const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Assign the parameter
   entry->id = pid;
-  entry->flags = RDM_PD_FLAGS_CONST;
   entry->data = data;
+  entry->flags = RDM_PD_FLAGS_CONST;
 
   return data;
 }
