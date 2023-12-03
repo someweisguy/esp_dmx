@@ -239,7 +239,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
   const bool encode_nulls = false;
   if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
     // Serialize the header and pd into the driver buffer
-    const char *header_format = "xCCx01buubbbbbwb$";
+    const char *header_format = "xCCx01buubbbwbwb$";
     void *data = rdm_format_encode(driver->data, header_format, header,
                                   sizeof(*header), encode_nulls);
     if (header->pdl > 0) {
