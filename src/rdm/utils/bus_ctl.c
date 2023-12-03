@@ -428,14 +428,14 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 
   // Attempt to receive the RDM response
   dmx_packet_t packet;
-  const size_t resp = dmx_receive(dmx_num, &packet, pdDMX_MS_TO_TICKS(23));
+  size_t size = dmx_receive(dmx_num, &packet, pdDMX_MS_TO_TICKS(23));
   if (ack != NULL) {
     ack->err = packet.err;
-    ack->size = resp;
+    ack->size = size;
   }
 
   // Return early if no response was received
-  if (resp == 0) {
+  if (size == 0) {
     xSemaphoreGiveRecursive(driver->mux);
     if (ack != NULL) {
       ack->src_uid = (rdm_uid_t){0, 0};
