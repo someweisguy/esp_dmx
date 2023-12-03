@@ -29,6 +29,12 @@ extern "C" {
  * printf-like functions.*/
 #define UID2STR(uid) (uid).man_id, (uid).dev_id
 
+// TODO: docs
+#define rdm_cc_is_valid(cc) (((cc) >> 8) < 0x4 && ((cc) & 0xf) < 0x2)
+#define rdm_cc_is_request(cc) ((cc) & 0x1)
+#define rdm_response_type_is_valid(t) \
+  ((t) >= RDM_RESPONSE_TYPE_ACK && (t) <= RDM_RESPONSE_TYPE_ACK_OVERFLOW)
+
 /** @brief RDM sub-device type.*/
 typedef enum rdm_sub_device_t {
   /** @brief Sub-device which respresents the root of a RDM device.*/

@@ -235,18 +235,7 @@ typedef struct dmx_driver_t {
   // Parameter data
 
 
-  /*
-  
-  size_t rdm_write(dmx_num, *header, *format, *pd, size_t n);
-  size_t rdm_write_ack(dmx_num, *header, *format, *pd, n);
-  size_t rdm_write_ack_timer(dmx_num, *header, timer);
-  size_t rdm_write_nack_reason(dmx_num, *header, nr, n)
-  size_t rdm_write_ack_overflow(dmx_num, *header, *format, *pd, n, page)
 
-  bool rdm_read_header(dmx_num, *header);
-  size_t rdm_read_pd(dmx_num, *format, *pd, n);
-
-  */
 
 
   // TODO: implement status using space in pd

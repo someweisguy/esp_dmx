@@ -13,6 +13,20 @@
 extern "C" {
 #endif
 
+/*
+
+size_t rdm_write(dmx_num, *header, *format, *pd, size_t n);
+size_t rdm_write_ack(dmx_num, *header, *format, *pd, n);
+size_t rdm_write_ack_timer(dmx_num, *header, timer);
+size_t rdm_write_nack_reason(dmx_num, *header, nr, n)
+size_t rdm_write_ack_overflow(dmx_num, *header, *format, *pd, n, page)
+
+size_t rdm_read_pd(dmx_num, *format, *pd, n);
+
+*/
+
+
+
 
 /**
  * @brief Reads an RDM packet from the DMX driver buffer. Header information is
@@ -27,7 +41,11 @@ extern "C" {
  * @param num The size of the pd pointer. Used to prevent buffer overflows.
  * @return The size of the RDM packet that was read or 0 on error.
  */
-size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
+bool rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header);
+
+// TODO: docs
+size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
+                   size_t size);
 
 /**
  * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
@@ -41,8 +59,17 @@ size_t rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd, size_t num);
  * @param[in] header A pointer which stores RDM header information.
  * @param[in] pd A pointer which stores parameter data to be written.
  * @return The size of the RDM packet that was written or 0 on error.
- */
-size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
+ */ // TODO: docs update
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                 const char *format, const void *pd);
+
+// TODO: docs
+size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
+                     const char *format, const void *pd, size_t pdl);
+
+// TODO: docs
+size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header, 
+                             rdm_nr_t nack_reason);
 
 /**
  * @brief Sends an RDM controller request and processes the response. This
@@ -88,37 +115,28 @@ size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd);
  * @return true if an RDM_RESPONSE_TYPE_ACK response was received.
  * @return false if any other response type was received.
  */
-bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
-                      const void *pd_in, void *pd_out, size_t *pdl,
-                      rdm_ack_t *ack);
-
-// TODO: docs
-rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num);
-
-// TODO docs
-uint8_t rdm_queue_size(dmx_port_t dmx_num);
-
-// TODO: docs
-rdm_pid_t rdm_queue_get_last_sent(dmx_port_t dmx_num);
+// bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
+//                       const void *pd_in, void *pd_out, size_t *pdl,
+//                       rdm_ack_t *ack);
 
 // TODO: docs
 void rdm_set_boot_loader(dmx_port_t dmx_num);
 
-// TODO: docs
-bool rdm_status_push(dmx_port_t dmx_num, const rdm_status_message_t *message);
+// // TODO: docs
+// bool rdm_status_push(dmx_port_t dmx_num, const rdm_status_message_t *message);
 
-// TODO: docs
-bool rdm_status_pop(dmx_port_t dmx_num, rdm_status_t status,
-                   rdm_status_message_t *message);
+// // TODO: docs
+// bool rdm_status_pop(dmx_port_t dmx_num, rdm_status_t status,
+//                    rdm_status_message_t *message);
 
-// TODO docs
-void rdm_status_clear(dmx_port_t dmx_num);
+// // TODO docs
+// void rdm_status_clear(dmx_port_t dmx_num);
 
-// TODO: docs
-rdm_status_t rdm_status_get_threshold(dmx_port_t dmx_num);
+// // TODO: docs
+// rdm_status_t rdm_status_get_threshold(dmx_port_t dmx_num);
 
-// TODO: docs
-void rdm_status_set_threshold(dmx_port_t dmx_num, rdm_status_t status);
+// // TODO: docs
+// void rdm_status_set_threshold(dmx_port_t dmx_num, rdm_status_t status);
 
 #ifdef __cplusplus
 }

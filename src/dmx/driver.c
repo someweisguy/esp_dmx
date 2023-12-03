@@ -24,8 +24,8 @@ dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};  // The DMX drivers for each port.
 static void rdm_default_identify_cb(dmx_port_t dmx_num,
                                     const rdm_header_t *header, void *context) {
   if (header->cc == RDM_CC_SET_COMMAND) {
-    const uint8_t *identify =
-        rdm_pd_get(dmx_num, RDM_PID_IDENTIFY_DEVICE, header->sub_device);
+    const uint8_t *identify = rdm_pd_get_pointer(
+        dmx_num, RDM_PID_IDENTIFY_DEVICE, header->sub_device);
 #ifdef ARDUINO
     printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else
@@ -88,7 +88,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
   driver->data = NULL;
-  driver->pd = NULL;
+  driver->rdm.heap_ptr = NULL;
 #ifdef DMX_USE_SPINLOCK
   driver->spinlock = (dmx_spinlock_t)DMX_SPINLOCK_INIT;
 #endif
@@ -213,7 +213,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     rdm_register_dmx_personality_description(dmx_num, NULL, NULL);
     rdm_register_parameter_description(dmx_num, NULL, NULL);
   } else {
-    dmx_driver_personality_t *dmx = driver->pd;
+    dmx_driver_personality_t *dmx = driver->rdm.heap_ptr;
 
     // Load the DMX start address from NVS
     uint16_t dmx_start_address;
@@ -370,7 +370,7 @@ bool dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
   return dmx_uart_set_pin(dmx_driver[dmx_num]->uart, tx_pin, rx_pin, rts_pin);
 }
 
-bool DMX_ISR_ATTR dmx_driver_is_installed(dmx_port_t dmx_num) {
+bool dmx_driver_is_installed(dmx_port_t dmx_num) {
   return dmx_num < DMX_NUM_MAX && dmx_driver[dmx_num] != NULL;
 }
 
@@ -479,7 +479,7 @@ bool rdm_is_enabled(dmx_port_t dmx_num) {
   bool is_enabled;
   if (dmx_driver_is_installed(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    is_enabled = dmx_driver[dmx_num]->pd_alloc_size < 53;
+    is_enabled = true;  // FIXME
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     is_enabled = false;

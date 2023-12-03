@@ -16,6 +16,10 @@
 extern "C" {
 #endif
 
+// FIXME
+#define rdm_pd_format_is_valid(f) (true)
+// #define rdm_pd_format_is_valid(f) ((f) != NULL && rdm_pd_format_get_max_size(f) > 0)
+
 // TODO: docs
 typedef struct rdm_pd_definition_s {
   rdm_pid_t pid;
@@ -49,6 +53,9 @@ bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
 
 const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
                                                  rdm_pid_t pid);
+
+// TODO: docs, not thread-safe
+void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid);
 
 // TODO: docs, not thread-safe
 const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,

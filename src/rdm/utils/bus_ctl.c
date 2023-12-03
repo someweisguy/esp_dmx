@@ -1,58 +1,208 @@
 #include "rdm/utils/bus_ctl.h"
 
+#include <ctype.h>
+
 #include "dmx/bus_ctl.h"
 #include "dmx/driver.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "rdm/utils/uid.h"
 
-size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
-                             size_t num) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+static size_t rdm_format_get_max_size(const char *format) {
+  size_t parameter_size = 0;
 
-  size_t read = 0;
+  bool format_is_terminated = false;
+  for (char c = *format; c != '\0'; c = *(++format)) {
+    // Skip spaces
+    if (c == ' ') {
+      continue;
+    }
+
+    // Get the size of the current token
+    size_t token_size;
+    switch (c) {
+      case 'b':
+      case 'B':
+        token_size = sizeof(uint8_t);
+        break;
+      case 'w':
+      case 'W':
+        token_size = sizeof(uint16_t);
+        break;
+      case 'd':
+      case 'D':
+        token_size = sizeof(uint32_t);
+        break;
+      case 'u':
+      case 'U':
+        token_size = sizeof(rdm_uid_t);
+        break;
+      case 'v':
+      case 'V':
+        token_size = sizeof(rdm_uid_t);
+        format_is_terminated = true;
+        break;
+      case 'x':
+      case 'X':
+        token_size = sizeof(uint8_t);
+        for (int i = 0; i < 2; ++i) {
+          c = *(++format);
+          if (!isxdigit(c)) {
+            return 0;  // Hex literals must be 2 characters wide
+          }
+        }
+        break;
+      case 'a':
+      case 'A':
+        token_size = 32;  // ASCII fields can be up to 32 bytes
+        format_is_terminated = true;
+        break;
+      case '$':
+        token_size = 0;
+        format_is_terminated = true;
+        break;
+      default:
+        return 0;  // Unknown symbol
+    }
+
+    // Update the parameter size with the new token
+    parameter_size += token_size;
+    if (parameter_size > 231) {
+      return 0;  // Parameter size is too big
+    }
+
+    // End loop if parameter is terminated
+    if (format_is_terminated) {
+      break;
+    }
+  }
+
+  if (format_is_terminated) {
+    if (*format != '\0') {
+      return 0;  // Invalid token after terminator
+    }
+  } else {
+    // Get the maximum possible size if parameter is unterminated
+    parameter_size = 231 - (231 % parameter_size);
+  }
+
+  return parameter_size;
+}
+
+static void *rdm_format_encode(void *restrict dest, const char *restrict format,
+                               const void *restrict src, size_t src_size,
+                               bool encode_nulls) {
+  assert(dest != NULL);
+  assert(src != NULL);
+
+  // This function assumes that the format string is valid
+
+  while (src_size > 0) {
+    const char *f = format;
+    for (char c = *f; c != '\0'; c = *(++f)) {
+      // Skip whitespaces
+      if (c == ' ') {
+        continue;
+      }
+
+      // Check for terminator
+      if (c == '$') {
+        return dest;
+      }
+
+      // Copy the token to the destination buffer
+      size_t token_size;
+      if (c >= 'A' && c <= 'Z') {
+        c += 'A'; // Convert token to lowercase
+      }
+      if (c == 'b') {
+        token_size = sizeof(uint8_t);
+        memcpy(dest, src, token_size);
+        // Don't need to swap endianness on single byte
+      } else if (c == 'w') {
+        token_size = sizeof(uint16_t);
+        memcpy(dest, src, token_size);
+        *(uint16_t *)dest = bswap16(*(uint16_t *)dest);
+      } else if (c == 'd') {
+        token_size = sizeof(uint32_t);
+        memcpy(dest, src, token_size);
+        *(uint32_t *)dest = bswap16(*(uint32_t *)dest);
+      } else if (c == 'u' || c == 'v') {
+        token_size = sizeof(rdm_uid_t);
+        if (c == 'v' && (src_size < token_size || rdm_uid_is_null(src))) {
+          // Handle condition where an optional UID was not provided
+          if (encode_nulls) {
+            memset(dest, 0, token_size);
+          }
+          dest += token_size;
+          return dest;
+        }
+        memcpy(dest, src, token_size);
+        ((rdm_uid_t *)dest)->man_id = bswap16(((rdm_uid_t *)dest)->man_id);
+        ((rdm_uid_t *)dest)->dev_id = bswap32(((rdm_uid_t *)dest)->dev_id);
+        if (c == 'v') {
+          dest += token_size;
+          return dest;
+        }
+      } else if (c == 'a') {
+        token_size = strnlen(src, (src_size < 32 ? src_size : 32));
+        memcpy(dest, src, token_size);
+        if (encode_nulls) {
+          // Only null-terminate the string if desired by the caller
+          ((uint8_t *)dest)[token_size] = '\0';
+          token_size += 1;
+        }
+        dest += token_size;
+        return dest;
+      } else if (c == 'x') {
+        // Copy the hex literal format string to a null-terminated string
+        char str[3];
+        str[2] = '\0';
+        memcpy(str, (f + 1), 2);
+
+        // Get the hex literal as an integer and copy it to the destination
+        token_size = sizeof(uint8_t);
+        const uint8_t literal = (uint8_t)strtol(str, NULL, 16);
+        memcpy(dest, &literal, token_size);
+        f += 3;  // Skip to the next token
+      } else {
+        __unreachable();  // Unknown symbol
+      }
+
+      // Update cursor
+      dest += token_size;
+      src += token_size;
+      src_size -= token_size;
+    }
+  }
+
+  return dest;
+}
+
+bool DMX_ISR_ATTR rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver[dmx_num] != NULL, 0, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Get pointers to driver data buffer locations and declare checksum
+  const uint8_t *data = driver->data;
   uint16_t checksum = 0;
-  const uint8_t *header_ptr = driver->data;
-  const void *pd_ptr = header_ptr + 24;
 
-  // Verify start code and sub-start code are correct
-  if (*(uint16_t *)header_ptr != (RDM_SC | (RDM_SUB_SC << 8)) &&
-      *header_ptr != RDM_PREAMBLE && *header_ptr != RDM_DELIMITER) {
-    return read;
-  }
-
-  // Get and verify the preamble_len if packet is a discovery response
-  size_t preamble_len = 0;
-  if (*header_ptr == RDM_PREAMBLE || *header_ptr == RDM_DELIMITER) {
-    for (; preamble_len <= 7; ++preamble_len) {
-      if (header_ptr[preamble_len] == RDM_DELIMITER) break;
-    }
-    if (preamble_len > 7) {
-      return read;
-    }
-  }
-
-  // Handle packets differently if a DISC_UNIQUE_BRANCH packet was received
-  if (*header_ptr == RDM_SC) {
-    // Verify checksum is correct
-    const uint8_t message_len = header_ptr[2];
+  // Check if packet is standard RDM packet or RDM discovery response packet
+  if (*(uint16_t *)data == (RDM_SC | (RDM_SUB_SC << 8))) {
+    // Verify checksum
+    const uint8_t message_len = data[2];
     for (int i = 0; i < message_len; ++i) {
-      checksum += header_ptr[i];
+      checksum += data[i];
     }
-    if (checksum != bswap16(*(uint16_t *)(header_ptr + message_len))) {
-      return read;
+    if (checksum != bswap16(*(uint16_t *)(data + message_len))) {
+      return false;
     }
 
-    // Copy the header and pd from the driver
+    // Copy the header without function calls for IRAM ISR
     if (header != NULL) {
-      // Copy header without deserialize so this function can be used in ISR
       for (int i = 0; i < sizeof(rdm_header_t); ++i) {
-        ((uint8_t *)header)[i] = header_ptr[i];
+        ((uint8_t *)header)[i] = data[i];
       }
       header->dest_uid.man_id = bswap16(header->dest_uid.man_id);
       header->dest_uid.dev_id = bswap32(header->dest_uid.dev_id);
@@ -61,138 +211,182 @@ size_t DMX_ISR_ATTR rdm_read(dmx_port_t dmx_num, rdm_header_t *header, void *pd,
       header->sub_device = bswap16(header->sub_device);
       header->pid = bswap16(header->pid);
     }
-    if (pd != NULL) {
-      const uint8_t pdl = header_ptr[23];
-      const size_t copy_size = pdl < num ? pdl : num;
-      memcpy(pd, pd_ptr, copy_size);
+
+    return true;
+  } else if (*data == RDM_PREAMBLE || *data == RDM_DELIMITER) {
+    // Get and verify the preamble length (must be <= 7 bytes)
+    int preamble_len = 0;
+    for (; preamble_len <= 7; ++preamble_len) {
+      if (data[preamble_len] == RDM_DELIMITER) break;
     }
+    if (preamble_len > 7) {
+      return false;
+    }
+    data += preamble_len + 1;
 
-    // Update the read size
-    read = message_len + 2;
-
-  } else {
-    // Verify the checksum is correct
-    header_ptr += preamble_len + 1;
+    // Verify checksum
     for (int i = 0; i < 12; ++i) {
-      checksum += header_ptr[i];
+      checksum += data[i];
     }
-    if (checksum != (((header_ptr[12] & header_ptr[13]) << 8) |
-                     (header_ptr[14] & header_ptr[15]))) {
-      return read;
-    }
-
-    // Decode the EUID
-    uint8_t buf[6];
-    for (int i = 0, j = 0; i < 6; ++i, j += 2) {
-      buf[i] = header_ptr[j] & header_ptr[j + 1];
+    if (checksum != (((data[12] & data[13]) << 8) |
+                     (data[14] & data[15]))) {
+      return false;
     }
 
-    // Copy the data into the header
+    // Copy the header without function calls for IRAM ISR
     if (header != NULL) {
-      // Copy header without emplace so this function can be used in IRAM ISR
+      // Decode the EUID
+      uint8_t euid_buf[6];
+      for (int i = 0, j = 0; i < sizeof(euid_buf); ++i, j += 2) {
+        euid_buf[i] = data[j] & data[j + 1];
+      }
+
       for (int i = 0; i < sizeof(rdm_uid_t); ++i) {
-        ((uint8_t *)&header->src_uid)[i] = buf[i];
+        ((uint8_t *)&header->src_uid)[i] = euid_buf[i];
       }
       header->src_uid.man_id = bswap16(header->src_uid.man_id);
       header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
-      header->dest_uid = (rdm_uid_t){0, 0};
+      header->dest_uid.man_id = bswap16(RDM_UID_BROADCAST_ALL.man_id);
+      header->dest_uid.dev_id = bswap32(RDM_UID_BROADCAST_ALL.dev_id);
       header->tn = 0;
       header->response_type = RDM_RESPONSE_TYPE_ACK;
       header->message_count = 0;
       header->sub_device = RDM_SUB_DEVICE_ROOT;
       header->cc = RDM_CC_DISC_COMMAND_RESPONSE;
       header->pid = RDM_PID_DISC_UNIQUE_BRANCH;
-      header->pdl = preamble_len + 1 + 16;
+      header->pdl = 0;
     }
 
-    // Update the read size
-    read = preamble_len + 1 + 16;
+    return true;
   }
 
-  return read;
+  return false;
 }
 
-size_t rdm_write(dmx_port_t dmx_num, rdm_header_t *header, const void *pd) {
+size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
+                   size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL || pd != NULL, 0,
-            "header is null and pd does not contain a UID");
+  DMX_CHECK(format == NULL || rdm_format_get_max_size(format) > 0, 0,
+            "format is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  size_t written = 0;
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Get pointers to driver data buffer locations and declare checksum
-  uint16_t checksum = 0;
-  uint8_t *header_ptr = driver->data;
-  void *pd_ptr = header_ptr + 24;
-
-  // RDM writes must be synchronous to prevent data corruption
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    return written;
-  } else if (dmx_uart_get_rts(driver->uart) == 1) {
-    dmx_uart_set_rts(driver->uart, 0);  // Stops writes from being overwritten
+  // Guard against invalid PDL
+  const size_t pdl = driver->data[23];
+  if (pdl == 0 || pdl > 231) {
+    return 0;
   }
 
-  if (header != NULL && !(header->cc == RDM_CC_DISC_COMMAND_RESPONSE &&
-                          header->pid == RDM_PID_DISC_UNIQUE_BRANCH)) {
-    // Copy the header, pd, message_len, and pdl into the driver
-    const size_t copy_size = header->pdl <= 231 ? header->pdl : 231;
-    header->message_len = copy_size + 24;
-    rdm_pd_serialize(header_ptr, sizeof(*header), "#cc01hbuubbbwbwb", header);
-    memcpy(pd_ptr, pd, copy_size);
+  // Return early if there is no destination buffer or size too small
+  if (destination == NULL || size < pdl) {
+    return pdl;
+  }
 
-    // Calculate and copy the checksum
-    checksum = RDM_SC + RDM_SUB_SC;
-    for (int i = 2; i < header->message_len; ++i) {
-      checksum += header_ptr[i];
+  // Deserialize the parameter data into the destination buffer
+  size = pdl < size ? pdl : size;
+  const bool encode_nulls = true;
+  const uint8_t *pd = &driver->data[24];
+  rdm_format_encode(destination, format, pd, size, encode_nulls);
+
+  return pdl;
+}
+
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                 const char *format, const void *pd) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(header != NULL, 0, "header is null");
+  DMX_CHECK(
+      header->message_len >= 24 && header->message_len == 24 + header->pdl, 0,
+      "header->message_len error");
+  DMX_CHECK(header->sub_device < RDM_SUB_DEVICE_MAX ||
+                header->sub_device == RDM_SUB_DEVICE_ALL,
+            0, "header->sub_device error");
+  DMX_CHECK(rdm_cc_is_valid(header->cc), 0, "header->cc error");
+  DMX_CHECK(header->pdl < 231, 0, "header->pdl error");
+  if (rdm_cc_is_request(header->cc)) {
+    DMX_CHECK(header->port_id > 0, 0, "header->port_id error");
+  }  else {
+    DMX_CHECK(rdm_response_type_is_valid(header->response_type), 0,
+              "header->response_type error");
+  }
+  DMX_CHECK(rdm_pd_format_is_valid(format), 0, "format is invalid");
+  DMX_CHECK(header->pdl == 0 || (format != NULL && pd != NULL), 0,
+            "pd or format is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Encode a standard RDM packet or a RDM_CC_DISC_COMMAND_RESPONSE packet
+  size_t written;
+  const bool encode_nulls = false;
+  if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+    // Serialize the header and pd into the driver buffer
+    const char *header_format = "xCCx01buubbbbbwb";
+    void *data = rdm_format_encode(driver->data, header_format, header,
+                                  sizeof(*header), encode_nulls);
+    if (header->pdl > 0) {
+      data = rdm_format_encode(data, format, pd, header->pdl, encode_nulls);
     }
-    *(uint16_t *)(header_ptr + header->message_len) = bswap16(checksum);
 
-    // Update written size
+    // Calculate and serialize the checksum
+    uint16_t checksum = RDM_SC + RDM_SUB_SC;
+    for (int i = 2; i < header->message_len; ++i) {
+      checksum += driver->data[i];
+    }
+    checksum = bswap16(checksum);
+    memcpy(data, &checksum, sizeof(checksum));
+    
     written = header->message_len + 2;
   } else {
     // Encode the preamble bytes
     const size_t preamble_len = 7;
-    for (int i = 0; i < preamble_len; ++i) {
-      header_ptr[i] = RDM_PREAMBLE;
-    }
-    header_ptr[preamble_len] = RDM_DELIMITER;
-    header_ptr += preamble_len + 1;
-
+    memset(driver->data, RDM_PREAMBLE, preamble_len);
+    driver->data[preamble_len] = RDM_DELIMITER;
+    uint8_t *data = &driver->data[preamble_len + 1];
+    
     // Encode the UID and calculate the checksum
     uint8_t uid[6];
-    if (header == NULL) {
-      memcpy(uid, pd, sizeof(rdm_uid_t));
-    } else {
-      rdm_uidcpy(uid, &header->src_uid);
-    }
+    rdm_uidcpy(uid, &header->src_uid);
+    uint16_t checksum = 0;
     for (int i = 0, j = 0; j < sizeof(rdm_uid_t); i += 2, ++j) {
-      header_ptr[i] = uid[j] | 0xaa;
-      header_ptr[i + 1] = uid[j] | 0x55;
+      data[i] = uid[j] | 0xaa;
+      data[i + 1] = uid[j] | 0x55;
       checksum += uid[j] + (0xaa | 0x55);
     }
-    header_ptr += sizeof(rdm_uid_t) * 2;
 
     // Encode the checksum
-    header_ptr[0] = (uint8_t)(checksum >> 8) | 0xaa;
-    header_ptr[1] = (uint8_t)(checksum >> 8) | 0x55;
-    header_ptr[2] = (uint8_t)(checksum) | 0xaa;
-    header_ptr[3] = (uint8_t)(checksum) | 0x55;
+    const int cs_offset = sizeof(rdm_uid_t) * 2;
+    data[cs_offset + 0] = (uint8_t)(checksum >> 8) | 0xaa;
+    data[cs_offset + 1] = (uint8_t)(checksum >> 8) | 0x55;
+    data[cs_offset + 2] = (uint8_t)(checksum) | 0xaa;
+    data[cs_offset + 3] = (uint8_t)(checksum) | 0x55;
 
     // Update written size
     written = preamble_len + 1 + 16;
   }
 
-  // Update driver transmission size
-  driver->tx_size = written;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
   return written;
 }
 
+size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
+                     const char *format, const void *pd, size_t pdl) {
+  // TODO: assert header->cc is a request
+  /*
+    // Rewrite the header for the response packet
+header.message_len = 24 + pdl_out;  // Set for user callback
+header.dest_uid = header.src_uid;
+header.src_uid = my_uid;
+header.response_type = response_type;
+header.message_count = rdm_pd_queue_get_size(dmx_num)
+header.cc |= 1;  // Set to RDM_CC_x_COMMAND_RESPONSE
+header.pdl = pdl_out;
+// These fields should not change: tn, sub_device, and pid
+  */
+  return 0;
+}
+
+/*
 bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
                       const void *pd_in, void *pd_out, size_t *pdl,
                       rdm_ack_t *ack) {
@@ -341,53 +535,7 @@ bool rdm_send_request(dmx_port_t dmx_num, rdm_header_t *header,
   xSemaphoreGiveRecursive(driver->mux);
   return (response_type == RDM_RESPONSE_TYPE_ACK);
 }
-
-rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
-    assert(dmx_num < DMX_NUM_MAX);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  rdm_pid_t pid;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  --driver->rdm_queue_size;
-  pid = driver->rdm_queue[driver->rdm_queue_size];
-  driver->rdm_queue_last_sent = pid;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return pid;
-}
-
-uint8_t rdm_queue_size(dmx_port_t dmx_num) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  uint32_t size;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  size = driver->rdm_queue_size;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (size > 255) {
-    size = 255;  // RDM requires queue size to be clamped
-  }
-
-  return size;
-}
-
-rdm_pid_t rdm_queue_get_last_sent(dmx_port_t dmx_num) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  rdm_pid_t pid;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  pid = driver->rdm_queue_last_sent;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return pid;
-}
+*/
 
 void rdm_set_boot_loader(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
