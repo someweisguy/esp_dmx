@@ -112,25 +112,25 @@ bool rdm_get_current_personality(dmx_port_t dmx_num,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   if (rdm_is_enabled(dmx_num)) {
-    if (rdm_pd_exists(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT)) {
-      const rdm_dmx_personality_t *pd = rdm_pd_get_pointer(
-          dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      memcpy(personality, pd, sizeof(rdm_dmx_personality_t));
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    } else if (rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO,
-                             RDM_SUB_DEVICE_ROOT)) {
-      const rdm_device_info_t *pd =
-          rdm_pd_get_pointer(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      personality->current_personality = pd->current_personality;
-      personality->personality_count = pd->personality_count;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    } else {
-      // An unusual error occurred
-      DMX_ERR("unable to get current DMX personality");
-      return false;
-    }
+    // if (rdm_pd_exists(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT)) {
+    //   const rdm_dmx_personality_t *pd = rdm_pd_get_pointer(
+    //       dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT);
+    //   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   memcpy(personality, pd, sizeof(rdm_dmx_personality_t));
+    //   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    // } else if (rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO,
+    //                          RDM_SUB_DEVICE_ROOT)) {
+    //   const rdm_device_info_t *pd =
+    //       rdm_pd_get_pointer(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+    //   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   personality->current_personality = pd->current_personality;
+    //   personality->personality_count = pd->personality_count;
+    //   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    // } else {
+    //   // An unusual error occurred
+    //   DMX_ERR("unable to get current DMX personality");
+    //   return false;
+    // }
   } else {
     personality->current_personality = dmx_get_current_personality(dmx_num);
     personality->personality_count = dmx_get_personality_count(dmx_num);
@@ -146,29 +146,29 @@ bool rdm_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
              personality_num <= dmx_get_personality_count(dmx_num)),
             false, "personality_num error");
 
-  bool ret;
+  bool ret = false;
 
   if (rdm_is_enabled(dmx_num)) {
-    if (rdm_pd_exists(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT)) {
-      ret = rdm_pd_set_and_queue(dmx_num, RDM_PID_DMX_PERSONALITY,
-                                 RDM_SUB_DEVICE_ROOT, &personality_num,
-                                 sizeof(uint8_t));
-    } else if (rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO,
-                             RDM_SUB_DEVICE_ROOT)) {
-      rdm_device_info_t device_info;
-      const void *pd =
-          rdm_pd_get_pointer(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      memcpy(&device_info, pd, sizeof(rdm_device_info_t));
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-      device_info.current_personality = personality_num;
-      ret = rdm_pd_set(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT,
-                       &device_info, sizeof(rdm_device_info_t));
-    } else {
-      // An unusual error occurred
-      DMX_ERR("unable to set current DMX personality");
-      return false;
-    }
+    // if (rdm_pd_exists(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT)) {
+    //   ret = rdm_pd_set_and_queue(dmx_num, RDM_PID_DMX_PERSONALITY,
+    //                              RDM_SUB_DEVICE_ROOT, &personality_num,
+    //                              sizeof(uint8_t));
+    // } else if (rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO,
+    //                          RDM_SUB_DEVICE_ROOT)) {
+    //   rdm_device_info_t device_info;
+    //   const void *pd =
+    //       rdm_pd_get_pointer(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+    //   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   memcpy(&device_info, pd, sizeof(rdm_device_info_t));
+    //   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   device_info.current_personality = personality_num;
+    //   ret = rdm_pd_set(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT,
+    //                    &device_info, sizeof(rdm_device_info_t));
+    // } else {
+    //   // An unusual error occurred
+    //   DMX_ERR("unable to set current DMX personality");
+    //   return false;
+    // }
   } else {
     ret = dmx_set_current_personality(dmx_num, personality_num);
   }

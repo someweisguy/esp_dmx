@@ -207,7 +207,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
       rdm_register_dmx_start_address(dmx_num, NULL, NULL);
     }
-    rdm_register_supported_parameters(dmx_num, NULL, NULL);
+    // rdm_register_supported_parameters(dmx_num, NULL, NULL); // FIXME
     rdm_register_device_label(dmx_num, config->device_label, NULL, NULL);
     rdm_register_dmx_personality(dmx_num, NULL, NULL);
     rdm_register_dmx_personality_description(dmx_num, NULL, NULL);

@@ -164,9 +164,9 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DISC_MUTE;
   header->pdl = 0;
 
-  rdm_disc_mute_t pd;
-  size_t pdl = sizeof(pd);
-  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
+  // rdm_disc_mute_t pd;
+  // size_t pdl = sizeof(pd);
+  bool ret = false; //rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
     // rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
   }
@@ -196,9 +196,9 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DISC_UN_MUTE;
   header->pdl = 0;
 
-  rdm_disc_mute_t pd;
-  size_t pdl = sizeof(pd);
-  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
+  // rdm_disc_mute_t pd;
+  // size_t pdl = sizeof(pd);
+  bool ret = false; //rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
     // rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
   }
@@ -380,12 +380,12 @@ bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DEVICE_INFO;
   header->pdl = 0;
 
-  rdm_device_info_t pd;
-  size_t pdl = sizeof(pd);
-  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
+  // rdm_device_info_t pd;
+  // size_t pdl = sizeof(pd);
+  bool ret = false; // rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret) {
-    rdm_pd_deserialize(device_info, sizeof(*device_info), "#0100hwwdwbbwwb$",
-                       &pd);
+    // rdm_pd_deserialize(device_info, sizeof(*device_info), "#0100hwwdwbbwwb$",
+    //                    &pd);
   }
 
   return ret;
@@ -407,8 +407,8 @@ bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
   header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   header->pdl = 0;
 
-  bool ret = rdm_send_request(dmx_num, header, NULL, software_version_label,
-                              size, ack);
+  bool ret = false;
+  // rdm_send_request(dmx_num, header, NULL, software_version_label, size, ack);
   if (ret) {
     software_version_label[*size] = '\0';
   }
@@ -430,8 +430,8 @@ bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = 0;
 
   // Single-byte responses don't need to be emplaced
-  size_t pdl = sizeof(*identify);
-  return rdm_send_request(dmx_num, header, NULL, identify, &pdl, ack);
+  // size_t pdl = sizeof(*identify);
+  return false; //rdm_send_request(dmx_num, header, NULL, identify, &pdl, ack);
 }
 
 bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
@@ -448,8 +448,8 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
   header->pdl = sizeof(identify);
 
   // Single-byte requests don't need to be emplaced
-  size_t pdl = 0;
-  return rdm_send_request(dmx_num, header, &identify, NULL, &pdl, ack);
+  // size_t pdl = 0;
+  return false; // rdm_send_request(dmx_num, header, &identify, NULL, &pdl, ack);
 }
 
 bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
@@ -466,12 +466,11 @@ bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DMX_START_ADDRESS;
   header->pdl = 0;
 
-  uint16_t pd;
-  size_t pdl = sizeof(pd);
-  bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
+  // uint16_t pd;
+  // size_t pdl = sizeof(pd);
+  bool ret = false; //rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret) {
-    rdm_pd_deserialize(dmx_start_address, sizeof(*dmx_start_address), "w$",
-                       &pd);
+    // rdm_pd_deserialize(dmx_start_address, sizeof(*dmx_start_address), "w$",&pd);
   }
 
   return ret;
@@ -491,8 +490,8 @@ bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
   header->pid = RDM_PID_DMX_START_ADDRESS;
   header->pdl = sizeof(dmx_start_address);
 
-  uint16_t pd;
-  size_t pdl = sizeof(pd);
-  rdm_pd_serialize(&pd, sizeof(pd), "w$", &dmx_start_address);
-  return rdm_send_request(dmx_num, header, &pd, NULL, &pdl, ack);
+  // uint16_t pd;
+  // size_t pdl = sizeof(pd);
+  // rdm_pd_serialize(&pd, sizeof(pd), "w$", &dmx_start_address);
+  return false; //rdm_send_request(dmx_num, header, &pd, NULL, &pdl, ack);
 }
