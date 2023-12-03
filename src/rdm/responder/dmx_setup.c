@@ -149,25 +149,38 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  // DMX_CHECK(rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT),
-  //           false, "RDM_PID_DEVICE_INFO must be registered first");
+  DMX_CHECK(
+      rdm_pd_get_ptr(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) != NULL,
+      false, "RDM_PID_DEVICE_INFO must be registered first");
 
-  // // Define the parameter
-  // const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  // const rdm_pd_definition_t def = {
-  //     .schema = {.data_type = RDM_DS_UNSIGNED_WORD,
-  //                .cc = RDM_CC_GET_SET,
-  //                .pdl_size = sizeof(uint16_t),
-  //                .min_value = 1,
-  //                .max_value = 512,
-  //                .alloc_size = sizeof(uint16_t),
-  //                .format = "w$"},
-  //     .nvs = true,
-  //     .response_handler = rdm_response_handler_simple,
-  // };
+  // Allocate parameter data
+  const bool nvs = true;
+  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
+  const size_t offset = offsetof(rdm_device_info_t, dmx_start_address);
+  if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                       RDM_PID_DEVICE_INFO, offset) == NULL) {
+    return false;
+  }
 
-  // rdm_pd_add_alias(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, RDM_PID_DEVICE_INFO,
-  //                  offsetof(rdm_device_info_t, dmx_start_address));
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
-  return false;
+  // Define the parameter
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .alloc_size = sizeof(uint16_t),
+      .pid_cc = RDM_CC_GET_SET,
+      .ds = RDM_DS_UNSIGNED_WORD,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = NULL,
+              .response.format = "w$"},
+      .set = {.handler = rdm_simple_response_handler,
+              .request.format = "w$",
+              .response.format = NULL},
+      .pdl_size = sizeof(uint16_t),
+      .max_value = 512,
+      .min_value = 1,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_pd_set_definition(dmx_num, pid, &definition);
+
+  return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
