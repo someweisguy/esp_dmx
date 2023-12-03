@@ -236,8 +236,9 @@ const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Return early if the variable already exists
-  if (rdm_pd_get_entry(dmx_num, sub_device, pid) != NULL) {
-    return NULL;
+  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry != NULL) {
+    return entry->data;
   }
 
   // Return early if there is no heap space available
@@ -246,8 +247,7 @@ const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there are no available entries
-  struct rdm_pd_s *entry =
-      rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_VARIABLE);
+  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_VARIABLE);
   if (entry == NULL) {
     return NULL;
   }
@@ -298,8 +298,9 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(definition->alloc_size < offset + alias_def->alloc_size);
 
   // Return early if the variable already exists
-  if (rdm_pd_get_entry(dmx_num, sub_device, pid) != NULL) {
-    return NULL;
+  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry != NULL) {
+    return entry->data;
   }
 
   // Return early if the alias variable does not exists or does not have space
@@ -314,8 +315,7 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there is not enough space for a new entry
-  struct rdm_pd_s *entry =
-      rdm_pd_add_entry(dmx_num, sub_device, pid, alias_entry->flags);
+  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, alias_entry->flags);
   if (entry == NULL) {
     return NULL;
   }
@@ -336,13 +336,13 @@ const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Return early if the variable already exists
-  if (rdm_pd_get_ptr(dmx_num, sub_device, pid) != NULL) {
-    return NULL;
+  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry != NULL) {
+    return entry->data;
   }
 
   // Return early if there is not enough space for a new entry
-  struct rdm_pd_s *entry =
-      rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_CONST);
+  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_CONST);
   if (entry == NULL) {
     return NULL;
   }
