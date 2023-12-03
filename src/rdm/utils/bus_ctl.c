@@ -405,7 +405,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
       ack->pid = 0;
       ack->type = RDM_RESPONSE_TYPE_NONE;
       ack->message_count = 0;
-      ack->timer = 0;
+      ack->pdl = 0;
     }
     return 0;
   }
@@ -421,7 +421,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
       ack->pid = 0;
       ack->type = RDM_RESPONSE_TYPE_NONE;
       ack->message_count = 0;
-      ack->timer = 0;
+      ack->pdl = 0;
     }
     return 0;
   }
@@ -442,7 +442,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
       ack->pid = 0;
       ack->type = RDM_RESPONSE_TYPE_NONE;
       ack->message_count = 0;
-      ack->timer = 0;
+      ack->pdl = 0;
     }
     return 0;
   }
@@ -455,7 +455,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
       ack->pid = 0;
       ack->type = RDM_RESPONSE_TYPE_INVALID;
       ack->message_count = 0;
-      ack->timer = 0;
+      ack->pdl = 0;
     }
     return 0;
   }
@@ -466,7 +466,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
     ack->pid = header.pid;
     if (!rdm_response_type_is_valid(header.response_type)) {
       ack->type = RDM_RESPONSE_TYPE_INVALID;
-      ack->timer = 0;
+      ack->pdl = header.pdl;
     } else {
       const char *word_format = "w";
       ack->type = header.response_type;
@@ -479,7 +479,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
         rdm_read_pd(dmx_num, word_format, &nack_reason, sizeof(nack_reason));
         ack->nack_reason = nack_reason;
       } else {
-        ack->timer = 0;
+        ack->pdl = header.pdl;
       }
     }
     ack->message_count = header.message_count;

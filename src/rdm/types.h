@@ -445,6 +445,9 @@ typedef struct rdm_ack_t {
        additional data is now available for collection by a controller.*/
   int message_count;
   union {
+    /** @brief The parameter data length (PDL) is the number of slots included
+     in the parameter data area that it precedes.*/
+    size_t pdl;
     /** @brief The amount of time in FreeRTOS ticks until the responder device
        will be ready to respond to the request. This field should be read when
        the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.*/
