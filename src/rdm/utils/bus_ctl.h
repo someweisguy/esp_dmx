@@ -71,6 +71,15 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
 size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header, 
                              rdm_nr_t nack_reason);
 
+size_t rdm_send_get(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
+                    rdm_sub_device_t sub_device, rdm_pid_t pid,
+                    const char *format, const void *pd, size_t pdl,
+                    rdm_ack_t *ack);
+
+bool rdm_send_set(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
+                  rdm_sub_device_t sub_device, rdm_pid_t pid,
+                  const char *format, const void *pd, size_t pdl,
+                  rdm_ack_t *ack);
 /**
  * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
