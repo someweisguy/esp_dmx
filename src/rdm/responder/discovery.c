@@ -5,99 +5,93 @@
 #include "rdm/utils/bus_ctl.h"
 #include "rdm/utils/uid.h"
 
-// static int rdm_rh_discovery_default(dmx_port_t dmx_num, rdm_header_t *header,
-//                                     void *pd, uint8_t *pdl_out,
-//                                     const rdm_pd_schema_t *schema) {
-//   // Return early if the sub-device is out of range
-//   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-//     // Cannot respond to RDM_CC_DISC_COMMAND with NACK
-//     return RDM_RESPONSE_TYPE_NONE;
-//   }
+static size_t rdm_discovery_default_handler(
+    dmx_port_t dmx_num, const rdm_pd_definition_t *definition,
+    const rdm_header_t *header) {
+  // Return early if the sub-device is out of range
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    return 0;  // Cannot respond to RDM_CC_DISC_COMMAND with NACK
+  }
 
-//   int response_type;
-//   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-//     // Ignore this message if discovery is muted
-//     const uint8_t *is_muted =
-//         rdm_pd_get(dmx_num, RDM_PID_DISC_MUTE, RDM_SUB_DEVICE_ROOT);
-//     if (is_muted == NULL) {
-//       rdm_set_boot_loader(dmx_num);
-//       return RDM_RESPONSE_TYPE_NONE;
-//     } else if (*is_muted) {
-//       return RDM_RESPONSE_TYPE_NONE;
-//     }
+  if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+    uint8_t is_muted = 1;  // Don't respond if an error occurs
+    rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &is_muted,
+               sizeof(is_muted));
+    if (is_muted) {
+      return 0;
+    }
 
-//     // Get the discovery branch parameters
-//     rdm_disc_unique_branch_t branch;
-//     rdm_pd_deserialize(&branch, sizeof(branch), "uu$", pd);
+    // Get the discovery branch parameters
+    rdm_disc_unique_branch_t branch;
+    const char *format = definition->get.request.format;
+    rdm_read_pd(dmx_num, format, &branch, sizeof(branch));
 
-//     // Respond if lower_bound <= my_uid <= upper_bound
-//     rdm_uid_t my_uid;
-//     rdm_uid_get(dmx_num, &my_uid);
-//     if (rdm_uid_is_ge(&my_uid, &branch.lower_bound) &&
-//         rdm_uid_is_le(&my_uid, &branch.upper_bound)) {
-//       *pdl_out = rdm_pd_serialize(pd, 231, "u$", &my_uid);
-//       response_type = RDM_RESPONSE_TYPE_ACK;
-//     } else {
-//       response_type = RDM_RESPONSE_TYPE_NONE;
-//     }
-//   } else {
-//     // Mute or un-mute the discovery responses
-//     const uint8_t mute_command = (header->pid == RDM_PID_DISC_MUTE);
-//     rdm_pd_set(dmx_num, RDM_PID_DISC_MUTE, RDM_SUB_DEVICE_ROOT, &mute_command,
-//                sizeof(uint8_t));
+    // Respond if branch.lower_bound <= this_uid <= branch.upper_bound
+    rdm_uid_t this_uid;
+    rdm_uid_get(dmx_num, &this_uid);
+    if (rdm_uid_is_ge(&this_uid, &branch.lower_bound) &&
+        rdm_uid_is_le(&this_uid, &branch.upper_bound)) {
+      return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
+    }
 
-//     // Get the binding UID of this device
-//     int num_ports = 0;
-//     for (int i = 0; i < DMX_NUM_MAX; ++i) {
-//       if (dmx_driver_is_installed(i)) {
-//         ++num_ports;
-//       }
-//     }
-//     rdm_uid_t binding_uid;
-//     if (num_ports == 1) {
-//       // Only report binding UID if there are multiple ports
-//       binding_uid = (rdm_uid_t){0, 0};
-//     } else {
-//       rdm_uid_get_binding(&binding_uid);
-//     }
+    return 0;
+  } else {
+    const uint8_t set_mute = (header->pid == RDM_PID_DISC_MUTE);
+    rdm_pd_set(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &set_mute,
+               sizeof(set_mute));
+    
 
-//     // Respond with this device's mute parameters
-//     const rdm_disc_mute_t mute = {
-//         .control_field = 0,  // TODO: get the control_field of the device
-//         .binding_uid = binding_uid,
-//     };
+    // Get the binding UID of this device
+    int num_ports = 0;
+    rdm_disc_mute_t mute;
+    for (int i = 0; i < DMX_NUM_MAX; ++i) {
+      if (dmx_driver_is_installed(i)) {
+        ++num_ports;
+      }
+    }
+    if (num_ports == 1) {
+      mute.binding_uid = (rdm_uid_t){0, 0};  // Don't report a binding UID
+    } else {
+      rdm_uid_get_binding(&mute.binding_uid);
+    }
 
-//     *pdl_out = rdm_pd_serialize(pd, 231, "wv", &mute);
-//     response_type = RDM_RESPONSE_TYPE_ACK;
-//   }
+    // Get the mute control field of this port
+    mute.control_field = 0; // TODO
 
-//   return response_type;
-// }
+    const char *format = definition->get.response.format;
+    return rdm_write_ack(dmx_num, header, format, &mute, sizeof(mute));
+  }
+}
 
 bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
                                      void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // // Define the parameter
-  // const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
-  // const rdm_pd_definition_t def = {
-  //     .schema =
-  //         {
-  //             .data_type = RDM_DS_NOT_DEFINED,
-  //             .cc = RDM_CC_DISC,
-  //             .pdl_size = 0,
-  //             .format = "",
-  //         },
-  //     .nvs = false,
-  //     .response_handler = rdm_rh_discovery_default,
-  // };
+  // RDM_PID_DISC_UNIQUE_BRANCH does not use parameter data
+  const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
 
-  // // Register the parameter
-  // rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, NULL);
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
+  // Define the parameter
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .alloc_size = 0,
+      .pid_cc = RDM_CC_DISC,
+      .ds = RDM_DS_NOT_DEFINED,
+      .get = {.handler = rdm_discovery_default_handler,
+              .request.format = "uu$",
+              .response.format = NULL},
+      .set = {.handler = NULL,
+              .request.format = NULL,
+              .response.format = NULL},
+      .pdl_size = sizeof(rdm_disc_unique_branch_t),
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_pd_set_definition(dmx_num, pid, &definition);
 
-  return false;
+  return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
