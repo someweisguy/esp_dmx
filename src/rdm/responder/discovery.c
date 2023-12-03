@@ -70,10 +70,8 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // RDM_PID_DISC_UNIQUE_BRANCH does not use parameter data
-  const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
-
   // Define the parameter
+  const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
       .alloc_size = 0,
@@ -91,6 +89,8 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_pd_set_definition(dmx_num, pid, &definition);
 
+  // RDM_PID_DISC_UNIQUE_BRANCH does not use parameter data
+
   return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
 
@@ -99,9 +99,27 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
+  // Define the parameter
+  const rdm_pid_t pid = RDM_PID_DISC_MUTE;
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .alloc_size = sizeof(uint8_t),
+      .pid_cc = RDM_CC_DISC,
+      .ds = RDM_DS_NOT_DEFINED,
+      .get = {.handler = rdm_discovery_default_handler,
+              .request.format = NULL,
+              .response.format = NULL},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
+      .pdl_size = 0,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_pd_set_definition(dmx_num, pid, &definition);
+
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
-  const rdm_pid_t pid = RDM_PID_DISC_MUTE;
   const rdm_pid_t alias_pid = RDM_PID_DISC_UN_MUTE;
   if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, alias_pid) == NULL) {
     const uint8_t init_value = 0;
@@ -117,7 +135,16 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
     }
   }
 
+  return rdm_pd_set_callback(dmx_num, pid, cb, context);
+}
+
+bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
+                               void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
   // Define the parameter
+  const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
       .alloc_size = sizeof(uint8_t),
@@ -135,17 +162,8 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_pd_set_definition(dmx_num, pid, &definition);
 
-  return rdm_pd_set_callback(dmx_num, pid, cb, context);
-}
-
-bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
-                               void *context) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
-  const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
   const rdm_pid_t alias_pid = RDM_PID_DISC_MUTE;
   if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, alias_pid) == NULL) {
     const uint8_t init_value = 0;
@@ -160,24 +178,6 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       return false;
     }
   }
-
-  // Define the parameter
-  static const rdm_pd_definition_t definition = {
-      .pid = pid,
-      .alloc_size = sizeof(uint8_t),
-      .pid_cc = RDM_CC_DISC,
-      .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_discovery_default_handler,
-              .request.format = NULL,
-              .response.format = NULL},
-      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
-      .pdl_size = 0,
-      .max_value = 0,
-      .min_value = 0,
-      .units = RDM_UNITS_NONE,
-      .prefix = RDM_PREFIX_NONE,
-      .description = NULL};
-  rdm_pd_set_definition(dmx_num, pid, &definition);
 
   return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }

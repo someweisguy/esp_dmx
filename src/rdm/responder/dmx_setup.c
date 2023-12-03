@@ -150,19 +150,11 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   DMX_CHECK(
-      rdm_pd_get_ptr(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT) != NULL,
+      rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO) != NULL,
       false, "RDM_PID_DEVICE_INFO must be registered first");
 
-  // Allocate parameter data
-  const bool nvs = true;
-  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  const size_t offset = offsetof(rdm_device_info_t, dmx_start_address);
-  if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                       RDM_PID_DEVICE_INFO, offset) == NULL) {
-    return false;
-  }
-
   // Define the parameter
+  const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
       .alloc_size = sizeof(uint16_t),
@@ -181,6 +173,14 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   rdm_pd_set_definition(dmx_num, pid, &definition);
+
+  // Allocate parameter data
+  const bool nvs = true;
+  const size_t offset = offsetof(rdm_device_info_t, dmx_start_address);
+  if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                       RDM_PID_DEVICE_INFO, offset) == NULL) {
+    return false;
+  }
 
   return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }

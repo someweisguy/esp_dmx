@@ -54,15 +54,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     }
   }
 
-  // Allocate parameter data
-  const bool nvs = false;
-  const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
-  if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, device_info,
-                          sizeof(*device_info)) == NULL) {
-    return false;
-  }
-
   // Define the parameter
+  const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
       .alloc_size = sizeof(*device_info),
@@ -81,6 +74,13 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   rdm_pd_set_definition(dmx_num, pid, &definition);
+
+  // Allocate parameter data
+  const bool nvs = false;
+  if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, device_info,
+                          sizeof(*device_info)) == NULL) {
+    return false;
+  }
 
   return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
@@ -124,14 +124,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
               "software_version_label error");
   }
 
-  // Allocate parameter data
-  const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
-  if (rdm_pd_add_const(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                       software_version_label) == NULL) {
-    return false;
-  }
-
   // Define the parameter
+  const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
       .alloc_size = sizeof(*software_version_label),
@@ -150,6 +144,12 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   rdm_pd_set_definition(dmx_num, pid, &definition);
+
+  // Allocate parameter data
+  if (rdm_pd_add_const(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                       software_version_label) == NULL) {
+    return false;
+  }
 
   return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }

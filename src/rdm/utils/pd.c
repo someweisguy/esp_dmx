@@ -138,6 +138,10 @@ const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
   return NULL;
 }
 
+void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid) {
+  // FIXME
+}
+
 size_t rdm_pd_format_get_max_size(const char *format) {
   size_t parameter_size = 0;
 

@@ -9,16 +9,8 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // Allocate parameter data
-  const bool nvs = true;
-  const uint8_t init_value = 0;
-  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
-                          sizeof(init_value)) == NULL) {
-    return false;
-  }
-
   // Define the parameter
+  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
       .alloc_size = sizeof(uint8_t),
@@ -37,6 +29,14 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   rdm_pd_set_definition(dmx_num, pid, &definition);
+
+  // Allocate parameter data
+  const bool nvs = true;
+  const uint8_t init_value = 0;
+  if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
+                          sizeof(init_value)) == NULL) {
+    return false;
+  }
 
   return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
