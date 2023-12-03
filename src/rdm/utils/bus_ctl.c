@@ -331,7 +331,6 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
   assert(dmx_num < DMX_NUM_MAX);
   assert(header != NULL);
   assert(rdm_cc_is_request(header->cc));
-  assert(rdm_pd_format_is_valid(format));
   assert(dmx_driver_is_installed(dmx_num));
 
   // PDL is a single word
