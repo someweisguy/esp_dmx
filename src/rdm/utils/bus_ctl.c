@@ -84,7 +84,7 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
         token_size = sizeof(uint8_t);
         const uint8_t literal = (uint8_t)strtol(str, NULL, 16);
         memcpy(dest, &literal, token_size);
-        f += 3;  // Skip to the next token
+        f += 2;  // Skip to the next token
       } else {
         __unreachable();  // Unknown symbol
       }
