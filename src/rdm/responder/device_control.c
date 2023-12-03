@@ -9,23 +9,34 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // // Define the parameter
-  // const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  // const rdm_pd_definition_t def = {
-  //     .schema = {.data_type = RDM_DS_UNSIGNED_BYTE,
-  //                .cc = RDM_CC_GET_SET,
-  //                .pdl_size = sizeof(uint8_t),
-  //                .min_value = 0,
-  //                .max_value = 1,
-  //                .alloc_size = sizeof(uint8_t),
-  //                .format = "b$"},
-  //     .nvs = false,
-  //     .response_handler = rdm_response_handler_simple,
-  // };
+  // Allocate parameter data
+  const bool nvs = true;
+  const uint8_t init_value = 0;
+  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
+  if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
+                          sizeof(init_value)) == NULL) {
+    return false;
+  }
 
-  // const uint8_t init_value = 0;
-  // rdm_pd_add_new(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, &init_value);
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
+  // Define the parameter
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .alloc_size = sizeof(uint8_t),
+      .pid_cc = RDM_CC_GET_SET,
+      .ds = RDM_DS_UNSIGNED_BYTE,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = NULL,
+              .response.format = "b$"},
+      .set = {.handler = rdm_simple_response_handler,
+              .request.format = "b$",
+              .response.format = NULL},
+      .pdl_size = sizeof(uint8_t),
+      .max_value = 1,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_pd_set_definition(dmx_num, pid, &definition);
 
-  return false;
+  return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
