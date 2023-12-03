@@ -7,131 +7,13 @@
 #include "rdm/utils/bus_ctl.h"
 #include "rdm/utils/uid.h"
 
-static bool rdm_send_disc(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
-                          rdm_pid_t pid, const char *format, const void *pd,
-                          size_t pdl, rdm_ack_t *ack) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(dest_uid != NULL);
-  assert(pid > 0);
-  assert(rdm_uid_is_broadcast(dest_uid) || pid != RDM_PID_DISC_UNIQUE_BRANCH);
-  // TODO: assert(rdm_pd_format_is_valid(format));
-  assert(format != NULL || pd == NULL);
-  assert(pd != NULL || pdl == 0);
-  assert(pdl < 231);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Attempt to take the mutex and wait until the driver is done sending
-  if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
-    return false;
-  }
-  if (!dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23))) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return false;
-  }
-
-  // Write the header using the default arguments and the caller's arguments
-  rdm_header_t header = {
-    .message_len = 24 + pdl,
-    .tn = rdm_get_transaction_num(dmx_num),
-    .port_id = dmx_num + 1,
-    .message_count = 0,
-    .sub_device = RDM_SUB_DEVICE_ROOT,
-    .cc = RDM_CC_DISC_COMMAND,
-    .pid = pid,
-    .pdl = pdl,
-  };
-  rdm_uid_get(dmx_num, &header.src_uid);
-  memcpy(&header.dest_uid, dest_uid, sizeof(header.dest_uid));
-
-  // Write and send the RDM request
-  const size_t written = rdm_write(dmx_num, &header, format, pd);
-  if (!dmx_send(dmx_num, written)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    if (ack != NULL) {
-      ack->err = DMX_OK;
-      ack->size = 0;
-      ack->src_uid = (rdm_uid_t){0, 0};
-      ack->pid = 0;
-      ack->type = RDM_RESPONSE_TYPE_NONE;
-      ack->message_count = 0;
-      ack->timer = 0;
-    }
-    return false;
-  }
-
-  // Return early if no response is expected
-  if (rdm_uid_is_broadcast(dest_uid) && pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-    dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
-    xSemaphoreGiveRecursive(driver->mux);
-    if (ack != NULL) {
-      ack->err = DMX_OK;
-      ack->size = 0;
-      ack->src_uid = (rdm_uid_t){0, 0};
-      ack->pid = 0;
-      ack->type = RDM_RESPONSE_TYPE_NONE;
-      ack->message_count = 0;
-      ack->timer = 0;
-    }
-    return false;
-  }
-
-  // Attempt to receive the RDM response
-  dmx_packet_t packet;
-  const size_t resp = dmx_receive(dmx_num, &packet, pdDMX_MS_TO_TICKS(23));
-  if (ack != NULL) {
-    ack->err = packet.err;
-    ack->size = resp;
-  }
-
-  // Return early if no response was received
-  if (resp == 0) {
-    xSemaphoreGiveRecursive(driver->mux);
-    if (ack != NULL) {
-      ack->src_uid = (rdm_uid_t){0, 0};
-      ack->pid = 0;
-      ack->type = RDM_RESPONSE_TYPE_NONE;
-      ack->message_count = 0;
-      ack->timer = 0;
-    }
-    return false;
-  }
-
-  // Return early if the response checksum was invalid
-  if (!rdm_read_header(dmx_num, &header)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    if (ack != NULL) {
-      ack->src_uid = (rdm_uid_t){0, 0};
-      ack->pid = 0;
-      ack->type = RDM_RESPONSE_TYPE_INVALID;
-      ack->message_count = 0;
-      ack->timer = 0;
-    }
-    return false;
-  }
-
-  // Copy the results into the ack struct
-  if (ack != NULL) {
-    memcpy(&ack->src_uid, &header.src_uid, sizeof(rdm_uid_t));
-    ack->pid = header.pid;
-    if (!rdm_response_type_is_valid(header.response_type)) {
-      ack->type = RDM_RESPONSE_TYPE_INVALID;
-    } else {
-      ack->type = header.response_type;
-    }
-    ack->message_count = header.message_count;
-    ack->timer = 0;
-  }
-
-  xSemaphoreGiveRecursive(driver->mux);
-  return (header.response_type == RDM_RESPONSE_TYPE_ACK);
-}
-
 static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                                  rdm_pid_t pid, rdm_disc_mute_t *mute,
                                  rdm_ack_t *ack) {
-  bool success = rdm_send_disc(dmx_num, dest_uid, pid, NULL, NULL, 0, ack);
+  const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;                                    
+  const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
+  bool success = rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, NULL,
+                                  NULL, 0, ack);
   if (success && mute != NULL) {
     const char *format = "wv";
     rdm_read_pd(dmx_num, format, mute, sizeof(*mute));
@@ -146,12 +28,14 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(branch != NULL, 0, "branch is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const char *format = "uu$";
-  rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
   const rdm_uid_t *dest_uid = &RDM_UID_BROADCAST_ALL;
+  const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;
+  const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
+  const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
+  const char *format = "uu$";
 
-  return rdm_send_disc(dmx_num, dest_uid, pid, format, branch, sizeof(*branch),
-                       ack);
+  return rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, format,
+                          branch, sizeof(*branch), ack);
 }
 
 bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
