@@ -34,7 +34,7 @@ static bool rdm_send_disc(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   // Write the header using the default arguments and the caller's arguments
   rdm_header_t header = {
     .message_len = 24 + pdl,
-    .tn = 0,  // TODO: rdm_get_tn(dmx_num),
+    .tn = rdm_get_transaction_num(dmx_num),
     .port_id = dmx_num + 1,
     .message_count = 0,
     .sub_device = RDM_SUB_DEVICE_ROOT,
