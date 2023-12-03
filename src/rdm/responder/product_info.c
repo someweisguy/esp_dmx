@@ -116,8 +116,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  if (rdm_pd_get_ptr(dmx_num, RDM_PID_SOFTWARE_VERSION_LABEL,
-                     RDM_SUB_DEVICE_ROOT) == NULL) {
+  if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT,
+                     RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
     DMX_CHECK(strnlen(software_version_label, 33) < 33, false,
