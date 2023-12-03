@@ -112,7 +112,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         const char *software_version_label,
+                                         char *software_version_label,
                                          rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");

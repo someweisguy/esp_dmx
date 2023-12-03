@@ -68,7 +68,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num,
  * @return false if there is not enough memory to register additional responses.
  */
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         const char *software_version_label,
+                                         char *software_version_label,
                                          rdm_callback_t cb, void *context);
 
 #ifdef __cplusplus
