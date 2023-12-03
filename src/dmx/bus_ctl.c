@@ -289,7 +289,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Do not send a response to non-discovery broadcast packets
   if (rdm_uid_is_broadcast(&header.dest_uid) &&
-      header.cc != RDM_CC_DISC_COMMAND) {
+      header.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
     resp = 0;
   }
 
