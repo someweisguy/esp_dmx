@@ -8,14 +8,16 @@
 #include "endian.h"
 #include "rdm/utils/uid.h"
 
-static void *rdm_format_encode(void *restrict dest, const char *restrict format,
-                               const void *restrict src, size_t src_size,
-                               bool encode_nulls) {
+static size_t rdm_format_encode(void *restrict dest,
+                                const char *restrict format,
+                                const void *restrict src, size_t src_size,
+                                bool encode_nulls) {
   assert(dest != NULL);
   assert(src != NULL);
 
   // This function assumes that the format string is valid
 
+  size_t encoded = 0;
   while (src_size > 0) {
     const char *f = format;
     for (char c = *f; c != '\0'; c = *(++f)) {
@@ -26,7 +28,7 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
 
       // Check for terminator
       if (c == '$') {
-        return dest;
+        return encoded;
       }
 
       // Copy the token to the destination buffer
@@ -38,31 +40,34 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
         token_size = sizeof(uint8_t);
         memcpy(dest, src, token_size);
         // Don't need to swap endianness on single byte
+        encoded += token_size;
       } else if (c == 'w') {
         token_size = sizeof(uint16_t);
         memcpy(dest, src, token_size);
         *(uint16_t *)dest = bswap16(*(uint16_t *)dest);
+        encoded += token_size;
       } else if (c == 'd') {
         token_size = sizeof(uint32_t);
         memcpy(dest, src, token_size);
         *(uint32_t *)dest = bswap32(*(uint32_t *)dest);
+        encoded += token_size;
       } else if (c == 'u' || c == 'v') {
         token_size = sizeof(rdm_uid_t);
         if (c == 'v' && (src_size < token_size || rdm_uid_is_null(src))) {
           // Handle condition where an optional UID was not provided
           if (encode_nulls) {
             memset(dest, 0, token_size);
+            encoded += token_size;
           }
-          dest += token_size;
-          return dest;
+          return encoded;
         }
         memcpy(dest, src, token_size);
         rdm_uid_t *const uid = dest;
         uid->man_id = bswap16(uid->man_id);
         uid->dev_id = bswap32(uid->dev_id);
+        encoded += token_size;
         if (c == 'v') {
-          dest += token_size;
-          return dest;
+          return encoded;
         }
       } else if (c == 'a') {
         token_size = strnlen(src, (src_size < 32 ? src_size : 32));
@@ -72,8 +77,8 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
           ((uint8_t *)dest)[token_size] = '\0';
           token_size += 1;
         }
-        dest += token_size;
-        return dest;
+        encoded += token_size;
+        return encoded;
       } else if (c == 'x') {
         // Copy the hex literal format string to a null-terminated string
         char str[3];
@@ -84,6 +89,7 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
         token_size = sizeof(uint8_t);
         const uint8_t literal = (uint8_t)strtol(str, NULL, 16);
         memcpy(dest, &literal, token_size);
+        dest += token_size;
         f += 2;  // Skip to the next token
       } else {
         __unreachable();  // Unknown symbol
@@ -96,7 +102,7 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
     }
   }
 
-  return dest;
+  return encoded;
 }
 
 bool DMX_ISR_ATTR rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header) {
@@ -240,21 +246,29 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
   if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
     // Serialize the header and pd into the driver buffer
     const char *header_format = "xCCx01buubbbwbwb";
-    void *data = rdm_format_encode(driver->data, header_format, header,
-                                  sizeof(*header), encode_nulls);
-    if (header->pdl > 0) {
-      data = rdm_format_encode(data, format, pd, header->pdl, encode_nulls);
+    rdm_format_encode(driver->data, header_format, header, sizeof(*header),
+                      encode_nulls);
+    size_t message_len;
+    void *data = &driver->data[24];
+    size_t pdl = rdm_format_encode(data, format, pd, header->pdl, encode_nulls);
+    if (header->pdl != pdl) {
+      message_len = 24 + pdl;
+      driver->data[2] = message_len;  // Encode updated header->message_len
+      driver->data[23] = pdl;         // Encode updated header->pdl
+    } else {
+      message_len = header->message_len;
     }
+    data += pdl;
 
     // Calculate and serialize the checksum
     uint16_t checksum = RDM_SC + RDM_SUB_SC;
-    for (int i = 2; i < header->message_len; ++i) {
+    for (int i = 2; i < message_len; ++i) {
       checksum += driver->data[i];
     }
     checksum = bswap16(checksum);
     memcpy(data, &checksum, sizeof(checksum));
-    
-    written = header->message_len + 2;
+
+    written = message_len + 2;
   } else {
     // Encode the preamble bytes
     const size_t preamble_len = 7;
