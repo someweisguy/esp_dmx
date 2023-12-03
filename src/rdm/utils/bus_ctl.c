@@ -248,15 +248,20 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
                       encode_nulls);
     size_t message_len;
     void *data = &driver->data[24];
-    size_t pdl = rdm_format_encode(data, format, pd, header->pdl, encode_nulls);
-    if (header->pdl != pdl) {
-      message_len = 24 + pdl;
-      driver->data[2] = message_len;  // Encode updated header->message_len
-      driver->data[23] = pdl;         // Encode updated header->pdl
+    if (pd != NULL && header->pdl > 0) {
+      size_t pdl =
+          rdm_format_encode(data, format, pd, header->pdl, encode_nulls);
+      if (header->pdl != pdl) {
+        message_len = 24 + pdl;
+        driver->data[2] = message_len;  // Encode updated header->message_len
+        driver->data[23] = pdl;         // Encode updated header->pdl
+      } else {
+        message_len = header->message_len;
+      }
+      data += pdl;
     } else {
-      message_len = header->message_len;
+      message_len = sizeof(rdm_header_t);
     }
-    data += pdl;
 
     // Calculate and serialize the checksum
     uint16_t checksum = RDM_SC + RDM_SUB_SC;
@@ -362,7 +367,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   assert(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL);
   assert(pid > 0);
   assert(rdm_cc_is_valid(cc) && rdm_cc_is_request(cc));
-  assert(rdm_pd_format_is_valid(format));
+  // assert(rdm_pd_format_is_valid(format)); // TODO
   assert(format != NULL || pd == NULL);
   assert(pd != NULL || pdl == 0);
   assert(pdl < 231);
