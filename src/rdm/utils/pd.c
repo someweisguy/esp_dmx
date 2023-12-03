@@ -336,7 +336,7 @@ const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Return early if the variable already exists
-  if (rdm_pd_get_pointer(dmx_num, sub_device, pid) != NULL) {
+  if (rdm_pd_get_ptr(dmx_num, sub_device, pid) != NULL) {
     return NULL;
   }
 
@@ -355,8 +355,8 @@ const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return data;
 }
 
-const void *rdm_pd_get_pointer(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                               rdm_pid_t pid) {
+const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                           rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
@@ -384,7 +384,7 @@ size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   const rdm_pd_definition_t *definition = rdm_pd_get_definition(dmx_num, pid);
   assert(definition != NULL);
 
-  const void *pd_ptr = rdm_pd_get_pointer(dmx_num, sub_device, pid);
+  const void *pd_ptr = rdm_pd_get_ptr(dmx_num, sub_device, pid);
   if (pd_ptr == NULL) {
     return 0;
   }

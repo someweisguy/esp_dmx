@@ -117,7 +117,7 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   if (rdm_is_enabled) {
     // Get the personality count from the RDM device info
     const rdm_device_info_t *device_info =
-        rdm_pd_get_pointer(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+        rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO);
     if (device_info != NULL) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       personality_count = device_info->current_personality;
