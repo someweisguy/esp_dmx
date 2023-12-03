@@ -208,7 +208,8 @@ size_t rdm_pd_format_get_max_size(const char *format) {
   }
 
   if (format_is_terminated) {
-    if (*format != '\0') {
+    ++format;
+    if (*format != '\0' && *format != '$') {
       return 0;  // Invalid token after terminator
     }
   } else {
