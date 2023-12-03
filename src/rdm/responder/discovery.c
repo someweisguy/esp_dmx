@@ -39,7 +39,6 @@ static size_t rdm_discovery_default_handler(
     const uint8_t set_mute = (header->pid == RDM_PID_DISC_MUTE);
     rdm_pd_set(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &set_mute,
                sizeof(set_mute));
-    
 
     // Get the binding UID of this device
     int num_ports = 0;
@@ -56,7 +55,7 @@ static size_t rdm_discovery_default_handler(
     }
 
     // Get the mute control field of this port
-    mute.control_field = 0; // TODO
+    mute.control_field = 0;  // TODO
 
     const char *format = "wv";
     return rdm_write_ack(dmx_num, header, format, &mute, sizeof(mute));
@@ -80,9 +79,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .get = {.handler = rdm_discovery_default_handler,
               .request.format = NULL,
               .response.format = NULL},
-      .set = {.handler = NULL,
-              .request.format = NULL,
-              .response.format = NULL},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = sizeof(rdm_disc_unique_branch_t),
       .max_value = 0,
       .min_value = 0,
@@ -126,9 +123,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .get = {.handler = rdm_discovery_default_handler,
               .request.format = NULL,
               .response.format = NULL},
-      .set = {.handler = NULL,
-              .request.format = NULL,
-              .response.format = NULL},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = 0,
       .max_value = 0,
       .min_value = 0,
@@ -172,9 +167,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .get = {.handler = rdm_discovery_default_handler,
               .request.format = NULL,
               .response.format = NULL},
-      .set = {.handler = NULL,
-              .request.format = NULL,
-              .response.format = NULL},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = 0,
       .max_value = 0,
       .min_value = 0,
