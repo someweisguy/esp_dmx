@@ -562,3 +562,27 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
 
   return 0;
 }
+
+size_t rdm_simple_response_handler(dmx_port_t dmx_num,
+                                   const rdm_pd_definition_t *definition,
+                                   const rdm_header_t *header) {
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    return rdm_write_nack_reason(dmx_num, header,
+                                 RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+  }
+  
+  const char *format;
+  if (header->cc == RDM_CC_GET_COMMAND) {
+    // Get the parameter and write it to the RDM bus
+    const void *pd = rdm_pd_get_ptr(dmx_num, header->sub_device, header->pid);
+    format = definition->get.response.format;
+    return rdm_write_ack(dmx_num, header, format, pd, definition->alloc_size);
+  } else {
+    // Get the parameter from the request and write it to the RDM driver
+    uint8_t pd[231];
+    format = definition->set.request.format;
+    size_t size = rdm_read_pd(dmx_num, format, pd, header->pdl);
+    rdm_pd_set(dmx_num, header->sub_device, header->pid, pd, size);
+    return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
+  }
+}

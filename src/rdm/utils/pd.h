@@ -101,6 +101,10 @@ rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num);
 // TODO: docs, not thread-safe
 rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num);
 
+size_t rdm_simple_response_handler(dmx_port_t dmx_num,
+                                   const rdm_pd_definition_t *definition,
+                                   const rdm_header_t *header);
+
 #ifdef __cplusplus
 }
 #endif
