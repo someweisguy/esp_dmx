@@ -241,7 +241,34 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
   // Encode a standard RDM packet or a RDM_CC_DISC_COMMAND_RESPONSE packet
   size_t written;
   const bool encode_nulls = false;
-  if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
+  if (header->cc == RDM_CC_DISC_COMMAND_RESPONSE &&
+      header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+    // Encode the preamble bytes
+    const size_t preamble_len = 7;
+    memset(driver->data, RDM_PREAMBLE, preamble_len);
+    driver->data[preamble_len] = RDM_DELIMITER;
+    uint8_t *data = &driver->data[preamble_len + 1];
+    
+    // Encode the UID and calculate the checksum
+    uint8_t uid[6];
+    rdm_uidcpy(uid, &header->src_uid);
+    uint16_t checksum = 0;
+    for (int i = 0, j = 0; j < sizeof(rdm_uid_t); i += 2, ++j) {
+      data[i] = uid[j] | 0xaa;
+      data[i + 1] = uid[j] | 0x55;
+      checksum += uid[j] + (0xaa | 0x55);
+    }
+
+    // Encode the checksum
+    const int cs_offset = sizeof(rdm_uid_t) * 2;
+    data[cs_offset + 0] = (uint8_t)(checksum >> 8) | 0xaa;
+    data[cs_offset + 1] = (uint8_t)(checksum >> 8) | 0x55;
+    data[cs_offset + 2] = (uint8_t)(checksum) | 0xaa;
+    data[cs_offset + 3] = (uint8_t)(checksum) | 0x55;
+
+    // Update written size
+    written = preamble_len + 1 + 16;
+  } else {
     // Serialize the header and pd into the driver buffer
     const char *header_format = "xCCx01buubbbwbwb";
     rdm_format_encode(driver->data, header_format, header, sizeof(*header),
@@ -272,32 +299,6 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     memcpy(data, &checksum, sizeof(checksum));
 
     written = message_len + 2;
-  } else {
-    // Encode the preamble bytes
-    const size_t preamble_len = 7;
-    memset(driver->data, RDM_PREAMBLE, preamble_len);
-    driver->data[preamble_len] = RDM_DELIMITER;
-    uint8_t *data = &driver->data[preamble_len + 1];
-    
-    // Encode the UID and calculate the checksum
-    uint8_t uid[6];
-    rdm_uidcpy(uid, &header->src_uid);
-    uint16_t checksum = 0;
-    for (int i = 0, j = 0; j < sizeof(rdm_uid_t); i += 2, ++j) {
-      data[i] = uid[j] | 0xaa;
-      data[i + 1] = uid[j] | 0x55;
-      checksum += uid[j] + (0xaa | 0x55);
-    }
-
-    // Encode the checksum
-    const int cs_offset = sizeof(rdm_uid_t) * 2;
-    data[cs_offset + 0] = (uint8_t)(checksum >> 8) | 0xaa;
-    data[cs_offset + 1] = (uint8_t)(checksum >> 8) | 0x55;
-    data[cs_offset + 2] = (uint8_t)(checksum) | 0xaa;
-    data[cs_offset + 3] = (uint8_t)(checksum) | 0x55;
-
-    // Update written size
-    written = preamble_len + 1 + 16;
   }
 
   return written;

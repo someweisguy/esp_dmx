@@ -273,7 +273,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       }
 
       // Validate the response
-      if (header.cc == RDM_CC_DISC_COMMAND &&
+      if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH &&
           ((resp > 0 && resp < 17) || resp > 24)) {
         // Invalid RDM_CC_DISC_COMMAND_RESPONSE packet size
         resp = 0;  // Silence invalid discovery responses
