@@ -47,6 +47,8 @@ typedef struct rdm_pd_definition_s {
 int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
                           const rdm_pd_definition_t *definition);
 
+size_t rdm_pd_format_get_max_size(const char *format);
+
 // TODO: docs, not thread-safe
 bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                          rdm_callback_t callback, void *context);

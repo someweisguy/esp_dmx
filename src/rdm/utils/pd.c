@@ -138,6 +138,87 @@ const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
   return NULL;
 }
 
+size_t rdm_pd_format_get_max_size(const char *format) {
+  size_t parameter_size = 0;
+
+  bool format_is_terminated = false;
+  for (char c = *format; c != '\0'; c = *(++format)) {
+    // Skip spaces
+    if (c == ' ') {
+      continue;
+    }
+
+    // Get the size of the current token
+    size_t token_size;
+    switch (c) {
+      case 'b':
+      case 'B':
+        token_size = sizeof(uint8_t);
+        break;
+      case 'w':
+      case 'W':
+        token_size = sizeof(uint16_t);
+        break;
+      case 'd':
+      case 'D':
+        token_size = sizeof(uint32_t);
+        break;
+      case 'u':
+      case 'U':
+        token_size = sizeof(rdm_uid_t);
+        break;
+      case 'v':
+      case 'V':
+        token_size = sizeof(rdm_uid_t);
+        format_is_terminated = true;
+        break;
+      case 'x':
+      case 'X':
+        token_size = sizeof(uint8_t);
+        for (int i = 0; i < 2; ++i) {
+          c = *(++format);
+          if (!isxdigit(c)) {
+            return 0;  // Hex literals must be 2 characters wide
+          }
+        }
+        break;
+      case 'a':
+      case 'A':
+        token_size = 32;  // ASCII fields can be up to 32 bytes
+        format_is_terminated = true;
+        break;
+      case '$':
+        token_size = 0;
+        format_is_terminated = true;
+        break;
+      default:
+        return 0;  // Unknown symbol
+    }
+
+    // Update the parameter size with the new token
+    parameter_size += token_size;
+    if (parameter_size > 231) {
+      return 0;  // Parameter size is too big
+    }
+
+    // End loop if parameter is terminated
+    if (format_is_terminated) {
+      break;
+    }
+  }
+
+  if (format_is_terminated) {
+    if (*format != '\0') {
+      return 0;  // Invalid token after terminator
+    }
+  } else {
+    // Get the maximum possible size if parameter is unterminated
+    parameter_size = 231 - (231 % parameter_size);
+  }
+
+  return parameter_size;
+}
+
 const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                 rdm_pid_t pid, bool non_volatile,
                                 const void *init_value, size_t size) {

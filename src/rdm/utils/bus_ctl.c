@@ -8,87 +8,6 @@
 #include "endian.h"
 #include "rdm/utils/uid.h"
 
-static size_t rdm_format_get_max_size(const char *format) {
-  size_t parameter_size = 0;
-
-  bool format_is_terminated = false;
-  for (char c = *format; c != '\0'; c = *(++format)) {
-    // Skip spaces
-    if (c == ' ') {
-      continue;
-    }
-
-    // Get the size of the current token
-    size_t token_size;
-    switch (c) {
-      case 'b':
-      case 'B':
-        token_size = sizeof(uint8_t);
-        break;
-      case 'w':
-      case 'W':
-        token_size = sizeof(uint16_t);
-        break;
-      case 'd':
-      case 'D':
-        token_size = sizeof(uint32_t);
-        break;
-      case 'u':
-      case 'U':
-        token_size = sizeof(rdm_uid_t);
-        break;
-      case 'v':
-      case 'V':
-        token_size = sizeof(rdm_uid_t);
-        format_is_terminated = true;
-        break;
-      case 'x':
-      case 'X':
-        token_size = sizeof(uint8_t);
-        for (int i = 0; i < 2; ++i) {
-          c = *(++format);
-          if (!isxdigit(c)) {
-            return 0;  // Hex literals must be 2 characters wide
-          }
-        }
-        break;
-      case 'a':
-      case 'A':
-        token_size = 32;  // ASCII fields can be up to 32 bytes
-        format_is_terminated = true;
-        break;
-      case '$':
-        token_size = 0;
-        format_is_terminated = true;
-        break;
-      default:
-        return 0;  // Unknown symbol
-    }
-
-    // Update the parameter size with the new token
-    parameter_size += token_size;
-    if (parameter_size > 231) {
-      return 0;  // Parameter size is too big
-    }
-
-    // End loop if parameter is terminated
-    if (format_is_terminated) {
-      break;
-    }
-  }
-
-  if (format_is_terminated) {
-    if (*format != '\0') {
-      return 0;  // Invalid token after terminator
-    }
-  } else {
-    // Get the maximum possible size if parameter is unterminated
-    parameter_size = 231 - (231 % parameter_size);
-  }
-
-  return parameter_size;
-}
-
 static void *rdm_format_encode(void *restrict dest, const char *restrict format,
                                const void *restrict src, size_t src_size,
                                bool encode_nulls) {
@@ -126,7 +45,7 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
       } else if (c == 'd') {
         token_size = sizeof(uint32_t);
         memcpy(dest, src, token_size);
-        *(uint32_t *)dest = bswap16(*(uint32_t *)dest);
+        *(uint32_t *)dest = bswap32(*(uint32_t *)dest);
       } else if (c == 'u' || c == 'v') {
         token_size = sizeof(rdm_uid_t);
         if (c == 'v' && (src_size < token_size || rdm_uid_is_null(src))) {
@@ -138,8 +57,9 @@ static void *rdm_format_encode(void *restrict dest, const char *restrict format,
           return dest;
         }
         memcpy(dest, src, token_size);
-        ((rdm_uid_t *)dest)->man_id = bswap16(((rdm_uid_t *)dest)->man_id);
-        ((rdm_uid_t *)dest)->dev_id = bswap32(((rdm_uid_t *)dest)->dev_id);
+        rdm_uid_t *const uid = dest;
+        uid->man_id = bswap16(uid->man_id);
+        uid->dev_id = bswap32(uid->dev_id);
         if (c == 'v') {
           dest += token_size;
           return dest;
@@ -278,16 +198,13 @@ size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
     return 0;
   }
 
-  // Return early if there is no destination buffer or size too small
-  if (destination == NULL || size < pdl) {
-    return pdl;
-  }
-
   // Deserialize the parameter data into the destination buffer
-  size = pdl < size ? pdl : size;
-  const bool encode_nulls = true;
-  const uint8_t *pd = &driver->data[24];
-  rdm_format_encode(destination, format, pd, size, encode_nulls);
+  if (destination != NULL) {
+    size = pdl < size ? pdl : size;
+    const bool encode_nulls = true;
+    const uint8_t *pd = &driver->data[24];
+    rdm_format_encode(destination, format, pd, size, encode_nulls);
+  }
 
   return pdl;
 }
@@ -322,7 +239,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
   const bool encode_nulls = false;
   if (header->cc != RDM_CC_DISC_COMMAND_RESPONSE) {
     // Serialize the header and pd into the driver buffer
-    const char *header_format = "xCCx01buubbbbbwb";
+    const char *header_format = "xCCx01buubbbbbwb$";
     void *data = rdm_format_encode(driver->data, header_format, header,
                                   sizeof(*header), encode_nulls);
     if (header->pdl > 0) {
