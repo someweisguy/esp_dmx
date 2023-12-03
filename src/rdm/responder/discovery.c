@@ -14,6 +14,7 @@ static size_t rdm_discovery_default_handler(
   }
 
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+    // Return early if this device is muted
     uint8_t is_muted = 1;  // Don't respond if an error occurs
     rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &is_muted,
                sizeof(is_muted));
@@ -26,16 +27,18 @@ static size_t rdm_discovery_default_handler(
     const char *format = "uu$";
     rdm_read_pd(dmx_num, format, &branch, sizeof(branch));
 
-    // Respond if branch.lower_bound <= this_uid <= branch.upper_bound
+
+    // Guard against !(branch.lower_bound <= this_uid <= branch.upper_bound)
     rdm_uid_t this_uid;
     rdm_uid_get(dmx_num, &this_uid);
-    if (rdm_uid_is_ge(&this_uid, &branch.lower_bound) &&
-        rdm_uid_is_le(&this_uid, &branch.upper_bound)) {
-      return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
+    if (rdm_uid_is_lt(&this_uid, &branch.lower_bound) ||
+        rdm_uid_is_gt(&this_uid, &branch.upper_bound)) {
+      return 0;
     }
 
-    return 0;
+    return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
   } else {
+    // Set or unset the mute parameter
     const uint8_t set_mute = (header->pid == RDM_PID_DISC_MUTE);
     rdm_pd_set(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &set_mute,
                sizeof(set_mute));
