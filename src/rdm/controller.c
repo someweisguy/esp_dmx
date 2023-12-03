@@ -128,7 +128,7 @@ static bool rdm_send_disc(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   return (header.response_type == RDM_RESPONSE_TYPE_ACK);
 }
 
-static bool rdm_send_mute_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
+static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                                   rdm_pid_t pid, rdm_disc_mute_t *mute,
                                   rdm_ack_t *ack) {
   bool success = rdm_send_disc(dmx_num, dest_uid, pid, NULL, NULL, 0, ack);
@@ -163,7 +163,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   const rdm_uid_t *dest_uid = &header->dest_uid;
 
   rdm_pid_t pid = RDM_PID_DISC_MUTE;
-  return rdm_send_mute_request(dmx_num, dest_uid, pid, mute, ack);
+  return rdm_send_mute_static(dmx_num, dest_uid, pid, mute, ack);
 }
 
 bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
@@ -176,7 +176,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   const rdm_uid_t *dest_uid = &header->dest_uid;
 
   rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
-  return rdm_send_mute_request(dmx_num, dest_uid, pid, mute, ack);
+  return rdm_send_mute_static(dmx_num, dest_uid, pid, mute, ack);
 }
 
 int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
