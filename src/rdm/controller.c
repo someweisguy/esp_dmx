@@ -125,24 +125,37 @@ static bool rdm_send_disc(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-  return true;
+  return (header.response_type == RDM_RESPONSE_TYPE_ACK);
 }
 
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num, rdm_header_t *header,
                                  const rdm_disc_unique_branch_t *branch,
                                  rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(branch != NULL, 0, "branch is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
+  const char *format = "uu$";
+  rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
+  const rdm_uid_t *dest_uid = &RDM_UID_BROADCAST_ALL;
+
+  return rdm_send_disc(dmx_num, dest_uid, pid, format, branch, sizeof(*branch),
+                       ack);
 }
 
 bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
                         rdm_disc_mute_t *mute, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // TODO:
+  // rdm_pid_t pid = RDM_PID_DISC_MUTE;
+  // bool success = rdm_send_disc(dmx_num, dest_uid, pid, NULL, NULL, 0, ack);
+  // if (success && mute != NULL) {
+  //   const char *format = "wv";
+  //   rdm_read_pd(dmx_num, format, mute, sizeof(*mute));
+  // }
+  // return success;
 
   rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
@@ -155,7 +168,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
-    rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
+    // rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
   }
 
   return ret;
@@ -166,6 +179,15 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(header != NULL, 0, "header is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // TODO:
+  // rdm_pid_t pid = RDM_PID_DISC_MUTE;
+  // bool success = rdm_send_disc(dmx_num, dest_uid, pid, NULL, NULL, 0, ack);
+  // if (success && mute != NULL) {
+  //   const char *format = "wv";
+  //   rdm_read_pd(dmx_num, format, mute, sizeof(*mute));
+  // }
+  // return success;
 
   rdm_uid_get(dmx_num, &header->src_uid);
   header->port_id = dmx_num + 1;
@@ -178,7 +200,7 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, rdm_header_t *header,
   size_t pdl = sizeof(pd);
   bool ret = rdm_send_request(dmx_num, header, NULL, &pd, &pdl, ack);
   if (ret && mute != NULL) {
-    rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
+    // rdm_pd_deserialize(mute, sizeof(*mute), "wv", &pd);
   }
 
   return ret;
