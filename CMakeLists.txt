@@ -6,6 +6,8 @@ idf_component_register(
        "src/rdm/controller.c" "src/rdm/parameters.c"
        "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/bus_ctl.c"
 
+       "src/rdm/controller/discovery.c"
+
        "src/rdm/responder/discovery.c" "src/rdm/responder/product_info.c"
        "src/rdm/responder/rdm_info.c" "src/rdm/responder/device_control.c"
        "src/rdm/responder/queue_status.c" "src/rdm/responder/dmx_setup.c" 
