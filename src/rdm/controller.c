@@ -7,42 +7,6 @@
 #include "rdm/utils/bus_ctl.h"
 #include "rdm/utils/uid.h"
 
-bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                                  uint8_t *identify, rdm_ack_t *ack) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(identify != NULL, 0, "identify is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  rdm_uid_get(dmx_num, &header->src_uid);
-  header->port_id = dmx_num + 1;
-  header->cc = RDM_CC_GET_COMMAND;
-  header->pid = RDM_PID_IDENTIFY_DEVICE;
-  header->pdl = 0;
-
-  // Single-byte responses don't need to be emplaced
-  // size_t pdl = sizeof(*identify);
-  return false; //rdm_send_request(dmx_num, header, NULL, identify, &pdl, ack);
-}
-
-bool rdm_send_set_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
-                                  const uint8_t identify, rdm_ack_t *ack) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(identify == 0 || identify == 1, 0, "identify is invalid");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  rdm_uid_get(dmx_num, &header->src_uid);
-  header->port_id = dmx_num + 1;
-  header->cc = RDM_CC_SET_COMMAND;
-  header->pid = RDM_PID_IDENTIFY_DEVICE;
-  header->pdl = sizeof(identify);
-
-  // Single-byte requests don't need to be emplaced
-  // size_t pdl = 0;
-  return false; // rdm_send_request(dmx_num, header, &identify, NULL, &pdl, ack);
-}
-
 bool rdm_send_get_dmx_start_address(dmx_port_t dmx_num, rdm_header_t *header,
                                     uint16_t *dmx_start_address,
                                     rdm_ack_t *ack) {
