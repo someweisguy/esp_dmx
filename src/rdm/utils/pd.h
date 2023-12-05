@@ -56,8 +56,10 @@ bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
 const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
                                                  rdm_pid_t pid);
 
-// TODO: docs, not thread-safe
-void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid);
+// TODO: docs
+void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                            rdm_header_t *request_header,
+                            rdm_header_t *response_header);
 
 // TODO: docs, not thread-safe
 const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,

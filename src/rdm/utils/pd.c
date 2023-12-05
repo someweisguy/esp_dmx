@@ -138,8 +138,29 @@ const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
   return NULL;
 }
 
-void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid) {
-  // FIXME
+void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                            rdm_header_t *request_header,
+                            rdm_header_t *response_header) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(pid > 0);
+  assert(request_header != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Search for a dictionary entry for the parameter
+  const struct rdm_pd_dictionary_s *dict_entry = NULL;
+  for (int i = 0; i < driver->rdm.definition_count; ++i) {
+    if (driver->rdm.dictionary[i].definition->pid == pid) {
+      dict_entry = &driver->rdm.dictionary[i];
+    }
+  }
+  if (dict_entry == NULL || dict_entry->callback == NULL) {
+    return;
+  }
+
+  void *context = dict_entry->context;
+  dict_entry->callback(dmx_num, request_header, response_header, context);
 }
 
 size_t rdm_pd_format_get_max_size(const char *format) {
@@ -251,7 +272,9 @@ const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there are no available entries
-  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_VARIABLE);
+  int flags = RDM_PD_FLAGS_VARIABLE;
+  flags |= non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : 0;
+  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, flags);
   if (entry == NULL) {
     return NULL;
   }
@@ -260,9 +283,7 @@ const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   driver->rdm.heap_available -= definition->alloc_size;
   driver->rdm.heap_ptr -= definition->alloc_size;
 
-  // Assign the parameter
-  entry->id = pid;
-  entry->flags = non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : 0;
+  // Assign the parameter data
   entry->data = driver->rdm.heap_ptr;
 
   // Clamp the size parameter

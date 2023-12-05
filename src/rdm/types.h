@@ -681,8 +681,8 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
 /**
  * @brief The function type for user callbacks in RDM responses.
  */
-typedef void (*rdm_callback_t)(dmx_port_t dmx_num, const rdm_header_t *header,
-                               void *context);
+typedef void (*rdm_callback_t)(dmx_port_t dmx_num, rdm_header_t *request_header,
+                               rdm_header_t *response_header, void *context);
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast

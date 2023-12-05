@@ -21,11 +21,12 @@ rdm_uid_t rdm_device_uid = {};  // The UID of the RDM device.
 
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};  // The DMX drivers for each port.
 
-static void rdm_default_identify_cb(dmx_port_t dmx_num,
-                                    const rdm_header_t *header, void *context) {
-  if (header->cc == RDM_CC_SET_COMMAND) {
+static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
+                                    rdm_header_t *response, void *context) {
+  if (request->cc == RDM_CC_SET_COMMAND &&
+      request->sub_device == RDM_SUB_DEVICE_ROOT) {
     const uint8_t *identify =
-        rdm_pd_get_ptr(dmx_num, RDM_PID_IDENTIFY_DEVICE, header->sub_device);
+        rdm_pd_get_ptr(dmx_num, RDM_PID_IDENTIFY_DEVICE, request->sub_device);
 #ifdef ARDUINO
     printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else
