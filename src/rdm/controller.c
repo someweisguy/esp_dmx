@@ -7,31 +7,6 @@
 #include "rdm/utils/bus_ctl.h"
 #include "rdm/utils/uid.h"
 
-bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
-                                         rdm_header_t *header,
-                                         char *software_version_label,
-                                         size_t *size, rdm_ack_t *ack) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(header != NULL, 0, "header is null");
-  DMX_CHECK(software_version_label != NULL, 0,
-            "software_version_label is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  rdm_uid_get(dmx_num, &header->src_uid);
-  header->port_id = dmx_num + 1;
-  header->cc = RDM_CC_GET_COMMAND;
-  header->pid = RDM_PID_SOFTWARE_VERSION_LABEL;
-  header->pdl = 0;
-
-  bool ret = false;
-  // rdm_send_request(dmx_num, header, NULL, software_version_label, size, ack);
-  if (ret) {
-    software_version_label[*size] = '\0';
-  }
-
-  return ret;
-}
-
 bool rdm_send_get_identify_device(dmx_port_t dmx_num, rdm_header_t *header,
                                   uint8_t *identify, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");

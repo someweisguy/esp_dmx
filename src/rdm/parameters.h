@@ -13,22 +13,6 @@
 extern "C" {
 #endif
 
-
-
-/**
- * @brief Gets a copy of the RDM software version label of this device.
- *
- * @param dmx_num The DMX port number.
- * @param[out] software_version_label A pointer which stores a copy of the
- * software version label of this device.
- * @param[inout] size A pointer to the size of the software_version_label
- * buffer. Is set to the size of the software_version_label on success.
- * @return true on success.
- * @return false on failure.
- */
-bool rdm_get_software_version_label(dmx_port_t dmx_num,
-                                    char *software_version_label, size_t *size);
-
 /**
  * @brief Gets a copy of the RDM identify device state of this device.
  *

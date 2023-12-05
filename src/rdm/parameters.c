@@ -6,22 +6,7 @@
 #include "dmx/struct.h"
 
 
-bool rdm_get_software_version_label(dmx_port_t dmx_num,
-                                    char *software_version_label,
-                                    size_t *size) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(software_version_label != NULL, 0,
-            "software_version_label is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // Get the parameter and copy it to the user's pointer
-  const char *svl = rdm_pd_get_ptr(dmx_num, 0, RDM_PID_SOFTWARE_VERSION_LABEL);
-  DMX_CHECK(svl != NULL, false, "software_version_label not registered");
-  *size = strnlen(svl, *size);  // Prevent buffer overflows
-  strncpy(software_version_label, svl, *size);
-
-  return true;
-}
 
 bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");

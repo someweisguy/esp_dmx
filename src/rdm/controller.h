@@ -19,31 +19,6 @@
 extern "C" {
 #endif
 
-/**
- * @brief Sends an RDM GET software version label request and reads the
- * response, if any.
- *
- * GET software version label are sent without parameter data. If a response is
- * received, the response parameter data will include a software version label
- * in the form of a string up to 32 bytes long.
- *
- * @param dmx_num The DMX port number.
- * @param[inout] header A pointer to an RDM header which includes information
- * about where to address the request.
- * @param[out] software_version_label A pointer to a parameter which will be
- * received in the response.
- * @param size The size of the software_version_label string. Used to prevent
- * buffer overflows.
- * @param[out] ack A pointer to an ACK struct which contains information about
- * the response, including information if no response is received.
- * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
- * @return false if no response was received, was improperly formatted, or an
- * RDM_RESPONSE_TYPE_ACK was not received.
- */
-bool rdm_send_get_software_version_label(dmx_port_t dmx_num,
-                                         rdm_header_t *header,
-                                         char *software_version_label,
-                                         size_t *size, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM GET identify device request and reads the response, if
