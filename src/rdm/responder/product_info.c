@@ -139,7 +139,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = sizeof(*software_version_label),
+      .alloc_size = 32,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_ASCII,
       .get = {.handler = rdm_simple_response_handler,
