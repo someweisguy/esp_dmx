@@ -47,7 +47,7 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, bool *identify) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_IDENTIFY_DEVICE,
-                    &identify, sizeof(uint8_t));
+                    identify, sizeof(uint8_t));
 }
 
 bool rdm_set_identify_device(dmx_port_t dmx_num, const bool identify) {
