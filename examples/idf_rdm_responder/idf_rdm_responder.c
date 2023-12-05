@@ -28,11 +28,11 @@
 
 static const char *TAG = "main";
 
-void custom_rdm_identify_cb(dmx_port_t dmx_num, const rdm_header_t *header,
-                            void *context) {
+void custom_rdm_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
+                            rdm_header_t *response, void *context) {
   // Illuminate the LED if the identify state is set to true
-  if (header->cc == RDM_CC_SET_COMMAND_RESPONSE) {
-    uint8_t identify;
+  if (request->cc == RDM_CC_SET_COMMAND) {
+    bool identify;
     rdm_get_identify_device(dmx_num, &identify);
     gpio_set_level(LED_PIN, identify);
   }
