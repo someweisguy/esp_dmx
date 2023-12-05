@@ -5,12 +5,7 @@
  */
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
-
-#include "dmx/types.h"
-#include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -495,18 +490,18 @@ typedef struct __attribute__((packed)) rdm_disc_mute_t {
     struct {
       /** @brief The managed proxy flag shall be set to 1 when the responder is
          a proxy device.*/
-      bool managed_proxy : 1;
+      uint8_t managed_proxy : 1;
       /** @brief The sub-device flag shall be set to 1 when the responder
          supports sub-devices.*/
-      bool sub_device : 1;
+      uint8_t sub_device : 1;
       /** @brief The boot-loader flag shall only be set to 1 when the device is
          incapable of normal operation until receiving a firmware upload.*/
-      bool boot_loader : 1;
+      uint8_t boot_loader : 1;
       /** @brief The proxied device flag shall only be set to 1 when a proxy is
          responding to discovery on behalf of another device. This flag
          indicates that the response has come from a proxy rather than the
          actual device.*/
-      bool proxied_device : 1;
+      uint8_t proxied_device : 1;
     };
     /** @brief The control field contains bit flags. Bit 0 is the managed proxy
        flag, bit 1 is the sub-device flag, bit 2 is the boot-loader flag, bit 3
