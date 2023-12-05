@@ -153,7 +153,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->rdm.heap_available = pd_alloc_size;
   driver->rdm.heap_ptr = pd + pd_alloc_size;
 
-  driver->rdm.definition_count = 0;
   driver->rdm.parameter_count = 0;
   driver->rdm.staged_count = 0;
 

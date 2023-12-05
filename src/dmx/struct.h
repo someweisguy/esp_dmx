@@ -211,13 +211,6 @@ typedef struct dmx_driver_t {
   struct rdm_driver_t {
     void *heap_ptr;  // Allocated memory for DMX/RDM parameter data.
     size_t heap_available;
-    
-    uint32_t definition_count;
-    struct rdm_pd_dictionary_s {
-      const rdm_pd_definition_t *definition;
-      rdm_callback_t callback;
-      void *context;
-    } dictionary[RDM_RESPONDER_NUM_PIDS_MAX];
 
     uint32_t parameter_count;
     struct rdm_pd_s {

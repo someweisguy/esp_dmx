@@ -20,6 +20,14 @@ enum rdm_pd_flags_e {
   RDM_PD_FLAGS_CONST,
 };
 
+// TODO: docs
+static uint32_t rdm_definition_count = 0;
+static struct rdm_pd_dictionary_s {
+  const rdm_pd_definition_t *definition;
+  rdm_callback_t callback;
+  void *context;
+} rdm_dictionary[RDM_RESPONDER_NUM_PIDS_MAX];
+
 static struct rdm_pd_s *rdm_pd_get_entry(dmx_port_t dmx_num,
                                          rdm_sub_device_t sub_device,
                                          rdm_pid_t pid) {
@@ -84,21 +92,19 @@ int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
          definition->description == NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // Return early if the definition already exists
   if (rdm_pd_get_definition(dmx_num, pid) != NULL) {
     return 0;
   }
 
   // Add the definition and increment the definition count
-  const uint32_t i = driver->rdm.definition_count;
-  driver->rdm.dictionary[i].definition = definition;
-  driver->rdm.dictionary[i].callback = NULL;
+  const uint32_t i = rdm_definition_count;
+  rdm_dictionary[i].definition = definition;
+  rdm_dictionary[i].callback = NULL;
   // Don't need to set the value of the context pointer yet
-  ++driver->rdm.definition_count;
+  ++rdm_definition_count;
 
-  return driver->rdm.definition_count;
+  return rdm_definition_count;
 }
 
 bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
@@ -107,13 +113,11 @@ bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // Search for the definition and add the callback
-  for (int i = 0; i < driver->rdm.definition_count; ++i) {
-    if (driver->rdm.dictionary[i].definition->pid == pid) {
-      driver->rdm.dictionary[i].callback = callback;
-      driver->rdm.dictionary[i].context = context;
+  for (int i = 0; i < rdm_definition_count; ++i) {
+    if (rdm_dictionary[i].definition->pid == pid) {
+      rdm_dictionary[i].callback = callback;
+      rdm_dictionary[i].context = context;
       return true;
     }
   }
@@ -127,12 +131,10 @@ const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // Search for and return a pointer to the definition
-  for (int i = 0; i < driver->rdm.definition_count; ++i) {
-    if (driver->rdm.dictionary[i].definition->pid == pid) {
-      return driver->rdm.dictionary[i].definition;
+  for (int i = 0; i < rdm_definition_count; ++i) {
+    if (rdm_dictionary[i].definition->pid == pid) {
+      return rdm_dictionary[i].definition;
     }
   }
 
@@ -147,13 +149,11 @@ void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(request_header != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // Search for a dictionary entry for the parameter
   const struct rdm_pd_dictionary_s *dict_entry = NULL;
-  for (int i = 0; i < driver->rdm.definition_count; ++i) {
-    if (driver->rdm.dictionary[i].definition->pid == pid) {
-      dict_entry = &driver->rdm.dictionary[i];
+  for (int i = 0; i < rdm_definition_count; ++i) {
+    if (rdm_dictionary[i].definition->pid == pid) {
+      dict_entry = &rdm_dictionary[i];
     }
   }
   if (dict_entry == NULL || dict_entry->callback == NULL) {
