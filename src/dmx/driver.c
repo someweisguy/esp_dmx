@@ -89,7 +89,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
-  driver->data = NULL;
   driver->rdm.heap_ptr = NULL;
 #ifdef DMX_USE_SPINLOCK
   driver->spinlock = (dmx_spinlock_t)DMX_SPINLOCK_INIT;
@@ -102,13 +101,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     DMX_CHECK(mux != NULL, false, "DMX driver mutex malloc error");
   }
 
-  // Allocate DMX buffer
-  uint8_t *data = heap_caps_malloc(DMX_PACKET_SIZE, MALLOC_CAP_8BIT);
-  if (data == NULL) {
-    dmx_driver_delete(dmx_num);
-    DMX_CHECK(data != NULL, false, "DMX driver buffer malloc error");
-  }
-  bzero(data, DMX_PACKET_SIZE_MAX);  // FIXME: use memset()
+  // Set the DMX buffer to zero
+  memset(driver->data, 0, sizeof(driver->data));
 
   // Allocate the RDM parameter buffer
   bool enable_rdm;
@@ -136,7 +130,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // Data buffer
   driver->head = -1;
-  driver->data = data;
   driver->tx_size = DMX_PACKET_SIZE_MAX;
   driver->rx_size = DMX_PACKET_SIZE_MAX;
 
@@ -292,11 +285,6 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   // Uninstall sniffer ISR
   if (dmx_sniffer_is_enabled(dmx_num)) {
     dmx_sniffer_disable(dmx_num);
-  }
-
-  // Free driver data buffer
-  if (driver->data != NULL) {
-    heap_caps_free(driver->data);
   }
 
   // Free RDM parameter heap
