@@ -44,17 +44,14 @@ typedef struct rdm_pd_definition_s {
 } rdm_pd_definition_t;
 
 // TODO: docs, not thread-safe
-int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
-                          const rdm_pd_definition_t *definition);
+int rdm_pd_set_definition(const rdm_pd_definition_t *definition);
 
 size_t rdm_pd_format_get_max_size(const char *format);
 
 // TODO: docs, not thread-safe
-bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                         rdm_callback_t callback, void *context);
+bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback, void *context);
 
-const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
-                                                 rdm_pid_t pid);
+const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid);
 
 // TODO: docs
 void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,

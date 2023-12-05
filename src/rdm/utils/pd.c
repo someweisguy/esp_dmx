@@ -76,9 +76,7 @@ static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
   return entry;
 }
 
-int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
-                          const rdm_pd_definition_t *definition) {
-  assert(dmx_num < DMX_NUM_MAX);
+int rdm_pd_set_definition(const rdm_pd_definition_t *definition) {
   assert(definition != NULL);
   assert(definition->pid > 0);
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
@@ -90,10 +88,9 @@ int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
            definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
          definition->description == NULL);
-  assert(dmx_driver_is_installed(dmx_num));
 
   // Return early if the definition already exists
-  if (rdm_pd_get_definition(dmx_num, pid) != NULL) {
+  if (rdm_pd_get_definition(definition->pid) != NULL) {
     return 0;
   }
 
@@ -107,11 +104,9 @@ int rdm_pd_set_definition(dmx_port_t dmx_num, rdm_pid_t pid,
   return rdm_definition_count;
 }
 
-bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                         rdm_callback_t callback, void *context) {
-  assert(dmx_num < DMX_NUM_MAX);
+bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback,
+                         void *context) {
   assert(pid > 0);
-  assert(dmx_driver_is_installed(dmx_num));
 
   // Search for the definition and add the callback
   for (int i = 0; i < rdm_definition_count; ++i) {
@@ -125,11 +120,8 @@ bool rdm_pd_set_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   return false;
 }
 
-const rdm_pd_definition_t *rdm_pd_get_definition(dmx_port_t dmx_num,
-                                                 rdm_pid_t pid) {
-  assert(dmx_num < DMX_NUM_MAX);
+const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid) {
   assert(pid > 0);
-  assert(dmx_driver_is_installed(dmx_num));
 
   // Search for and return a pointer to the definition
   for (int i = 0; i < rdm_definition_count; ++i) {
@@ -256,7 +248,7 @@ const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Fail early if a definition has not been defined or PDL == 0
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(dmx_num, pid);
+  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
   assert(definition != NULL && definition->alloc_size > 0);
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -313,11 +305,11 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Fail early if a definition has not been defined or PDL == 0
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(dmx_num, pid);
+  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
   assert(definition != NULL && definition->alloc_size > 0);
 
   // Fail early if the alias has not been defined or PDL == 0
-  const rdm_pd_definition_t *alias_def = rdm_pd_get_definition(dmx_num, alias);
+  const rdm_pd_definition_t *alias_def = rdm_pd_get_definition(alias);
   assert(alias_def != NULL && alias_def->alloc_size > 0);
 
   // Fail early if there is no space for the alias parameter data
@@ -404,7 +396,7 @@ size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(dmx_num, pid);
+  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
   assert(definition != NULL);
 
   const void *pd_ptr = rdm_pd_get_ptr(dmx_num, sub_device, pid);
@@ -430,7 +422,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(dmx_num, pid);
+  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
   assert(definition != NULL);
 
   // Return early if there is nothing to write
@@ -466,7 +458,7 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(dmx_num, pid);
+  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
   assert(definition != NULL);
 
   // Return early if there is nothing to write
@@ -569,7 +561,7 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
     if (driver->rdm.parameter[i].flags == RDM_PD_FLAGS_NON_VOLATILE_STAGED) {
       const rdm_pid_t pid = driver->rdm.parameter[i].id;
-      const rdm_pd_definition_t *def = rdm_pd_get_definition(dmx_num, pid);
+      const rdm_pd_definition_t *def = rdm_pd_get_definition(pid);
       // TODO: implement sub-devices
       bool success = dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
                   driver->rdm.parameter[i].data, def->alloc_size);

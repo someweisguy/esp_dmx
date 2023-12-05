@@ -87,11 +87,11 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(dmx_num, pid, &definition);
+  rdm_pd_set_definition(&definition);
 
   // RDM_PID_DISC_UNIQUE_BRANCH does not use parameter data
 
-  return rdm_pd_set_callback(dmx_num, pid, cb, context);
+  return rdm_pd_set_callback(pid, cb, context);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -116,7 +116,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(dmx_num, pid, &definition);
+  rdm_pd_set_definition(&definition);
 
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
@@ -135,7 +135,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
     }
   }
 
-  return rdm_pd_set_callback(dmx_num, pid, cb, context);
+  return rdm_pd_set_callback(pid, cb, context);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -160,7 +160,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(dmx_num, pid, &definition);
+  rdm_pd_set_definition(&definition);
 
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
@@ -179,5 +179,5 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
     }
   }
 
-  return rdm_pd_set_callback(dmx_num, pid, cb, context);
+  return rdm_pd_set_callback(pid, cb, context);
 }

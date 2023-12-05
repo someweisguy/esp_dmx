@@ -73,7 +73,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(dmx_num, pid, &definition);
+  rdm_pd_set_definition(&definition);
 
   // Allocate parameter data
   const bool nvs = false;
@@ -82,7 +82,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
     return false;
   }
 
-  return rdm_pd_set_callback(dmx_num, pid, cb, context);
+  return rdm_pd_set_callback(pid, cb, context);
 }
 
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
@@ -164,7 +164,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(dmx_num, pid, &definition);
+  rdm_pd_set_definition(&definition);
 
   // Allocate parameter data
   if (rdm_pd_add_const(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
@@ -172,7 +172,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
     return false;
   }
 
-  return rdm_pd_set_callback(dmx_num, pid, cb, context);
+  return rdm_pd_set_callback(pid, cb, context);
 }
 
 size_t rdm_get_software_version_label(dmx_port_t dmx_num,
