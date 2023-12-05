@@ -106,18 +106,77 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
   return false;
 }
 
-// static size_t rdm_personality_description_wrapper(dmx_port_t dmx_num,
-//                                                   rdm_sub_device_t sub_device,
-//                                                   void *destination,
-//                                                   size_t dest_size,
-//                                                   va_list va) {
-//   if (dest_size < sizeof(rdm_pid_description_t)) {
-//     return 0;  // Insufficient output size
-//   }
+size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
+                                 rdm_dmx_personality_t *personality) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(personality != NULL, 0, "personality is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  // TODO
+  if (rdm_is_enabled(dmx_num)) {
+    // if (rdm_pd_exists(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT)) {
+    //   const rdm_dmx_personality_t *pd = rdm_pd_get_pointer(
+    //       dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT);
+    //   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   memcpy(personality, pd, sizeof(rdm_dmx_personality_t));
+    //   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    // } else if (rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO,
+    //                          RDM_SUB_DEVICE_ROOT)) {
+    //   const rdm_device_info_t *pd =
+    //       rdm_pd_get_pointer(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+    //   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   personality->current_personality = pd->current_personality;
+    //   personality->personality_count = pd->personality_count;
+    //   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    // } else {
+    //   // An unusual error occurred
+    //   DMX_ERR("unable to get current DMX personality");
+    //   return false;
+    // }
+  } else {
+    personality->current_personality = dmx_get_current_personality(dmx_num);
+    personality->personality_count = dmx_get_personality_count(dmx_num);
+  }
 
-//   const uint8_t pid = va_arg(va, uint8_t);
-//   return rdm_pd_get_description(dmx_num, sub_device, pid, destination);
-// }
+  return 0;
+}
+
+bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK((personality_num > 0 &&
+             personality_num <= dmx_get_personality_count(dmx_num)),
+            false, "personality_num error");
+
+  bool ret = false;
+  // TODO
+  if (rdm_is_enabled(dmx_num)) {
+    // if (rdm_pd_exists(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT)) {
+    //   ret = rdm_pd_set_and_queue(dmx_num, RDM_PID_DMX_PERSONALITY,
+    //                              RDM_SUB_DEVICE_ROOT, &personality_num,
+    //                              sizeof(uint8_t));
+    // } else if (rdm_pd_exists(dmx_num, RDM_PID_DEVICE_INFO,
+    //                          RDM_SUB_DEVICE_ROOT)) {
+    //   rdm_device_info_t device_info;
+    //   const void *pd =
+    //       rdm_pd_get_pointer(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT);
+    //   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   memcpy(&device_info, pd, sizeof(rdm_device_info_t));
+    //   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    //   device_info.current_personality = personality_num;
+    //   ret = rdm_pd_set(dmx_num, RDM_PID_DEVICE_INFO, RDM_SUB_DEVICE_ROOT,
+    //                    &device_info, sizeof(rdm_device_info_t));
+    // } else {
+    //   // An unusual error occurred
+    //   DMX_ERR("unable to set current DMX personality");
+    //   return false;
+    // }
+  } else {
+    ret = dmx_set_current_personality(dmx_num, personality_num);
+  }
+
+  return ret;
+}
+
 
 bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
                                               rdm_callback_t cb,
