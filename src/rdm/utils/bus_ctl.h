@@ -7,6 +7,7 @@
 #pragma once
 
 #include "dmx/types.h"
+#include "rdm/controller.h"
 #include "rdm/types.h"
 
 #ifdef __cplusplus

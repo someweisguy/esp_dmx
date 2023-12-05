@@ -428,37 +428,6 @@ typedef struct __attribute__((packed)) rdm_uid_t {
   uint32_t dev_id;
 } rdm_uid_t;
 
-/** @brief Provides information about RDM responses.*/
-typedef struct rdm_ack_t {
-  /** @brief Evaluates to true if an error occurred reading DMX data.*/
-  dmx_err_t err;
-  /** @brief The size of the packet received.*/
-  size_t size;
-  /** @brief The UID of the device originating the response packet.*/
-  rdm_uid_t src_uid;
-  /** @brief The PID of the response packet. It is typically the same PID as the
-   * RDM request. */
-  rdm_pid_t pid;
-  /** @brief The type of the RDM response received.*/
-  rdm_response_type_t type;
-  /** @brief The message count field is used by a responder to indicate that
-       additional data is now available for collection by a controller.*/
-  int message_count;
-  union {
-    /** @brief The parameter data length (PDL) is the number of slots included
-     in the parameter data area that it precedes.*/
-    size_t pdl;
-    /** @brief The amount of time in FreeRTOS ticks until the responder device
-       will be ready to respond to the request. This field should be read when
-       the response type received is RDM_RESPONSE_TYPE_ACK_TIMER.*/
-    TickType_t timer;
-    /** @brief The reason that the request was unable to be fulfilled. This
-       field should be read when the response type received is
-       RDM_RESPONSE_TYPE_NACK_REASON.*/
-    rdm_nr_t nack_reason;
-  };
-} rdm_ack_t;
-
 /** @brief A struct which stores RDM packet header information. Header
  * information contains metadata about the packet message data block.*/
 typedef struct __attribute__((packed)) rdm_header_t {
@@ -677,12 +646,6 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
     uint16_t data[2];
   };
 } rdm_status_message_t;
-
-/**
- * @brief The function type for user callbacks in RDM responses.
- */
-typedef void (*rdm_callback_t)(dmx_port_t dmx_num, rdm_header_t *request_header,
-                               rdm_header_t *response_header, void *context);
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
