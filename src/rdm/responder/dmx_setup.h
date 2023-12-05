@@ -36,6 +36,31 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context);
 
+/**
+ * @brief Gets a copy of the DMX start address of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param dmx_start_address A pointer which stores a copy of the DMX start
+ * address of this device.
+ * @return true on success.
+ * @return false on failure.
+ */  // TODO: update docs
+size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,
+                                 uint16_t *dmx_start_address);
+
+/**
+ * @brief Sets the DMX start address of this device. The DMX start address of
+ * this device may not be set when the DMX start address is set to
+ * DMX_START_ADDRESS_NONE.
+ *
+ * @param dmx_num The DMX port number.
+ * @param dmx_start_address The DMX start address to which to set this device.
+ * @return true on success.
+ * @return false on failure.
+ */
+bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
+                               const uint16_t dmx_start_address);
+
 #ifdef __cplusplus
 }
 #endif

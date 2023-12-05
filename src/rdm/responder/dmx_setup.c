@@ -184,3 +184,29 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
 
   return rdm_pd_set_callback(dmx_num, pid, cb, context);
 }
+
+size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,
+                                 uint16_t *dmx_start_address) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // FIXME: handle condition where RDM is not supported on this device
+
+  return rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DMX_START_ADDRESS,
+                    dmx_start_address, sizeof(*dmx_start_address));
+}
+
+bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
+                               const uint16_t dmx_start_address) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_start_address > 0 && dmx_start_address < DMX_PACKET_SIZE_MAX, 0,
+            "dmx_start_address error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  // FIXME: handle condition where RDM is not supported on this device
+
+  return rdm_pd_set_and_queue(dmx_num, RDM_PID_DMX_START_ADDRESS,
+                              RDM_SUB_DEVICE_ROOT, &dmx_start_address,
+                              sizeof(dmx_start_address));
+}
