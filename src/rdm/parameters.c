@@ -5,18 +5,6 @@
 #include "dmx/hal/nvs.h"
 #include "dmx/struct.h"
 
-bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(device_info != NULL, 0, "device_info is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // Get the parameter and copy it to the user's pointer
-  const rdm_device_info_t *di = rdm_pd_get_ptr(dmx_num, 0, RDM_PID_DEVICE_INFO);
-  DMX_CHECK(di != NULL, false, "device_info not registered");
-  memcpy(device_info, di, sizeof(rdm_device_info_t));
-
-  return true;
-}
 
 bool rdm_get_software_version_label(dmx_port_t dmx_num,
                                     char *software_version_label,

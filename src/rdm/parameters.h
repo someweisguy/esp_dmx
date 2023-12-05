@@ -13,16 +13,7 @@
 extern "C" {
 #endif
 
-/**
- * @brief Gets a copy of the RDM device info of this device.
- *
- * @param dmx_num The DMX port number.
- * @param[out] device_info A pointer which stores a copy of the device info of
- * this device.
- * @return true on success.
- * @return false on failure.
- */
-bool rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info);
+
 
 /**
  * @brief Gets a copy of the RDM software version label of this device.

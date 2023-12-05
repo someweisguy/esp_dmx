@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "rdm/controller/discovery.h"
+#include "rdm/controller/product_info.h"
 
 
 #include "dmx/types.h"
@@ -17,27 +18,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief Sends an RDM GET device info request and reads the response, if any.
- *
- * GET device info requests are sent without parameter data. If a response is
- * received, the response parameter data will include device information about
- * the responding device.
- *
- * @param dmx_num The DMX port number.
- * @param[inout] header A pointer to an RDM header which includes information
- * about where to address the request.
- * @param[out] device_info A pointer to a parameter which will be received in
- * the response.
- * @param[out] ack A pointer to an ACK struct which contains information about
- * the response, including information if no response is received.
- * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
- * @return false if no response was received, the response was improperly
- * formatted, or an RDM_RESPONSE_TYPE_ACK was not received.
- */
-bool rdm_send_get_device_info(dmx_port_t dmx_num, rdm_header_t *header,
-                              rdm_device_info_t *device_info, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM GET software version label request and reads the
