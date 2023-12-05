@@ -47,7 +47,7 @@ void app_main() {
       rdm_ack_t ack;
 
       // Get the device info
-      rdm_device_info_t device_info = {};
+      rdm_device_info_t device_info;
       if (rdm_send_get_device_info(dmx_num, dest_uid, sub_device, &device_info,
                                    &ack)) {
         ESP_LOGI(TAG,
