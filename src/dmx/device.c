@@ -69,7 +69,7 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     rdm_dmx_personality_t pers;
-    rdm_get_current_personality(dmx_num, &pers);
+    rdm_get_dmx_personality(dmx_num, &pers);
     current_personality = pers.current_personality;
   }
 
@@ -92,7 +92,7 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     ret = true;
   } else {
-    ret = rdm_set_current_personality(dmx_num, personality_num);
+    ret = rdm_set_dmx_personality(dmx_num, personality_num);
   }
 
   // Explicitly record the value to NVS

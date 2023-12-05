@@ -107,7 +107,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
 }
 
 size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
-                                 rdm_dmx_personality_t *personality) {
+                               rdm_dmx_personality_t *personality) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(personality != NULL, 0, "personality is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");

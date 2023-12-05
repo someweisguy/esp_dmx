@@ -122,6 +122,16 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   return false;
 }
 
+size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
+                            size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(device_label != NULL, false, "device_label is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  return rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_LABEL,
+                    device_label, size);
+}
+
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          char *software_version_label,
                                          rdm_callback_t cb, void *context) {
