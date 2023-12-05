@@ -88,6 +88,7 @@ static size_t rdm_format_encode(void *restrict dest,
         token_size = sizeof(uint8_t);
         const uint8_t literal = (uint8_t)strtol(str, NULL, 16);
         memcpy(dest, &literal, token_size);
+        encoded += token_size;
         // Don't need to swap endianness on single byte      
         f += 2;  // Skip to the next token
       } else {
