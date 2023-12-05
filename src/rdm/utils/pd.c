@@ -61,6 +61,7 @@ static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
 
   struct rdm_pd_s *entry = &driver->rdm.parameter[driver->rdm.parameter_count];
   ++driver->rdm.parameter_count;
+  entry->id = pid;
   entry->flags = flags;
   entry->is_queued = false;
 
@@ -340,15 +341,14 @@ const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there is not enough space for a new entry
-  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, alias_entry->flags);
+  int flags = non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : alias_entry->flags;
+  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, flags);
   if (entry == NULL) {
     return NULL;
   }
 
   // Assign the parameter
-  entry->id = pid;
   entry->data = alias_entry->data + offset;
-  entry->flags = non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : alias_entry->flags;
 
   return entry->data;
 }
@@ -373,9 +373,7 @@ const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Assign the parameter
-  entry->id = pid;
   entry->data = data;
-  entry->flags = RDM_PD_FLAGS_CONST;
 
   return data;
 }
@@ -446,7 +444,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry == NULL || entry->flags & RDM_PD_FLAGS_CONST) {
+  if (entry == NULL || entry->flags == RDM_PD_FLAGS_CONST) {
     return 0;
   }
 
@@ -482,7 +480,7 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry == NULL || entry->flags & RDM_PD_FLAGS_CONST) {
+  if (entry == NULL || entry->flags == RDM_PD_FLAGS_CONST) {
     return 0;
   }
 

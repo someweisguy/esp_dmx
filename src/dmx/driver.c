@@ -35,6 +35,7 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
   }
 }
 
+// FIXME: make config non-const
 bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
                         int intr_flags) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
