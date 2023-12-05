@@ -7,7 +7,7 @@ idf_component_register(
        "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/bus_ctl.c"
 
        "src/rdm/controller/discovery.c" "src/rdm/controller/product_info.c"
-       "src/rdm/controller/device_control.c"
+       "src/rdm/controller/device_control.c" "src/rdm/controller/dmx_setup.c"
 
        "src/rdm/responder/discovery.c" "src/rdm/responder/product_info.c"
        "src/rdm/responder/rdm_info.c" "src/rdm/responder/device_control.c"
