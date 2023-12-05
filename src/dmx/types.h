@@ -12,6 +12,15 @@
 extern "C" {
 #endif
 
+/** @brief Macro used to convert milliseconds to FreeRTOS ticks. Evaluates to
+ * the minimum number of ticks needed for the specified number of milliseconds
+ * to elapse.*/
+#define pdDMX_MS_TO_TICKS(ms)                               \
+  (pdMS_TO_TICKS(ms) +                                      \
+   (((TickType_t)(ms) * (TickType_t)(configTICK_RATE_HZ)) % \
+        (TickType_t)1000U >                                 \
+    0))
+
 #ifdef CONFIG_DMX_MAX_PERSONALITIES
 /** @brief The maximum number of personalities that this device supports. This
  * value may be adjusted in the Kconfig.*/
@@ -112,7 +121,7 @@ enum dmx_requirements_t {
   /** @brief The DMX receive timeout length in FreeRTOS ticks. If it takes
      longer than this amount of time to receive the next DMX packet the signal
      is considered lost.*/
-  DMX_TIMEOUT_TICK = pdMS_TO_TICKS(1250),
+  DMX_TIMEOUT_TICK = pdDMX_MS_TO_TICKS(1250),
 
   /** @brief The typical RDM break length in microseconds.*/
   RDM_BREAK_LEN_US = 176,

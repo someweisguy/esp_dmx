@@ -42,15 +42,6 @@ extern "C" {
     ESP_LOGW(TAG, format, ##__VA_ARGS__); \
   } while (0);
 
-/** @brief Macro used to convert milliseconds to FreeRTOS ticks. Evaluates to
- * the minimum number of ticks needed for the specified number of milliseconds
- * to elapse.*/
-#define pdDMX_MS_TO_TICKS(ms)                               \
-  (pdMS_TO_TICKS(ms) +                                      \
-   (((TickType_t)(ms) * (TickType_t)(configTICK_RATE_HZ)) % \
-        (TickType_t)1000U >                                 \
-    0))
-
 #ifdef CONFIG_RDM_DEVICE_UID_MAN_ID
 /** @brief This is the RDM Manufacturer ID used with this library. It may be set
  * using the Kconfig file. The default value is 0x05e0.*/
