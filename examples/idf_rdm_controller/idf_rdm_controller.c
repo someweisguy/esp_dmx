@@ -41,13 +41,15 @@ void app_main() {
     // Print the UID of each device found
     for (int i = 0; i < devices_found; ++i) {
       ESP_LOGI(TAG, "Device %i has UID " UIDSTR, i, UID2STR(uids[i]));
-      rdm_header_t header = {.dest_uid = uids[0]};
+      const rdm_uid_t *dest_uid = &uids[i];
+      const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;
 
       rdm_ack_t ack;
 
       // Get the device info
-      rdm_device_info_t device_info;
-      if (rdm_send_get_device_info(dmx_num, &header, &device_info, &ack)) {
+      rdm_device_info_t device_info = {};
+      if (rdm_send_get_device_info(dmx_num, dest_uid, sub_device, &device_info,
+                                   &ack)) {
         ESP_LOGI(TAG,
                  "DMX Footprint: %i, Sub-device count: %i, Sensor count: %i",
                  device_info.footprint, device_info.sub_device_count,
@@ -56,37 +58,39 @@ void app_main() {
 
       // Get the software version label
       char sw_label[33];
-      size_t sw_label_size = 32;
-      if (rdm_send_get_software_version_label(dmx_num, &header, sw_label,
-                                              &sw_label_size, &ack)) {
+      size_t sw_label_size = sizeof(sw_label);
+      if (rdm_send_get_software_version_label(dmx_num, dest_uid, sub_device,
+                                              sw_label, sw_label_size, &ack)) {
         ESP_LOGI(TAG, "Software version label: %s", sw_label);
       }
 
       // Get and set the identify state
-      uint8_t identify;
-      if (rdm_send_get_identify_device(dmx_num, &header, &identify, &ack)) {
-        ESP_LOGI(TAG, UIDSTR " is%s identifying.", UID2STR(uids[0]),
-                 identify ? "" : " not");
+      bool identify;
+      if (rdm_send_get_identify_device(dmx_num, dest_uid, sub_device, &identify,
+                                       &ack)) {
+        ESP_LOGI(TAG, UIDSTR " %s identifying.", UID2STR(*dest_uid),
+                 identify ? "is" : "is not");
 
         identify = !identify;
-        if (rdm_send_set_identify_device(dmx_num, &header, identify, &ack)) {
-          ESP_LOGI(TAG, UIDSTR " is%s identifying.", UID2STR(uids[0]),
-                   identify ? "" : " not");
+        if (rdm_send_set_identify_device(dmx_num, dest_uid, sub_device,
+                                         identify, &ack)) {
+          ESP_LOGI(TAG, UIDSTR " %s identifying.", UID2STR(*dest_uid),
+                   identify ? "is" : "is not");
         }
       }
 
       // Get and set the DMX start address
       uint16_t dmx_start_address = 0;
-      if (rdm_send_get_dmx_start_address(dmx_num, &header, &dmx_start_address,
-                                         &ack)) {
+      if (rdm_send_get_dmx_start_address(dmx_num, dest_uid, sub_device,
+                                         &dmx_start_address, &ack)) {
         ESP_LOGI(TAG, "DMX start address is %i", dmx_start_address);
 
         ++dmx_start_address;
         if (dmx_start_address > 512) {
           dmx_start_address = 1;
         }
-        if (rdm_send_set_dmx_start_address(dmx_num, &header, dmx_start_address,
-                                           &ack)) {
+        if (rdm_send_set_dmx_start_address(dmx_num, dest_uid, sub_device,
+                                           dmx_start_address, &ack)) {
           ESP_LOGI(TAG, "DMX address has been set to %i", dmx_start_address);
         }
       }
