@@ -14,27 +14,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Gets a copy of the RDM identify device state of this device.
- *
- * @param dmx_num The DMX port number.
- * @param identify A pointer which stores a copy of the identify device state of
- * this device.
- * @return true on success.
- * @return false on failure.
- */
-bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify);
-
-/**
- * @brief Sets the RDM identify device state of this device.
- *
- * @param dmx_num The DMX port number.
- * @param identify The identify device state to which to set this device.
- * @return true on success.
- * @return false on failure.
- */
-bool rdm_set_identify_device(dmx_port_t dmx_num, const uint8_t identify);
-
-/**
  * @brief Gets a copy of the DMX start address of this device.
  *
  * @param dmx_num The DMX port number.

@@ -8,27 +8,9 @@
 
 
 
-bool rdm_get_identify_device(dmx_port_t dmx_num, uint8_t *identify) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(identify != NULL, 0, "identify is null");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  // Get the parameter and copy it to the user's pointer
-  const uint8_t *id = rdm_pd_get_ptr(dmx_num, 0, RDM_PID_IDENTIFY_DEVICE);
-  DMX_CHECK(id != NULL, false, "identify_device not registered");
-  *identify = *id;
 
-  return true;
-}
 
-bool rdm_set_identify_device(dmx_port_t dmx_num, const uint8_t identify) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(identify == 0 || identify == 1, 0, "identify error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  return rdm_pd_set(dmx_num, RDM_PID_IDENTIFY_DEVICE, 0, &identify,
-                    sizeof(uint8_t));
-}
 
 bool rdm_get_dmx_start_address(dmx_port_t dmx_num,
                                uint16_t *dmx_start_address) {
