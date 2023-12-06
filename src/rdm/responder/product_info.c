@@ -1,5 +1,7 @@
 #include "product_info.h"
 
+#include <string.h>
+
 #include "dmx/device.h"
 #include "dmx/driver.h"
 #include "dmx/hal/nvs.h"

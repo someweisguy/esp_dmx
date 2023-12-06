@@ -1,5 +1,7 @@
 #include "dmx/driver.h"
 
+#include <string.h>
+
 #include "dmx/hal/nvs.h"
 #include "dmx/hal/timer.h"
 #include "dmx/hal/uart.h"

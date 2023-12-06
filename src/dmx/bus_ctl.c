@@ -1,5 +1,7 @@
 #include "dmx/bus_ctl.h"
 
+#include <string.h>
+
 #include "dmx/driver.h"
 #include "dmx/hal/nvs.h"
 #include "dmx/struct.h"

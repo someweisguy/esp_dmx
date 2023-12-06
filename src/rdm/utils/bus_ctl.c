@@ -1,6 +1,7 @@
 #include "rdm/utils/bus_ctl.h"
 
 #include <ctype.h>
+#include <string.h>
 
 #include "dmx/bus_ctl.h"
 #include "dmx/driver.h"
