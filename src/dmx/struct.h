@@ -168,11 +168,8 @@ typedef struct dmx_driver_t {
   dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
 
   // Synchronization state
-  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows
-                              // multi-threaded driver function calls.
-  TaskHandle_t task_waiting;  // The handle to a task that is waiting for data
-                              // to be sent or received.
-
+  SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
+  TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
 #ifdef DMX_USE_SPINLOCK
   dmx_spinlock_t spinlock;  // The spinlock used for critical sections.
 #endif
@@ -190,10 +187,11 @@ typedef struct dmx_driver_t {
   uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
 
   // DMX configuration
+  uint32_t personality_count;
   struct dmx_personality_t {
     uint16_t footprint;       // The DMX footprint of the personality.
     const char *description;  // A description of the personality.
-  } personalities[DMX_PERSONALITY_COUNT_MAX];
+  } *personalities;
 
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
@@ -203,13 +201,14 @@ typedef struct dmx_driver_t {
     void *heap_ptr;  // Allocated memory for DMX/RDM parameter data.
     size_t heap_available;
 
+    uint32_t parameter_max;
     uint32_t parameter_count;
     struct rdm_pd_s {
       rdm_pid_t id;
       void *data;
       uint8_t flags;
       bool is_queued;
-    } parameter[RDM_RESPONDER_NUM_PIDS_MAX];
+    } *parameter;  // TODO: rename to parameters
     uint32_t staged_count;
     uint32_t queue_count;       // The index of the RDM message queue list.
     rdm_pid_t previous_popped;  // The PID of the last sent queued message.

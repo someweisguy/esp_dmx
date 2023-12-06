@@ -261,61 +261,6 @@ typedef enum dmx_err_t {
   DMX_FAIL = -1
 } dmx_err_t;
 
-/** @brief Configuration settings for the DMX driver.*/
-typedef struct dmx_config_t {
-  /** @brief This field sets the size of the RDM responder parameter data. This
-     is a heap-allocated array which stores all the RDM parameter data for the
-     RDM responder. RDM parameter data is then accessed through the various
-     rdm_get_ and rdm_set_ functions.*/
-  size_t pd_size;
-  /** @brief This field identifies the device model ID of the root device or
-     sub-device. The manufacturer shall not use the same ID to represent more
-     than one unique model type.*/
-  uint16_t model_id;
-  /** @brief Devices shall report a product category based on the product's
-     primary function.*/
-  uint16_t product_category;
-  /** @brief This field indicates the software version ID for the device. The
-     software version ID is a 32-bit value determined by the manufacturer.*/
-  uint32_t software_version_id;
-  /** @brief This RDM parameter is used to get a descriptive ASCII text label
-     for the device's operating software version. The descriptive text returned
-     by this parameter is intended for display to the user.*/
-  char software_version_label[33];
-  /** @brief This RDM parameter is used to get the descriptive ASCII text label
-   *  for this device. I.e. this is the name of the device. */
-  char device_label[33];
-  /** @brief The current selected DMX personality of the device. The personality
-     is the configured arrangement of DMX slots used by the device. Many devices
-     may have multiple personalities from which to choose. These personalities
-     shall be consecutively numbered starting from 1. Setting this value to 0
-     will attempt to read a value from NVS (if enabled in the Kconfig) and set
-     the current personality to the value found in NVS, or 1 if no value is
-     found in NVS.*/
-  uint8_t current_personality;
-  /** @brief An array of DMX footprints and descriptions where the zeroeth
-     element is the footprint and description for the first personality, the
-     first element is the footprint and description for the second personality,
-     and so on.*/
-  struct {
-    /** @brief The footprint of the personality in the personality array.*/
-    uint16_t footprint;
-    /** @brief A description of the personality in the personality array.*/
-    const char *description;
-  } personalities[DMX_PERSONALITY_COUNT_MAX];
-  /** @brief The number of personalities supported by the device. The
-     personality is the configured arrangement of DMX slots used by the device.
-     Many devices may have multiple personalities from which to choose. These
-     personalities shall be consecutively numbered starting from 1.*/
-  uint8_t personality_count;
-  /** @brief The DMX start address of the device. If the footprint,
-     current personality, or personality count of this device is 0 then this
-     field shall be set to 0xffff. Setting this value to 0 will attempt to read
-     a value from NVS (if enabled in the Kconfig) and set the DMX start address
-     to the value found in NVS, or 1 if no value is found in NVS.*/
-  uint16_t dmx_start_address;
-} dmx_config_t;
-
 /** @brief Metadata for received DMX packets. For use in the DMX sniffer.*/
 typedef struct dmx_metadata_t {
   /** @brief Length in microseconds of the last received DMX break.*/
@@ -343,6 +288,46 @@ typedef struct __attribute__((packed)) dmx_personality_description_t {
   uint16_t footprint;
   char description[33];
 } dmx_personality_description_t;
+
+/** @brief Configuration settings for the DMX driver.*/
+typedef struct dmx_config_s {
+  /** @brief This field identifies the device model ID of the root device or
+   sub-device. The manufacturer shall not use the same ID to represent more
+   than one unique model type.*/
+  uint16_t model_id;
+  /** @brief Devices shall report a product category based on the product's
+   primary function.*/
+  uint16_t product_category;
+  /** @brief This field indicates the software version ID for the device. The
+   software version ID is a 32-bit value determined by the manufacturer.*/
+  uint32_t software_version_id;
+  /** @brief This RDM parameter is used to get a descriptive ASCII text label
+   for the device's operating software version. The descriptive text returned
+   by this parameter is intended for display to the user.*/
+  char *software_version_label;
+  // TODO: docs
+  uint32_t personality_count;
+  /** @brief This field sets the size of the RDM responder parameter data. This
+   is a heap-allocated array which stores all the RDM parameter data for the
+   RDM responder. RDM parameter data is then accessed through the rdm_get_ and
+   rdm_set_ functions.*/
+  size_t parameter_heap_size;
+  // TODO: docs
+  uint32_t parameter_count;
+  // TODO: docs
+  int interrupt_flags;
+} dmx_config_t;
+
+  /** @brief An array of DMX footprints and descriptions where the zeroeth
+   element is the footprint and description for the first personality, the
+   first element is the footprint and description for the second personality,
+   and so on.*/ // TODO: update docs
+typedef struct dmx_personality_s {
+    /** @brief The footprint of the DMX personality.*/
+  uint16_t footprint;
+    /** @brief A description of the DMX personality.*/
+  const char *description;
+} dmx_personality_t;
 
 /** @brief DMX start address which indicates the device does not have a DMX
  * start address.*/

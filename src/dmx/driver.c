@@ -35,31 +35,22 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
   }
 }
 
-// FIXME: make config non-const
-bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
-                        int intr_flags) {
+bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
+                        dmx_personality_t *personalities) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(config != NULL, false, "config is null");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), false,
             "driver is already installed");
-  DMX_CHECK(config->dmx_start_address < DMX_PACKET_SIZE_MAX ||
-                config->dmx_start_address == DMX_START_ADDRESS_NONE,
-            false, "dmx_start_address error");
-  DMX_CHECK((config->personality_count == 0 &&
-             config->dmx_start_address == DMX_START_ADDRESS_NONE) ||
-                (config->personality_count > 0 &&
-                 config->personality_count < DMX_PERSONALITY_COUNT_MAX),
-            false, "personality_count error");
-  DMX_CHECK(config->current_personality <= config->personality_count, false,
-            "current_personality error");
   for (int i = 0; i < config->personality_count; ++i) {
-    DMX_CHECK(config->personalities[i].footprint < DMX_PACKET_SIZE_MAX, false,
-              "footprint error");
+    DMX_CHECK((personalities[i].footprint > 0 &&
+               personalities[i].footprint < DMX_PACKET_SIZE_MAX),
+              false, "footprint error");
   }
 
 #ifdef DMX_ISR_IN_IRAM
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
-  if (!(intr_flags & ESP_INTR_FLAG_IRAM)) {
-    intr_flags |= ESP_INTR_FLAG_IRAM;
+  if (!(config->interrupt_flags & ESP_INTR_FLAG_IRAM)) {
+    config->interrupt_flags |= ESP_INTR_FLAG_IRAM;
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
   }
 #endif
@@ -89,49 +80,68 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
+  driver->personalities = NULL;
   driver->rdm.heap_ptr = NULL;
 #ifdef DMX_USE_SPINLOCK
   driver->spinlock = (dmx_spinlock_t)DMX_SPINLOCK_INIT;
 #endif
 
   // Allocate mutex
-  SemaphoreHandle_t mux = xSemaphoreCreateRecursiveMutex();
-  if (mux == NULL) {
+  driver->mux = xSemaphoreCreateRecursiveMutex();
+  if (driver->mux == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(mux != NULL, false, "DMX driver mutex malloc error");
+    DMX_CHECK(driver->mux != NULL, false, "DMX driver mutex malloc error");
   }
 
-  // Set the DMX buffer to zero
-  memset(driver->data, 0, sizeof(driver->data));
-
-  // Allocate the RDM parameter buffer
-  bool enable_rdm;
-  size_t pd_alloc_size;
-  if (config->pd_size < 53) {
-    // Allocate space for DMX start address and personality info
-    pd_alloc_size = sizeof(dmx_driver_personality_t);
-    enable_rdm = false;
-  } else {
-    pd_alloc_size = config->pd_size;
-    enable_rdm = true;
-  }
-  uint8_t *pd = heap_caps_malloc(pd_alloc_size, MALLOC_CAP_8BIT);
-  if (pd == NULL) {
+  // Allocate DMX personalities
+  const size_t pers_size = sizeof(*personalities) * config->personality_count;
+  driver->personalities = heap_caps_malloc(pers_size, MALLOC_CAP_8BIT);
+  if (driver->personalities == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(pd != NULL, false, "DMX driver pd buffer malloc error");
+    DMX_CHECK(driver->personalities != NULL, false,
+              "DMX driver personalities malloc error");
   }
+  memcpy(driver->personalities, personalities, pers_size);
+  driver->personality_count = config->personality_count;
+
+  // Allocate RDM parameter heap
+  if (config->parameter_heap_size < 53) {
+    // Minimum required parameter data size for RDM
+    config->parameter_heap_size = 53;
+  }
+  driver->rdm.heap_ptr =
+      heap_caps_malloc(config->parameter_heap_size, MALLOC_CAP_8BIT);
+  if (driver->rdm.heap_ptr == NULL) {
+    dmx_driver_delete(dmx_num);
+    DMX_CHECK(driver->rdm.heap_ptr != NULL, false,
+              "RDM parameter heap malloc error");
+  }
+  driver->rdm.heap_ptr += config->parameter_heap_size;
+  driver->rdm.heap_available = config->parameter_heap_size;
+
+  // Allocate RDM parameter list
+  driver->rdm.parameter =
+      heap_caps_malloc(sizeof(*driver->rdm.parameter) * config->parameter_count,
+                       MALLOC_CAP_8BIT);
+  if (driver->rdm.parameter == NULL) {
+    dmx_driver_delete(dmx_num);
+    DMX_CHECK(driver->rdm.parameter != NULL, false,
+              "RDM parameter list malloc error");
+  }
+  driver->rdm.parameter_max = config->parameter_count;
+  driver->rdm.parameter_count = 0;
 
   // UART configuration
   driver->dmx_num = dmx_num;
 
   // Synchronization state
-  driver->mux = mux;
   driver->task_waiting = NULL;
 
   // Data buffer
   driver->head = -1;
   driver->tx_size = DMX_PACKET_SIZE_MAX;
   driver->rx_size = DMX_PACKET_SIZE_MAX;
+  memset(driver->data, 0, sizeof(driver->data));
 
   // Driver state
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
@@ -142,9 +152,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   // DMX configuration
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
-
-  driver->rdm.heap_available = pd_alloc_size;
-  driver->rdm.heap_ptr = pd + pd_alloc_size;
 
   driver->rdm.parameter_count = 0;
   driver->rdm.staged_count = 0;
@@ -167,91 +174,45 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->last_pos_edge_ts = -1;
   driver->last_neg_edge_ts = -1;
 
-  // Copy the personality table to the driver
-  memcpy(driver->personalities, config->personalities,
-         sizeof(*config->personalities) * config->personality_count);
+  // Build the device info
+  rdm_device_info_t device_info = {
+      .model_id = config->model_id,
+      .product_category = config->product_category,
+      .software_version_id = config->software_version_id,
+      .footprint = 0,            // Load from NVS
+      .current_personality = 0,  // Load from NVS
+      .personality_count = config->personality_count,
+      .dmx_start_address = 0,  // Load from NVS
+      .sub_device_count = 0,   // Sub-devices must be registered
+      .sensor_count = 0,       // Sensors must be registered
+  };
 
-  // Configure required variables for RDM or DMX-only
-  if (enable_rdm) {
-    uint16_t footprint;
-    if (config->personality_count > 0 && config->current_personality > 0) {
-      const uint8_t personality_idx = config->current_personality - 1;
-      footprint = driver->personalities[personality_idx].footprint;
-    } else {
-      footprint = 0;
-    }
-    rdm_device_info_t device_info = {
-        .model_id = config->model_id,
-        .product_category = config->product_category,
-        .software_version_id = config->software_version_id,
-        .footprint = footprint,
-        .current_personality = config->current_personality,
-        .personality_count = config->personality_count,
-        .dmx_start_address = config->dmx_start_address,
-        .sub_device_count = 0,  // Sub-devices must be registered
-        .sensor_count = 0,      // Sensors must be registered
-    };
-    rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
-    rdm_register_disc_un_mute(dmx_num, NULL, NULL);
-    rdm_register_disc_mute(dmx_num, NULL, NULL);
-    rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
-    rdm_register_software_version_label(dmx_num, config->software_version_label,
-                                        NULL, NULL);
-    rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
-    if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
-      rdm_register_dmx_start_address(dmx_num, NULL, NULL);
-    }
-    // rdm_register_supported_parameters(dmx_num, NULL, NULL); // FIXME
-    rdm_register_device_label(dmx_num, config->device_label, NULL, NULL);
-    rdm_register_dmx_personality(dmx_num, NULL, NULL);
-    rdm_register_dmx_personality_description(dmx_num, NULL, NULL);
-    rdm_register_parameter_description(dmx_num, NULL, NULL);
-  } else {
-    dmx_driver_personality_t *dmx = driver->rdm.heap_ptr;
-
-    // Load the DMX start address from NVS
-    uint16_t dmx_start_address;
-    if (config->dmx_start_address == 0) {
-      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
-                       RDM_DS_UNSIGNED_WORD, &dmx_start_address,
-                       sizeof(uint16_t))) {
-        dmx_start_address = 1;
-      }
-    } else {
-      dmx_start_address = config->dmx_start_address;
-    }
-
-    // Load the current DMX personality from NVS
-    uint8_t current_personality;
-    if (config->current_personality == 0 &&
-        dmx_start_address != DMX_START_ADDRESS_NONE) {
-      rdm_dmx_personality_t personality;
-      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT,
-                       RDM_DS_BIT_FIELD, &personality,
-                       sizeof(rdm_dmx_personality_t)) ||
-          personality.personality_count != config->personality_count) {
-        current_personality = 1;
-      } else {
-        current_personality = personality.current_personality;
-      }
-    } else {
-      current_personality = config->current_personality;
-    }
-
-    dmx->dmx_start_address = dmx_start_address;
-    dmx->current_personality = current_personality;
-    dmx->personality_count = config->personality_count;
+  // Register the default RDM parameters
+  rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
+  rdm_register_disc_un_mute(dmx_num, NULL, NULL);
+  rdm_register_disc_mute(dmx_num, NULL, NULL);
+  rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
+  rdm_register_software_version_label(dmx_num, config->software_version_label,
+                                      NULL, NULL);
+  rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
+  if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
+    rdm_register_dmx_start_address(dmx_num, NULL, NULL);
   }
+  // rdm_register_supported_parameters(dmx_num, NULL, NULL); // FIXME
+  rdm_register_device_label(dmx_num, "", NULL, NULL);
+  rdm_register_dmx_personality(dmx_num, NULL, NULL);
+  rdm_register_dmx_personality_description(dmx_num, NULL, NULL);
+  rdm_register_parameter_description(dmx_num, NULL, NULL);
 
   // Initialize the UART peripheral
-  driver->uart = dmx_uart_init(dmx_num, driver, intr_flags);
+  driver->uart = dmx_uart_init(dmx_num, driver, config->interrupt_flags);
   if (driver->uart == NULL) {
     dmx_driver_delete(dmx_num);
     DMX_CHECK(driver->uart != NULL, false, "UART init error");
   }
 
   // Initialize the timer peripheral
-  driver->timer = dmx_timer_init(dmx_num, driver, intr_flags);
+  driver->timer = dmx_timer_init(dmx_num, driver, config->interrupt_flags);
   if (driver->timer == NULL) {
     dmx_driver_delete(dmx_num);
     DMX_CHECK(driver->timer != NULL, false, "timer init error");
@@ -275,21 +236,15 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Free driver mutex
+  // Take the mutex
   if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
     return false;
   }
-  xSemaphoreGiveRecursive(driver->mux);
-  vSemaphoreDelete(driver->mux);
+  SemaphoreHandle_t mux = driver->mux;
 
   // Uninstall sniffer ISR
   if (dmx_sniffer_is_enabled(dmx_num)) {
     dmx_sniffer_disable(dmx_num);
-  }
-
-  // Free RDM parameter heap
-  if (driver->rdm.heap_ptr != NULL) {
-    heap_caps_free(driver->rdm.heap_ptr - driver->rdm.heap_available);
   }
 
   // Free hardware timer ISR
@@ -298,9 +253,28 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   // Disable UART module
   dmx_uart_deinit(driver->uart);
 
+  // Free the parameter list
+  if (driver->rdm.parameter != NULL) {
+    heap_caps_free(driver->rdm.parameter);
+  }
+
+  // Free RDM parameter heap
+  if (driver->rdm.heap_ptr != NULL) {
+    heap_caps_free(driver->rdm.heap_ptr - driver->rdm.heap_available);
+  }
+
+  // Free personalities
+  if (driver->personalities != NULL) {
+    heap_caps_free(driver->personalities);
+  }
+
   // Free driver
   heap_caps_free(driver);
   dmx_driver[dmx_num] = NULL;
+
+  // Free driver mutex
+  xSemaphoreGiveRecursive(mux);
+  vSemaphoreDelete(mux);
 
   return true;
 }

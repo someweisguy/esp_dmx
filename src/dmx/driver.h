@@ -37,9 +37,9 @@ extern "C" {
  * @param intr_flags The interrupt allocation flags to use.
  * @return true on success.
  * @return false on failure.
- */
-bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
-                        int intr_flags);
+ */  // TODO: update docs
+bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
+                        dmx_personality_t *personalities);
 
 /**
  * @brief Uninstalls the DMX driver.
