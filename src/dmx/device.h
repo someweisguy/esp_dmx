@@ -13,17 +13,6 @@
 extern "C" {
 #endif
 
-/*
-
-int dmx_get_personality(dmx_num);
-bool dmx_set_personality(dmx_num, int);
-
-uint32_t dmx_get_personality_count(dmx_num);
-const char *dmx_get_personality_description(dmx_num, int);
-
-size_t dmx_get_footprint(dmx_num, int);
-*/
-
 /**
  * @brief Gets the DMX start address of the DMX driver.
  *
