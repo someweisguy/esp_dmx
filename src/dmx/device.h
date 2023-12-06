@@ -13,6 +13,17 @@
 extern "C" {
 #endif
 
+/*
+
+int dmx_get_personality(dmx_num);
+bool dmx_set_personality(dmx_num, int);
+
+uint32_t dmx_get_personality_count(dmx_num);
+const char *dmx_get_personality_description(dmx_num, int);
+
+size_t dmx_get_footprint(dmx_num, int);
+*/
+
 /**
  * @brief Gets the DMX start address of the DMX driver.
  *
@@ -61,19 +72,6 @@ bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num);
 uint8_t dmx_get_personality_count(dmx_port_t dmx_num);
 
 /**
- * @brief Gets the description of the specified personality.
- *
- * @param dmx_num The DMX port number.
- * @param personality_num The personality number of the description to get.
- * Personality numbers are indexed starting at 1.
- * @return The description of the DMX personality or NULL on failure.
- * // TODO: update docs
- */
-bool dmx_get_personality_description(
-    dmx_port_t dmx_num, uint8_t personality_num,
-    dmx_personality_description_t *description);
-
-/**
  * @brief Gets the footprint of the specified personality.
  *
  * @param dmx_num The DMX port number.
@@ -82,6 +80,18 @@ bool dmx_get_personality_description(
  * @return The footprint of the specified personality or 0 on failure.
  */
 size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num);
+
+/**
+ * @brief Gets the description of the specified personality.
+ *
+ * @param dmx_num The DMX port number.
+ * @param personality_num The personality number of the description to get.
+ * Personality numbers are indexed starting at 1.
+ * @return The description of the DMX personality or NULL on failure.
+ * // TODO: update docs
+ */
+const char *dmx_get_personality_description(dmx_port_t dmx_num,
+                                            uint8_t personality_num);
 
 #ifdef __cplusplus
 }
