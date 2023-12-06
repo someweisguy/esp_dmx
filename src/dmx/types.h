@@ -282,13 +282,6 @@ typedef struct dmx_packet_t {
   int is_rdm;
 } dmx_packet_t;
 
-// TODO: docs
-typedef struct __attribute__((packed)) dmx_personality_description_t {
-  uint8_t personality_num;
-  uint16_t footprint;
-  char description[33];
-} dmx_personality_description_t;
-
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_s {
   /** @brief This field identifies the device model ID of the root device or
