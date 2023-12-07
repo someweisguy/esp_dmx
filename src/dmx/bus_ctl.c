@@ -66,20 +66,30 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
+  // Check if the driver is currently sending an RDM packet
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) && driver->rdm_type != 0) {
     // Do not allow asynchronous writes when sending an RDM packet
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    return 0;
-  } else if (dmx_uart_get_rts(driver->uart) == 1) {
-    // Flip the bus to stop writes from being overwritten by incoming data
+  if (driver_flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+    rdm_header_t header;
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    const bool is_rdm = rdm_read_header(dmx_num, &header);
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    if (is_rdm) {
+      return 0;  // Do not allow asynchronous writes while sending RDM
+    }
+  }
+
+  // Flip the DMX bus to write mode
+  if (dmx_uart_get_rts(driver->uart) == 1){
     dmx_uart_set_rts(driver->uart, 0);
   }
-  driver->tx_size = offset + size;  // Update driver transmit size
 
   // Copy data from the source to the driver buffer asynchronously
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(driver->data + offset, source, size);
-
+  driver->tx_size = offset + size;  // Update driver transmit size
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
