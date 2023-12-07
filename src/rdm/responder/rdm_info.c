@@ -1,4 +1,4 @@
-#include "rdm_info.h"
+#include "include/rdm_info.h"
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"

@@ -1,4 +1,4 @@
-#include "rdm/responder/device_control.h"
+#include "rdm/responder/include/device_control.h"
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"

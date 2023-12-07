@@ -22,13 +22,13 @@ typedef void (*rdm_callback_t)(dmx_port_t dmx_num, rdm_header_t *request_header,
 }
 #endif
 
-// #include "rdm/responder/device_config.h"  // TODO
-#include "rdm/responder/device_control.h"
-#include "rdm/responder/discovery.h"
-// #include "rdm/responder/display_setting.h"  // TODO
-#include "rdm/responder/dmx_setup.h"
-// #include "rdm/responder/power_setting.h"  // TODO
-#include "rdm/responder/product_info.h"
-#include "rdm/responder/queue_status.h"
-#include "rdm/responder/rdm_info.h"
-// #include "rdm/responder/sensor_parameter.h"  // TODO
+// #include "rdm/responder/include/device_config.h"  // TODO
+#include "rdm/responder/include/device_control.h"
+#include "rdm/responder/include/discovery.h"
+// #include "rdm/responder/include/display_setting.h"  // TODO
+#include "rdm/responder/include/dmx_setup.h"
+// #include "rdm/responder/include/power_setting.h"  // TODO
+#include "rdm/responder/include/product_info.h"
+#include "rdm/responder/include/queue_status.h"
+#include "rdm/responder/include/rdm_info.h"
+// #include "rdm/responder/include/sensor_parameter.h"  // TODO

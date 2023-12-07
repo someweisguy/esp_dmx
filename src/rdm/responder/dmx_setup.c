@@ -1,4 +1,4 @@
-#include "rdm/responder/dmx_setup.h"
+#include "rdm/responder/include/dmx_setup.h"
 
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
