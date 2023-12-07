@@ -68,9 +68,8 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   // Check if the driver is currently sending an RDM packet
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if ((driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) && driver->rdm_type != 0) {
-    // Do not allow asynchronous writes when sending an RDM packet
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  const int driver_flags = driver->flags;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver_flags & DMX_FLAGS_DRIVER_IS_SENDING) {
     rdm_header_t header;
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
