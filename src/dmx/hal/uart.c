@@ -172,23 +172,28 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
 
-      // Turn DMX bus around quickly if expecting an RDM response
-      bool expecting_response = false;
-      if (driver->rdm_type & DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH) {
-        expecting_response = true;
+      // Skip the rest of the ISR loop if an RDM response is not expected
+      rdm_header_t header;
+      if (!rdm_read_header(dmx_num, &header) || !rdm_cc_is_request(header.cc) ||
+          (rdm_uid_is_broadcast(&header.dest_uid) &&
+           header.pid != RDM_PID_DISC_UNIQUE_BRANCH)) {
+        continue;
+      }
+
+      // Determine if a DMX break is expected in the response packet
+      if (header.cc == RDM_CC_DISC_COMMAND &&
+          header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
         driver->head = 0;  // Not expecting a DMX break
-      } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_REQUEST) {
-        expecting_response = true;
+      } else {
         driver->head = -1;  // Expecting a DMX break
       }
-      if (expecting_response) {
-        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        driver->flags &=
-            ~(DMX_FLAGS_DRIVER_IS_IDLE | DMX_FLAGS_DRIVER_HAS_DATA);
-        dmx_uart_rxfifo_reset(uart);
-        dmx_uart_set_rts(uart, 1);
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      }
+
+      // Flip the DMX bus so the response may be read
+      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IDLE | DMX_FLAGS_DRIVER_HAS_DATA);
+      dmx_uart_rxfifo_reset(uart);
+      dmx_uart_set_rts(uart, 1);
+      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
     }
   }
 
