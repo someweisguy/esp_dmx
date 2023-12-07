@@ -1,7 +1,7 @@
 #include "include/gpio.h"
 
 #include "dmx/hal/include/uart.h"
-#include "dmx/struct.h"
+#include "dmx/include/struct.h"
 #include "hal/gpio_hal.h"
 
 struct dmx_gpio_t {

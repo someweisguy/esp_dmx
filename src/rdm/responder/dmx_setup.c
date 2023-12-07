@@ -1,8 +1,8 @@
 #include "rdm/responder/dmx_setup.h"
 
-#include "dmx/device.h"
-#include "dmx/driver.h"
-#include "dmx/struct.h"
+#include "dmx/include/device.h"
+#include "dmx/include/driver.h"
+#include "dmx/include/struct.h"
 #include "rdm/utils/bus_ctl.h"
 
 // static int rdm_rhd_dmx_personality(dmx_port_t dmx_num, rdm_header_t *header,

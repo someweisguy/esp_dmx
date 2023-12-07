@@ -1,8 +1,8 @@
-#include "dmx/device.h"
+#include "dmx/include/device.h"
 
-#include "dmx/driver.h"
+#include "dmx/include/driver.h"
 #include "dmx/hal/include/nvs.h"
-#include "dmx/struct.h"
+#include "dmx/include/struct.h"
 
 uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");

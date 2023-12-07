@@ -1,6 +1,6 @@
 #include "rdm/utils/uid.h"
 
-#include "dmx/struct.h"
+#include "dmx/include/struct.h"
 #include "endian.h"
 
 void *rdm_uidcpy(void *restrict destination, const void *restrict source) {

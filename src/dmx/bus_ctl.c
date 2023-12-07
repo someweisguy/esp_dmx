@@ -1,10 +1,10 @@
-#include "dmx/bus_ctl.h"
+#include "dmx/include/bus_ctl.h"
 
 #include <string.h>
 
-#include "dmx/driver.h"
+#include "dmx/include/driver.h"
 #include "dmx/hal/include/nvs.h"
-#include "dmx/struct.h"
+#include "dmx/include/struct.h"
 #include "endian.h"
 #include "rdm/utils/bus_ctl.h"
 #include "rdm/utils/uid.h"

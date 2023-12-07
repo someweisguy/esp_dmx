@@ -1,7 +1,7 @@
 #include "queue_status.h"
 
-#include "dmx/driver.h"
-#include "dmx/struct.h"
+#include "dmx/include/driver.h"
+#include "dmx/include/struct.h"
 #include "rdm/utils/bus_ctl.h"
 
 // static int rdm_rhd_status_messages(dmx_port_t dmx_num, rdm_header_t *header,

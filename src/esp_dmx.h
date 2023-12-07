@@ -7,9 +7,9 @@
  */
 #pragma once
 
-#include "dmx/bus_ctl.h"
-#include "dmx/device.h"
-#include "dmx/driver.h"
+#include "dmx/include/bus_ctl.h"
+#include "dmx/include/device.h"
+#include "dmx/include/driver.h"
 #include "dmx/types.h"
 #include "rdm/types.h"
 

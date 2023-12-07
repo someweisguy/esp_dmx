@@ -1,12 +1,12 @@
-#include "dmx/driver.h"
+#include "dmx/include/driver.h"
 
 #include <string.h>
 
 #include "dmx/hal/include/nvs.h"
 #include "dmx/hal/include/timer.h"
 #include "dmx/hal/include/uart.h"
-#include "dmx/sniffer.h"
-#include "dmx/struct.h"
+#include "dmx/include/sniffer.h"
+#include "dmx/include/struct.h"
 #include "endian.h"
 #include "rdm/responder.h"
 #include "rdm/types.h"

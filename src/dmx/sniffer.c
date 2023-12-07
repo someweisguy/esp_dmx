@@ -1,8 +1,8 @@
-#include "dmx/sniffer.h"
+#include "dmx/include/sniffer.h"
 
-#include "dmx/driver.h"
+#include "dmx/include/driver.h"
 #include "dmx/hal/include/gpio.h"
-#include "dmx/struct.h"
+#include "dmx/include/struct.h"
 
 bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");

@@ -1,6 +1,6 @@
 #include "include/uart.h"
 
-#include "dmx/struct.h"
+#include "dmx/include/struct.h"
 #include "driver/uart.h"
 #include "esp_dmx.h"
 #include "rdm/utils/bus_ctl.h"

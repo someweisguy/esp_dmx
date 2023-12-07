@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-#include "dmx/struct.h"
+#include "dmx/include/struct.h"
 #include "driver/gpio.h"
 
 static struct dmx_timer_t {
