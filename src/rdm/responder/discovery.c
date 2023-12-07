@@ -4,7 +4,7 @@
 #include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "include/utils.h"
-#include "rdm/utils/include/uid.h"
+#include "rdm/uid.h"
 
 static size_t rdm_discovery_default_handler(
     dmx_port_t dmx_num, const rdm_pd_definition_t *definition,

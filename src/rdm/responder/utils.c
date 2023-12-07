@@ -6,7 +6,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/io.h"
 #include "dmx/include/struct.h"
-#include "rdm/utils/include/uid.h"
+#include "rdm/uid.h"
 
 enum rdm_pd_flags_e {
   RDM_PD_FLAGS_VARIABLE = 0,

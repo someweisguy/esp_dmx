@@ -10,7 +10,6 @@
 #include "endian.h"
 #include "rdm/responder/include/utils.h"
 #include "rdm/types.h"
-#include "rdm/utils/include/uid.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"  // TODO: Make this hardware agnostic
