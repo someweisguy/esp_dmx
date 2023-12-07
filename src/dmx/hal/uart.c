@@ -100,17 +100,18 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         continue;
       }
 
-      // Check for potential end-of-packet condition
-      rdm_header_t header;
+      // Continue loop if an end-of-packet condition has not been met
       dmx_err_t err = DMX_OK;
       if (intr_flags & DMX_INTR_RX_ERR) {
         err = intr_flags & DMX_INTR_RX_FIFO_OVERFLOW
                   ? DMX_ERR_UART_OVERFLOW   // UART overflow
                   : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
-      } else if (driver->head > 16 &&
-                 rdm_read_header(driver->dmx_num, &header)) {
-        // Do nothing
-      } else if (driver->head < driver->rx_size) {
+      } else if ((driver->data[0] != RDM_SC &&
+                  driver->data[0] != RDM_PREAMBLE &&
+                  driver->data[0] != RDM_DELIMITER &&
+                  driver->head < driver->rx_size) ||
+                 !(driver->head > 16 && rdm_read_header(dmx_num, NULL))) {
+        // DMX packet is too small or RDM packet is not complete
         continue;
       }
 
