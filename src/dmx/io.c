@@ -757,7 +757,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Update driver flags and increment the RDM transaction number if applicable
   driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
   if (is_rdm) {
-    ++driver->tn;
+    ++driver->rdm.tn;
   }
 
   // Determine if a DMX break is required and send the packet
