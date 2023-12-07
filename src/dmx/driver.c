@@ -126,6 +126,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     driver->uid.dev_id = RDM_UID_DEVICE_UID;
 #endif
     *(uint8_t *)(&driver->uid.dev_id) += dmx_num;  // Increment last octect
+  driver->break_len = RDM_BREAK_LEN_US;
+  driver->mab_len = RDM_MAB_LEN_US;
+  driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
 
   // Synchronization state
   driver->task_waiting = NULL;
@@ -135,22 +138,14 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->tx_size = DMX_PACKET_SIZE_MAX;
   driver->rx_size = DMX_PACKET_SIZE_MAX;
   memset(driver->data, 0, sizeof(driver->data));
-
-  // Driver state
-  driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
-  driver->tn = 0;
   driver->last_slot_ts = 0;
 
-  // DMX configuration
-  driver->break_len = RDM_BREAK_LEN_US;
-  driver->mab_len = RDM_MAB_LEN_US;
-
+  // RDM responder configuration
   driver->rdm.parameter_count = 0;
   driver->rdm.staged_count = 0;
-
-  // RDM responder configuration
   driver->rdm.queue_count = 0;
   driver->rdm.previous_popped = 0;  // A queued message has not yet been sent
+  driver->rdm.tn = 0;
 
   // Initialize the RDM status queue
   // TODO - implement in pd

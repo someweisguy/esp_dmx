@@ -146,7 +146,7 @@ size_t rdm_get_transaction_num(dmx_port_t dmx_num) {
 
   size_t tn;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  tn = dmx_driver[dmx_num]->tn;
+  tn = dmx_driver[dmx_num]->rdm.tn;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return tn;

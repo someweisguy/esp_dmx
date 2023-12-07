@@ -165,7 +165,6 @@ typedef struct dmx_driver_t {
     const char *description;  // A description of the personality.
   } *personalities;
 
-  uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
 
   struct rdm_driver_t {
     void *heap_ptr;  // Allocated memory for DMX/RDM parameter data.
@@ -183,6 +182,7 @@ typedef struct dmx_driver_t {
     uint32_t queue_count;       // The index of the RDM message queue list.
     rdm_pid_t previous_popped;  // The PID of the last sent queued message.
 
+    uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
   } rdm;
 
   // Parameter data
