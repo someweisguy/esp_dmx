@@ -14,37 +14,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Copies RDM UID from a source buffer directly into a destination
- * buffer. This function swaps endianness, allowing for UIDs to be copied from
- * RDM packet buffers into ESP32 memory. Either the source or the destination
- * should point to an rdm_uid_t type.
- *
- * To avoid overflows, the size of the arrays pointed to by both the destination
- * and source parameters shall be at least six bytes and should not overlap.
- *
- * @param[out] destination A pointer to the destination buffer.
- * @param[in] source A pointer to the source buffer of the UID.
- * @return A pointer to the destination buffer.
- */
-void *rdm_uidcpy(void *restrict destination, const void *restrict source);
-
-/**
- * @brief Copies RDM UID from a source buffer into a destination buffer. Copying
- * takes place as if an intermediate buffer were used, allowing the destination
- * and source to overlap. This function swaps endianness, allowing for UIDs to
- * be copied from RDM packet buffers into ESP32 memory. Either the source or the
- * destination should point to an rdm_uid_t type.
- *
- * To avoid overflows, the size of the arrays pointed to by both the destination
- * and source parameters shall be at least six bytes.
- *
- * @param[out] destination A pointer to the destination buffer.
- * @param[in] source A pointer to the source buffer of the UID.
- * @return A pointer to the destination buffer.
- */
-void *rdm_uidmove(void *destination, const void *source);
-
-/**
  * @brief Returns the 48-bit unique ID of the desired DMX port. Returns a null
  * UID if dmx_driver_install() has not been called on any port.
  *

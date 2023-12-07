@@ -356,7 +356,8 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     
     // Encode the UID and calculate the checksum
     uint8_t uid[6];
-    rdm_uidcpy(uid, &header->src_uid);
+    ((rdm_uid_t *)uid)->man_id = bswap16(header->src_uid.man_id);
+    ((rdm_uid_t *)uid)->dev_id = bswap32(header->src_uid.dev_id);
     uint16_t checksum = 0;
     for (int i = 0, j = 0; j < sizeof(rdm_uid_t); i += 2, ++j) {
       data[i] = uid[j] | 0xaa;
