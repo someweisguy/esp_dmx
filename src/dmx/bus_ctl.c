@@ -350,7 +350,6 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   const bool is_rdm = rdm_read_header(dmx_num, &header);
   const int driver_flags = driver->flags;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  int cc = header.cc;
 
   // Determine if it is too late to send a response packet
   int64_t elapsed = 0;
@@ -391,12 +390,10 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Block if an alarm was set
   if (elapsed < timeout) {
-    bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, pdDMX_MS_TO_TICKS(23));
-    driver->task_waiting = NULL;
-    if (!notified) {
-      // The hardware timer should always notify the task
-      __unreachable();
+    if (!xTaskNotifyWait(0, ULONG_MAX, NULL, pdDMX_MS_TO_TICKS(20))) {
+      __unreachable();  // The hardware timer should always notify the task
     }
+    driver->task_waiting = NULL;
   }
 
   // Turn the DMX bus around and get the send size
@@ -420,37 +417,15 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
-  // Record the outgoing packet type
-  const rdm_pid_t pid = bswap16(*(uint16_t *)&driver->data[21]);
-  rdm_uid_t dest_uid;
-  rdm_uidcpy(&dest_uid, &driver->data[3]);
-  int rdm_type = 0;
-  if (*(uint16_t *)driver->data == (RDM_SC | (RDM_SUB_SC << 8))) {
-    rdm_type |= DMX_FLAGS_RDM_IS_VALID;
-    if (cc == RDM_CC_DISC_COMMAND || cc == RDM_CC_GET_COMMAND ||
-        cc == RDM_CC_SET_COMMAND) {
-      rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
-    }
-    if (rdm_uid_is_broadcast(&dest_uid)) {
-      rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
-    }
-    if (pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-      rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
-    }
-  } else if (driver->data[0] == RDM_PREAMBLE ||
-             driver->data[0] == RDM_DELIMITER) {
-    rdm_type |= DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
-  }
-  driver->rdm_type = rdm_type;
+  // Update driver flags and increment the RDM transaction number if applicable
   driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
-  if ((rdm_type & (DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_REQUEST)) ==
-      (DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_REQUEST)) {
+  if (is_rdm) {
     ++driver->tn;
   }
 
   // Determine if a DMX break is required and send the packet
-  if (rdm_type ==
-      (DMX_FLAGS_RDM_IS_VALID | DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH)) {
+  if (is_rdm && header.cc == RDM_CC_DISC_COMMAND_RESPONSE &&
+      header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // RDM discovery responses do not send a DMX break - write immediately
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
