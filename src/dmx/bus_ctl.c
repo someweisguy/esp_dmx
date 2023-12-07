@@ -344,36 +344,42 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     return 0;
   }
 
+  // Determine if the packet was an RDM packet
+  rdm_header_t header;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  const bool is_rdm = rdm_read_header(dmx_num, &header);
+  const int driver_flags = driver->flags;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  int cc = header.cc;
+
   // Determine if it is too late to send a response packet
   int64_t elapsed = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const rdm_cc_t cc = driver->data[20];
-  if (*(uint16_t *)driver->data == (RDM_SC | (RDM_SUB_SC << 8)) &&
-      (cc == RDM_CC_DISC_COMMAND_RESPONSE ||
-       cc == RDM_CC_GET_COMMAND_RESPONSE ||
-       cc == RDM_CC_SET_COMMAND_RESPONSE)) {
+  if (is_rdm && !rdm_cc_is_request(header.cc)) {
     elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (elapsed >= RDM_PACKET_SPACING_RESPONDER_NO_RESPONSE) {
-    xSemaphoreGiveRecursive(driver->mux);
-    return 0;
+    if (elapsed >= RDM_PACKET_SPACING_RESPONDER_NO_RESPONSE) {
+      xSemaphoreGiveRecursive(driver->mux);
+      return 0;
+    }
   }
 
   // Determine if an alarm needs to be set to wait until driver is ready
-  uint32_t timeout = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->flags & DMX_FLAGS_DRIVER_SENT_LAST) {
-    if (driver->rdm_type & DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH) {
+  uint32_t timeout;
+  if (!is_rdm) {
+    timeout = 0;
+  } else if (driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) {
+    if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       timeout = RDM_PACKET_SPACING_DISCOVERY_NO_RESPONSE;
-    } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_BROADCAST) {
+    } else if (rdm_uid_is_broadcast(&header.dest_uid)) {
       timeout = RDM_PACKET_SPACING_BROADCAST;
-    } else if (driver->rdm_type == DMX_FLAGS_RDM_IS_REQUEST) {
+    } else if (rdm_cc_is_request(header.cc)) {
       timeout = RDM_PACKET_SPACING_REQUEST_NO_RESPONSE;
+    } else {
+      timeout = 0;
     }
-  } else if (driver->rdm_type & DMX_FLAGS_RDM_IS_VALID) {
+  } else {
     timeout = RDM_PACKET_SPACING_RESPONSE;
   }
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
   if (elapsed < timeout) {
     dmx_timer_set_counter(driver->timer, elapsed);
@@ -385,23 +391,17 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Block if an alarm was set
   if (elapsed < timeout) {
-    // FIXME: clean up this section
     bool notified = xTaskNotifyWait(0, ULONG_MAX, NULL, pdDMX_MS_TO_TICKS(23));
-    if (!notified) {
-      dmx_timer_stop(driver->timer);
-      xTaskNotifyStateClear(driver->task_waiting);
-    }
     driver->task_waiting = NULL;
     if (!notified) {
-      xSemaphoreGiveRecursive(driver->mux);
-      return 0;
+      // The hardware timer should always notify the task
+      __unreachable();
     }
   }
 
   // Turn the DMX bus around and get the send size
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (dmx_uart_get_rts(driver->uart) == 1) {
-    xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     dmx_uart_set_rts(driver->uart, 0);
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
