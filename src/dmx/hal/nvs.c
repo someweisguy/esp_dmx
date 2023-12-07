@@ -1,4 +1,4 @@
-#include "nvs.h"
+#include "include/nvs.h"
 
 #include "dmx/struct.h"
 #include "esp_dmx.h"

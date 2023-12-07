@@ -2,9 +2,9 @@
 
 #include <string.h>
 
-#include "dmx/hal/nvs.h"
-#include "dmx/hal/timer.h"
-#include "dmx/hal/uart.h"
+#include "dmx/hal/include/nvs.h"
+#include "dmx/hal/include/timer.h"
+#include "dmx/hal/include/uart.h"
 #include "dmx/sniffer.h"
 #include "dmx/struct.h"
 #include "endian.h"

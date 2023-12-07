@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "dmx/driver.h"
-#include "dmx/hal/nvs.h"
+#include "dmx/hal/include/nvs.h"
 #include "dmx/struct.h"
 #include "endian.h"
 #include "rdm/utils/bus_ctl.h"

@@ -8,9 +8,9 @@
 
 #include <stdint.h>
 
-#include "dmx/hal/gpio.h"
-#include "dmx/hal/timer.h"
-#include "dmx/hal/uart.h"
+#include "dmx/hal/include/gpio.h"
+#include "dmx/hal/include/timer.h"
+#include "dmx/hal/include/uart.h"
 #include "dmx/types.h"
 #include "esp_check.h"
 #include "freertos/queue.h"

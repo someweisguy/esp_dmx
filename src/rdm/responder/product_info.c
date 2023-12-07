@@ -4,7 +4,7 @@
 
 #include "dmx/device.h"
 #include "dmx/driver.h"
-#include "dmx/hal/nvs.h"
+#include "dmx/hal/include/nvs.h"
 #include "dmx/struct.h"
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
