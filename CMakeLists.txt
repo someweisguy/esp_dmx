@@ -1,6 +1,6 @@
 idf_component_register(
   SRCS "src/dmx/hal/uart.c" "src/dmx/hal/timer.c" "src/dmx/hal/nvs.c"
-       "src/dmx/hal/gpio.c" "src/dmx/driver.c" "src/dmx/bus_ctl.c" 
+       "src/dmx/hal/gpio.c" "src/dmx/driver.c" "src/dmx/io.c" 
        "src/dmx/device.c" "src/dmx/sniffer.c"
        
        "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/bus_ctl.c"

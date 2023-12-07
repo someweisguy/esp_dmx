@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "dmx/include/bus_ctl.h"
+#include "dmx/include/io.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "endian.h"
