@@ -1,4 +1,4 @@
-#include "dmx_setup.h"
+#include "include/dmx_setup.h"
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"

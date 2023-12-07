@@ -1,4 +1,4 @@
-#include "discovery.h"
+#include "include/discovery.h"
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"

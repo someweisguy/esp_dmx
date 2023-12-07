@@ -1,4 +1,4 @@
-#include "product_info.h"
+#include "include/product_info.h"
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"

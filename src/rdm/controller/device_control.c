@@ -1,4 +1,4 @@
-#include "device_control.h"
+#include "include/device_control.h"
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
