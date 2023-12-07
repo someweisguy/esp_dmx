@@ -21,15 +21,6 @@ extern "C" {
         (TickType_t)1000U >                                 \
     0))
 
-#ifdef CONFIG_DMX_MAX_PERSONALITIES
-/** @brief The maximum number of personalities that this device supports. This
- * value may be adjusted in the Kconfig.*/
-#define DMX_PERSONALITY_COUNT_MAX (CONFIG_DMX_MAX_PERSONALITIES)
-#else
-/** @brief The maximum number of personalities that this device supports.*/
-#define DMX_PERSONALITY_COUNT_MAX (16)
-#endif
-
 /** @brief Evaluates to true if the start code is a start code permitted in a
   non-prototype DMX device.
   Several alternate start codes are reserved for special purposes or for
