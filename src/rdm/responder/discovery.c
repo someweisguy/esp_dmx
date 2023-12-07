@@ -4,7 +4,6 @@
 #include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "include/utils.h"
-#include "rdm/utils/include/pd.h"
 #include "rdm/utils/include/uid.h"
 
 static size_t rdm_discovery_default_handler(

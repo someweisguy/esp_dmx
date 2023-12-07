@@ -3,7 +3,7 @@
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
-#include "rdm/utils/include/pd.h"
+#include "rdm/responder/include/utils.h"
 
 uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");

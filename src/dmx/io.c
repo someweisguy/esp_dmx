@@ -6,7 +6,6 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "endian.h"
-#include "rdm/utils/include/pd.h"
 #include "rdm/utils/include/uid.h"
 #include "rdm/responder/include/utils.h"
 
