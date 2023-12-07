@@ -12,6 +12,7 @@
 #include "rdm/types.h"
 #include "rdm/utils/include/io.h"
 #include "rdm/utils/include/uid.h"
+#include "rdm/responder/include/utils.h"
 
 enum rdm_pd_flags_e {
   RDM_PD_FLAGS_VARIABLE = 0,

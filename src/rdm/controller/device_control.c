@@ -2,6 +2,7 @@
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
+#include "rdm/controller/include/utils.h"
 #include "rdm/utils/include/io.h"
 #include "rdm/utils/include/uid.h"
 
