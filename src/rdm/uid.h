@@ -27,15 +27,6 @@ static inline const rdm_uid_t *rdm_uid_get(dmx_port_t dmx_num) {
 }
 
 /**
- * @brief Returns the binding UID of the device. This is the UID of the port
- * which first calls dmx_driver_install(). Returns a null UID if
- * dmx_driver_install() has not been called yet.
- *
- * @param uid A pointer to a rdm_uid_t type to store the received UID.
- */
-void rdm_uid_get_binding(rdm_uid_t *uid);
-
-/**
  * @brief Returns true if the UIDs are equal to each other. Is equivalent to
  * a == b.
  *
