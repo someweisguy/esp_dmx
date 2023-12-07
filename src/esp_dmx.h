@@ -18,10 +18,10 @@ extern "C" {
 #endif
 
 /** @brief The major version number of this library. (X.x.x)*/
-#define ESP_DMX_VERSION_MAJOR 3
+#define ESP_DMX_VERSION_MAJOR 4
 
 /** @brief The minor version number of this library. (x.X.x)*/
-#define ESP_DMX_VERSION_MINOR 1
+#define ESP_DMX_VERSION_MINOR 0
 
 /** @brief The patch version number of this library. (x.x.X)*/
 #define ESP_DMX_VERSION_PATCH 0
