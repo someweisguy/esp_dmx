@@ -132,9 +132,14 @@ typedef struct dmx_driver_personality_t {
  * the UART port. It storese all the information needed to run and analyze DMX
  * and RDM.*/
 typedef struct dmx_driver_t {
+  // Driver configuration
   dmx_port_t dmx_num;  // The driver's DMX port number.
   rdm_uid_t uid;  // The driver's UID.
+  uint32_t break_len;  // Length in microseconds of the transmitted break.
+  uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
+  uint8_t flags;  // Flags which indicate the current state of the driver.
 
+  // Driver hardware handles
   dmx_uart_handle_t uart;    // The handle to the UART HAL.
   dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
   dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
@@ -153,10 +158,6 @@ typedef struct dmx_driver_t {
   int16_t rx_size;  // The expected size of the incoming packet.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
-  // Driver state
-  uint8_t flags;  // Flags which indicate the current state of the driver.
-  uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
-
   // DMX configuration
   uint32_t personality_count;
   struct dmx_personality_t {
@@ -164,9 +165,7 @@ typedef struct dmx_driver_t {
     const char *description;  // A description of the personality.
   } *personalities;
 
-  uint32_t break_len;  // Length in microseconds of the transmitted break.
-  uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
-
+  uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
 
   struct rdm_driver_t {
     void *heap_ptr;  // Allocated memory for DMX/RDM parameter data.
@@ -202,8 +201,6 @@ typedef struct dmx_driver_t {
   int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
 } dmx_driver_t;
 
-extern dmx_port_t rdm_binding_port;
-extern rdm_uid_t rdm_device_uid;
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
 #ifdef __cplusplus
