@@ -14,19 +14,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Returns the 48-bit unique ID of the desired DMX port. Returns a null
- * UID if dmx_driver_install() has not been called on any port.
- *
- * @param dmx_num The DMX port number.
- * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
- */  // TODO: update docs
-static inline const rdm_uid_t *rdm_uid_get(dmx_port_t dmx_num) {
-  return !(dmx_num > DMX_NUM_MAX || dmx_driver[dmx_num] == NULL)
-             ? &dmx_driver[dmx_num]->uid
-             : NULL;
-}
-
-/**
  * @brief Returns true if the UIDs are equal to each other. Is equivalent to
  * a == b.
  *

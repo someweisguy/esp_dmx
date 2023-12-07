@@ -8,6 +8,7 @@
 #pragma once
 
 #include "dmx/types.h"
+#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -188,6 +189,15 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
  * error.
  */
 uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
+
+/**
+ * @brief Returns the 48-bit unique ID of the desired DMX port. Returns a null
+ * UID if dmx_driver_install() has not been called on any port.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
+ */  // TODO: update docs
+const rdm_uid_t *rdm_uid_get(dmx_port_t dmx_num);
 
 /**
  * @brief Checks if RDM is enabled on the DMX driver.
