@@ -1,4 +1,4 @@
-#include "rdm/utils/bus_ctl.h"
+#include "rdm/utils/include/bus_ctl.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -7,7 +7,8 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "endian.h"
-#include "rdm/utils/uid.h"
+#include "rdm/utils/include/pd.h"
+#include "rdm/utils/include/uid.h"
 
 static size_t rdm_format_encode(void *restrict dest,
                                 const char *restrict format,

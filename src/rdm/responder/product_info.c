@@ -2,10 +2,11 @@
 
 #include <string.h>
 
+#include "dmx/hal/include/nvs.h"
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
-#include "dmx/hal/include/nvs.h"
 #include "dmx/include/struct.h"
+#include "rdm/utils/include/pd.h"
 
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info, rdm_callback_t cb,

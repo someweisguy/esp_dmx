@@ -1,4 +1,4 @@
-#include "rdm/utils/pd.h"
+#include "rdm/utils/include/pd.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -10,8 +10,8 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "rdm/types.h"
-#include "rdm/utils/bus_ctl.h"
-#include "rdm/utils/uid.h"
+#include "rdm/utils/include/bus_ctl.h"
+#include "rdm/utils/include/uid.h"
 
 enum rdm_pd_flags_e {
   RDM_PD_FLAGS_VARIABLE = 0,

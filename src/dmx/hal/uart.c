@@ -3,8 +3,8 @@
 #include "dmx/include/struct.h"
 #include "driver/uart.h"
 #include "esp_dmx.h"
-#include "rdm/utils/bus_ctl.h"
-#include "rdm/utils/uid.h"
+#include "rdm/utils/include/bus_ctl.h"
+#include "rdm/utils/include/uid.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_private/esp_clk.h"

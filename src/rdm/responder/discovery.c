@@ -2,8 +2,9 @@
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
-#include "rdm/utils/bus_ctl.h"
-#include "rdm/utils/uid.h"
+#include "rdm/utils/include/bus_ctl.h"
+#include "rdm/utils/include/pd.h"
+#include "rdm/utils/include/uid.h"
 
 static size_t rdm_discovery_default_handler(
     dmx_port_t dmx_num, const rdm_pd_definition_t *definition,

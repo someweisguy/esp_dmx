@@ -2,7 +2,7 @@
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
-#include "rdm/utils/bus_ctl.h"
+#include "rdm/utils/include/bus_ctl.h"
 
 // static int rdm_rhd_status_messages(dmx_port_t dmx_num, rdm_header_t *header,
 //                                    void *pd, uint8_t *pdl_out,
