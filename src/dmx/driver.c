@@ -147,7 +147,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Driver state
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
-  driver->rdm_type = 0;
   driver->tn = 0;
   driver->last_slot_ts = 0;
 

@@ -101,7 +101,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Check for potential end-of-packet condition
-      int rdm_type = 0;
       rdm_header_t header;
       dmx_err_t err = DMX_OK;
       if (intr_flags & DMX_INTR_RX_ERR) {
@@ -110,25 +109,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                   : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
       } else if (driver->head > 16 &&
                  rdm_read_header(driver->dmx_num, &header)) {
-        rdm_type |= DMX_FLAGS_RDM_IS_VALID;
-        rdm_uid_t my_uid = rdm_device_uid;
-        *(uint8_t *)&my_uid.dev_id += dmx_num;  // Increment last octet
-
-        rdm_uid_get(driver->dmx_num, &my_uid);
-        if (header.cc == RDM_CC_DISC_COMMAND ||
-            header.cc == RDM_CC_GET_COMMAND ||
-            header.cc == RDM_CC_SET_COMMAND) {
-          rdm_type |= DMX_FLAGS_RDM_IS_REQUEST;
-        }
-        if (rdm_uid_is_broadcast(&header.dest_uid)) {
-          rdm_type |= DMX_FLAGS_RDM_IS_BROADCAST;
-        }
-        if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-          rdm_type |= DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH;
-        }
-        if (rdm_uid_is_target(&my_uid, &header.dest_uid)) {
-          rdm_type |= DMX_FLAGS_RDM_IS_RECIPIENT;
-        }
+        // Do nothing
       } else if (driver->head < driver->rx_size) {
         continue;
       }
@@ -137,7 +118,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->flags |= (DMX_FLAGS_DRIVER_HAS_DATA | DMX_FLAGS_DRIVER_IS_IDLE);
       driver->flags &= ~DMX_FLAGS_DRIVER_SENT_LAST;
-      driver->rdm_type = rdm_type;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, err, eSetValueWithOverwrite,
                            &task_awoken);
