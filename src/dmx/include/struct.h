@@ -134,10 +134,10 @@ typedef struct dmx_driver_personality_t {
 typedef struct dmx_driver_t {
   // Driver configuration
   dmx_port_t dmx_num;  // The driver's DMX port number.
-  rdm_uid_t uid;  // The driver's UID.
+  rdm_uid_t uid;       // The driver's UID.
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
-  uint8_t flags;  // Flags which indicate the current state of the driver.
+  uint8_t flags;     // Flags which indicate the current state of the driver.
 
   // Driver hardware handles
   dmx_uart_handle_t uart;    // The handle to the UART HAL.
@@ -159,12 +159,8 @@ typedef struct dmx_driver_t {
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
 
   // DMX configuration
-  uint32_t personality_count;
-  struct dmx_personality_t {
-    uint16_t footprint;       // The DMX footprint of the personality.
-    const char *description;  // A description of the personality.
-  } *personalities;
-
+  uint32_t personality_count;  // The number of personalities that the driver has.
+  dmx_personality_t *personalities;  // An array of DMX personalities to which the driver may be set.
 
   struct rdm_driver_t {
     void *heap_ptr;  // Allocated memory for DMX/RDM parameter data.
