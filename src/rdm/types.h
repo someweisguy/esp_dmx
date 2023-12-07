@@ -650,6 +650,12 @@ static const rdm_uid_t RDM_UID_BROADCAST_ALL = {0xffff, 0xffffffff};
 /** @brief The maximum possible RDM UID.*/
 static const rdm_uid_t RDM_UID_MAX = {0xffff, 0xfffffffe};
 
+// TODO: Docs
+static const size_t RDM_PD_SIZE_MAX = 232;
+
+// TODO: docs
+static const size_t RDM_ASCII_SIZE_MAX = 33;
+
 #ifdef __cplusplus
 }
 #endif
