@@ -65,6 +65,7 @@ extern "C" {
 #define RDM_UID_DEVICE_ID (0xffffffff)
 #endif
 
+// TODO: docs
 #define RDM_RESPONDER_NUM_PIDS_REQUIRED 9
 
 #ifdef CONFIG_RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS
@@ -73,6 +74,8 @@ extern "C" {
 #define RDM_RESPONDER_NUM_PIDS_OPTIONAL \
   (CONFIG_RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS)
 #else
+/** @brief The maximum number of optional parameters that the RDM responder can
+ * support.*/
 #define RDM_RESPONDER_NUM_PIDS_OPTIONAL 25
 #endif
 
@@ -80,31 +83,6 @@ extern "C" {
  * support.*/
 #define RDM_RESPONDER_NUM_PIDS_MAX \
   (RDM_RESPONDER_NUM_PIDS_REQUIRED + RDM_RESPONDER_NUM_PIDS_OPTIONAL)
-
-#ifdef CONFIG_RDM_RESPONDER_QUEUE_SIZE_MAX
-/** @brief The maximum number of queued messages that the RDM responder can
- * support. It may be set using the Kconfig file.
- */
-#define RDM_RESPONDER_QUEUE_SIZE_MAX CONFIG_RDM_RESPONDER_QUEUE_SIZE_MAX
-#else
-/** @brief The maximum number of queued messages that the RDM responder can
- * support.
- */
-#define RDM_RESPONDER_QUEUE_SIZE_MAX 64
-#endif
-
-#ifdef CONFIG_RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX
-/** @brief The maximum number of queued status messages that the RDM responder can
- * support. It may be set using the Kconfig file.
- */
-#define RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX \
-  CONFIG_RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX
-#else
-/** @brief The maximum number of queued status messages that the RDM responder
- * can support.
- */
-#define RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX 64
-#endif
 
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
 /** @brief This macro sets certain functions used within DMX interrupt handlers
