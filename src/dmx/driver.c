@@ -122,12 +122,12 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->rdm.heap_available = config->parameter_heap_size;
 
   // Allocate RDM parameter list
-  driver->rdm.parameter =
-      heap_caps_malloc(sizeof(*driver->rdm.parameter) * config->parameter_count,
+  driver->rdm.parameters =
+      heap_caps_malloc(sizeof(*driver->rdm.parameters) * config->parameter_count,
                        MALLOC_CAP_8BIT);
-  if (driver->rdm.parameter == NULL) {
+  if (driver->rdm.parameters == NULL) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(driver->rdm.parameter != NULL, false,
+    DMX_CHECK(driver->rdm.parameters != NULL, false,
               "RDM parameter list malloc error");
   }
   driver->rdm.parameter_max = config->parameter_count;
@@ -256,8 +256,8 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   dmx_uart_deinit(driver->uart);
 
   // Free the parameter list
-  if (driver->rdm.parameter != NULL) {
-    heap_caps_free(driver->rdm.parameter);
+  if (driver->rdm.parameters != NULL) {
+    heap_caps_free(driver->rdm.parameters);
   }
 
   // Free RDM parameter heap

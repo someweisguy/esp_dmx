@@ -42,8 +42,8 @@ static struct rdm_pd_s *rdm_pd_get_entry(dmx_port_t dmx_num,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if (driver->rdm.parameter[i].id == pid) {
-      return &driver->rdm.parameter[i];
+    if (driver->rdm.parameters[i].id == pid) {
+      return &driver->rdm.parameters[i];
     }
   }
 
@@ -67,7 +67,7 @@ static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
     return NULL;
   }
 
-  struct rdm_pd_s *entry = &driver->rdm.parameter[driver->rdm.parameter_count];
+  struct rdm_pd_s *entry = &driver->rdm.parameters[driver->rdm.parameter_count];
   ++driver->rdm.parameter_count;
   entry->id = pid;
   entry->flags = flags;
@@ -381,8 +381,8 @@ const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Find the parameter and return it
   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if (driver->rdm.parameter[i].id == pid) {
-      return driver->rdm.parameter[i].data;
+    if (driver->rdm.parameters[i].id == pid) {
+      return driver->rdm.parameters[i].data;
     }
   }
 
@@ -501,9 +501,9 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (driver->rdm.queue_count > 0) {
     for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-      if (driver->rdm.parameter[i].is_queued) {
-        pid = driver->rdm.parameter[i].id;
-        driver->rdm.parameter[i].is_queued = false;
+      if (driver->rdm.parameters[i].is_queued) {
+        pid = driver->rdm.parameters[i].id;
+        driver->rdm.parameters[i].is_queued = false;
         --driver->rdm.queue_count;
         break;
       }
@@ -559,19 +559,19 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
 
   // Iterate through parameters and commit the first found value to NVS
   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if (driver->rdm.parameter[i].flags == RDM_PD_FLAGS_NON_VOLATILE_STAGED) {
-      const rdm_pid_t pid = driver->rdm.parameter[i].id;
+    if (driver->rdm.parameters[i].flags == RDM_PD_FLAGS_NON_VOLATILE_STAGED) {
+      const rdm_pid_t pid = driver->rdm.parameters[i].id;
       const rdm_pd_definition_t *def = rdm_pd_get_definition(pid);
       // TODO: implement sub-devices
       bool success = dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
-                  driver->rdm.parameter[i].data, def->alloc_size);
+                  driver->rdm.parameters[i].data, def->alloc_size);
       if (success) {
         taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-        driver->rdm.parameter[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
+        driver->rdm.parameters[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
         --driver->rdm.staged_count;
         taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       }
-      return driver->rdm.parameter[i].id;
+      return driver->rdm.parameters[i].id;
     }
   }
 

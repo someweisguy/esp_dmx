@@ -208,7 +208,7 @@ typedef struct dmx_driver_t {
       void *data;
       uint8_t flags;
       bool is_queued;
-    } *parameter;  // TODO: rename to parameters
+    } *parameters;
     uint32_t staged_count;
     uint32_t queue_count;       // The index of the RDM message queue list.
     rdm_pid_t previous_popped;  // The PID of the last sent queued message.
@@ -216,11 +216,6 @@ typedef struct dmx_driver_t {
   } rdm;
 
   // Parameter data
-
-
-
-
-
   // TODO: implement status using space in pd
   // uint8_t rdm_status_threshold;
   // struct rdm_status_queue_t {
