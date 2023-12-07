@@ -2,7 +2,7 @@
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
-#include "rdm/utils/include/bus_ctl.h"
+#include "rdm/utils/include/io.h"
 #include "rdm/utils/include/pd.h"
 #include "rdm/utils/include/uid.h"
 

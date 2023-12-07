@@ -3,7 +3,7 @@ idf_component_register(
        "src/dmx/hal/gpio.c" "src/dmx/driver.c" "src/dmx/io.c" 
        "src/dmx/device.c" "src/dmx/sniffer.c"
        
-       "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/bus_ctl.c"
+       "src/rdm/utils/uid.c" "src/rdm/utils/pd.c" "src/rdm/utils/io.c"
 
        "src/rdm/controller/discovery.c" "src/rdm/controller/product_info.c"
        "src/rdm/controller/device_control.c" "src/rdm/controller/dmx_setup.c"

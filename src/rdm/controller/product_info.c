@@ -3,7 +3,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "rdm/utils/include/uid.h"
-#include "rdm/utils/include/bus_ctl.h"
+#include "rdm/utils/include/io.h"
 
 size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                               rdm_sub_device_t sub_device,

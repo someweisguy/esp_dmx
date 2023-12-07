@@ -10,7 +10,7 @@
 #include "endian.h"
 #include "esp_dmx.h"
 #include "rdm/types.h"
-#include "rdm/utils/include/bus_ctl.h"
+#include "rdm/utils/include/io.h"
 #include "rdm/utils/include/uid.h"
 
 enum rdm_pd_flags_e {
