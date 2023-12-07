@@ -86,6 +86,7 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
   rdm_header_t response_header = {
     .message_len = 24 + pdl,
     .dest_uid = header->src_uid,
+    .src_uid = *rdm_uid_get(dmx_num),
     .tn = header->tn,
     .response_type = RDM_RESPONSE_TYPE_ACK,
     .message_count = rdm_pd_queue_get_size(dmx_num),
@@ -94,7 +95,6 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
     .pid = header->pid,
     .pdl = pdl
   };
-  rdm_uid_get(dmx_num, &response_header.src_uid);
 
   return rdm_write(dmx_num, &response_header, format, pd);
 }
@@ -113,6 +113,7 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
   rdm_header_t response_header = {
     .message_len = 24 + pdl,
     .dest_uid = header->src_uid,
+    .src_uid = *rdm_uid_get(dmx_num),
     .tn = header->tn,
     .response_type = RDM_RESPONSE_TYPE_NACK_REASON,
     .message_count = rdm_pd_queue_get_size(dmx_num),
@@ -121,7 +122,6 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
     .pid = header->pid,
     .pdl = pdl
   };
-  rdm_uid_get(dmx_num, &response_header.src_uid);
 
   return rdm_write(dmx_num, &response_header, "w", &nack_reason);
 }

@@ -20,7 +20,13 @@ extern "C" {
  * @param dmx_num The DMX port number.
  * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
  */
-void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
+// void rdm_uid_get(dmx_port_t dmx_num, rdm_uid_t *uid);
+
+static inline const rdm_uid_t *rdm_uid_get(dmx_port_t dmx_num) {
+  return !(dmx_num > DMX_NUM_MAX || dmx_driver[dmx_num] == NULL)
+             ? &dmx_driver[dmx_num]->uid
+             : NULL;
+}
 
 /**
  * @brief Returns the binding UID of the device. This is the UID of the port

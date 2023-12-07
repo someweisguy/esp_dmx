@@ -155,6 +155,7 @@ typedef struct dmx_driver_personality_t {
  * and RDM.*/
 typedef struct dmx_driver_t {
   dmx_port_t dmx_num;  // The driver's DMX port number.
+  rdm_uid_t uid;  // The driver's UID.
 
   dmx_uart_handle_t uart;    // The handle to the UART HAL.
   dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.

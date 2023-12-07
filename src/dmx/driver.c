@@ -57,28 +57,12 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
 #endif
 
-  // Initialize RDM UID
-  if (rdm_uid_is_null(&rdm_device_uid)) {
-    rdm_device_uid.man_id = RDM_UID_MANUFACTURER_ID;
-    uint32_t dev_id;
-#if RDM_UID_DEVICE_ID == 0xffffffff
-    uint8_t mac[8];
-    esp_efuse_mac_get_default(mac);
-    dev_id = bswap32(*(uint32_t *)(mac + 2));
-#else
-    dev_id = RDM_UID_DEVICE_UID;
-#endif
-    rdm_device_uid.dev_id = dev_id;
-    rdm_binding_port = dmx_num;
-  }
-
   // Initialize NVS
   dmx_nvs_init(dmx_num);
 
-  dmx_driver_t *driver;
-
   // Allocate the DMX driver
-  driver = heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
+  dmx_driver_t *driver =
+      heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
   DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
@@ -133,8 +117,19 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->rdm.parameter_max = config->parameter_count;
   driver->rdm.parameter_count = 0;
 
-  // UART configuration
+  // Driver configuration
   driver->dmx_num = dmx_num;
+  driver->uid.man_id = RDM_UID_MANUFACTURER_ID;
+#if RDM_UID_DEVICE_ID == 0xffffffff
+    // Set the device ID based on the device's MAC address
+    uint8_t mac[8];
+    esp_efuse_mac_get_default(mac);
+    driver->uid.dev_id = bswap32(*(uint32_t *)(mac + 2));
+#else
+    // Set the device ID based on what the user set in the kconfig
+    driver->uid.dev_id = RDM_UID_DEVICE_UID;
+#endif
+    *(uint8_t *)(&driver->uid.dev_id) += dmx_num;  // Increment last octect
 
   // Synchronization state
   driver->task_waiting = NULL;

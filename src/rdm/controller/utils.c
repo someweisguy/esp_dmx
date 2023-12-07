@@ -42,8 +42,8 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
     .pid = pid,
     .pdl = pdl,
   };
-  rdm_uid_get(dmx_num, &header.src_uid);
   memcpy(&header.dest_uid, dest_uid, sizeof(header.dest_uid));
+  memcpy(&header.src_uid, rdm_uid_get(dmx_num), sizeof(header.src_uid));
 
   // Write and send the RDM request
   const size_t written = rdm_write(dmx_num, &header, format, pd);

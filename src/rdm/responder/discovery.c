@@ -30,10 +30,9 @@ static size_t rdm_discovery_default_handler(
 
 
     // Guard against !(branch.lower_bound <= this_uid <= branch.upper_bound)
-    rdm_uid_t this_uid;
-    rdm_uid_get(dmx_num, &this_uid);
-    if (rdm_uid_is_lt(&this_uid, &branch.lower_bound) ||
-        rdm_uid_is_gt(&this_uid, &branch.upper_bound)) {
+    const rdm_uid_t *this_uid = rdm_uid_get(dmx_num);
+    if (rdm_uid_is_lt(this_uid, &branch.lower_bound) ||
+        rdm_uid_is_gt(this_uid, &branch.upper_bound)) {
       return 0;
     }
 
@@ -55,7 +54,12 @@ static size_t rdm_discovery_default_handler(
     if (num_ports == 1) {
       mute.binding_uid = (rdm_uid_t){0, 0};  // Don't report a binding UID
     } else {
-      rdm_uid_get_binding(&mute.binding_uid);
+      for (int i = 0; i < DMX_NUM_MAX; ++i) {
+      if (dmx_driver_is_installed(i)) {
+        memcpy(&mute.binding_uid, rdm_uid_get(i), sizeof(mute.binding_uid));
+        break;
+      }
+    }
     }
 
     // Get the mute control field of this port
