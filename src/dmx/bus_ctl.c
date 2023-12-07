@@ -120,26 +120,28 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Set default return value and default values for output argument
-  dmx_err_t err = DMX_OK;
-  uint32_t packet_size = 0;
-  if (packet != NULL) {
-    packet->err = DMX_ERR_TIMEOUT;
-    packet->sc = -1;
-    packet->size = 0;
-    packet->is_rdm = 0;
-  }
-
   // Block until mutex is taken and driver is idle, or until a timeout
   TimeOut_t timeout;
   vTaskSetTimeOutState(&timeout);
   if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
       (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
-    return packet_size;
+    if (packet != NULL) {
+      packet->err = DMX_ERR_TIMEOUT;
+      packet->sc = -1;
+      packet->size = 0;
+      packet->is_rdm = 0;
+    }
+    return 0;
   } else if (!dmx_wait_sent(dmx_num, wait_ticks) ||
              (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
     xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
+    if (packet != NULL) {
+      packet->err = DMX_ERR_TIMEOUT;
+      packet->sc = -1;
+      packet->size = 0;
+      packet->is_rdm = 0;
+    }
+    return 0;
   }
 
   // Set the RTS pin to enable reading from the DMX bus
@@ -153,21 +155,22 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Wait for new DMX packet to be received
+  dmx_err_t err = DMX_OK;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  int driver_flags = driver->flags;
+  const int driver_flags = driver->flags;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA) && wait_ticks > 0) {
     // Set task waiting and get additional DMX driver flags
+    rdm_header_t header;
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    const int rdm_type = driver->rdm_type;
+    const bool is_rdm = rdm_read_header(dmx_num, &header);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
     // Check for early timeout according to RDM specification
-    const int RDM_EARLY_TIMEOUT =
-        (DMX_FLAGS_RDM_IS_REQUEST | DMX_FLAGS_RDM_IS_DISC_UNIQUE_BRANCH);
-    if ((driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) &&
-        (rdm_type & RDM_EARLY_TIMEOUT) == RDM_EARLY_TIMEOUT) {
+    if ((driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) && is_rdm &&
+        header.cc == RDM_CC_DISC_COMMAND &&
+        header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       const int64_t last_timestamp = driver->last_slot_ts;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -179,7 +182,13 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         driver->task_waiting = NULL;
         taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
         xSemaphoreGiveRecursive(driver->mux);
-        return packet_size;
+        if (packet != NULL) {
+          packet->err = DMX_ERR_TIMEOUT;
+          packet->sc = -1;
+          packet->size = 0;
+          packet->is_rdm = 0;
+        }
+        return 0;
       }
 
       // Set an early timeout with the hardware timer
@@ -200,15 +209,28 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     if (!notified) {
       xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
       xSemaphoreGiveRecursive(driver->mux);
-      return packet_size;
+      if (packet != NULL) {
+        packet->err = DMX_ERR_TIMEOUT;
+        packet->sc = -1;
+        packet->size = 0;
+        packet->is_rdm = 0;
+      }
+      return 0;
     }
   } else if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA)) {
     // Fail early if there is no data available and this function cannot block
     xSemaphoreGiveRecursive(driver->mux);
-    return packet_size;
+    if (packet != NULL) {
+      packet->err = DMX_ERR_TIMEOUT;
+      packet->sc = -1;
+      packet->size = 0;
+      packet->is_rdm = 0;
+    }
+    return 0;
   }
 
   // Parse DMX data packet
+  uint32_t packet_size;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
   packet_size = driver->head;
@@ -223,23 +245,33 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     packet->err = err;
     packet->size = packet_size;
-    packet->is_rdm = 0;
   }
 
   // Return early if the no data was received
   if (packet_size == 0) {
     xSemaphoreGiveRecursive(driver->mux);
+    if (packet != NULL) {
+      packet->is_rdm = 0;
+    }
     return packet_size;
   }
-
-  // TODO: Return early if RDM is disabled
 
   // Validate checksum and get the packet header
   rdm_header_t header;
   if (!rdm_read_header(dmx_num, &header)) {
     xSemaphoreGiveRecursive(driver->mux);
+    if (packet != NULL) {
+      packet->is_rdm = 0;
+    }
     return packet_size;
   }
+
+  // Record the RDM PID
+  if (packet != NULL) {
+    packet->is_rdm = header.pid;
+  }
+
+  // TODO: Return early if RDM is disabled
 
   // Validate that the packet targets this device and is a request
   rdm_uid_t this_uid;
