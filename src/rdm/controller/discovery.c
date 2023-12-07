@@ -1,9 +1,9 @@
 #include "include/discovery.h"
 
 #include "dmx/include/driver.h"
+#include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "rdm/controller/include/utils.h"
-#include "rdm/utils/include/io.h"
 #include "rdm/utils/include/uid.h"
 
 static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,

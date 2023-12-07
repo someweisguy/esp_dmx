@@ -1,9 +1,9 @@
 #include "include/discovery.h"
 
 #include "dmx/include/driver.h"
+#include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "include/utils.h"
-#include "rdm/utils/include/io.h"
 #include "rdm/utils/include/pd.h"
 #include "rdm/utils/include/uid.h"
 

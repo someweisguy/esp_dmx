@@ -52,6 +52,25 @@ size_t dmx_read(dmx_port_t dmx_num, void *destination, size_t size);
 int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
 
 /**
+ * @brief Reads an RDM packet from the DMX driver buffer. Header information is
+ * emplaced into a header pointer so that it may be read by the caller.
+ * Parameter data information needs to be emplaced before it can be properly
+ * read by the caller. This function does not perform any data error checking to
+ * ensure that the RDM packet is within specification.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] header A pointer which stores RDM header information.
+ * @param[out] pd A pointer to store parameter data from the RDM packet.
+ * @param num The size of the pd pointer. Used to prevent buffer overflows.
+ * @return The size of the RDM packet that was read or 0 on error.
+ */  // TODO: update docs
+bool rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header);
+
+// TODO: docs
+size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
+                   size_t size);
+
+/**
  * @brief Writes DMX data from a source buffer into the DMX driver buffer with
  * an offset. Allows a source buffer to be written to a specific slot number in
  * the DMX driver buffer.
@@ -86,6 +105,22 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
  */
 int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 
+/**
+ * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
+ * dmx_send(). Header information is emplaced into the DMX driver buffer but
+ * parameter data information must be emplaced before calling this function to
+ * ensure that the RDM packet is properly formatted. This function does not
+ * perform any data error checking to ensure that the RDM packet is within
+ * specification.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] header A pointer which stores RDM header information.
+ * @param[in] pd A pointer which stores parameter data to be written.
+ * @return The size of the RDM packet that was written or 0 on error.
+ */ // TODO: docs update
+size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
+                 const char *format, const void *pd);
+    
 /**
  * @brief Receives a DMX packet from the DMX bus. This is a blocking function.
  * This function first blocks until the DMX driver is idle and then it blocks

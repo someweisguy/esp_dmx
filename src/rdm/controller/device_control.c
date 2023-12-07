@@ -1,9 +1,9 @@
 #include "include/device_control.h"
 
 #include "dmx/include/driver.h"
+#include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "rdm/controller/include/utils.h"
-#include "rdm/utils/include/io.h"
 #include "rdm/utils/include/uid.h"
 
 size_t rdm_send_get_identify_device(dmx_port_t dmx_num,

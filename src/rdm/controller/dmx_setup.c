@@ -1,9 +1,9 @@
 #include "include/dmx_setup.h"
 
 #include "dmx/include/driver.h"
+#include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "rdm/controller/include/utils.h"
-#include "rdm/utils/include/io.h"
 #include "rdm/utils/include/uid.h"
 
 size_t rdm_send_get_dmx_start_address(dmx_port_t dmx_num,
