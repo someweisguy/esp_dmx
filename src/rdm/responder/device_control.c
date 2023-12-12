@@ -34,8 +34,8 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
   // Allocate parameter data
   const bool nvs = true;
   const uint8_t init_value = 0;
-  if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
-                          sizeof(init_value)) == NULL) {
+  if (!rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                                &init_value, sizeof(init_value))) {
     return false;
   }
 

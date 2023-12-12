@@ -57,13 +57,14 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   dmx_nvs_init(dmx_num);
 
   // Allocate the DMX driver
-  dmx_driver_t *driver =
-      heap_caps_malloc(sizeof(dmx_driver_t), MALLOC_CAP_8BIT);
+  const size_t driver_size =
+      sizeof(dmx_driver_t) +
+      (sizeof(rdm_device_t) * config->root_device_parameter_count);
+  dmx_driver_t *driver = heap_caps_malloc(driver_size, MALLOC_CAP_8BIT);
   DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
   driver->personalities = NULL;
-  driver->rdm.heap_ptr = NULL;
 #ifdef DMX_USE_SPINLOCK
   driver->spinlock = (dmx_spinlock_t)DMX_SPINLOCK_INIT;
 #endif
@@ -86,33 +87,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   memcpy(driver->personalities, personalities, pers_size);
   driver->personality_count = config->personality_count;
 
-  // Allocate RDM parameter heap
-  if (config->parameter_heap_size < 53) {
-    // Minimum required parameter data size for RDM
-    config->parameter_heap_size = 53;
-  }
-  driver->rdm.heap_ptr =
-      heap_caps_malloc(config->parameter_heap_size, MALLOC_CAP_8BIT);
-  if (driver->rdm.heap_ptr == NULL) {
-    dmx_driver_delete(dmx_num);
-    DMX_CHECK(driver->rdm.heap_ptr != NULL, false,
-              "RDM parameter heap malloc error");
-  }
-  driver->rdm.heap_ptr += config->parameter_heap_size;
-  driver->rdm.heap_available = config->parameter_heap_size;
-
-  // Allocate RDM parameter list
-  driver->rdm.parameters =
-      heap_caps_malloc(sizeof(*driver->rdm.parameters) * config->parameter_count,
-                       MALLOC_CAP_8BIT);
-  if (driver->rdm.parameters == NULL) {
-    dmx_driver_delete(dmx_num);
-    DMX_CHECK(driver->rdm.parameters != NULL, false,
-              "RDM parameter list malloc error");
-  }
-  driver->rdm.parameter_max = config->parameter_count;
-  driver->rdm.parameter_count = 0;
-
   // Driver configuration
   driver->dmx_num = dmx_num;
   driver->uid.man_id = RDM_UID_MANUFACTURER_ID;
@@ -130,6 +104,18 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->mab_len = RDM_MAB_LEN_US;
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
 
+  driver->rdm.root_device_parameter_max = config->root_device_parameter_count;
+  driver->rdm.sub_device_parameter_max = 0;  // TODO
+
+  // Set the default values for the root device
+  driver->rdm.root_device.next = NULL;
+  driver->rdm.root_device.model_id = config->model_id;
+  driver->rdm.root_device.product_category = config->product_category;
+  driver->rdm.root_device.software_version_id = config->software_version_id;
+  for (int i = 0; i < config->root_device_parameter_count; ++i) {
+    driver->rdm.root_device.parameters[i].pid = 0;
+  }
+
   // Synchronization state
   driver->task_waiting = NULL;
 
@@ -141,19 +127,10 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->last_slot_ts = 0;
 
   // RDM responder configuration
-  driver->rdm.parameter_count = 0;
   driver->rdm.staged_count = 0;
   driver->rdm.queue_count = 0;
   driver->rdm.previous_popped = 0;  // A queued message has not yet been sent
   driver->rdm.tn = 0;
-
-  // Initialize the RDM status queue
-  // TODO - implement in pd
-  // driver->rdm_status_threshold = (RDM_STATUS_ERROR - 2);  // Only report
-  // errors for (int i = 0; i < 3; ++i) {
-  //   driver->rdm_status[i].head = 0;
-  //   driver->rdm_status[i].tail = 0;
-  // }
 
   // DMX sniffer configuration
   // The driver->metadata field is left uninitialized
@@ -239,16 +216,6 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
 
   // Disable UART module
   dmx_uart_deinit(driver->uart);
-
-  // Free the parameter list
-  if (driver->rdm.parameters != NULL) {
-    heap_caps_free(driver->rdm.parameters);
-  }
-
-  // Free RDM parameter heap
-  if (driver->rdm.heap_ptr != NULL) {
-    heap_caps_free(driver->rdm.heap_ptr - driver->rdm.heap_available);
-  }
 
   // Free personalities
   if (driver->personalities != NULL) {

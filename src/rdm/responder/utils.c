@@ -23,9 +23,9 @@ static struct rdm_pd_dictionary_s {
   void *context;
 } rdm_dictionary[RDM_RESPONDER_NUM_PIDS_MAX];
 
-static struct rdm_pd_s *rdm_pd_get_entry(dmx_port_t dmx_num,
-                                         rdm_sub_device_t sub_device,
-                                         rdm_pid_t pid) {
+static struct rdm_parameter_s *rdm_pd_get_entry(dmx_port_t dmx_num,
+                                                rdm_sub_device_t sub_device,
+                                                rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
@@ -36,18 +36,28 @@ static struct rdm_pd_s *rdm_pd_get_entry(dmx_port_t dmx_num,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if (driver->rdm.parameters[i].id == pid) {
-      return &driver->rdm.parameters[i];
+  // Get the RDM sub-device
+  rdm_device_t *device = &driver->rdm.root_device;
+  // TODO: loop through sub-device until the correct sub-device is found
+
+  // Iterate through parameters until the correct parameter is found
+  const uint32_t parameter_count = sub_device == RDM_SUB_DEVICE_ROOT
+                                       ? driver->rdm.root_device_parameter_max
+                                       : driver->rdm.sub_device_parameter_max;
+  for (int i = 0; i < parameter_count; ++i) {
+    if (device->parameters[i].pid == pid) {
+      return &device->parameters[i];
+    } else if (device->parameters[i].pid == 0) {
+      break;
     }
   }
 
   return NULL;
 }
 
-static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
-                                         rdm_sub_device_t sub_device,
-                                         rdm_pid_t pid, int flags) {
+static struct rdm_parameter_s *rdm_pd_add_entry(dmx_port_t dmx_num,
+                                                rdm_sub_device_t sub_device,
+                                                rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
@@ -58,17 +68,109 @@ static struct rdm_pd_s *rdm_pd_add_entry(dmx_port_t dmx_num,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  if (driver->rdm.parameter_count == RDM_RESPONDER_NUM_PIDS_MAX) {
-    return NULL;
+  // Get the RDM sub-device
+  rdm_device_t *device = &driver->rdm.root_device;
+  // TODO: loop through sub-device until the correct sub-device is found
+
+  // Iterate through parameters until the correct parameter is found
+  struct rdm_parameter_s *entry = NULL;
+  const uint32_t parameter_count = sub_device == RDM_SUB_DEVICE_ROOT
+                                       ? driver->rdm.root_device_parameter_max
+                                       : driver->rdm.sub_device_parameter_max;
+  for (int i = 0; i < parameter_count; ++i) {
+    if (device->parameters[i].pid == 0) {
+      entry = &device->parameters[i];
+      break;
+    }
+  }
+    
+  // Set default parameter values
+  if (entry != NULL) {
+    entry->pid = pid;
+    entry->is_queued = false;
   }
 
-  struct rdm_pd_s *entry = &driver->rdm.parameters[driver->rdm.parameter_count];
-  ++driver->rdm.parameter_count;
-  entry->id = pid;
-  entry->flags = flags;
-  entry->is_queued = false;
-
   return entry;
+}
+
+const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid) {
+  assert(pid > 0);
+
+  // Search for and return a pointer to the definition
+  for (int i = 0; i < rdm_definition_count; ++i) {
+    if (rdm_dictionary[i].definition->pid == pid) {
+      return rdm_dictionary[i].definition;
+    }
+  }
+
+  return NULL;
+}
+
+int rdm_pd_set_definition(const rdm_pd_definition_t *definition) {
+  assert(definition != NULL);
+  assert(definition->pid > 0);
+  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
+          definition->ds <= RDM_DS_SIGNED_DWORD) ||
+         (definition->ds >= 0x80 && definition->ds <= 0xdf));
+  assert(definition->pid_cc >= RDM_CC_DISC &&
+         definition->pid_cc <= RDM_CC_GET_SET);
+  assert(definition->get.handler != NULL || definition->set.handler != NULL);
+  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
+           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
+         definition->description == NULL);
+
+  // Return early if the definition already exists
+  if (rdm_pd_get_definition(definition->pid) != NULL) {
+    return 0;
+  }
+
+  // Add the definition and increment the definition count
+  const uint32_t i = rdm_definition_count;
+  rdm_dictionary[i].definition = definition;
+  rdm_dictionary[i].callback = NULL;
+  // Don't need to set the value of the context pointer yet
+  ++rdm_definition_count;
+
+  return rdm_definition_count;
+}
+
+void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                            rdm_header_t *request_header,
+                            rdm_header_t *response_header) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(pid > 0);
+  assert(request_header != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // Search for a dictionary entry for the parameter
+  const struct rdm_pd_dictionary_s *dict_entry = NULL;
+  for (int i = 0; i < rdm_definition_count; ++i) {
+    if (rdm_dictionary[i].definition->pid == pid) {
+      dict_entry = &rdm_dictionary[i];
+    }
+  }
+  if (dict_entry == NULL || dict_entry->callback == NULL) {
+    return;
+  }
+
+  void *context = dict_entry->context;
+  dict_entry->callback(dmx_num, request_header, response_header, context);
+}
+
+bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback,
+                         void *context) {
+  assert(pid > 0);
+
+  // Search for the definition and add the callback
+  for (int i = 0; i < rdm_definition_count; ++i) {
+    if (rdm_dictionary[i].definition->pid == pid) {
+      rdm_dictionary[i].callback = callback;
+      rdm_dictionary[i].context = context;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
@@ -133,86 +235,6 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   dmx_driver[dmx_num]->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-}
-
-int rdm_pd_set_definition(const rdm_pd_definition_t *definition) {
-  assert(definition != NULL);
-  assert(definition->pid > 0);
-  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
-          definition->ds <= RDM_DS_SIGNED_DWORD) ||
-         (definition->ds >= 0x80 && definition->ds <= 0xdf));
-  assert(definition->pid_cc >= RDM_CC_DISC &&
-         definition->pid_cc <= RDM_CC_GET_SET);
-  assert(definition->get.handler != NULL || definition->set.handler != NULL);
-  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
-           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
-         definition->description == NULL);
-
-  // Return early if the definition already exists
-  if (rdm_pd_get_definition(definition->pid) != NULL) {
-    return 0;
-  }
-
-  // Add the definition and increment the definition count
-  const uint32_t i = rdm_definition_count;
-  rdm_dictionary[i].definition = definition;
-  rdm_dictionary[i].callback = NULL;
-  // Don't need to set the value of the context pointer yet
-  ++rdm_definition_count;
-
-  return rdm_definition_count;
-}
-
-bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback,
-                         void *context) {
-  assert(pid > 0);
-
-  // Search for the definition and add the callback
-  for (int i = 0; i < rdm_definition_count; ++i) {
-    if (rdm_dictionary[i].definition->pid == pid) {
-      rdm_dictionary[i].callback = callback;
-      rdm_dictionary[i].context = context;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid) {
-  assert(pid > 0);
-
-  // Search for and return a pointer to the definition
-  for (int i = 0; i < rdm_definition_count; ++i) {
-    if (rdm_dictionary[i].definition->pid == pid) {
-      return rdm_dictionary[i].definition;
-    }
-  }
-
-  return NULL;
-}
-
-void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                            rdm_header_t *request_header,
-                            rdm_header_t *response_header) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(pid > 0);
-  assert(request_header != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // Search for a dictionary entry for the parameter
-  const struct rdm_pd_dictionary_s *dict_entry = NULL;
-  for (int i = 0; i < rdm_definition_count; ++i) {
-    if (rdm_dictionary[i].definition->pid == pid) {
-      dict_entry = &rdm_dictionary[i];
-    }
-  }
-  if (dict_entry == NULL || dict_entry->callback == NULL) {
-    return;
-  }
-
-  void *context = dict_entry->context;
-  dict_entry->callback(dmx_num, request_header, response_header, context);
 }
 
 size_t rdm_pd_format_get_max_size(const char *format) {
@@ -297,46 +319,65 @@ size_t rdm_pd_format_get_max_size(const char *format) {
   return parameter_size;
 }
 
-const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                                rdm_pid_t pid, bool non_volatile,
-                                const void *init_value, size_t size) {
+/*
+bool rdm_parameter_add_dynamic(dmx_num, sub_device, pid, non_volatile, *init, size)
+bool rdm_parameter_add_static(dmx_num, sub_device, pid, *data)
+
+bool rdm_parameter_exists(dmx_num, sub_device, pid)
+size_t rdm_parameter_copy(dmx_num, sub_device, pid, *dest, size)
+const void *rdm_parameter_get(dmx_num, sub_device, pid)
+bool rdm_parameter_set(dmx_num, sub_device, pid, const *src, size)
+bool rdm_parameter_set_and_queue(dmx_num, sub_device, pid, const *src, size)
+
+Add parameter
+Add and allocate parameter
+
+types:
+  static/dynamic
+  volatile/non-volatile/staged
+  queued/not_queued
+*/
+
+bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid) {
+  // FIXME
+  return true;
+}
+
+bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                               rdm_pid_t pid, bool non_volatile,
+                               const void *init, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
   assert(size > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  // Fail early if a definition has not been defined or PDL == 0
+  // Fail early if this parameter has not been defined
   const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
-  assert(definition != NULL && definition->alloc_size > 0);
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  assert(definition != NULL);
 
   // Return early if the variable already exists
-  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry != NULL) {
-    return entry->data;
+  if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
+    return true;
   }
 
   // Return early if there is no heap space available
-  if (driver->rdm.heap_available < definition->alloc_size) {
-    return NULL;
+  void *data = malloc(definition->alloc_size);
+  if (data == NULL) {
+    // TODO: log error
+    return false;
   }
 
-  // Return early if there are no available entries
-  int flags = RDM_PD_FLAGS_VARIABLE;
-  flags |= non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : 0;
-  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, flags);
+  // Return early if there are no available parameter entries
+  rdm_parameter_t *entry = rdm_pd_add_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
-    return NULL;
+    free(data);
+    return false;
   }
 
-  // Decrement the heap pointer
-  driver->rdm.heap_available -= definition->alloc_size;
-  driver->rdm.heap_ptr -= definition->alloc_size;
-
-  // Assign the parameter data
-  entry->data = driver->rdm.heap_ptr;
+  entry->data = data;
+  // TODO: add flags
 
   // Clamp the size parameter
   if (size > definition->alloc_size) {
@@ -345,88 +386,42 @@ const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Set the initial value of the variable
   if (definition->ds == RDM_DS_ASCII) {
-    strncpy(entry->data, init_value, size);
-  } else if (init_value != NULL) {
-    memcpy(entry->data, init_value, size);
+    strncpy(entry->data, init, size);
+  } else if (init != NULL) {
+    memcpy(entry->data, init, size);
   } else {
     memset(entry->data, 0, size);
   }
 
-  return entry->data;
+  return true;
 }
 
-const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             rdm_pid_t pid, bool non_volatile, rdm_pid_t alias,
-                             size_t offset) {
+bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              rdm_pid_t pid, bool non_volatile, void *data) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  // Fail early if a definition has not been defined or PDL == 0
+  // Fail early if this parameter has not been defined
   const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
-  assert(definition != NULL && definition->alloc_size > 0);
-
-  // Fail early if the alias has not been defined or PDL == 0
-  const rdm_pd_definition_t *alias_def = rdm_pd_get_definition(alias);
-  assert(alias_def != NULL && alias_def->alloc_size > 0);
-
-  // Fail early if there is no space for the alias parameter data
-  assert(definition->alloc_size <= offset + alias_def->alloc_size);
+  assert(definition != NULL);
 
   // Return early if the variable already exists
-  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry != NULL) {
-    return entry->data;
+  if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
+    return true;
   }
 
-  // Return early if the alias variable does not exists or does not have space
-  struct rdm_pd_s *alias_entry = rdm_pd_get_entry(dmx_num, sub_device, alias);
-  if (alias_entry == NULL) {
-    return NULL;
-  }
-
-  // Non-volatile parameters cannot alias const parameters
-  if (alias_entry->flags == RDM_PD_FLAGS_CONST && non_volatile) {
-    non_volatile = false;
-  }
-
-  // Return early if there is not enough space for a new entry
-  int flags = non_volatile ? RDM_PD_FLAGS_NON_VOLATILE : alias_entry->flags;
-  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, flags);
+  // Return early if there are no available parameter entries
+  rdm_parameter_t *entry = rdm_pd_add_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
-    return NULL;
+    return false;
   }
 
-  // Assign the parameter
-  entry->data = alias_entry->data + offset;
-
-  return entry->data;
-}
-
-const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             rdm_pid_t pid, void *data) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < RDM_SUB_DEVICE_MAX);
-  assert(pid > 0);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // Return early if the variable already exists
-  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry != NULL) {
-    return entry->data;
-  }
-
-  // Return early if there is not enough space for a new entry
-  entry = rdm_pd_add_entry(dmx_num, sub_device, pid, RDM_PD_FLAGS_CONST);
-  if (entry == NULL) {
-    return NULL;
-  }
-
-  // Assign the parameter
   entry->data = data;
+  // TODO: add flags
 
-  return data;
+  return true;
 }
 
 const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -436,16 +431,13 @@ const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
   // Find the parameter and return it
-  for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if (driver->rdm.parameters[i].id == pid) {
-      return driver->rdm.parameters[i].data;
-    }
+  rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return NULL;
   }
 
-  return NULL;
+  return entry->data;
 }
 
 size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -458,17 +450,20 @@ size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
   assert(definition != NULL);
 
-  const void *pd_ptr = rdm_pd_get_ptr(dmx_num, sub_device, pid);
-  if (pd_ptr == NULL) {
+  // Find the parameter
+  rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
     return 0;
   }
 
+  // Clamp the parameter size
   if (size > definition->alloc_size) {
     size = definition->alloc_size;
-  }
+  } 
 
+  // Copy the parameter
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  memcpy(destination, pd_ptr, size);
+  memcpy(destination, entry->data, size);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
@@ -489,22 +484,24 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return 0;
   }
 
+  rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return 0;
+  }
+  assert(entry->data != NULL);
+
   // Clamp the write size to the definition size
   if (size > definition->alloc_size) {
     size = definition->alloc_size;
   }
 
-  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry == NULL || entry->flags == RDM_PD_FLAGS_CONST) {
-    return 0;
-  }
-
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
-  if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
-    entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
-    ++dmx_driver[dmx_num]->rdm.staged_count;
-  }
+  // TODO
+  // if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
+  //   entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
+  //   ++dmx_driver[dmx_num]->rdm.staged_count;
+  // }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
@@ -530,10 +527,11 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     size = definition->alloc_size;
   }
 
-  struct rdm_pd_s *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry == NULL || entry->flags == RDM_PD_FLAGS_CONST) {
+  rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
     return 0;
   }
+  assert(entry->data != NULL);
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
@@ -541,10 +539,11 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   memcpy(entry->data, source, size);
   entry->is_queued = true;
   ++driver->rdm.queue_count;
-  if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
-    entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
-    ++dmx_driver[dmx_num]->rdm.staged_count;
-  }
+  // TODO
+  // if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
+  //   entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
+  //   ++dmx_driver[dmx_num]->rdm.staged_count;
+  // }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
@@ -558,16 +557,17 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
 
   rdm_pid_t pid = 0;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver->rdm.queue_count > 0) {
-    for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-      if (driver->rdm.parameters[i].is_queued) {
-        pid = driver->rdm.parameters[i].id;
-        driver->rdm.parameters[i].is_queued = false;
-        --driver->rdm.queue_count;
-        break;
-      }
-    }
-  }
+  // TODO
+  // if (driver->rdm.queue_count > 0) {
+  //   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
+  //     if (driver->rdm.parameters[i].is_queued) {
+  //       pid = driver->rdm.parameters[i].id;
+  //       driver->rdm.parameters[i].is_queued = false;
+  //       --driver->rdm.queue_count;
+  //       break;
+  //     }
+  //   }
+  // }
   driver->rdm.previous_popped = pid;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -617,22 +617,23 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
   }
 
   // Iterate through parameters and commit the first found value to NVS
-  for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-    if (driver->rdm.parameters[i].flags == RDM_PD_FLAGS_NON_VOLATILE_STAGED) {
-      const rdm_pid_t pid = driver->rdm.parameters[i].id;
-      const rdm_pd_definition_t *def = rdm_pd_get_definition(pid);
-      // TODO: implement sub-devices
-      bool success = dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
-                  driver->rdm.parameters[i].data, def->alloc_size);
-      if (success) {
-        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-        driver->rdm.parameters[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
-        --driver->rdm.staged_count;
-        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-      }
-      return driver->rdm.parameters[i].id;
-    }
-  }
+  // TODO
+  // for (int i = 0; i < driver->rdm.parameter_count; ++i) {
+  //   if (driver->rdm.parameters[i].flags == RDM_PD_FLAGS_NON_VOLATILE_STAGED) {
+  //     const rdm_pid_t pid = driver->rdm.parameters[i].id;
+  //     const rdm_pd_definition_t *def = rdm_pd_get_definition(pid);
+  //     // TODO: implement sub-devices
+  //     bool success = dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
+  //                 driver->rdm.parameters[i].data, def->alloc_size);
+  //     if (success) {
+  //       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  //       driver->rdm.parameters[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
+  //       --driver->rdm.staged_count;
+  //       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  //     }
+  //     return driver->rdm.parameters[i].id;
+  //   }
+  // }
 
   return 0;
 }

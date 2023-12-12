@@ -208,9 +208,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  DMX_CHECK(
-      rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO) != NULL,
-      false, "RDM_PID_DEVICE_INFO must be registered first");
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
@@ -235,11 +232,9 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Allocate parameter data
   const bool nvs = true;
-  const size_t offset = offsetof(rdm_device_info_t, dmx_start_address);
-  if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                       RDM_PID_DEVICE_INFO, offset) == NULL) {
-    return false;
-  }
+  const uint16_t init_value = 1;
+  rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
+                            sizeof(init_value));
 
   return rdm_pd_set_callback(pid, cb, context);
 }
@@ -249,8 +244,6 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // FIXME: handle condition where RDM is not supported on this device
 
   return rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DMX_START_ADDRESS,
                     dmx_start_address, sizeof(*dmx_start_address));
@@ -262,8 +255,6 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_start_address > 0 && dmx_start_address < DMX_PACKET_SIZE_MAX, 0,
             "dmx_start_address error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-
-  // FIXME: handle condition where RDM is not supported on this device
 
   return rdm_pd_set_and_queue(dmx_num, RDM_PID_DMX_START_ADDRESS,
                               RDM_SUB_DEVICE_ROOT, &dmx_start_address,

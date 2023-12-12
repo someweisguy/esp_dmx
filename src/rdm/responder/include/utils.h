@@ -40,6 +40,28 @@ typedef struct rdm_pd_definition_s {
   const char *description;
 } rdm_pd_definition_t;
 
+const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid);
+
+// TODO: docs, not thread-safe
+int rdm_pd_set_definition(const rdm_pd_definition_t *definition);
+
+// TODO: docs
+void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+                            rdm_header_t *request_header,
+                            rdm_header_t *response_header);
+
+// TODO: docs, not thread-safe
+bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback, void *context);
+
+// TODO: docs, not thread-safe
+bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                               rdm_pid_t pid, bool non_volatile,
+                               const void *init, size_t size);
+
+// TODO: docs, not thread-safe
+bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              rdm_pid_t pid, bool non_volatile, void *data);
+
 // TODO: docs
 size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
                      const char *format, const void *pd, size_t pdl);
@@ -61,35 +83,7 @@ size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
                               int page);
 */
 
-
-// TODO: docs, not thread-safe
-int rdm_pd_set_definition(const rdm_pd_definition_t *definition);
-
 size_t rdm_pd_format_get_max_size(const char *format);
-
-// TODO: docs, not thread-safe
-bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback, void *context);
-
-const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid);
-
-// TODO: docs
-void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                            rdm_header_t *request_header,
-                            rdm_header_t *response_header);
-
-// TODO: docs, not thread-safe
-const void *rdm_pd_add_variable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                                rdm_pid_t pid, bool non_volatile,
-                                const void *init_value, size_t size);
-
-// TODO: docs, not thread-safe
-const void *rdm_pd_add_alias(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             rdm_pid_t pid, bool non_volatile, rdm_pid_t alias,
-                             size_t offset);
-
-// TODO: docs, not thread-safe
-const void *rdm_pd_add_const(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                             rdm_pid_t pid, void *data);
 
 // TODO: docs, returned pointer is not thread-safe
 const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,

@@ -273,6 +273,17 @@ typedef struct dmx_packet_t {
   int is_rdm;
 } dmx_packet_t;
 
+/** @brief An array of DMX footprints and descriptions where the zeroeth
+ element is the footprint and description for the first personality, the
+ first element is the footprint and description for the second personality,
+ and so on.*/ // TODO: update docs
+typedef struct dmx_personality_s {
+  /** @brief The footprint of the DMX personality.*/
+  uint16_t footprint;
+  /** @brief A description of the DMX personality.*/
+  const char *description;
+} dmx_personality_t;
+
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_s {
   /** @brief This field identifies the device model ID of the root device or
@@ -290,28 +301,12 @@ typedef struct dmx_config_s {
    by this parameter is intended for display to the user.*/
   char *software_version_label;
   // TODO: docs
-  uint32_t personality_count;
-  /** @brief This field sets the size of the RDM responder parameter data. This
-   is a heap-allocated array which stores all the RDM parameter data for the
-   RDM responder. RDM parameter data is then accessed through the rdm_get_ and
-   rdm_set_ functions.*/
-  size_t parameter_heap_size;
+  uint8_t personality_count;
   // TODO: docs
-  uint32_t parameter_count;
+  uint32_t root_device_parameter_count;
   // TODO: docs
   int interrupt_flags;
 } dmx_config_t;
-
-  /** @brief An array of DMX footprints and descriptions where the zeroeth
-   element is the footprint and description for the first personality, the
-   first element is the footprint and description for the second personality,
-   and so on.*/ // TODO: update docs
-typedef struct dmx_personality_s {
-    /** @brief The footprint of the DMX personality.*/
-  uint16_t footprint;
-    /** @brief A description of the DMX personality.*/
-  const char *description;
-} dmx_personality_t;
 
 /** @brief DMX start address which indicates the device does not have a DMX
  * start address.*/

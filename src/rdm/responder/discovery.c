@@ -94,7 +94,9 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_pd_set_definition(&definition);
 
-  // RDM_PID_DISC_UNIQUE_BRANCH does not use parameter data
+  // Add the parameter as a NULL static variable
+  const bool nvs = false;
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL);
 
   return rdm_pd_set_callback(pid, cb, context);
 }
@@ -125,20 +127,9 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
-  const rdm_pid_t alias_pid = RDM_PID_DISC_UN_MUTE;
-  if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, alias_pid) == NULL) {
-    const uint8_t init_value = 0;
-    if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
-                            sizeof(init_value)) == NULL) {
-      return false;
-    }
-  } else {
-    const size_t offset = 0;
-    if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, alias_pid,
-                         offset) == NULL) {
-      return false;
-    }
-  }
+  const uint8_t init_value = 0;
+  rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
+                            sizeof(init_value));
 
   return rdm_pd_set_callback(pid, cb, context);
 }
@@ -167,22 +158,9 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_pd_set_definition(&definition);
 
-  // Add the parameter as a new variable or as an alias to its counterpart
+  // Add the parameter as a NULL static variable
   const bool nvs = false;
-  const rdm_pid_t alias_pid = RDM_PID_DISC_MUTE;
-  if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, alias_pid) == NULL) {
-    const uint8_t init_value = 0;
-    if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
-                            sizeof(init_value)) == NULL) {
-      return false;
-    }
-  } else {
-    const size_t offset = 0;
-    if (rdm_pd_add_alias(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, alias_pid,
-                         offset) == NULL) {
-      return false;
-    }
-  }
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL);
 
   return rdm_pd_set_callback(pid, cb, context);
 }

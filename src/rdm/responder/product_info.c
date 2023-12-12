@@ -8,67 +8,34 @@
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
 
+static size_t rdm_device_info_rh(dmx_port_t dmx_num,
+                                 const rdm_pd_definition_t *def,
+                                 const rdm_header_t *header) {
+  rdm_device_info_t device_info;
+  size_t pdl = rdm_get_device_info(dmx_num, &device_info);
+  if (pdl != sizeof(device_info)) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+  }
+
+  const char *format = def->get.response.format;
+  return rdm_write_ack(dmx_num, header, format, &device_info, pdl);
+}
+
 bool rdm_register_device_info(dmx_port_t dmx_num,
                               rdm_device_info_t *device_info, rdm_callback_t cb,
                               void *context) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO) ==
-      NULL) {
-    // Ensure the user's default value is valid
-    DMX_CHECK(device_info != NULL, false, "device_info is null");
-    DMX_CHECK((device_info->dmx_start_address < DMX_PACKET_SIZE_MAX ||
-               device_info->dmx_start_address == DMX_START_ADDRESS_NONE),
-              false, "dmx_start_address error");
-    DMX_CHECK((device_info->footprint == 0 &&
-               device_info->dmx_start_address == DMX_START_ADDRESS_NONE) ||
-                  (device_info->footprint > 0 &&
-                   device_info->footprint < DMX_PACKET_SIZE_MAX),
-              false, "footprint error");
-    DMX_CHECK((device_info->personality_count == 0 &&
-               device_info->dmx_start_address == DMX_START_ADDRESS_NONE) ||
-                  device_info->personality_count > 0,
-              false, "personality_count error");
-    DMX_CHECK(
-        device_info->current_personality <= device_info->personality_count,
-        false, "current_personality error");
-    // Load the DMX start address from NVS
-    if (device_info->dmx_start_address == 0) {
-      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_START_ADDRESS, RDM_SUB_DEVICE_ROOT,
-                       RDM_DS_UNSIGNED_WORD, &device_info->dmx_start_address,
-                       sizeof(device_info->dmx_start_address))) {
-        device_info->dmx_start_address = 1;
-      }
-    }
-    // Load the current DMX personality from NVS
-    if (device_info->current_personality == 0 &&
-        device_info->dmx_start_address != DMX_START_ADDRESS_NONE) {
-      rdm_dmx_personality_t personality;
-      if (!dmx_nvs_get(dmx_num, RDM_PID_DMX_PERSONALITY, RDM_SUB_DEVICE_ROOT,
-                       RDM_DS_BIT_FIELD, &personality, sizeof(personality)) ||
-          personality.personality_count != device_info->personality_count) {
-        device_info->current_personality = 1;
-      } else {
-        device_info->current_personality = personality.current_personality;
-      }
-      device_info->footprint =
-          dmx_get_footprint(dmx_num, device_info->current_personality);
-    }
-  }
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = sizeof(*device_info),
+      .alloc_size = 0,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_simple_response_handler,
+      .get = {.handler = rdm_device_info_rh,
               .request.format = NULL,
               .response.format = "x01x00wwdwbbwwb$"},
-      .set = {.handler = NULL,
-              .request.format = NULL,
-              .response.format = NULL},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = 0,
       .max_value = 0,
       .min_value = 0,
@@ -77,12 +44,9 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
       .description = NULL};
   rdm_pd_set_definition(&definition);
 
-  // Allocate parameter data
+  // Add the parameter as a NULL static variable
   const bool nvs = false;
-  if (rdm_pd_add_variable(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, device_info,
-                          sizeof(*device_info)) == NULL) {
-    return false;
-  }
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL);
 
   return rdm_pd_set_callback(pid, cb, context);
 }
@@ -92,17 +56,29 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   DMX_CHECK(device_info != NULL, 0, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO,
-                    device_info, sizeof(*device_info));
-}
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
 
+  device_info->model_id = driver->rdm.root_device.model_id;
+  device_info->product_category = driver->rdm.root_device.product_category;
+  device_info->software_version_id = driver->rdm.root_device.software_version_id;
+  const int current_personality = dmx_get_current_personality(dmx_num);
+  device_info->footprint = dmx_get_footprint(dmx_num, current_personality);
+  device_info->current_personality = current_personality;
+  device_info->personality_count = dmx_get_personality_count(dmx_num);
+  device_info->dmx_start_address = dmx_get_start_address(dmx_num);
+  device_info->sub_device_count = 0;  // TODO
+  device_info->sensor_count = 0;      // TODO
+
+  return sizeof(*device_info);
+}
 
 bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
                                rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   // TODO
-  // if (rdm_pd_get(dmx_num, RDM_PID_DEVICE_LABEL, RDM_SUB_DEVICE_ROOT) == NULL) {
+  // if (rdm_pd_get(dmx_num, RDM_PID_DEVICE_LABEL, RDM_SUB_DEVICE_ROOT) == NULL)
+  // {
   //   DMX_CHECK(device_label != NULL, false, "device_label is null");
   //   DMX_CHECK(strnlen(device_label, 33) < 33, false, "device_label error");
   // }
@@ -120,7 +96,8 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   // };
 
   // rdm_pd_add_new(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, device_label);
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
+  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb,
+  // context);
   return false;
 }
 
@@ -157,9 +134,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .get = {.handler = rdm_simple_response_handler,
               .request.format = NULL,
               .response.format = "a$"},
-      .set = {.handler = NULL,
-              .request.format = NULL,
-              .response.format = NULL},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = 0,
       .max_value = 0,
       .min_value = 0,
@@ -168,11 +143,11 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .description = NULL};
   rdm_pd_set_definition(&definition);
 
-  // Allocate parameter data
-  if (rdm_pd_add_const(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                       software_version_label) == NULL) {
-    return false;
-  }
+  // TODO: make argument a `const char*`
+  // Add the parameter as a static variable
+  const bool nvs = false;
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                           software_version_label);
 
   return rdm_pd_set_callback(pid, cb, context);
 }

@@ -119,6 +119,26 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
 };
 
+// TODO: docs
+typedef struct rdm_parameter_s {
+  rdm_pid_t pid;
+  uint8_t storage_type;
+  void *data;
+  bool is_queued;
+} rdm_parameter_t;
+
+typedef struct rdm_device_s {
+  rdm_sub_device_t device_num;
+  struct rdm_device_s *next;
+  
+  // Device information
+  uint16_t model_id;
+  uint16_t product_category;
+  uint32_t software_version_id;
+
+  rdm_parameter_t parameters[];
+} rdm_device_t;
+
 /**
  * @brief Stores the DMX personality information of the DMX driver when RDM is
  * not enabled.*/
@@ -161,41 +181,35 @@ typedef struct dmx_driver_t {
   // DMX configuration
   uint32_t personality_count;  // The number of personalities that the driver has.
   dmx_personality_t *personalities;  // An array of DMX personalities to which the driver may be set.
-
-  struct rdm_driver_t {
-    void *heap_ptr;  // Allocated memory for DMX/RDM parameter data.
-    size_t heap_available;
-
-    uint32_t parameter_max;
-    uint32_t parameter_count;
-    struct rdm_pd_s {
-      rdm_pid_t id;
-      void *data;
-      uint8_t flags;
-      bool is_queued;
-    } *parameters;
-    uint32_t staged_count;
-    uint32_t queue_count;       // The index of the RDM message queue list.
-    rdm_pid_t previous_popped;  // The PID of the last sent queued message.
-
-    uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
-  } rdm;
-
-  // Parameter data
-  // TODO: implement status using space in pd
-  // uint8_t rdm_status_threshold;
-  // struct rdm_status_queue_t {
-  //   uint16_t head;  // The next element to pop
-  //   uint16_t tail;  // The next open space for an element
-  //   rdm_status_message_t queue[RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX];
-  // } rdm_status[3];
-
+  
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
   QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
   int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
   int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
+
+  struct rdm_driver_t {
+    uint32_t staged_count;
+    uint32_t queue_count;       // The index of the RDM message queue list.
+    rdm_pid_t previous_popped;  // The PID of the last sent queued message.
+
+    uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
+
+    uint32_t root_device_parameter_max;
+    uint32_t sub_device_parameter_max;
+
+    rdm_device_t root_device;
+  } rdm;
 } dmx_driver_t;
+
+// Parameter data
+// TODO: implement status using space in pd
+// uint8_t rdm_status_threshold;
+// struct rdm_status_queue_t {
+//   uint16_t head;  // The next element to pop
+//   uint16_t tail;  // The next open space for an element
+//   rdm_status_message_t queue[RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX];
+// } rdm_status[3];
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
