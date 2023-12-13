@@ -147,7 +147,6 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .description = NULL};
   rdm_pd_set_definition(&definition);
 
-  // TODO: make argument a `const char*`
   // Add the parameter as a static variable
   const bool nvs = false;
   rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
