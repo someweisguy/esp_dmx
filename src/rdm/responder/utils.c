@@ -341,7 +341,7 @@ types:
 bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid) {
   // FIXME
-  return true;
+  return false;
 }
 
 bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
