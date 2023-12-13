@@ -122,8 +122,9 @@ enum dmx_flags_t {
 // TODO: docs
 typedef struct rdm_parameter_s {
   rdm_pid_t pid;
-  uint8_t storage_type;
   void *data;
+  uint8_t is_heap_allocated;
+  uint8_t non_volatile;
   bool is_queued;
 } rdm_parameter_t;
 
@@ -138,15 +139,6 @@ typedef struct rdm_device_s {
 
   rdm_parameter_t parameters[];
 } rdm_device_t;
-
-/**
- * @brief Stores the DMX personality information of the DMX driver when RDM is
- * not enabled.*/
-typedef struct dmx_driver_personality_t {
-  uint16_t dmx_start_address;   // The driver's DMX start address.
-  uint8_t current_personality;  // The current personality of the DMX driver.
-  uint8_t personality_count;    // The number of personalities supported.
-} dmx_driver_personality_t;
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
  * the UART port. It storese all the information needed to run and analyze DMX

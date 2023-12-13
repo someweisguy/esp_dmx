@@ -9,10 +9,9 @@
 #include "rdm/uid.h"
 
 enum rdm_pd_flags_e {
-  RDM_PD_FLAGS_VARIABLE = 0,
-  RDM_PD_FLAGS_NON_VOLATILE,
-  RDM_PD_FLAGS_NON_VOLATILE_STAGED,
-  RDM_PD_FLAGS_CONST,
+  RDM_PD_STORAGE_TYPE_VOLATILE = 0,
+  RDM_PD_STORAGE_TYPE_NON_VOLATILE,
+  RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED
 };
 
 // TODO: docs
@@ -320,9 +319,6 @@ size_t rdm_pd_format_get_max_size(const char *format) {
 }
 
 /*
-bool rdm_parameter_add_dynamic(dmx_num, sub_device, pid, non_volatile, *init, size)
-bool rdm_parameter_add_static(dmx_num, sub_device, pid, *data)
-
 bool rdm_parameter_exists(dmx_num, sub_device, pid)
 size_t rdm_parameter_copy(dmx_num, sub_device, pid, *dest, size)
 const void *rdm_parameter_get(dmx_num, sub_device, pid)
@@ -376,8 +372,11 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return false;
   }
 
+  // Configure parameter
   entry->data = data;
-  // TODO: add flags
+  entry->is_heap_allocated = true;
+  entry->non_volatile = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
+                                     : RDM_PD_STORAGE_TYPE_VOLATILE;
 
   // Clamp the size parameter
   if (size > definition->alloc_size) {
@@ -418,8 +417,11 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return false;
   }
 
+  // Configure parameter
   entry->data = data;
-  // TODO: add flags
+  entry->is_heap_allocated = false;
+  entry->non_volatile = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
+                                     : RDM_PD_STORAGE_TYPE_VOLATILE;
 
   return true;
 }
@@ -497,11 +499,10 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
-  // TODO
-  // if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
-  //   entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
-  //   ++dmx_driver[dmx_num]->rdm.staged_count;
-  // }
+  if (entry->non_volatile == RDM_PD_STORAGE_TYPE_NON_VOLATILE) {
+    entry->non_volatile = RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED;
+    ++dmx_driver[dmx_num]->rdm.staged_count;
+  }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
@@ -539,11 +540,10 @@ size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   memcpy(entry->data, source, size);
   entry->is_queued = true;
   ++driver->rdm.queue_count;
-  // TODO
-  // if (entry->flags == RDM_PD_FLAGS_NON_VOLATILE) {
-  //   entry->flags = RDM_PD_FLAGS_NON_VOLATILE_STAGED;
-  //   ++dmx_driver[dmx_num]->rdm.staged_count;
-  // }
+  if (entry->non_volatile == RDM_PD_STORAGE_TYPE_NON_VOLATILE) {
+    entry->non_volatile = RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED;
+    ++dmx_driver[dmx_num]->rdm.staged_count;
+  }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
@@ -555,21 +555,26 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
+  // TODO: reduce potential time spent in critical section
   rdm_pid_t pid = 0;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  // TODO
-  // if (driver->rdm.queue_count > 0) {
-  //   for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-  //     if (driver->rdm.parameters[i].is_queued) {
-  //       pid = driver->rdm.parameters[i].id;
-  //       driver->rdm.parameters[i].is_queued = false;
-  //       --driver->rdm.queue_count;
-  //       break;
-  //     }
-  //   }
-  // }
-  driver->rdm.previous_popped = pid;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (rdm_pd_queue_get_size(dmx_num) > 0) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    rdm_device_t *device = &driver->rdm.root_device;
+    int parameter_count = driver->rdm.root_device_parameter_max;
+    while (device != NULL) {
+      for (int i = 0; i < parameter_count; ++i) {
+        if (device->parameters[i].is_queued) {
+          device->parameters[i].is_queued = false;
+          --driver->rdm.queue_count;
+          driver->rdm.previous_popped = device->parameters[i].pid;
+          pid = device->parameters[i].pid;
+          break;
+        }
+      }
+      parameter_count = driver->rdm.sub_device_parameter_max;
+    }
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  }
 
   return pid;
 }
@@ -616,26 +621,36 @@ rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
     return 0;
   }
 
-  // Iterate through parameters and commit the first found value to NVS
-  // TODO
-  // for (int i = 0; i < driver->rdm.parameter_count; ++i) {
-  //   if (driver->rdm.parameters[i].flags == RDM_PD_FLAGS_NON_VOLATILE_STAGED) {
-  //     const rdm_pid_t pid = driver->rdm.parameters[i].id;
-  //     const rdm_pd_definition_t *def = rdm_pd_get_definition(pid);
-  //     // TODO: implement sub-devices
-  //     bool success = dmx_nvs_set(dmx_num, pid, RDM_SUB_DEVICE_ROOT, def->ds,
-  //                 driver->rdm.parameters[i].data, def->alloc_size);
-  //     if (success) {
-  //       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  //       driver->rdm.parameters[i].flags = RDM_PD_FLAGS_NON_VOLATILE;
-  //       --driver->rdm.staged_count;
-  //       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  //     }
-  //     return driver->rdm.parameters[i].id;
-  //   }
-  // }
+  rdm_sub_device_t sub_device;
+  rdm_pid_t pid = 0;
+  void *data = NULL;
 
-  return 0;
+  // Iterate through parameters and commit the first found value to NVS
+  rdm_device_t *device = &driver->rdm.root_device;
+  for (; device != NULL && pid == 0; device = device->next) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    for (int i = 0; i < driver->rdm.root_device_parameter_max; ++i) {
+      if (device->parameters[i].non_volatile ==
+          RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED) {
+        device->parameters[i].non_volatile = RDM_PD_STORAGE_TYPE_NON_VOLATILE;
+        --driver->rdm.staged_count;
+        sub_device = device->device_num;
+        pid = device->parameters[i].pid;
+        data = device->parameters[i].data;
+        break;
+      }
+    }
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  }
+
+  if (pid > 0) {
+    const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
+    assert(definition != NULL);
+    dmx_nvs_set(dmx_num, pid, sub_device, definition->ds, data,
+                definition->alloc_size);
+  }
+
+  return pid;
 }
 
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
