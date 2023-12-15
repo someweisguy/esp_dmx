@@ -16,7 +16,10 @@ static size_t rdm_rhd_get_supported_parameters(
   int pid_count = 0;
   uint16_t pids[115];
 
-  for (int i = 0; i < 115; ++i) {
+  // Handle situation where parameters overflowed last request
+  int i = 0; // TODO
+
+  for (; i < 115; ++i) {
     uint16_t pid = rdm_parameter_at(dmx_num, header->sub_device, i);
     if (pid == 0) {
       break;
@@ -37,10 +40,10 @@ static size_t rdm_rhd_get_supported_parameters(
     ++pid_count;
   }
 
-  // Handle condition where PID count overflows single RDM packet
-  if (rdm_parameter_at(dmx_num, header->sub_device, 116) != 0) {
-    // TODO
-  }
+  const size_t pdl = pid_count * sizeof(uint16_t);
+  return rdm_write_ack(dmx_num, header, definition->get.response.format, pids,
+                       pdl);
+}
 
   return rdm_write_ack(dmx_num, header, definition->get.response.format, pids,
                        pid_count * sizeof(uint16_t));
