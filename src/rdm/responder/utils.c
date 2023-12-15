@@ -349,17 +349,13 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(size > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  // Fail early if this parameter has not been defined
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
-  assert(definition != NULL);
-
   // Return early if the variable already exists
   if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
     return true;
   }
 
   // Return early if there is no heap space available
-  void *data = malloc(definition->alloc_size);
+  void *data = malloc(size);
   if (data == NULL) {
     // TODO: log error
     return false;
@@ -373,20 +369,14 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Configure parameter
+  entry->size = size;
   entry->data = data;
   entry->is_heap_allocated = true;
   entry->non_volatile = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
                                      : RDM_PD_STORAGE_TYPE_VOLATILE;
 
-  // Clamp the size parameter
-  if (size > definition->alloc_size) {
-    size = definition->alloc_size;
-  }
-
   // Set the initial value of the variable
-  if (definition->ds == RDM_DS_ASCII) {
-    strncpy(entry->data, init, size);
-  } else if (init != NULL) {
+  if (init != NULL) {
     memcpy(entry->data, init, size);
   } else {
     memset(entry->data, 0, size);
@@ -396,15 +386,12 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, bool non_volatile, void *data) {
+                              rdm_pid_t pid, bool non_volatile, void *data,
+                              size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
-
-  // Fail early if this parameter has not been defined
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
-  assert(definition != NULL);
 
   // Return early if the variable already exists
   if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
@@ -418,6 +405,7 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Configure parameter
+  entry->size = size;
   entry->data = data;
   entry->is_heap_allocated = false;
   entry->non_volatile = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE

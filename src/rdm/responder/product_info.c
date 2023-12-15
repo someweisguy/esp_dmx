@@ -46,7 +46,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL);
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return rdm_pd_set_callback(pid, cb, context);
 }
@@ -149,8 +149,9 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   // Add the parameter as a static variable
   const bool nvs = false;
+  const size_t size = strnlen(software_version_label, 32);
   rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                           software_version_label);
+                           software_version_label, size);
 
   return rdm_pd_set_callback(pid, cb, context);
 }

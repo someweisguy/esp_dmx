@@ -96,7 +96,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL);
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return rdm_pd_set_callback(pid, cb, context);
 }
@@ -160,7 +160,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL);
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return rdm_pd_set_callback(pid, cb, context);
 }

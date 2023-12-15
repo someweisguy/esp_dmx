@@ -122,6 +122,7 @@ enum dmx_flags_t {
 // TODO: docs
 typedef struct rdm_parameter_s {
   rdm_pid_t pid;
+  size_t size;
   void *data;
   uint8_t is_heap_allocated;
   uint8_t non_volatile;
