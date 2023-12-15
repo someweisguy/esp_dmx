@@ -74,6 +74,9 @@ bool rdm_register_device_label(dmx_port_t dmx_num,
 */  // TODO: update docs
 size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label, size_t size);
 
+// TODO: docs
+bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,
+                          size_t size);
 /**
  * @brief Registers the default response to RDM_PID_SOFTWARE_VERSION_LABEL
  * requests. This response is required by all RDM-capable devices. It is called

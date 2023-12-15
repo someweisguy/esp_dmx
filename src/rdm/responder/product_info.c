@@ -79,29 +79,37 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
                                rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  // TODO
-  // if (rdm_pd_get(dmx_num, RDM_PID_DEVICE_LABEL, RDM_SUB_DEVICE_ROOT) == NULL)
-  // {
-  //   DMX_CHECK(device_label != NULL, false, "device_label is null");
-  //   DMX_CHECK(strnlen(device_label, 33) < 33, false, "device_label error");
-  // }
 
-  // // Define the parameter
-  // const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
-  // const rdm_pd_definition_t def = {
-  //     .schema = {.data_type = RDM_DS_ASCII,
-  //                .cc = RDM_CC_GET_SET,
-  //                .pdl_size = 33,
-  //                .alloc_size = 33,
-  //                .format = "a$"},
-  //     .nvs = true,
-  //     .response_handler = rdm_response_handler_simple,
-  // };
+  const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
+  if (!rdm_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
+    DMX_CHECK(device_label != NULL, false, "device_label is null");
+    DMX_CHECK(strnlen(device_label, 33) < 33, false, "device_label error");
+  }
 
-  // rdm_pd_add_new(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def, device_label);
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb,
-  // context);
-  return false;
+  // Define the parameter
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .pid_cc = RDM_CC_GET_SET,
+      .ds = RDM_DS_ASCII,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = NULL,
+              .response.format = "a"},
+      .set = {.handler = rdm_simple_response_handler,
+              .request.format = "a",
+              .response.format = NULL},
+      .pdl_size = 32,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_parameter_define(&definition);
+
+  // Allocate parameter data
+  const bool nvs = true;
+  rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                            device_label, strnlen(device_label, 32));
+  return rdm_parameter_callback_set(pid, cb, context);
 }
 
 size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
@@ -112,6 +120,21 @@ size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
 
   return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_LABEL,
                     device_label, size);
+}
+
+bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,
+                          size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
+  if (!rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, device_label,
+                         size)) {
+    return false;
+  }
+  rdm_queue_push(dmx_num, pid);
+
+  return true;
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
