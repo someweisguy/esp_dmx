@@ -43,38 +43,36 @@ static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
   return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
 }
 
-// static int rdm_rhd_dmx_personality_description(dmx_port_t dmx_num,
-//                                                rdm_header_t *header, void *pd,
-//                                                uint8_t *pdl_out,
-//                                                const rdm_pd_schema_t *schema) {
-//   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-//     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
-//     return RDM_RESPONSE_TYPE_NACK_REASON;
-//   }
+static size_t rdm_rhd_get_dmx_personality_description(
+    dmx_port_t dmx_num, const rdm_pd_definition_t *definition,
+    const rdm_header_t *header) {
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
+  }
 
-//   // Get the requested personality number from the parameter data
-//   uint8_t personality_num;
-//   rdm_pd_deserialize(&personality_num, sizeof(personality_num), "b$", pd);
+  // Get the personality number from the packet
+  uint8_t personality_num;
+  if (!rdm_read_pd(dmx_num, definition->get.request.format, &personality_num,
+                   sizeof(personality_num))) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+  }
 
-//   // Ensure the requested personality number is within bounds
-//   if (personality_num < schema->min_value ||
-//       personality_num > schema->max_value) {
-//     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
-//     return RDM_RESPONSE_TYPE_NACK_REASON;
-//   }
+  // Ensure the requested personality number is within range
+  if (personality_num == 0 ||
+      personality_num > dmx_get_personality_count(dmx_num)) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
+  }
 
-//   // Attempt to get the personality description
-//   dmx_personality_description_t pers_desc;
-//   if (!dmx_get_personality_description(dmx_num, personality_num, &pers_desc)) {
-//     // This code should not run
-//     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_DATA_OUT_OF_RANGE);
-//     return RDM_RESPONSE_TYPE_NACK_REASON;
-//   }
+  rdm_dmx_personality_description_t pd;
+  pd.personality_num = personality_num;
+  pd.footprint = dmx_get_footprint(dmx_num, personality_num);
+  const char *desc = dmx_get_personality_description(dmx_num, personality_num);
+  memcpy(pd.description, desc, strnlen(desc, 32));
 
-//   // Emplace the response
-//   *pdl_out = rdm_pd_serialize(pd, 231, schema->format, &pers_desc);
-//   return RDM_RESPONSE_TYPE_ACK;
-// }
+  const size_t pdl = sizeof(pd);
+  return rdm_write_ack(dmx_num, header, definition->get.response.format, &pd,
+                       pdl);
+}
 
 bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context) {
@@ -155,24 +153,34 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // // Define the parameter
-  // const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION;
-  // const rdm_pd_definition_t def = {
-  //     .schema = {.data_type = RDM_DS_ASCII,
-  //                .cc = RDM_CC_GET,
-  //                .pdl_size = 1,
-  //                .min_value = 1,
-  //                .max_value = dmx_get_personality_count(dmx_num),
-  //                .alloc_size = 0,  // Parameter is deterministic
-  //                .format = "bwa$"},
-  //     .nvs = false,
-  //     .response_handler = rdm_rhd_dmx_personality_description,
-  // };
+    // Define the parameter
+  const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION;
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .pid_cc = RDM_CC_GET,
+      .ds = RDM_DS_ASCII,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = "b$",
+              .response.format = "bwa"},
+      .set = {.handler = NULL,
+              .request.format = NULL,
+              .response.format = NULL},
+      .pdl_size = 0,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_parameter_define(&definition);
 
-  // rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
-  //                          rdm_personality_description_wrapper);
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
-  return false;
+  // Allocate parameter data
+  const bool nvs = false;
+  if (!rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL,
+                                0)) {
+    return false;
+  }
+
+  return rdm_parameter_callback_set(pid, cb, context);
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,

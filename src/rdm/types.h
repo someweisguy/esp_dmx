@@ -629,6 +629,13 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_t {
 } rdm_dmx_personality_t;
 
 // TODO: docs
+typedef struct __attribute__((packed)) rdm_dmx_personality_description_s {
+   uint8_t personality_num;
+   uint16_t footprint;
+   char description[33];
+} rdm_dmx_personality_description_t;
+
+// TODO: docs
 typedef struct __attribute__((packed)) rdm_status_message_t {
   uint16_t sub_device;
   uint8_t type;
