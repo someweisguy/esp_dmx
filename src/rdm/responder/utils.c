@@ -318,26 +318,9 @@ size_t rdm_pd_format_get_max_size(const char *format) {
   return parameter_size;
 }
 
-/*
-bool rdm_parameter_exists(dmx_num, sub_device, pid)
-size_t rdm_parameter_copy(dmx_num, sub_device, pid, *dest, size)
-const void *rdm_parameter_get(dmx_num, sub_device, pid)
-bool rdm_parameter_set(dmx_num, sub_device, pid, const *src, size)
-bool rdm_parameter_set_and_queue(dmx_num, sub_device, pid, const *src, size)
-
-Add parameter
-Add and allocate parameter
-
-types:
-  static/dynamic
-  volatile/non-volatile/staged
-  queued/not_queued
-*/
-
 bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid) {
-  // FIXME
-  return false;
+  return (rdm_pd_get_entry(dmx_num, sub_device, pid) != NULL);
 }
 
 bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
