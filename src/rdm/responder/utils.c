@@ -345,7 +345,7 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Return early if there is no heap space available
   void *data = malloc(size);
   if (data == NULL) {
-    // TODO: log error
+    DMX_ERR("RDM parameter malloc error")
     return false;
   }
 
