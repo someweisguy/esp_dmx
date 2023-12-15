@@ -14,7 +14,6 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = sizeof(uint8_t),
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_UNSIGNED_BYTE,
       .get = {.handler = rdm_simple_response_handler,

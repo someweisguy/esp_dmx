@@ -29,7 +29,6 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
   const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = 0,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_device_info_rh,
@@ -132,14 +131,13 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = 32,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_ASCII,
       .get = {.handler = rdm_simple_response_handler,
               .request.format = NULL,
               .response.format = "a$"},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
-      .pdl_size = 0,
+      .pdl_size = 32,
       .max_value = 0,
       .min_value = 0,
       .units = RDM_UNITS_NONE,

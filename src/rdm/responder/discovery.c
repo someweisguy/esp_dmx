@@ -79,7 +79,6 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = 0,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_discovery_default_handler,
@@ -110,7 +109,6 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DISC_MUTE;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = sizeof(uint8_t),
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_discovery_default_handler,
@@ -143,7 +141,6 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = sizeof(uint8_t),
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_discovery_default_handler,

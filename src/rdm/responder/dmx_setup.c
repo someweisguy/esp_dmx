@@ -85,7 +85,6 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = sizeof(rdm_dmx_personality_t),
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_simple_response_handler,
@@ -184,7 +183,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
   static const rdm_pd_definition_t definition = {
       .pid = pid,
-      .alloc_size = sizeof(uint16_t),
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_UNSIGNED_WORD,
       .get = {.handler = rdm_simple_response_handler,

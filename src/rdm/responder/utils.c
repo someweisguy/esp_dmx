@@ -473,6 +473,12 @@ size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return size;
 }
 
+size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid) {
+  // FIXME
+  return 0;
+}
+
 size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             rdm_pid_t pid, const void *source, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
@@ -488,11 +494,6 @@ size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_devi
   // Return early if there is nothing to write
   if (source == NULL || size == 0) {
     return 0;
-  }
-
-  // Clamp the write size to the definition size
-  if (size > definition->alloc_size) {
-    size = definition->alloc_size;
   }
 
   rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
@@ -631,7 +632,7 @@ rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num) {
     const rdm_pd_definition_t *definition = rdm_parameter_lookup(pid);
     assert(definition != NULL);
     dmx_nvs_set(dmx_num, pid, sub_device, definition->ds, data,
-                definition->alloc_size);
+                rdm_parameter_size(dmx_num, sub_device, pid));
   }
 
   return pid;
@@ -648,9 +649,10 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
   const char *format;
   if (header->cc == RDM_CC_GET_COMMAND) {
     // Get the parameter and write it to the RDM bus
+    size_t pdl = rdm_parameter_size(dmx_num, header->sub_device, header->pid);
     const void *pd = rdm_parameter_get(dmx_num, header->sub_device, header->pid);
     format = definition->get.response.format;
-    return rdm_write_ack(dmx_num, header, format, pd, definition->alloc_size);
+    return rdm_write_ack(dmx_num, header, format, pd, pdl);
   } else {
     // Get the parameter from the request and write it to the RDM driver
     uint8_t pd[231];

@@ -30,7 +30,6 @@ bootloader
 // TODO: docs
 typedef struct rdm_pd_definition_s {
   rdm_pid_t pid;
-  size_t alloc_size;
   uint8_t pid_cc;
   uint8_t ds;
   struct {
@@ -108,6 +107,9 @@ size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 // TODO: docs
 size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                          rdm_pid_t pid, const void *source, size_t size);
+
+size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid);
 
 // TODO: docs
 size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num,
