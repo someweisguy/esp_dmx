@@ -13,16 +13,6 @@
 extern "C" {
 #endif
 
-/*
-definition/callbacks
-parameters
-write acks
-simple response handler
-queue
-bootloader
-*/
-
-
 // FIXME
 #define rdm_pd_format_is_valid(f) \
   ((f) != NULL && rdm_format_size(f) > 0)
@@ -49,43 +39,19 @@ typedef struct rdm_pd_definition_s {
   const char *description;
 } rdm_pd_definition_t;
 
-const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
-
 // TODO: docs, not thread-safe
 bool rdm_parameter_define(const rdm_pd_definition_t *definition);
 
-// TODO: docs
-bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
-                                   rdm_header_t *request_header,
-                                   rdm_header_t *response_header);
+const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
 
 // TODO: docs, not thread-safe
 bool rdm_parameter_callback_set(rdm_pid_t pid, rdm_callback_t callback,
                                 void *context);
 
 // TODO: docs
-size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
-                     const char *format, const void *pd, size_t pdl);
-
-// TODO: docs
-size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header, 
-                             rdm_nr_t nack_reason);
-
-// TODO:
-/*
-size_t rdm_write_ack_timer(dmx_port_t dmx_num, const rdm_header_t *header,
-                           TickType_t ready_ticks);
-*/
-
-// TODO:
-/*
-size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
-                              const char *format, const void *pd, size_t pdl,
-                              int page);
-*/
-
-// TODO: make static and move to dmx/io.h?
-size_t rdm_format_size(const char *format);
+bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
+                                   rdm_header_t *request_header,
+                                   rdm_header_t *response_header);
 
 // TODO: docs, not thread-safe
 bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -96,6 +62,12 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               rdm_pid_t pid, bool non_volatile, void *data,
                               size_t size);
+
+bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid);
+
+size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid);
 
 // TODO: docs, returned pointer is not thread-safe
 void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -109,11 +81,29 @@ size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                          rdm_pid_t pid, const void *source, size_t size);
 
-size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                          rdm_pid_t pid);
-
 // TODO: docs, not thread-safe
 rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num);
+
+// TODO: docs
+size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
+                     const char *format, const void *pd, size_t pdl);
+
+// TODO: docs
+size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header, 
+                             rdm_nr_t nack_reason);
+
+/*
+// TODO:
+size_t rdm_write_ack_timer(dmx_port_t dmx_num, const rdm_header_t *header,
+                           TickType_t ready_ticks);
+*/
+
+/*
+// TODO:
+size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
+                              const char *format, const void *pd, size_t pdl,
+                              int page);
+*/
 
 // TODO: docs
 bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid);
@@ -127,13 +117,15 @@ uint8_t rdm_queue_size(dmx_port_t dmx_num);
 // TODO: docs
 rdm_pid_t rdm_queue_previous(dmx_port_t dmx_num);
 
+// TODO: docs
+void rdm_set_boot_loader(dmx_port_t dmx_num);
+
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
                                    const rdm_pd_definition_t *definition,
                                    const rdm_header_t *header);
 
-// TODO: docs
-void rdm_set_boot_loader(dmx_port_t dmx_num);
-
+// TODO: make static and move to dmx/io.h?
+size_t rdm_format_size(const char *format);
 
 #ifdef __cplusplus
 }
