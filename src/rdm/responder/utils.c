@@ -15,7 +15,6 @@ enum rdm_pd_flags_e {
 };
 
 // TODO: docs
-static uint32_t rdm_definition_count = 0;
 static struct rdm_pd_dictionary_s {
   const rdm_pd_definition_t *definition;
   rdm_callback_t callback;
@@ -96,8 +95,10 @@ const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid) {
   assert(pid > 0);
 
   // Search for and return a pointer to the definition
-  for (int i = 0; i < rdm_definition_count; ++i) {
-    if (rdm_dictionary[i].definition->pid == pid) {
+  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+    if (rdm_dictionary[i].definition == NULL) {
+      break;
+    } else if (rdm_dictionary[i].definition->pid == pid) {
       return rdm_dictionary[i].definition;
     }
   }
@@ -118,22 +119,19 @@ int rdm_parameter_define(const rdm_pd_definition_t *definition) {
            definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
          definition->description == NULL);
 
-  // Return early if the definition already exists
-  if (rdm_parameter_lookup(definition->pid) != NULL) {
-    return 0;
+  // Search for the first free entry in the RDM dictionary or overwrite existing
+  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+    if (rdm_dictionary[i].definition == NULL ||
+        rdm_dictionary[i].definition->pid == definition->pid) {
+      rdm_dictionary[i].definition = definition;
+      return true;
+    }
   }
 
-  // Add the definition and increment the definition count
-  const uint32_t i = rdm_definition_count;
-  rdm_dictionary[i].definition = definition;
-  rdm_dictionary[i].callback = NULL;
-  // Don't need to set the value of the context pointer yet
-  ++rdm_definition_count;
-
-  return rdm_definition_count;
+  return false;
 }
 
-void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+bool rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                             rdm_header_t *request_header,
                             rdm_header_t *response_header) {
   assert(dmx_num < DMX_NUM_MAX);
@@ -142,33 +140,35 @@ void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Search for a dictionary entry for the parameter
-  const struct rdm_pd_dictionary_s *dict_entry = NULL;
-  for (int i = 0; i < rdm_definition_count; ++i) {
-    if (rdm_dictionary[i].definition->pid == pid) {
-      dict_entry = &rdm_dictionary[i];
+  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+    if (rdm_dictionary[i].definition == NULL) {
+      return false;  // Definition was not found
+    } else if (rdm_dictionary[i].definition->pid == pid) {
+      void *context = rdm_dictionary[i].context;
+      rdm_dictionary[i].callback(dmx_num, request_header, response_header,
+                                 context);
+      return true;
     }
   }
-  if (dict_entry == NULL || dict_entry->callback == NULL) {
-    return;
-  }
 
-  void *context = dict_entry->context;
-  dict_entry->callback(dmx_num, request_header, response_header, context);
+  return false;
 }
 
 bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback,
                          void *context) {
   assert(pid > 0);
 
-  // Search for the definition and add the callback
-  for (int i = 0; i < rdm_definition_count; ++i) {
-    if (rdm_dictionary[i].definition->pid == pid) {
+  // Search for a dictionary entry for the parameter
+  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+    if (rdm_dictionary[i].definition == NULL) {
+      return false;  // Definition was not found
+    } else if (rdm_dictionary[i].definition->pid == pid) {
       rdm_dictionary[i].callback = callback;
       rdm_dictionary[i].context = context;
       return true;
     }
   }
-
+  
   return false;
 }
 

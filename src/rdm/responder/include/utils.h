@@ -55,7 +55,7 @@ const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
 int rdm_parameter_define(const rdm_pd_definition_t *definition);
 
 // TODO: docs
-void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
+bool rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
                             rdm_header_t *request_header,
                             rdm_header_t *response_header);
 
