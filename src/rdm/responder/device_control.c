@@ -55,7 +55,12 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, const bool identify) {
   DMX_CHECK(identify == 0 || identify == 1, 0, "identify error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_parameter_set_and_queue(dmx_num, RDM_SUB_DEVICE_ROOT,
-                              RDM_PID_IDENTIFY_DEVICE, &identify,
-                              sizeof(uint8_t));
+  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
+  if (!rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &identify,
+                         sizeof(uint8_t))) {
+    return false;
+  }
+  rdm_queue_push(dmx_num, pid);
+  
+  return true;
 }

@@ -140,10 +140,11 @@ bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num) {
     return false;
   }
   personality.current_personality = personality_num;
-  if (!rdm_parameter_set_and_queue(dmx_num, sub_device, pid, &personality,
-                            sizeof(personality))) {
+  if (!rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &personality,
+                         sizeof(personality))) {
     return false;
   }
+  rdm_queue_push(dmx_num, pid);
 
   return true;
 }
@@ -225,7 +226,12 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
             "dmx_start_address error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_parameter_set_and_queue(dmx_num, RDM_PID_DMX_START_ADDRESS,
-                              RDM_SUB_DEVICE_ROOT, &dmx_start_address,
-                              sizeof(dmx_start_address));
+  const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
+  if (!rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &dmx_start_address,
+                         sizeof(dmx_start_address))) {
+    return false;
+  }
+  rdm_queue_push(dmx_num, pid);
+
+  return true;
 }

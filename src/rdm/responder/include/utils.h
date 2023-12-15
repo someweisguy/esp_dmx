@@ -111,11 +111,6 @@ size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid);
 
-// TODO: docs
-size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num,
-                                   rdm_sub_device_t sub_device, rdm_pid_t pid,
-                                   const void *source, size_t size);
-
 // TODO: docs, not thread-safe
 rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num);
 

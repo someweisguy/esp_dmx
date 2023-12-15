@@ -488,44 +488,6 @@ size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return entry->size;
 }
 
-size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            rdm_pid_t pid, const void *source, size_t size) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(sub_device < RDM_SUB_DEVICE_MAX);
-  assert(pid > 0);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // FIXME: remove this function?
-
-  const rdm_pd_definition_t *definition = rdm_parameter_lookup(pid);
-  assert(definition != NULL);
-
-  // Return early if there is nothing to write
-  if (source == NULL || size == 0) {
-    return 0;
-  }
-
-  rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
-  if (entry == NULL) {
-    return 0;
-  }
-  assert(entry->data != NULL);
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  memcpy(entry->data, source, size);
-  entry->is_queued = true;
-  ++driver->rdm.queue_count;
-  if (entry->non_volatile == RDM_PD_STORAGE_TYPE_NON_VOLATILE) {
-    entry->non_volatile = RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED;
-    ++dmx_driver[dmx_num]->rdm.staged_count;
-  }
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  return size;
-}
-
 bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(pid > 0);
