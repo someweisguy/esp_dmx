@@ -5,9 +5,9 @@
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
 
-static size_t rdm_rhd_queued_message(dmx_port_t dmx_num,
-                                     const rdm_pd_definition_t *definition,
-                                     const rdm_header_t *header) {
+static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
+                                         const rdm_pd_definition_t *definition,
+                                         const rdm_header_t *header) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     return rdm_write_nack_reason(dmx_num, header,
                                  RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
@@ -57,7 +57,7 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
       .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_simple_response_handler,
+      .get = {.handler = rdm_rhd_get_queued_message,
               .request.format = NULL,
               .response.format = "b$"},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
