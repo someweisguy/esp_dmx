@@ -320,6 +320,11 @@ size_t rdm_format_size(const char *format) {
 
 bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+
   return (rdm_pd_get_entry(dmx_num, sub_device, pid) != NULL);
 }
 
