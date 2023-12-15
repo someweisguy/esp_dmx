@@ -42,7 +42,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(&definition);
+  rdm_parameter_define(&definition);
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
@@ -145,7 +145,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(&definition);
+  rdm_parameter_define(&definition);
 
   // Add the parameter as a static variable
   const bool nvs = false;

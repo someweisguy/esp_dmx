@@ -29,7 +29,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_pd_set_definition(&definition);
+  rdm_parameter_define(&definition);
 
   // Allocate parameter data
   const bool nvs = true;

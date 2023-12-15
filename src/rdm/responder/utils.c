@@ -92,7 +92,7 @@ static struct rdm_parameter_s *rdm_pd_add_entry(dmx_port_t dmx_num,
   return entry;
 }
 
-const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid) {
+const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid) {
   assert(pid > 0);
 
   // Search for and return a pointer to the definition
@@ -105,7 +105,7 @@ const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid) {
   return NULL;
 }
 
-int rdm_pd_set_definition(const rdm_pd_definition_t *definition) {
+int rdm_parameter_define(const rdm_pd_definition_t *definition) {
   assert(definition != NULL);
   assert(definition->pid > 0);
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
@@ -119,7 +119,7 @@ int rdm_pd_set_definition(const rdm_pd_definition_t *definition) {
          definition->description == NULL);
 
   // Return early if the definition already exists
-  if (rdm_pd_get_definition(definition->pid) != NULL) {
+  if (rdm_parameter_lookup(definition->pid) != NULL) {
     return 0;
   }
 
@@ -420,9 +420,6 @@ size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
-  assert(definition != NULL);
-
   // Find the parameter
   rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
@@ -430,8 +427,8 @@ size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Clamp the parameter size
-  if (size > definition->alloc_size) {
-    size = definition->alloc_size;
+  if (size > entry->size) {
+    size = entry->size;
   } 
 
   // Copy the parameter
@@ -449,9 +446,6 @@ size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
-  assert(definition != NULL);
-
   // Return early if there is nothing to write
   if (source == NULL || size == 0) {
     return 0;
@@ -464,8 +458,8 @@ size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(entry->data != NULL);
 
   // Clamp the write size to the definition size
-  if (size > definition->alloc_size) {
-    size = definition->alloc_size;
+  if (size > entry->size) {
+    size = entry->size;
   }
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -486,7 +480,9 @@ size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_devi
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
+  // FIXME: remove this function?
+
+  const rdm_pd_definition_t *definition = rdm_parameter_lookup(pid);
   assert(definition != NULL);
 
   // Return early if there is nothing to write
@@ -615,7 +611,7 @@ rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num) {
   }
 
   if (pid > 0) {
-    const rdm_pd_definition_t *definition = rdm_pd_get_definition(pid);
+    const rdm_pd_definition_t *definition = rdm_parameter_lookup(pid);
     assert(definition != NULL);
     dmx_nvs_set(dmx_num, pid, sub_device, definition->ds, data,
                 definition->alloc_size);

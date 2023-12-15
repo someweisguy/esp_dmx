@@ -13,6 +13,15 @@
 extern "C" {
 #endif
 
+/*
+definition/callbacks
+parameters
+write acks
+queue
+bootloader
+*/
+
+
 // FIXME
 #define rdm_pd_format_is_valid(f) \
   ((f) != NULL && rdm_pd_format_get_max_size(f) > 0)
@@ -40,10 +49,10 @@ typedef struct rdm_pd_definition_s {
   const char *description;
 } rdm_pd_definition_t;
 
-const rdm_pd_definition_t *rdm_pd_get_definition(rdm_pid_t pid);
+const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
 
 // TODO: docs, not thread-safe
-int rdm_pd_set_definition(const rdm_pd_definition_t *definition);
+int rdm_parameter_define(const rdm_pd_definition_t *definition);
 
 // TODO: docs
 void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
