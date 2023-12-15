@@ -3,47 +3,48 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "endian.h"
+#include "rdm/responder/include/utils.h"
 
-// static int rdm_rhd_supported_parameters(dmx_port_t dmx_num,
-//                                         rdm_header_t *header, void *pd,
-//                                         uint8_t *pdl_out,
-//                                         const rdm_pd_schema_t *schema) {
-//   // Return early if the sub-device is out of range
-//   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-//     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
-//     return RDM_RESPONSE_TYPE_NACK_REASON;
-//   }
+static size_t rdm_rhd_get_supported_parameters(
+    dmx_port_t dmx_num, const rdm_pd_definition_t *definition,
+    const rdm_header_t *header) {
+  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    return rdm_write_nack_reason(dmx_num, header,
+                                 RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+  }
 
-//   // Copy all PIDs into a temporary buffer
-//   uint16_t pids[RDM_RESPONDER_NUM_PIDS_MAX];
-//   size_t len = rdm_pd_list(dmx_num, header->sub_device, pids, sizeof(pids));
-//   if (len == 0) {
-//     *pdl_out = rdm_pd_serialize_word(pd, RDM_NR_HARDWARE_FAULT);
-//     return RDM_RESPONSE_TYPE_NACK_REASON;
-//   }
+  int pid_count = 0;
+  uint16_t pids[115];
 
-//   // Emplace the PIDs into the parameter data
-//   for (int i = 0; i < (len * sizeof(uint16_t)) && *pdl_out < 230; ++i) {
-//     switch (pids[i]) {
-//       case RDM_PID_DISC_UNIQUE_BRANCH:
-//       case RDM_PID_DISC_MUTE:
-//       case RDM_PID_DISC_UN_MUTE:
-//       case RDM_PID_SUPPORTED_PARAMETERS:
-//       case RDM_PID_PARAMETER_DESCRIPTION:
-//       case RDM_PID_DEVICE_INFO:
-//       case RDM_PID_SOFTWARE_VERSION_LABEL:
-//       case RDM_PID_DMX_START_ADDRESS:
-//       case RDM_PID_IDENTIFY_DEVICE:
-//         // Minimum required PIDs are not reported
-//         continue;
-//       default:
-//         *pdl_out += rdm_pd_serialize_word(pd, pids[i]);
-//         pd += sizeof(uint16_t);
-//     }
-//   }
+  for (int i = 0; i < 115; ++i) {
+    uint16_t pid = rdm_parameter_at(dmx_num, header->sub_device, i);
+    if (pid == 0) {
+      break;
+    }
+    switch (pid) {
+      case RDM_PID_DISC_UNIQUE_BRANCH:
+      case RDM_PID_DISC_MUTE:
+      case RDM_PID_DISC_UN_MUTE:
+      case RDM_PID_SUPPORTED_PARAMETERS:
+      case RDM_PID_PARAMETER_DESCRIPTION:
+      case RDM_PID_DEVICE_INFO:
+      case RDM_PID_SOFTWARE_VERSION_LABEL:
+      case RDM_PID_DMX_START_ADDRESS:
+      case RDM_PID_IDENTIFY_DEVICE:
+        continue;  // Minimum required PIDs are not reported
+    }
+    pids[pid_count] = pid;
+    ++pid_count;
+  }
 
-//   return RDM_RESPONSE_TYPE_ACK;
-// }
+  // Handle condition where PID count overflows single RDM packet
+  if (rdm_parameter_at(dmx_num, header->sub_device, 116) != 0) {
+    // TODO
+  }
+
+  return rdm_write_ack(dmx_num, header, definition->get.response.format, pids,
+                       pid_count * sizeof(uint16_t));
+}
 
 // static int rdm_rhd_parameter_description(dmx_port_t dmx_num,
 //                                          rdm_header_t *header, void *pd,
@@ -70,27 +71,35 @@
 //   return RDM_RESPONSE_TYPE_ACK;
 // }
 
-// bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
-//                                        void *context) {
-//   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-//   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
+                                       void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-//   // Define the parameter
-//   const rdm_pid_t pid = RDM_PID_SUPPORTED_PARAMETERS;
-//   const rdm_pd_definition_t def = {
-//       .schema = {.data_type = RDM_DS_UNSIGNED_WORD,
-//                  .cc = RDM_CC_GET,
-//                  .pdl_size = 0,
-//                  .alloc_size = 0,  // Parameter is deterministic
-//                  .format = "w"},
-//       .nvs = false,
-//       .response_handler = rdm_rhd_supported_parameters,
-//   };
+  // Define the parameter
+  const rdm_pid_t pid = RDM_PID_SUPPORTED_PARAMETERS;
+  static const rdm_pd_definition_t definition = {
+      .pid = pid,
+      .pid_cc = RDM_CC_GET,
+      .ds = RDM_DS_UNSIGNED_WORD,
+      .get = {.handler = rdm_rhd_get_supported_parameters,
+              .request.format = NULL,
+              .response.format = "w"},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
+      .pdl_size = 0,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_parameter_define(&definition);
 
-//   rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
-//                            rdm_pd_list);
-//   return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
-// }
+  // Add the parameter as a NULL static variable
+  const bool nvs = false;
+  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+
+  return true;
+}
 
 bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
                                         void *context) {
@@ -111,6 +120,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // rdm_pd_add_deterministic(dmx_num, pid, RDM_SUB_DEVICE_ROOT, &def,
   //                          rdm_pd_get_description);
-  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb, context);
+  // return rdm_pd_update_callback(dmx_num, pid, RDM_SUB_DEVICE_ROOT, cb,
+  // context);
   return false;
 }
