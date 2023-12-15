@@ -55,12 +55,13 @@ const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
 bool rdm_parameter_define(const rdm_pd_definition_t *definition);
 
 // TODO: docs
-bool rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                            rdm_header_t *request_header,
-                            rdm_header_t *response_header);
+bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
+                                   rdm_header_t *request_header,
+                                   rdm_header_t *response_header);
 
 // TODO: docs, not thread-safe
-bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback, void *context);
+bool rdm_parameter_callback_set(rdm_pid_t pid, rdm_callback_t callback,
+                                void *context);
 
 // TODO: docs
 size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,

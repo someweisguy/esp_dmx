@@ -656,7 +656,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Set the response header to NULL if an RDM header can't be read
     memset(&response_header, 0, sizeof(response_header));
   }
-  rdm_pd_handle_callback(dmx_num, header.pid, &header, &response_header);
+  rdm_parameter_callback_handle(dmx_num, header.pid, &header, &response_header);
 
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);

@@ -110,7 +110,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
     return false;
   }
 
-  return rdm_pd_set_callback(pid, cb, context);
+  return rdm_parameter_callback_set(pid, cb, context);
 }
 
 size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
@@ -206,7 +206,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
                             sizeof(init_value));
 
-  return rdm_pd_set_callback(pid, cb, context);
+  return rdm_parameter_callback_set(pid, cb, context);
 }
 
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,

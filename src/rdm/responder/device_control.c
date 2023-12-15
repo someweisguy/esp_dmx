@@ -38,7 +38,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
     return false;
   }
 
-  return rdm_pd_set_callback(pid, cb, context);
+  return rdm_parameter_callback_set(pid, cb, context);
 }
 
 size_t rdm_get_identify_device(dmx_port_t dmx_num, bool *identify) {

@@ -131,9 +131,9 @@ bool rdm_parameter_define(const rdm_pd_definition_t *definition) {
   return false;
 }
 
-bool rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
-                            rdm_header_t *request_header,
-                            rdm_header_t *response_header) {
+bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
+                                   rdm_header_t *request_header,
+                                   rdm_header_t *response_header) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(pid > 0);
   assert(request_header != NULL);
@@ -154,8 +154,8 @@ bool rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
   return false;
 }
 
-bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback,
-                         void *context) {
+bool rdm_parameter_callback_set(rdm_pid_t pid, rdm_callback_t callback,
+                                void *context) {
   assert(pid > 0);
 
   // Search for a dictionary entry for the parameter
