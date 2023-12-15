@@ -516,6 +516,23 @@ size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_devi
   return size;
 }
 
+bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  entry->is_queued = true;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return true;
+}
+
 rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));

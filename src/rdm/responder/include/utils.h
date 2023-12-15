@@ -117,6 +117,9 @@ size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num,
 rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num);
 
 // TODO: docs
+bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid);
+
+// TODO: docs
 rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num);
 
 // TODO: docs
