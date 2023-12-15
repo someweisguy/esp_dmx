@@ -98,8 +98,8 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               size_t size);
 
 // TODO: docs, returned pointer is not thread-safe
-const void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid);                  
+void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                        rdm_pid_t pid);
 
 // TODO: docs
 size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,

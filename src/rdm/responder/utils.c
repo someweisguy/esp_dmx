@@ -397,8 +397,8 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-const void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           rdm_pid_t pid) {
+void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                        rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
