@@ -17,6 +17,7 @@ extern "C" {
 definition/callbacks
 parameters
 write acks
+simple response handler
 queue
 bootloader
 */
@@ -116,13 +117,13 @@ size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num,
 rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num);
 
 // TODO: docs
-rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num);
+rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num);
 
 // TODO: docs
-uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num);
+uint8_t rdm_queue_size(dmx_port_t dmx_num);
 
 // TODO: docs
-rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num);
+rdm_pid_t rdm_queue_previous(dmx_port_t dmx_num);
 
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
                                    const rdm_pd_definition_t *definition,

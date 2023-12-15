@@ -190,7 +190,7 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
     .src_uid = *rdm_uid_get(dmx_num),
     .tn = header->tn,
     .response_type = RDM_RESPONSE_TYPE_ACK,
-    .message_count = rdm_pd_queue_get_size(dmx_num),
+    .message_count = rdm_queue_size(dmx_num),
     .sub_device = header->sub_device,
     .cc = (header->cc | 0x1),  // Set to RDM_CC_x_COMMAND_RESPONSE
     .pid = header->pid,
@@ -217,7 +217,7 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
     .src_uid = *rdm_uid_get(dmx_num),
     .tn = header->tn,
     .response_type = RDM_RESPONSE_TYPE_NACK_REASON,
-    .message_count = rdm_pd_queue_get_size(dmx_num),
+    .message_count = rdm_queue_size(dmx_num),
     .sub_device = header->sub_device,
     .cc = (header->cc | 0x1),  // Set to RDM_CC_x_COMMAND_RESPONSE
     .pid = header->pid,
@@ -516,7 +516,7 @@ size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_devi
   return size;
 }
 
-rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
+rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -524,7 +524,7 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
 
   // TODO: reduce potential time spent in critical section
   rdm_pid_t pid = 0;
-  if (rdm_pd_queue_get_size(dmx_num) > 0) {
+  if (rdm_queue_size(dmx_num) > 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     rdm_device_t *device = &driver->rdm.root_device;
     int parameter_count = driver->rdm.root_device_parameter_max;
@@ -546,7 +546,7 @@ rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num) {
   return pid;
 }
 
-uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num) {
+uint8_t rdm_queue_size(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -563,7 +563,7 @@ uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num) {
   return size;
 }
 
-rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num) {
+rdm_pid_t rdm_queue_previous(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
