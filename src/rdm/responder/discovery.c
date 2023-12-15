@@ -17,7 +17,7 @@ static size_t rdm_discovery_default_handler(
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Return early if this device is muted
     uint8_t is_muted = 1;  // Don't respond if an error occurs
-    rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &is_muted,
+    rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &is_muted,
                sizeof(is_muted));
     if (is_muted) {
       return 0;
@@ -40,7 +40,7 @@ static size_t rdm_discovery_default_handler(
   } else {
     // Set or unset the mute parameter
     const uint8_t set_mute = (header->pid == RDM_PID_DISC_MUTE);
-    rdm_pd_set(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &set_mute,
+    rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &set_mute,
                sizeof(set_mute));
 
     // Get the binding UID of this device

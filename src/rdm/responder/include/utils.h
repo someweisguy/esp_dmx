@@ -53,15 +53,6 @@ void rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,
 // TODO: docs, not thread-safe
 bool rdm_pd_set_callback(rdm_pid_t pid, rdm_callback_t callback, void *context);
 
-// TODO: docs, not thread-safe
-bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                               rdm_pid_t pid, bool non_volatile,
-                               const void *init, size_t size);
-
-// TODO: docs, not thread-safe
-bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, bool non_volatile, void *data);
-
 // TODO: docs
 size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
                      const char *format, const void *pd, size_t pdl);
@@ -85,21 +76,34 @@ size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
 
 size_t rdm_pd_format_get_max_size(const char *format);
 
+// TODO: docs, not thread-safe
+bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                               rdm_pid_t pid, bool non_volatile,
+                               const void *init, size_t size);
+
+// TODO: docs, not thread-safe
+bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              rdm_pid_t pid, bool non_volatile, void *data);
+
 // TODO: docs, returned pointer is not thread-safe
-const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                           rdm_pid_t pid);
+const void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              rdm_pid_t pid);                  
 
 // TODO: docs
-size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                  rdm_pid_t pid, void *destination, size_t size);
+size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid, void *destination, size_t size);
 
 // TODO: docs
-size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                  rdm_pid_t pid, const void *source, size_t size);
+size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                         rdm_pid_t pid, const void *source, size_t size);
 
 // TODO: docs
-size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            rdm_pid_t pid, const void *source, size_t size);
+size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num,
+                                   rdm_sub_device_t sub_device, rdm_pid_t pid,
+                                   const void *source, size_t size);
+
+// TODO: docs, not thread-safe
+rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num);
 
 // TODO: docs
 rdm_pid_t rdm_pd_queue_pop(dmx_port_t dmx_num);
@@ -109,9 +113,6 @@ uint8_t rdm_pd_queue_get_size(dmx_port_t dmx_num);
 
 // TODO: docs
 rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num);
-
-// TODO: docs, not thread-safe
-rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num);
 
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
                                    const rdm_pd_definition_t *definition,

@@ -111,7 +111,7 @@ size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
   DMX_CHECK(device_label != NULL, false, "device_label is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_LABEL,
+  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_LABEL,
                     device_label, size);
 }
 
@@ -120,7 +120,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  if (rdm_pd_get_ptr(dmx_num, RDM_SUB_DEVICE_ROOT,
+  if (rdm_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
                      RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
@@ -164,7 +164,7 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num,
   DMX_CHECK(size > 0, 0, "size error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_pd_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
                     RDM_PID_SOFTWARE_VERSION_LABEL, software_version_label,
                     size);
 }

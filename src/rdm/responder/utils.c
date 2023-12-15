@@ -426,7 +426,7 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+const void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -442,7 +442,7 @@ const void *rdm_pd_get_ptr(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return entry->data;
 }
 
-size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                   rdm_pid_t pid, void *destination, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -471,7 +471,7 @@ size_t rdm_pd_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return size;
 }
 
-size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                   rdm_pid_t pid, const void *source, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -508,7 +508,7 @@ size_t rdm_pd_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return size;
 }
 
-size_t rdm_pd_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             rdm_pid_t pid, const void *source, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -610,7 +610,7 @@ rdm_pid_t rdm_pd_queue_get_last_message(dmx_port_t dmx_num) {
   return pid;
 }
 
-rdm_pid_t rdm_pd_nvs_commit(dmx_port_t dmx_num) {
+rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -664,7 +664,7 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
   const char *format;
   if (header->cc == RDM_CC_GET_COMMAND) {
     // Get the parameter and write it to the RDM bus
-    const void *pd = rdm_pd_get_ptr(dmx_num, header->sub_device, header->pid);
+    const void *pd = rdm_parameter_get(dmx_num, header->sub_device, header->pid);
     format = definition->get.response.format;
     return rdm_write_ack(dmx_num, header, format, pd, definition->alloc_size);
   } else {
@@ -672,7 +672,7 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
     uint8_t pd[231];
     format = definition->set.request.format;
     size_t size = rdm_read_pd(dmx_num, format, pd, header->pdl);
-    rdm_pd_set(dmx_num, header->sub_device, header->pid, pd, size);
+    rdm_parameter_set(dmx_num, header->sub_device, header->pid, pd, size);
     return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
   }
 }
