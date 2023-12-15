@@ -322,6 +322,34 @@ bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return (rdm_parameter_get_entry(dmx_num, sub_device, pid) != NULL);
 }
 
+rdm_pid_t rdm_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                           uint32_t index) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Return early if the parameter index is out of bounds
+  if ((sub_device == RDM_SUB_DEVICE_ROOT &&
+       index > driver->rdm.root_device_parameter_max) ||
+      (sub_device > RDM_SUB_DEVICE_ROOT &&
+       index > driver->rdm.sub_device_parameter_max)) {
+    return 0;
+  }
+
+  // Find the desired sub-device number
+  rdm_device_t *device = &driver->rdm.root_device;
+  while (device->device_num != sub_device) {
+    device = device->next;
+    if (device == NULL) {
+      return 0;  // Sub-device does not exist
+    }
+  }
+
+  return device->parameters[index].pid;
+}
+
 size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
