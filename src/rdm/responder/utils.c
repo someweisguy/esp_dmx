@@ -236,7 +236,7 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 }
 
-size_t rdm_pd_format_get_max_size(const char *format) {
+size_t rdm_format_size(const char *format) {
   size_t parameter_size = 0;
 
   bool format_is_terminated = false;

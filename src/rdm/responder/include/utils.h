@@ -25,7 +25,7 @@ bootloader
 
 // FIXME
 #define rdm_pd_format_is_valid(f) \
-  ((f) != NULL && rdm_pd_format_get_max_size(f) > 0)
+  ((f) != NULL && rdm_format_size(f) > 0)
 
 // TODO: docs
 typedef struct rdm_pd_definition_s {
@@ -84,7 +84,8 @@ size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
                               int page);
 */
 
-size_t rdm_pd_format_get_max_size(const char *format);
+// TODO: make static and move to dmx/io.h?
+size_t rdm_format_size(const char *format);
 
 // TODO: docs, not thread-safe
 bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
