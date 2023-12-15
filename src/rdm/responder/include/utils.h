@@ -52,7 +52,7 @@ typedef struct rdm_pd_definition_s {
 const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
 
 // TODO: docs, not thread-safe
-int rdm_parameter_define(const rdm_pd_definition_t *definition);
+bool rdm_parameter_define(const rdm_pd_definition_t *definition);
 
 // TODO: docs
 bool rdm_pd_handle_callback(dmx_port_t dmx_num, rdm_pid_t pid,

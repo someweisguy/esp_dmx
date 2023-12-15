@@ -106,7 +106,7 @@ const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid) {
   return NULL;
 }
 
-int rdm_parameter_define(const rdm_pd_definition_t *definition) {
+bool rdm_parameter_define(const rdm_pd_definition_t *definition) {
   assert(definition != NULL);
   assert(definition->pid > 0);
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
