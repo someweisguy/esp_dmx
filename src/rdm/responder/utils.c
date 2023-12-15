@@ -475,8 +475,17 @@ size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
 size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid) {
-  // FIXME
-  return 0;
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+  
+  rdm_parameter_t *entry = rdm_pd_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return 0;
+  }
+
+  return entry->size;
 }
 
 size_t rdm_parameter_set_and_queue(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
