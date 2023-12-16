@@ -1,5 +1,7 @@
 #include "rdm/responder/include/dmx_setup.h"
 
+#include <string.h>
+
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/io.h"
