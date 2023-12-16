@@ -125,7 +125,7 @@ typedef struct rdm_parameter_s {
   size_t size;
   void *data;
   uint8_t is_heap_allocated;
-  uint8_t non_volatile;
+  uint8_t storage_type;
   bool is_queued;
 } rdm_parameter_t;
 
