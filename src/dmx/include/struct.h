@@ -22,9 +22,6 @@
 extern "C" {
 #endif
 
-/** @brief DMX port max. Used for error checking.*/
-#define DMX_NUM_MAX SOC_UART_NUM
-
 /** @brief Used for argument checking at the beginning of each function.*/
 #define DMX_CHECK(a, err_code, format, ...) \
   ESP_RETURN_ON_FALSE(a, err_code, TAG, format, ##__VA_ARGS__)
@@ -40,6 +37,9 @@ extern "C" {
   do {                                    \
     ESP_LOGW(TAG, format, ##__VA_ARGS__); \
   } while (0);
+
+/** @brief DMX port max. Used for error checking.*/
+#define DMX_NUM_MAX SOC_UART_NUM
 
 #ifdef CONFIG_RDM_DEVICE_UID_MAN_ID
 /** @brief This is the RDM Manufacturer ID used with this library. It may be set
