@@ -69,7 +69,7 @@ static size_t rdm_rhd_get_parameter_description(
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
   }
 
-  rdm_pid_description_t pd;
+  rdm_parameter_description_t pd;
   pd.pid = pid;
   pd.pdl_size = requested_definition->pdl_size;
   pd.data_type = requested_definition->ds;
@@ -115,6 +115,48 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
   return true;
 }
 
+size_t rdm_get_supported_parameters(dmx_port_t dmx_num, uint16_t *pids, size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  int i = 0;
+  uint32_t pid_count = 0;
+
+  // Write PIDs to the destination buffer
+  if (pids == NULL) {
+    size = 0;  // Guard against null pointer writes
+  } else if (size % sizeof(uint16_t) != 0) {
+    size -= 1;
+  }
+  for (; size > 0; size -= sizeof(uint16_t)) {
+    uint16_t pid = rdm_parameter_at(dmx_num, RDM_SUB_DEVICE_ROOT, i);
+    if (pid == 0) {
+      break;
+    }
+    switch (pid) {
+      case RDM_PID_DISC_UNIQUE_BRANCH:
+      case RDM_PID_DISC_MUTE:
+      case RDM_PID_DISC_UN_MUTE:
+      case RDM_PID_SUPPORTED_PARAMETERS:
+      case RDM_PID_PARAMETER_DESCRIPTION:
+      case RDM_PID_DEVICE_INFO:
+      case RDM_PID_SOFTWARE_VERSION_LABEL:
+      case RDM_PID_DMX_START_ADDRESS:
+      case RDM_PID_IDENTIFY_DEVICE:
+        continue;  // Minimum required PIDs are not reported
+    }
+    pids[pid_count] = pid;
+    ++pid_count;
+    ++i;
+  }
+  while (rdm_parameter_at(dmx_num, RDM_SUB_DEVICE_ROOT, i) != 0) {
+    ++pid_count;
+    ++i;
+  }
+  
+  return pid_count * sizeof(uint16_t);
+}
+
 bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
                                         void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
@@ -143,4 +185,34 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
   rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return true;
+}
+
+size_t rdm_get_parameter_description(dmx_port_t dmx_num, rdm_pid_t pid,
+                                     rdm_parameter_description_t *parameter) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(!(pid < RDM_PID_MANUFACTURER_SPECIFIC_BEGIN ||
+              pid > RDM_PID_MANUFACTURER_SPECIFIC_END),
+            false, "pid error");
+  DMX_CHECK(parameter != NULL, false, "parameter is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  // Ensure the request PID is known
+  const rdm_pd_definition_t *requested_definition = rdm_parameter_lookup(pid);
+  if (requested_definition == NULL) {
+    return 0;
+  }
+
+  // Copy the parameter
+  parameter->pid = pid;
+  parameter->pdl_size = requested_definition->pdl_size;
+  parameter->data_type = requested_definition->ds;
+  parameter->cc = requested_definition->pid_cc;
+  parameter->unit = requested_definition->units;
+  parameter->prefix = requested_definition->prefix;
+  parameter->min_value = requested_definition->min_value;
+  parameter->max_value = requested_definition->max_value;
+  parameter->default_value = requested_definition->default_value;
+  strncpy(parameter->description, requested_definition->description, 33);
+
+  return sizeof(rdm_parameter_description_t);
 }
