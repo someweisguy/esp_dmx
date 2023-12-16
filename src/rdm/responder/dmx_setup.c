@@ -36,7 +36,7 @@ static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
                   sizeof(personality))) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
   }
-  personality.current_personality = personality_num;
+  personality.current = personality_num;
   if (!rdm_parameter_set(dmx_num, header->sub_device, header->pid, &personality,
                   sizeof(personality))) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
@@ -170,7 +170,7 @@ bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num) {
                   sizeof(personality))) {
     return false;
   }
-  personality.current_personality = personality_num;
+  personality.current = personality_num;
   if (!rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &personality,
                          sizeof(personality))) {
     return false;

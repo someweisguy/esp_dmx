@@ -42,10 +42,10 @@ uint8_t dmx_get_current_personality(dmx_port_t dmx_num) {
   rdm_dmx_personality_t personality;
   if (!rdm_get_dmx_personality(dmx_num, &personality)) {
     // This device does not use a DMX address
-    personality.current_personality = 0;
+    personality.current = 0;
   }
 
-  return personality.current_personality;
+  return personality.current;
 }
 
 bool dmx_set_current_personality(dmx_port_t dmx_num, uint8_t personality_num) {
@@ -71,10 +71,10 @@ uint8_t dmx_get_personality_count(dmx_port_t dmx_num) {
   rdm_dmx_personality_t personality;
   if (!rdm_get_dmx_personality(dmx_num, &personality)) {
     // This device does not use a DMX address
-    personality.personality_count = 0;
+    personality.count = 0;
   }
 
-  return personality.personality_count;
+  return personality.count;
 }
 
 size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {

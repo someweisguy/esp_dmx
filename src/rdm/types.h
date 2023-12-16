@@ -620,12 +620,12 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_t {
      is the configured arrangement of DMX slots used by the device. Many devices
      may have multiple personalities from which to choose. These personalities
      shall be consecutively numbered starting from 1.*/
-  uint8_t current_personality;
+  uint8_t current;
   /** @brief The number of personalities supported by the device. The
      personality is the configured arrangement of DMX slots used by the device.
      Many devices may have multiple personalities from which to choose. These
      personalities shall be consecutively numbered starting from 1.*/
-  uint8_t personality_count;
+  uint8_t count;
 } rdm_dmx_personality_t;
 
 // TODO: docs
