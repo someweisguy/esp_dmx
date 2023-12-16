@@ -68,8 +68,8 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
     // Get the mute control field of this port
     mute.control_field = 0;  // TODO
 
-    return rdm_write_ack(dmx_num, header, definition->get.request.format, &mute,
-                         sizeof(mute));
+    return rdm_write_ack(dmx_num, header, definition->get.response.format,
+                         &mute, sizeof(mute));
   }
 }
 
