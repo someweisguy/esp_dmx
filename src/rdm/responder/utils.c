@@ -601,11 +601,12 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
                                    const rdm_pd_definition_t *definition,
                                    const rdm_header_t *header) {
-  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+  // TODO: support header->sub_device == RDM_SUB_DEVICE_ALL
+  if (!rdm_parameter_exists(dmx_num, header->sub_device, header->pid)) {
     return rdm_write_nack_reason(dmx_num, header,
                                  RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
   }
-  
+
   const char *format;
   if (header->cc == RDM_CC_GET_COMMAND) {
     // Get the parameter and write it to the RDM bus
