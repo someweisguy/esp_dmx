@@ -41,8 +41,8 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
   } else {
     // Set or unset the mute parameter
     const uint8_t set_mute = (header->pid == RDM_PID_DISC_MUTE);
-    rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &set_mute,
-               sizeof(set_mute));
+    rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, header->pid, &set_mute,
+                      sizeof(set_mute));
 
     // Get the binding UID of this device
     int num_ports = 0;
@@ -126,9 +126,16 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
-  const uint8_t init_value = 0;
-  rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
-                            sizeof(init_value));
+  uint8_t *un_mute =
+      rdm_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_UN_MUTE);
+  if (un_mute == NULL) {
+    const uint8_t init_value = 0;
+    rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                              &init_value, sizeof(init_value));
+  } else {
+    rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, un_mute,
+                             sizeof(*un_mute));
+  }
 
   return rdm_parameter_callback_set(pid, cb, context);
 }
@@ -156,9 +163,18 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_parameter_define(&definition);
 
-  // Add the parameter as a NULL static variable
+  // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  uint8_t *mute =
+      rdm_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE);
+  if (mute == NULL) {
+    const uint8_t init_value = 0;
+    rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                              &init_value, sizeof(init_value));
+  } else {
+    rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, mute,
+                             sizeof(*mute));
+  }
 
   return rdm_parameter_callback_set(pid, cb, context);
 }
