@@ -191,15 +191,6 @@ typedef struct dmx_driver_t {
   } rdm;
 } dmx_driver_t;
 
-// Parameter data
-// TODO: implement status using space in pd
-// uint8_t rdm_status_threshold;
-// struct rdm_status_queue_t {
-//   uint16_t head;  // The next element to pop
-//   uint16_t tail;  // The next open space for an element
-//   rdm_status_message_t queue[RDM_RESPONDER_STATUS_QUEUE_SIZE_MAX];
-// } rdm_status[3];
-
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
 #ifdef __cplusplus
