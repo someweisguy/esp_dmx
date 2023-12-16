@@ -34,7 +34,7 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
     const rdm_uid_t *this_uid = rdm_uid_get(dmx_num);
     if (rdm_uid_is_lt(this_uid, &branch.lower_bound) ||
         rdm_uid_is_gt(this_uid, &branch.upper_bound)) {
-      return 0;  // Don't send NACK on error
+      return 0;  // Request not for this device
     }
 
     return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
