@@ -159,14 +159,20 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   rdm_register_software_version_label(dmx_num, config->software_version_label,
                                       NULL, NULL);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
+
+  // The registration of DMX parameters is optional
   if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
+    // TODO
+    rdm_register_dmx_personality(dmx_num, NULL, NULL);
     rdm_register_dmx_start_address(dmx_num, NULL, NULL);
+    rdm_register_dmx_personality_description(dmx_num, NULL, 0, NULL, NULL);
   }
-  // rdm_register_supported_parameters(dmx_num, NULL, NULL); // FIXME
-  rdm_register_device_label(dmx_num, "", NULL, NULL);
-  rdm_register_dmx_personality(dmx_num, NULL, NULL);
-  rdm_register_dmx_personality_description(dmx_num, NULL, NULL);
+
+  // Register additional RDM parameters
+  rdm_register_supported_parameters(dmx_num, NULL, NULL);
   rdm_register_parameter_description(dmx_num, NULL, NULL);
+  const char *default_device_label = "";
+  rdm_register_device_label(dmx_num, default_device_label, NULL, NULL);
 
   // Initialize the UART peripheral
   driver->uart = dmx_uart_init(dmx_num, driver, config->interrupt_flags);

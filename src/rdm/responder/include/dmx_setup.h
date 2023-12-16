@@ -25,8 +25,9 @@ size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
 bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num);
 
 // TODO docs
-bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
-                                              rdm_callback_t cb, void *context);
+bool rdm_register_dmx_personality_description(
+    dmx_port_t dmx_num, rdm_dmx_personality_description_t *personalities,
+    uint32_t count, rdm_callback_t cb, void *context);
 
 /**
  * @brief Registers the default response to RDM_PID_DMX_START_ADDRESS requests.

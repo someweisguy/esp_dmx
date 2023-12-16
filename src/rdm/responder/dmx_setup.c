@@ -74,7 +74,7 @@ static size_t rdm_rhd_get_dmx_personality_description(
                        pdl);
 }
 
-bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
+bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb, 
                                   void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -147,18 +147,31 @@ bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   return true;
 }
 
-bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
-                                              rdm_callback_t cb,
-                                              void *context) {
+bool rdm_register_dmx_personality_description(
+    dmx_port_t dmx_num, rdm_dmx_personality_description_t *personalities,
+    uint32_t count, rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-    // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION;
+  
+  // Validate personalities is valid
+  if (!rdm_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
+    for (int i = 0; i < count; ++i) {
+      DMX_CHECK(personalities[i].personality_num == i + 1, false,
+                "personality_num error");
+      DMX_CHECK((personalities[i].footprint > 0 &&
+                 personalities[i].footprint < DMX_PACKET_SIZE_MAX),
+                false, "footprint error");
+      // Personality description is not validated
+    }
+  }
+
+  // Define the parameter
   static const rdm_pd_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
-      .ds = RDM_DS_ASCII,
+      .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_get_dmx_personality_description,
               .request.format = "b$",
               .response.format = "bwa"},
@@ -175,8 +188,9 @@ bool rdm_register_dmx_personality_description(dmx_port_t dmx_num,
 
   // Allocate parameter data
   const bool nvs = false;
-  if (!rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL,
-                                0)) {
+  const size_t size = count * sizeof(*personalities);
+  if (!rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                                 personalities, size)) {
     return false;
   }
 
