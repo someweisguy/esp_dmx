@@ -19,7 +19,7 @@ static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
   uint8_t personality_num;
   if (!rdm_read_pd(dmx_num, definition->set.request.format, &personality_num,
                    sizeof(personality_num))) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
   }
 
   // Ensure the requested personality number is within range
@@ -54,7 +54,7 @@ static size_t rdm_rhd_get_dmx_personality_description(
   uint8_t personality_num;
   if (!rdm_read_pd(dmx_num, definition->get.request.format, &personality_num,
                    sizeof(personality_num))) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
   }
 
   // Ensure the requested personality number is within range

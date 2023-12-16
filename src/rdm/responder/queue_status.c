@@ -9,6 +9,7 @@ static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
                                          const rdm_pd_definition_t *definition,
                                          const rdm_header_t *header) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
+    // Requests may only be made to the root device
     return rdm_write_nack_reason(dmx_num, header,
                                  RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
   }
@@ -17,7 +18,7 @@ static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
   uint8_t status_type;
   if (!rdm_read_pd(dmx_num, definition->get.request.format, &status_type,
                    sizeof(status_type))) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
   }
   if (status_type < definition->min_value ||
       status_type > definition->max_value) {

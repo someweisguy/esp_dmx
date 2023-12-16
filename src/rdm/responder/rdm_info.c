@@ -54,7 +54,7 @@ static size_t rdm_rhd_get_parameter_description(
   uint16_t pid;
   if (!rdm_read_pd(dmx_num, definition->get. request.format, &pid,
                    sizeof(pid))) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
   }
 
   // Ensure the request PID is within bounds
