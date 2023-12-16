@@ -63,6 +63,9 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               rdm_pid_t pid, bool non_volatile, void *data,
                               size_t size);
 
+bool rdm_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid);
+
 // TODO: docs
 bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid);

@@ -270,7 +270,7 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   entry->size = size;
   entry->data = data;
   entry->is_heap_allocated = true;
-  entry->non_volatile = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
+  entry->storage_type = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
                                      : RDM_PD_STORAGE_TYPE_VOLATILE;
 
   // Set the initial value of the variable
@@ -306,8 +306,35 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   entry->size = size;
   entry->data = data;
   entry->is_heap_allocated = false;
-  entry->non_volatile = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
+  entry->storage_type = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
                                      : RDM_PD_STORAGE_TYPE_VOLATILE;
+
+  return true;
+}
+
+bool rdm_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                            rdm_pid_t pid) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(pid > 0);
+  assert(dmx_driver_is_installed(dmx_num));
+
+    // Return early if the variable already exists
+  if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
+    return true;
+  }
+
+  // Return early if there are no available parameter entries
+  rdm_parameter_t *entry = rdm_parameter_add_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  // Configure parameter
+  entry->size = 0;
+  entry->data = NULL;
+  entry->is_heap_allocated = false;
+  entry->storage_type = RDM_PD_STORAGE_TYPE_VOLATILE;
 
   return true;
 }
@@ -432,8 +459,8 @@ size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
-  if (entry->non_volatile == RDM_PD_STORAGE_TYPE_NON_VOLATILE) {
-    entry->non_volatile = RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED;
+  if (entry->storage_type == RDM_PD_STORAGE_TYPE_NON_VOLATILE) {
+    entry->storage_type = RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED;
     ++dmx_driver[dmx_num]->rdm.staged_count;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -461,9 +488,9 @@ rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num) {
   for (; device != NULL && pid == 0; device = device->next) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     for (int i = 0; i < driver->rdm.root_device_parameter_max; ++i) {
-      if (device->parameters[i].non_volatile ==
+      if (device->parameters[i].storage_type ==
           RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED) {
-        device->parameters[i].non_volatile = RDM_PD_STORAGE_TYPE_NON_VOLATILE;
+        device->parameters[i].storage_type = RDM_PD_STORAGE_TYPE_NON_VOLATILE;
         --driver->rdm.staged_count;
         sub_device = device->device_num;
         pid = device->parameters[i].pid;
