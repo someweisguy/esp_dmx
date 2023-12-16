@@ -244,7 +244,6 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
-  assert(size > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
   // Return early if the variable already exists
@@ -252,32 +251,42 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return true;
   }
 
-  // Return early if there is no heap space available
-  void *data = malloc(size);
-  if (data == NULL) {
-    DMX_ERR("RDM parameter malloc error")
-    return false;
+  // Allocate parameter data if desired
+  void *data;
+  if (size > 0) {
+    data = malloc(size);
+    if (data == NULL) {
+      DMX_ERR("RDM parameter malloc error")
+      return false;
+    }
+  } else {
+    non_volatile = false;
+    data = NULL;
   }
 
   // Return early if there are no available parameter entries
   rdm_parameter_t *entry = rdm_parameter_add_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
-    free(data);
+    if (data != NULL) {
+      free(data);
+    }
     return false;
   }
 
   // Configure parameter
   entry->size = size;
   entry->data = data;
-  entry->is_heap_allocated = true;
+  entry->is_heap_allocated = (size > 0);
   entry->storage_type = non_volatile ? RDM_PD_STORAGE_TYPE_NON_VOLATILE
                                      : RDM_PD_STORAGE_TYPE_VOLATILE;
 
   // Set the initial value of the variable
-  if (init != NULL) {
-    memcpy(entry->data, init, size);
-  } else {
-    memset(entry->data, 0, size);
+  if (entry->data != NULL) {
+    if (init != NULL) {
+      memcpy(entry->data, init, size);
+    } else {
+      memset(entry->data, 0, size);
+    }
   }
 
   return true;
