@@ -165,9 +165,11 @@ bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
     if (rdm_dictionary[i].definition == NULL) {
       return false;  // Definition was not found
     } else if (rdm_dictionary[i].definition->pid == pid) {
-      void *context = rdm_dictionary[i].context;
-      rdm_dictionary[i].callback(dmx_num, request_header, response_header,
-                                 context);
+      if (rdm_dictionary[i].callback != NULL) {
+        void *context = rdm_dictionary[i].context;
+        rdm_dictionary[i].callback(dmx_num, request_header, response_header,
+                                   context);
+      }
       return true;
     }
   }
