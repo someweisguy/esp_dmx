@@ -153,8 +153,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Register the default RDM parameters
   rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
-  rdm_register_disc_un_mute(dmx_num, NULL, NULL);
   rdm_register_disc_mute(dmx_num, NULL, NULL);
+  rdm_register_disc_un_mute(dmx_num, NULL, NULL);
   rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
   rdm_register_software_version_label(dmx_num, config->software_version_label,
                                       NULL, NULL);
@@ -164,8 +164,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
     // TODO
     rdm_register_dmx_personality(dmx_num, NULL, NULL);
-    rdm_register_dmx_start_address(dmx_num, NULL, NULL);
     rdm_register_dmx_personality_description(dmx_num, NULL, 0, NULL, NULL);
+    rdm_register_dmx_start_address(dmx_num, NULL, NULL);
   }
 
   // Register additional RDM parameters
