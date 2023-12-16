@@ -34,12 +34,13 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
 }
 
 bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
-                        dmx_personality_t *personalities) {
+                        dmx_personality_t *personalities,
+                        int personality_count) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(config != NULL, false, "config is null");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), false,
             "driver is already installed");
-  for (int i = 0; i < config->personality_count; ++i) {
+  for (int i = 0; i < personality_count; ++i) {
     DMX_CHECK((personalities[i].footprint > 0 &&
                personalities[i].footprint < DMX_PACKET_SIZE_MAX),
               false, "footprint error");
@@ -126,33 +127,27 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->last_pos_edge_ts = -1;
   driver->last_neg_edge_ts = -1;
 
-  // Build the device info
-  rdm_device_info_t device_info = {
-      .model_id = config->model_id,
-      .product_category = config->product_category,
-      .software_version_id = config->software_version_id,
-      .footprint = 0,            // Load from NVS
-      .current_personality = 0,  // Load from NVS
-      .personality_count = config->personality_count,
-      .dmx_start_address = 0,  // Load from NVS
-      .sub_device_count = 0,   // Sub-devices must be registered
-      .sensor_count = 0,       // Sensors must be registered
-  };
+  // Add the personality numbers to the DMX personalities
+  rdm_dmx_personality_description_t *personality_description = personalities;
+  for (int i = 0; i < personality_count; ++i) {
+    // Personalities are indexed beginning at 1
+    personality_description[i].personality_num = i + 1;
+  }
 
   // Register the default RDM parameters
   rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
   rdm_register_disc_mute(dmx_num, NULL, NULL);
   rdm_register_disc_un_mute(dmx_num, NULL, NULL);
-  rdm_register_device_info(dmx_num, &device_info, NULL, NULL);
+  rdm_register_device_info(dmx_num, NULL, NULL, NULL);
   rdm_register_software_version_label(dmx_num, config->software_version_label,
                                       NULL, NULL);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
 
   // The registration of DMX parameters is optional
-  if (device_info.dmx_start_address != DMX_START_ADDRESS_NONE) {
-    // TODO
+  if (personality_count > 0) {
     rdm_register_dmx_personality(dmx_num, NULL, NULL);
-    rdm_register_dmx_personality_description(dmx_num, NULL, 0, NULL, NULL);
+    rdm_register_dmx_personality_description(dmx_num, personality_description,
+                                             personality_count, NULL, NULL);
     rdm_register_dmx_start_address(dmx_num, NULL, NULL);
   }
 

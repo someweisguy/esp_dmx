@@ -277,11 +277,12 @@ typedef struct dmx_packet_t {
  element is the footprint and description for the first personality, the
  first element is the footprint and description for the second personality,
  and so on.*/ // TODO: update docs
-typedef struct dmx_personality_s {
+typedef struct __attribute__((packed)) dmx_personality_s {
+  uint8_t : 8;
   /** @brief The footprint of the DMX personality.*/
   uint16_t footprint;
   /** @brief A description of the DMX personality.*/
-  const char *description;
+  char description[33];
 } dmx_personality_t;
 
 /** @brief Configuration settings for the DMX driver.*/
@@ -300,8 +301,6 @@ typedef struct dmx_config_s {
    for the device's operating software version. The descriptive text returned
    by this parameter is intended for display to the user.*/
   char *software_version_label;
-  // TODO: docs
-  uint8_t personality_count;
   // TODO: docs
   uint32_t root_device_parameter_count;
   // TODO: docs
