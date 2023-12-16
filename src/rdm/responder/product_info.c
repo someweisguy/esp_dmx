@@ -21,8 +21,7 @@ static size_t rdm_device_info_rh(dmx_port_t dmx_num,
   return rdm_write_ack(dmx_num, header, format, &device_info, pdl);
 }
 
-bool rdm_register_device_info(dmx_port_t dmx_num,
-                              rdm_device_info_t *device_info, rdm_callback_t cb,
+bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
                               void *context) {
 
   // Define the parameter

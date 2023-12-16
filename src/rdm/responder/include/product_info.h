@@ -28,10 +28,9 @@ extern "C" {
  * callback.
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
- */
-bool rdm_register_device_info(dmx_port_t dmx_num,
-                              rdm_device_info_t *device_info,
-                              rdm_callback_t cb, void *context);
+ */  // TODO: update docs
+bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
+                              void *context);
 
 /**
  * @brief Gets a copy of the RDM device info of this device.

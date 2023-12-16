@@ -128,7 +128,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->last_neg_edge_ts = -1;
 
   // Add the personality numbers to the DMX personalities
-  rdm_dmx_personality_description_t *personality_description = personalities;
+  rdm_dmx_personality_description_t *personality_description =
+      (void *)personalities;
   for (int i = 0; i < personality_count; ++i) {
     // Personalities are indexed beginning at 1
     personality_description[i].personality_num = i + 1;
@@ -138,7 +139,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
   rdm_register_disc_mute(dmx_num, NULL, NULL);
   rdm_register_disc_un_mute(dmx_num, NULL, NULL);
-  rdm_register_device_info(dmx_num, NULL, NULL, NULL);
+  rdm_register_device_info(dmx_num, NULL, NULL);
   rdm_register_software_version_label(dmx_num, config->software_version_label,
                                       NULL, NULL);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
