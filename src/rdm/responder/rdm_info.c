@@ -1,10 +1,10 @@
 #include "include/rdm_info.h"
 
 #include "dmx/include/driver.h"
+#include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "endian.h"
 #include "rdm/responder/include/utils.h"
-#include "dmx/include/io.h"
 
 static size_t rdm_rhd_get_supported_parameters(
     dmx_port_t dmx_num, const rdm_pd_definition_t *definition,
@@ -13,7 +13,7 @@ static size_t rdm_rhd_get_supported_parameters(
   uint16_t pids[115];
 
   // Handle situation where parameters overflowed last request
-  int i = 0; // TODO
+  int i = 0;  // TODO
 
   for (; i < 115; ++i) {
     uint16_t pid = rdm_parameter_at(dmx_num, header->sub_device, i);
@@ -52,7 +52,7 @@ static size_t rdm_rhd_get_parameter_description(
 
   // Read the request data
   uint16_t pid;
-  if (!rdm_read_pd(dmx_num, definition->get. request.format, &pid,
+  if (!rdm_read_pd(dmx_num, definition->get.request.format, &pid,
                    sizeof(pid))) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
   }
@@ -81,8 +81,8 @@ static size_t rdm_rhd_get_parameter_description(
   pd.default_value = requested_definition->default_value;
   strncpy(pd.description, requested_definition->description, 32);
 
-  return rdm_write_ack(dmx_num, header, definition->get.response.format,
-                       &pd, sizeof(pd));
+  return rdm_write_ack(dmx_num, header, definition->get.response.format, &pd,
+                       sizeof(pd));
 }
 
 bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -115,7 +115,8 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
   return true;
 }
 
-size_t rdm_get_supported_parameters(dmx_port_t dmx_num, uint16_t *pids, size_t size) {
+size_t rdm_get_supported_parameters(dmx_port_t dmx_num, uint16_t *pids,
+                                    size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -153,7 +154,7 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, uint16_t *pids, size_t s
     ++pid_count;
     ++i;
   }
-  
+
   return pid_count * sizeof(uint16_t);
 }
 
