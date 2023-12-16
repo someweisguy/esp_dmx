@@ -25,15 +25,16 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
 
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
-    const char *format = "uu$";
-    rdm_read_pd(dmx_num, format, &branch, sizeof(branch));
-
+    if (!rdm_read_pd(dmx_num, definition->get.request.format, &branch,
+                sizeof(branch))) {
+      return 0;  // Don't send NACK on error
+    }
 
     // Guard against !(branch.lower_bound <= this_uid <= branch.upper_bound)
     const rdm_uid_t *this_uid = rdm_uid_get(dmx_num);
     if (rdm_uid_is_lt(this_uid, &branch.lower_bound) ||
         rdm_uid_is_gt(this_uid, &branch.upper_bound)) {
-      return 0;
+      return 0;  // Don't send NACK on error
     }
 
     return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
@@ -65,8 +66,8 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
     // Get the mute control field of this port
     mute.control_field = 0;  // TODO
 
-    const char *format = "wv";
-    return rdm_write_ack(dmx_num, header, format, &mute, sizeof(mute));
+    return rdm_write_ack(dmx_num, header, definition->get.request.format, &mute,
+                         sizeof(mute));
   }
 }
 
@@ -82,7 +83,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_discovery,
-              .request.format = NULL,
+              .request.format = "uu$",
               .response.format = NULL},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = sizeof(rdm_disc_unique_branch_t),
@@ -113,7 +114,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_discovery,
               .request.format = NULL,
-              .response.format = NULL},
+              .response.format = "wv"},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = 0,
       .max_value = 0,
@@ -145,7 +146,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_discovery,
               .request.format = NULL,
-              .response.format = NULL},
+              .response.format = "wv"},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = 0,
       .max_value = 0,
