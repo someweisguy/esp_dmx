@@ -84,8 +84,13 @@ size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num) {
              personality_num <= dmx_get_personality_count(dmx_num)),
             0, "personality_num is invalid");
 
-  --personality_num;  // Personalities are indexed starting at 1
-  return dmx_driver[dmx_num]->personalities[personality_num].footprint;
+  rdm_dmx_personality_description_t personality;
+  if (!rdm_get_dmx_personality_description(dmx_num, personality_num,
+                                           &personality)) {
+    return 0;
+  }
+
+  return personality.footprint;
 }
 
 const char *dmx_get_personality_description(dmx_port_t dmx_num,
@@ -96,6 +101,11 @@ const char *dmx_get_personality_description(dmx_port_t dmx_num,
              personality_num <= dmx_get_personality_count(dmx_num)),
             false, "personality_num is invalid");
 
-  --personality_num;  // Personalities are indexed starting at 1
-  return dmx_driver[dmx_num]->personalities[personality_num].description;
+  rdm_dmx_personality_description_t personality;
+  if (!rdm_get_dmx_personality_description(dmx_num, personality_num,
+                                           &personality)) {
+    return NULL;
+  }
+
+  return NULL; // FIXME
 }

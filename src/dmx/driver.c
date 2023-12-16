@@ -64,7 +64,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
   driver->mux = NULL;
-  driver->personalities = NULL;
 #ifdef DMX_USE_SPINLOCK
   driver->spinlock = (dmx_spinlock_t)DMX_SPINLOCK_INIT;
 #endif
@@ -75,17 +74,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     dmx_driver_delete(dmx_num);
     DMX_CHECK(driver->mux != NULL, false, "DMX driver mutex malloc error");
   }
-
-  // Allocate DMX personalities
-  const size_t pers_size = sizeof(*personalities) * config->personality_count;
-  driver->personalities = heap_caps_malloc(pers_size, MALLOC_CAP_8BIT);
-  if (driver->personalities == NULL) {
-    dmx_driver_delete(dmx_num);
-    DMX_CHECK(driver->personalities != NULL, false,
-              "DMX driver personalities malloc error");
-  }
-  memcpy(driver->personalities, personalities, pers_size);
-  driver->personality_count = config->personality_count;
 
   // Driver configuration
   driver->dmx_num = dmx_num;
@@ -222,11 +210,6 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
 
   // Disable UART module
   dmx_uart_deinit(driver->uart);
-
-  // Free personalities
-  if (driver->personalities != NULL) {
-    heap_caps_free(driver->personalities);
-  }
 
   // Free driver
   heap_caps_free(driver);

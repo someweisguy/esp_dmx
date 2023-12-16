@@ -170,10 +170,6 @@ typedef struct dmx_driver_t {
   int16_t tx_size;  // The size of the outgoing packet.
   int16_t rx_size;  // The expected size of the incoming packet.
   int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
-
-  // DMX configuration
-  uint32_t personality_count;  // The number of personalities that the driver has.
-  dmx_personality_t *personalities;  // An array of DMX personalities to which the driver may be set.
   
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
