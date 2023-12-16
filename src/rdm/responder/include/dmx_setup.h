@@ -29,6 +29,11 @@ bool rdm_register_dmx_personality_description(
     dmx_port_t dmx_num, rdm_dmx_personality_description_t *personalities,
     uint32_t count, rdm_callback_t cb, void *context);
 
+// TODO: docs
+size_t rdm_get_dmx_personality_description(
+    dmx_port_t dmx_num, uint8_t personality_num,
+    rdm_dmx_personality_description_t *personality_description);
+
 /**
  * @brief Registers the default response to RDM_PID_DMX_START_ADDRESS requests.
  * This response is required by all RDM-capable devices which use a DMX address.

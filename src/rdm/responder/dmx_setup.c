@@ -76,6 +76,37 @@ static size_t rdm_rhd_get_dmx_personality_description(
                        pdl);
 }
 
+size_t rdm_get_dmx_personality_description(
+    dmx_port_t dmx_num, uint8_t personality_num,
+    rdm_dmx_personality_description_t *personality_description) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION;
+
+  // Guard against an out-of-bounds error
+  const uint32_t personality_num_max =
+      (rdm_parameter_size(dmx_num, RDM_SUB_DEVICE_ROOT, pid) /
+       sizeof(*personality_description));
+  if (personality_num == 0 || personality_num > personality_num_max) {
+    return 0;
+  }
+
+  // Get a pointer to the stored personalities
+  const rdm_dmx_personality_description_t *personalities =
+      rdm_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+  if (personalities == NULL) {
+    return 0;
+  }
+
+  // Copy the parameter
+  --personality_num;  // Personalities begin at 1
+  memcpy(personality_description, &personalities[personality_num],
+         sizeof(*personality_description));
+
+  return sizeof(*personality_description);
+}
+
 bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb, 
                                   void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
