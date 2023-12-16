@@ -134,8 +134,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Allocate parameter data
   const bool nvs = true;
-  const rdm_dmx_personality_t init_value = {
-      dmx_get_current_personality(dmx_num), dmx_get_personality_count(dmx_num)};
+  const rdm_dmx_personality_t init_value = { 1, 1 };  // FIXME
   if (!rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                                  &init_value, sizeof(init_value))) {
     return false;

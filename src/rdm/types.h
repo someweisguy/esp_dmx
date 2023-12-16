@@ -517,6 +517,22 @@ typedef struct __attribute__((packed)) rdm_disc_mute_t {
   rdm_uid_t binding_uid;
 } rdm_disc_mute_t;
 
+/** @brief This parameter is used to set the responder's DMX personality. Many
+ * devices such as moving lights have different DMX personalities. Many RDM
+ * parameters may be affected by changing personality. */
+typedef struct __attribute__((packed)) rdm_dmx_personality_t {
+  /** @brief The current selected DMX personality of the device. The personality
+     is the configured arrangement of DMX slots used by the device. Many devices
+     may have multiple personalities from which to choose. These personalities
+     shall be consecutively numbered starting from 1.*/
+  uint8_t current;
+  /** @brief The number of personalities supported by the device. The
+     personality is the configured arrangement of DMX slots used by the device.
+     Many devices may have multiple personalities from which to choose. These
+     personalities shall be consecutively numbered starting from 1.*/
+  uint8_t count;
+} rdm_dmx_personality_t;
+
 /** @brief Parameter for use with RDM device info requests.*/
 typedef struct __attribute__((packed)) rdm_device_info_t {
   uint8_t : 8;  // RDM major version. Is always 1.
@@ -534,16 +550,10 @@ typedef struct __attribute__((packed)) rdm_device_info_t {
   /** @brief This field species the DMX footprint - the number of consecutive
      DMX slots required.*/
   uint16_t footprint;
-  /** @brief The current selected DMX personality of the device. The personality
-     is the configured arrangement of DMX slots used by the device. Many devices
-     may have multiple personalities from which to choose. These personalities
-     shall be consecutively numbered starting from 1.*/
-  uint8_t current_personality;
-  /** @brief The number of personalities supported by the device. The
-     personality is the configured arrangement of DMX slots used by the device.
-     Many devices may have multiple personalities from which to choose. These
-     personalities shall be consecutively numbered starting from 1.*/
-  uint8_t personality_count;
+  /** @brief This parameter is used to set the responder's DMX personality. Many
+   * devices such as moving lights have different DMX personalities. Many RDM
+   * parameters may be affected by changing personality. */
+  rdm_dmx_personality_t personality;
   /** @brief The DMX start address of the device. If the device or sub-device
      that the request is directed to has a DMX footprint of 0, then this field
      shall be set to 0xffff.*/
@@ -611,22 +621,6 @@ typedef struct __attribute__((packed)) rdm_parameter_description_t {
      length.*/
   char description[33];
 } rdm_parameter_description_t;
-
-/** @brief This parameter is used to set the responder's DMX personality. Many
- * devices such as moving lights have different DMX personalities. Many RDM
- * parameters may be affected by changing personality. */
-typedef struct __attribute__((packed)) rdm_dmx_personality_t {
-  /** @brief The current selected DMX personality of the device. The personality
-     is the configured arrangement of DMX slots used by the device. Many devices
-     may have multiple personalities from which to choose. These personalities
-     shall be consecutively numbered starting from 1.*/
-  uint8_t current;
-  /** @brief The number of personalities supported by the device. The
-     personality is the configured arrangement of DMX slots used by the device.
-     Many devices may have multiple personalities from which to choose. These
-     personalities shall be consecutively numbered starting from 1.*/
-  uint8_t count;
-} rdm_dmx_personality_t;
 
 // TODO: docs
 typedef struct __attribute__((packed)) rdm_dmx_personality_description_s {

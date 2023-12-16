@@ -60,13 +60,16 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   device_info->product_category = driver->rdm.root_device.product_category;
   device_info->software_version_id =
       driver->rdm.root_device.software_version_id;
-  const int current_personality = dmx_get_current_personality(dmx_num);
-  device_info->current_personality = current_personality;
-  const int footprint = current_personality > 0
-                            ? dmx_get_footprint(dmx_num, current_personality)
-                            : 0;
-  device_info->footprint = footprint;
-  device_info->personality_count = dmx_get_personality_count(dmx_num);
+  if (!rdm_get_dmx_personality(dmx_num, &device_info->personality)) {
+    device_info->personality.count = 0;
+    device_info->personality.current = 0;
+  } 
+  if (device_info->personality.current > 0) {
+    device_info->footprint =
+        dmx_get_footprint(dmx_num, device_info->personality.current);
+  } else {
+    device_info->footprint = 0;
+  }
   device_info->dmx_start_address = dmx_get_start_address(dmx_num);
   device_info->sub_device_count = 0;  // TODO
   device_info->sensor_count = 0;      // TODO
