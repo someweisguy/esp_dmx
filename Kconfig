@@ -61,13 +61,12 @@ menu "DMX/RDM Configuration"
             instructs the DMX driver to allocate the needed memory on the stack
             instead of heap allocating it.
            
-    config RDM_RESPONDER_MAX_OPTIONAL_PARAMETERS
-        int "Max RDM responder optional PIDs"
+    config RDM_DEFINITION_COUNT_OPTIONAL
+        int "Max optional PID definition"
         range 0 512
-        default 16
+        default 32
         help
-            This is the maximum number of optional RDM parameter responses that 
-            the DMX driver supports. Increasing this number increases the size
-            of the DMX driver.
+            This is the maximum number of optional RDM parameter definitions 
+            that the DMX driver supports.
 
 endmenu
