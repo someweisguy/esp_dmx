@@ -563,7 +563,7 @@ typedef struct __attribute__((packed)) rdm_device_info_t {
 /** @brief The purpose of this parameter is to allow a controller to retrieve
  * enough information about the manufacturerspecific PID to generate GET and SET
  * commands.*/
-typedef struct __attribute__((packed)) rdm_pid_description_t {
+typedef struct __attribute__((packed)) rdm_parameter_description_t {
   /** @brief The manufacturer specific PID requested by the controller.*/
   uint16_t pid;
   /** @brief PDL Size defines the number used for the PDL field in all
@@ -610,7 +610,7 @@ typedef struct __attribute__((packed)) rdm_pid_description_t {
      specified PID. This text field shall be variable up to 32 characters in
      length.*/
   char description[33];
-} rdm_pid_description_t;
+} rdm_parameter_description_t;
 
 /** @brief This parameter is used to set the responder's DMX personality. Many
  * devices such as moving lights have different DMX personalities. Many RDM
