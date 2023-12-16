@@ -6,7 +6,7 @@
 #include "include/utils.h"
 #include "rdm/uid.h"
 
-static size_t rdm_discovery_default_handler(
+static size_t rdm_rhd_discovery(
     dmx_port_t dmx_num, const rdm_pd_definition_t *definition,
     const rdm_header_t *header) {
   // Return early if the sub-device is out of range
@@ -81,7 +81,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_discovery_default_handler,
+      .get = {.handler = rdm_rhd_discovery,
               .request.format = NULL,
               .response.format = NULL},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
@@ -111,7 +111,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_discovery_default_handler,
+      .get = {.handler = rdm_rhd_discovery,
               .request.format = NULL,
               .response.format = NULL},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
@@ -143,7 +143,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_discovery_default_handler,
+      .get = {.handler = rdm_rhd_discovery,
               .request.format = NULL,
               .response.format = NULL},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
