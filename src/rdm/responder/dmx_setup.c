@@ -107,8 +107,8 @@ size_t rdm_get_dmx_personality_description(
   return sizeof(*personality_description);
 }
 
-bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb, 
-                                  void *context) {
+bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
+                                  rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
@@ -134,7 +134,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Allocate parameter data
   const bool nvs = true;
-  const rdm_dmx_personality_t init_value = { 1, 1 };  // FIXME
+  const rdm_dmx_personality_t init_value = { 1, personality_count };  // FIXME
   if (!rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                                  &init_value, sizeof(init_value))) {
     return false;
