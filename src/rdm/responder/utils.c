@@ -9,6 +9,8 @@
 #include "dmx/include/struct.h"
 #include "rdm/uid.h"
 
+#define RDM_DEFINITION_COUNT_MAX (9 + RDM_DEFINITION_COUNT_OPTIONAL)
+
 enum rdm_pd_flags_e {
   RDM_PD_STORAGE_TYPE_VOLATILE = 0,
   RDM_PD_STORAGE_TYPE_NON_VOLATILE,
@@ -20,7 +22,7 @@ static struct rdm_pd_dictionary_s {
   const rdm_pd_definition_t *definition;
   rdm_callback_t callback;
   void *context;
-} rdm_dictionary[RDM_RESPONDER_NUM_PIDS_MAX];
+} rdm_dictionary[RDM_DEFINITION_COUNT_MAX];
 
 static struct rdm_parameter_s *rdm_parameter_get_entry(dmx_port_t dmx_num,
                                                 rdm_sub_device_t sub_device,
@@ -106,7 +108,7 @@ bool rdm_parameter_define(const rdm_pd_definition_t *definition) {
          definition->description == NULL);
 
   // Search for the first free entry in the RDM dictionary or overwrite existing
-  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
     if (rdm_dictionary[i].definition == NULL ||
         rdm_dictionary[i].definition->pid == definition->pid) {
       rdm_dictionary[i].definition = definition;
@@ -121,7 +123,7 @@ const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid) {
   assert(pid > 0);
 
   // Search for and return a pointer to the definition
-  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
     if (rdm_dictionary[i].definition == NULL) {
       break;
     } else if (rdm_dictionary[i].definition->pid == pid) {
@@ -137,7 +139,7 @@ bool rdm_parameter_callback_set(rdm_pid_t pid, rdm_callback_t callback,
   assert(pid > 0);
 
   // Search for a dictionary entry for the parameter
-  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
     if (rdm_dictionary[i].definition == NULL) {
       return false;  // Definition was not found
     } else if (rdm_dictionary[i].definition->pid == pid) {
@@ -159,7 +161,7 @@ bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Search for a dictionary entry for the parameter
-  for (int i = 0; i < RDM_RESPONDER_NUM_PIDS_MAX; ++i) {
+  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
     if (rdm_dictionary[i].definition == NULL) {
       return false;  // Definition was not found
     } else if (rdm_dictionary[i].definition->pid == pid) {
