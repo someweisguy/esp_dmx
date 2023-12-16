@@ -6,9 +6,9 @@
 #include "include/utils.h"
 #include "rdm/uid.h"
 
-static size_t rdm_rhd_discovery(
-    dmx_port_t dmx_num, const rdm_pd_definition_t *definition,
-    const rdm_header_t *header) {
+static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
+                                const rdm_pd_definition_t *definition,
+                                const rdm_header_t *header) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     return 0;  // Cannot respond to RDM_CC_DISC_COMMAND with NACK
