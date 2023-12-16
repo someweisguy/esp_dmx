@@ -17,8 +17,8 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Return early if this device is muted
     uint8_t is_muted = 1;  // Don't respond if an error occurs
-    rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE, &is_muted,
-               sizeof(is_muted));
+    rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE,
+                       &is_muted, sizeof(is_muted));
     if (is_muted) {
       return 0;
     }
@@ -26,7 +26,7 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
     // Get the discovery branch parameters
     rdm_disc_unique_branch_t branch;
     if (!rdm_read_pd(dmx_num, definition->get.request.format, &branch,
-                sizeof(branch))) {
+                     sizeof(branch))) {
       return 0;  // Don't send NACK on error
     }
 
@@ -56,11 +56,11 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
       mute.binding_uid = (rdm_uid_t){0, 0};  // Don't report a binding UID
     } else {
       for (int i = 0; i < DMX_NUM_MAX; ++i) {
-      if (dmx_driver_is_installed(i)) {
-        memcpy(&mute.binding_uid, rdm_uid_get(i), sizeof(mute.binding_uid));
-        break;
+        if (dmx_driver_is_installed(i)) {
+          memcpy(&mute.binding_uid, rdm_uid_get(i), sizeof(mute.binding_uid));
+          break;
+        }
       }
-    }
     }
 
     // Get the mute control field of this port
