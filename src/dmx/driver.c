@@ -97,6 +97,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->rdm.sub_device_parameter_max = 0;  // TODO
 
   // Set the default values for the root device
+  driver->rdm.root_device.device_num = RDM_SUB_DEVICE_ROOT;
   driver->rdm.root_device.next = NULL;
   driver->rdm.root_device.model_id = config->model_id;
   driver->rdm.root_device.product_category = config->product_category;
