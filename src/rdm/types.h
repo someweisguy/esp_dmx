@@ -30,11 +30,11 @@ extern "C" {
 #define rdm_response_type_is_valid(t) \
   ((t) >= RDM_RESPONSE_TYPE_ACK && (t) <= RDM_RESPONSE_TYPE_ACK_OVERFLOW)
 
-// TODO: Docs
-static const size_t RDM_PD_SIZE_MAX = 232;
-
 // TODO: docs
-static const size_t RDM_ASCII_SIZE_MAX = 33;
+#define RDM_ASCII_SIZE_MAX (33)
+
+// TODO: Docs
+#define RDM_PD_SIZE_MAX (232)
 
 /** @brief RDM sub-device type.*/
 typedef enum rdm_sub_device_t {
