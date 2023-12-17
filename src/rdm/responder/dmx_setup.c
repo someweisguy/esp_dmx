@@ -2,12 +2,12 @@
 
 #include <string.h>
 
+#include "dmx/hal/include/nvs.h"
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
-#include "dmx/hal/include/nvs.h"
 
 static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
                                           const rdm_pd_definition_t *definition,
@@ -33,13 +33,13 @@ static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
 
   // Write the new parameter value
   rdm_dmx_personality_t personality;
-  if (!rdm_parameter_copy(dmx_num, header->sub_device, header->pid, &personality,
-                  sizeof(personality))) {
+  if (!rdm_parameter_copy(dmx_num, header->sub_device, header->pid,
+                          &personality, sizeof(personality))) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
   }
   personality.current = personality_num;
   if (!rdm_parameter_set(dmx_num, header->sub_device, header->pid, &personality,
-                  sizeof(personality))) {
+                         sizeof(personality))) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
   }
 
@@ -159,9 +159,9 @@ size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
   DMX_CHECK(personality != NULL, 0, "personality is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DMX_PERSONALITY,
-                    personality, sizeof(*personality));
-
+  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
+                            RDM_PID_DMX_PERSONALITY, personality,
+                            sizeof(*personality));
 }
 
 bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num) {
@@ -176,7 +176,7 @@ bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num) {
 
   rdm_dmx_personality_t personality;
   if (!rdm_parameter_copy(dmx_num, sub_device, pid, &personality,
-                  sizeof(personality))) {
+                          sizeof(personality))) {
     return false;
   }
   personality.current = personality_num;
@@ -196,7 +196,7 @@ bool rdm_register_dmx_personality_description(
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION;
-  
+
   // Validate personalities is valid
   if (!rdm_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
     for (int i = 0; i < count; ++i) {
@@ -217,9 +217,7 @@ bool rdm_register_dmx_personality_description(
       .get = {.handler = rdm_rhd_get_dmx_personality_description,
               .request.format = "b$",
               .response.format = "bwa"},
-      .set = {.handler = NULL,
-              .request.format = NULL,
-              .response.format = NULL},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .pdl_size = 0,
       .max_value = 0,
       .min_value = 0,
@@ -264,7 +262,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_parameter_define(&definition);
 
-  
   // Attempt to load the value from NVS
   uint16_t dmx_start_address;
   const rdm_ds_t ds = definition.ds;
@@ -293,8 +290,9 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DMX_START_ADDRESS,
-                    dmx_start_address, sizeof(*dmx_start_address));
+  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
+                            RDM_PID_DMX_START_ADDRESS, dmx_start_address,
+                            sizeof(*dmx_start_address));
 }
 
 bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
