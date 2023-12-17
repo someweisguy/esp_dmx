@@ -234,7 +234,7 @@ bool DMX_ISR_ATTR rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header) {
 size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
                    size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(rdm_pd_format_is_valid(format), 0, "format is invalid");
+  DMX_CHECK(rdm_format_is_valid(format), 0, "format is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
