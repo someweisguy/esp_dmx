@@ -190,7 +190,7 @@ bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
 }
 
 
-bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid, bool non_volatile,
                                const void *init, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
@@ -199,7 +199,7 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Return early if the variable already exists
-  if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
+  if (dmx_parameter_exists(dmx_num, sub_device, pid)) {
     return true;
   }
 
@@ -244,7 +244,7 @@ bool rdm_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+bool dmx_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               rdm_pid_t pid, bool non_volatile, void *data,
                               size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
@@ -253,7 +253,7 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Return early if the variable already exists
-  if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
+  if (dmx_parameter_exists(dmx_num, sub_device, pid)) {
     return true;
   }
 
@@ -273,7 +273,7 @@ bool rdm_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-bool rdm_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+bool dmx_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                             rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -281,7 +281,7 @@ bool rdm_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
     // Return early if the variable already exists
-  if (rdm_parameter_exists(dmx_num, sub_device, pid)) {
+  if (dmx_parameter_exists(dmx_num, sub_device, pid)) {
     return true;
   }
 
@@ -300,7 +300,7 @@ bool rdm_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+bool dmx_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -310,7 +310,7 @@ bool rdm_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return (rdm_parameter_get_entry(dmx_num, sub_device, pid) != NULL);
 }
 
-rdm_pid_t rdm_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+rdm_pid_t dmx_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                            uint32_t index) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -338,7 +338,7 @@ rdm_pid_t rdm_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return device->parameters[index].pid;
 }
 
-size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+size_t dmx_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                           rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -353,7 +353,7 @@ size_t rdm_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return entry->size;
 }
 
-void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+void *dmx_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                         rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -369,7 +369,7 @@ void *rdm_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return entry->data;
 }
 
-size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+size_t dmx_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                   rdm_pid_t pid, void *destination, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -395,7 +395,7 @@ size_t rdm_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return size;
 }
 
-size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                   rdm_pid_t pid, const void *source, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -429,7 +429,7 @@ size_t rdm_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return size;
 }
 
-rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num) {
+rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
@@ -466,14 +466,14 @@ rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num) {
     const rdm_parameter_definition_t *definition = rdm_parameter_lookup(pid);
     assert(definition != NULL);
     dmx_nvs_set(dmx_num, pid, sub_device, definition->ds, data,
-                rdm_parameter_size(dmx_num, sub_device, pid));
+                dmx_parameter_size(dmx_num, sub_device, pid));
   }
 
   return pid;
 }
 
 
-size_t rdm_format_size(const char *format) {
+size_t dmx_parameter_format_size(const char *format) {
   size_t parameter_size = 0;
 
   bool format_is_terminated = false;

@@ -33,12 +33,12 @@ static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
 
   // Write the new parameter value
   rdm_dmx_personality_t personality;
-  if (!rdm_parameter_copy(dmx_num, header->sub_device, header->pid,
+  if (!dmx_parameter_copy(dmx_num, header->sub_device, header->pid,
                           &personality, sizeof(personality))) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
   }
   personality.current = personality_num;
-  if (!rdm_parameter_set(dmx_num, header->sub_device, header->pid, &personality,
+  if (!dmx_parameter_set(dmx_num, header->sub_device, header->pid, &personality,
                          sizeof(personality))) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
   }
@@ -87,7 +87,7 @@ size_t rdm_get_dmx_personality_description(
 
   // Guard against an out-of-bounds error
   const uint32_t personality_num_max =
-      (rdm_parameter_size(dmx_num, RDM_SUB_DEVICE_ROOT, pid) /
+      (dmx_parameter_size(dmx_num, RDM_SUB_DEVICE_ROOT, pid) /
        sizeof(*personality_description));
   if (personality_num == 0 || personality_num > personality_num_max) {
     return 0;
@@ -95,7 +95,7 @@ size_t rdm_get_dmx_personality_description(
 
   // Get a pointer to the stored personalities
   const rdm_dmx_personality_description_t *personalities =
-      rdm_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+      dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
   if (personalities == NULL) {
     return 0;
   }
@@ -145,7 +145,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
 
   // Allocate parameter data
   const bool nvs = true;
-  if (!rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                                  &personality, sizeof(personality))) {
     return false;
   }
@@ -159,7 +159,7 @@ size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
   DMX_CHECK(personality != NULL, 0, "personality is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
+  return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
                             RDM_PID_DMX_PERSONALITY, personality,
                             sizeof(*personality));
 }
@@ -175,12 +175,12 @@ bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num) {
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY;
 
   rdm_dmx_personality_t personality;
-  if (!rdm_parameter_copy(dmx_num, sub_device, pid, &personality,
+  if (!dmx_parameter_copy(dmx_num, sub_device, pid, &personality,
                           sizeof(personality))) {
     return false;
   }
   personality.current = personality_num;
-  if (!rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &personality,
+  if (!dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &personality,
                          sizeof(personality))) {
     return false;
   }
@@ -198,7 +198,7 @@ bool rdm_register_dmx_personality_description(
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY_DESCRIPTION;
 
   // Validate personalities is valid
-  if (!rdm_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
+  if (!dmx_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
     for (int i = 0; i < count; ++i) {
       DMX_CHECK(personalities[i].personality_num == i + 1, false,
                 "personality_num error");
@@ -229,7 +229,7 @@ bool rdm_register_dmx_personality_description(
   // Allocate parameter data
   const bool nvs = false;
   const size_t size = count * sizeof(*personalities);
-  if (!rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                                  personalities, size)) {
     return false;
   }
@@ -278,7 +278,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Allocate parameter data
   const bool nvs = true;
-  rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+  dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                             &dmx_start_address, sizeof(dmx_start_address));
 
   return rdm_parameter_callback_set(pid, cb, context);
@@ -290,7 +290,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_start_address != NULL, 0, "dmx_start_address is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  return rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
+  return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
                             RDM_PID_DMX_START_ADDRESS, dmx_start_address,
                             sizeof(*dmx_start_address));
 }
@@ -303,7 +303,7 @@ bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  if (!rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &dmx_start_address,
+  if (!dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &dmx_start_address,
                          sizeof(dmx_start_address))) {
     return false;
   }

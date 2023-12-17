@@ -19,7 +19,7 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
   if (header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Return early if this device is muted
     uint8_t is_muted = 1;  // Don't respond if an error occurs
-    rdm_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE,
+    dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE,
                        &is_muted, sizeof(is_muted));
     if (is_muted) {
       return 0;
@@ -43,7 +43,7 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
   } else {
     // Set or unset the mute parameter
     const uint8_t set_mute = (header->pid == RDM_PID_DISC_MUTE);
-    rdm_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, header->pid, &set_mute,
+    dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, header->pid, &set_mute,
                       sizeof(set_mute));
 
     // Get the binding UID of this device
@@ -98,7 +98,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return rdm_parameter_callback_set(pid, cb, context);
 }
@@ -129,13 +129,13 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
   uint8_t *un_mute =
-      rdm_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_UN_MUTE);
+      dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_UN_MUTE);
   if (un_mute == NULL) {
     const uint8_t init_value = 0;
-    rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+    dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                               &init_value, sizeof(init_value));
   } else {
-    rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, un_mute,
+    dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, un_mute,
                              sizeof(*un_mute));
   }
 
@@ -168,13 +168,13 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   // Add the parameter as a new variable or as an alias to its counterpart
   const bool nvs = false;
   uint8_t *mute =
-      rdm_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE);
+      dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE);
   if (mute == NULL) {
     const uint8_t init_value = 0;
-    rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+    dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                               &init_value, sizeof(init_value));
   } else {
-    rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, mute,
+    dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, mute,
                              sizeof(*mute));
   }
 

@@ -24,7 +24,7 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
   if (request->cc == RDM_CC_SET_COMMAND &&
       request->sub_device == RDM_SUB_DEVICE_ROOT) {
     const uint8_t *identify =
-        rdm_parameter_get(dmx_num, RDM_PID_IDENTIFY_DEVICE, request->sub_device);
+        dmx_parameter_get(dmx_num, RDM_PID_IDENTIFY_DEVICE, request->sub_device);
 #ifdef ARDUINO
     printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else

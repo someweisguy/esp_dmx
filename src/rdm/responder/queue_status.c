@@ -72,7 +72,7 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return true;
 }

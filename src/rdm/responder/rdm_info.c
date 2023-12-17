@@ -18,7 +18,7 @@ static size_t rdm_rhd_get_supported_parameters(
   int i = 0;  // TODO
 
   for (; i < 115; ++i) {
-    uint16_t pid = rdm_parameter_at(dmx_num, header->sub_device, i);
+    uint16_t pid = dmx_parameter_at(dmx_num, header->sub_device, i);
     if (pid == 0) {
       break;
     }
@@ -113,7 +113,7 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return true;
 }
@@ -133,7 +133,7 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, uint16_t *pids,
     size -= 1;
   }
   for (; size > 0; size -= sizeof(uint16_t)) {
-    uint16_t pid = rdm_parameter_at(dmx_num, RDM_SUB_DEVICE_ROOT, i);
+    uint16_t pid = dmx_parameter_at(dmx_num, RDM_SUB_DEVICE_ROOT, i);
     if (pid == 0) {
       break;
     }
@@ -153,7 +153,7 @@ size_t rdm_get_supported_parameters(dmx_port_t dmx_num, uint16_t *pids,
     ++pid_count;
     ++i;
   }
-  while (rdm_parameter_at(dmx_num, RDM_SUB_DEVICE_ROOT, i) != 0) {
+  while (dmx_parameter_at(dmx_num, RDM_SUB_DEVICE_ROOT, i) != 0) {
     ++pid_count;
     ++i;
   }
@@ -186,7 +186,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
-  rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return true;
 }
