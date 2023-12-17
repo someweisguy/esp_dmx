@@ -12,7 +12,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_UNSIGNED_BYTE,

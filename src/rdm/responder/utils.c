@@ -19,7 +19,7 @@ enum rdm_pd_flags_e {
 
 // TODO: docs
 static struct rdm_pd_dictionary_s {
-  const rdm_pd_definition_t *definition;
+  const rdm_parameter_definition_t *definition;
   rdm_callback_t callback;
   void *context;
 } rdm_dictionary[RDM_DEFINITION_COUNT_MAX];
@@ -94,7 +94,7 @@ static struct rdm_parameter_s *rdm_parameter_add_entry(dmx_port_t dmx_num,
   return entry;
 }
 
-bool rdm_parameter_define(const rdm_pd_definition_t *definition) {
+bool rdm_parameter_define(const rdm_parameter_definition_t *definition) {
   assert(definition != NULL);
   assert(definition->pid > 0);
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
@@ -119,7 +119,7 @@ bool rdm_parameter_define(const rdm_pd_definition_t *definition) {
   return false;
 }
 
-const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid) {
+const rdm_parameter_definition_t *rdm_parameter_lookup(rdm_pid_t pid) {
   assert(pid > 0);
 
   // Search for and return a pointer to the definition
@@ -516,7 +516,7 @@ rdm_pid_t rdm_parameter_commit(dmx_port_t dmx_num) {
   }
 
   if (pid > 0) {
-    const rdm_pd_definition_t *definition = rdm_parameter_lookup(pid);
+    const rdm_parameter_definition_t *definition = rdm_parameter_lookup(pid);
     assert(definition != NULL);
     dmx_nvs_set(dmx_num, pid, sub_device, definition->ds, data,
                 rdm_parameter_size(dmx_num, sub_device, pid));
@@ -613,7 +613,7 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
 }
 
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
-                                   const rdm_pd_definition_t *definition,
+                                   const rdm_parameter_definition_t *definition,
                                    const rdm_header_t *header) {
   // TODO: support header->sub_device == RDM_SUB_DEVICE_ALL
   if (!rdm_parameter_exists(dmx_num, header->sub_device, header->pid)) {

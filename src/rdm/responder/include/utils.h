@@ -14,11 +14,11 @@ extern "C" {
 #endif
 
 // FIXME
-#define rdm_pd_format_is_valid(f) \
-  ((f) != NULL && rdm_format_size(f) > 0)
+#define rdm_format_is_valid(f) \
+  ((f) == NULL || rdm_format_size(f) > 0)
 
 // TODO: docs
-typedef struct rdm_pd_definition_s {
+typedef struct rdm_parameter_definition_s {
   rdm_pid_t pid;
   uint8_t pid_cc;
   uint8_t ds;
@@ -27,7 +27,7 @@ typedef struct rdm_pd_definition_s {
       const char *format;
     } request, response;
     size_t (*handler)(dmx_port_t dmx_num,
-                      const struct rdm_pd_definition_s *definition,
+                      const struct rdm_parameter_definition_s *definition,
                       const rdm_header_t *header);
   } get, set;
   uint8_t pdl_size;
@@ -37,12 +37,12 @@ typedef struct rdm_pd_definition_s {
   uint8_t units;
   uint8_t prefix;
   const char *description;
-} rdm_pd_definition_t;
+} rdm_parameter_definition_t;
 
 // TODO: docs, not thread-safe
-bool rdm_parameter_define(const rdm_pd_definition_t *definition);
+bool rdm_parameter_define(const rdm_parameter_definition_t *definition);
 
-const rdm_pd_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
+const rdm_parameter_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
 
 // TODO: docs, not thread-safe
 bool rdm_parameter_callback_set(rdm_pid_t pid, rdm_callback_t callback,
@@ -130,7 +130,7 @@ rdm_pid_t rdm_queue_previous(dmx_port_t dmx_num);
 void rdm_set_boot_loader(dmx_port_t dmx_num);
 
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
-                                   const rdm_pd_definition_t *definition,
+                                   const rdm_parameter_definition_t *definition,
                                    const rdm_header_t *header);
 
 // TODO: make static and move to dmx/io.h?

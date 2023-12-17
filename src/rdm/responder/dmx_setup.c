@@ -10,7 +10,7 @@
 #include "rdm/responder/include/utils.h"
 
 static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
-                                          const rdm_pd_definition_t *definition,
+                                          const rdm_parameter_definition_t *definition,
                                           const rdm_header_t *header) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -47,7 +47,7 @@ static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
 }
 
 static size_t rdm_rhd_get_dmx_personality_description(
-    dmx_port_t dmx_num, const rdm_pd_definition_t *definition,
+    dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
     const rdm_header_t *header) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
@@ -115,7 +115,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_NOT_DEFINED,
@@ -210,7 +210,7 @@ bool rdm_register_dmx_personality_description(
   }
 
   // Define the parameter
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
@@ -244,7 +244,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_UNSIGNED_WORD,

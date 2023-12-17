@@ -6,7 +6,7 @@
 #include "rdm/responder/include/utils.h"
 
 static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
-                                         const rdm_pd_definition_t *definition,
+                                         const rdm_parameter_definition_t *definition,
                                          const rdm_header_t *header) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     // Requests may only be made to the root device
@@ -28,7 +28,7 @@ static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
   // Determine what the response will be depending on the RDM queue size
   rdm_pid_t pid;
   rdm_header_t response_header = *header;
-  const rdm_pd_definition_t *response_definition;
+  const rdm_parameter_definition_t *response_definition;
   if (rdm_queue_size(dmx_num) > 0) {
     pid = rdm_queue_pop(dmx_num);
     response_definition = rdm_parameter_lookup(pid);
@@ -54,7 +54,7 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,

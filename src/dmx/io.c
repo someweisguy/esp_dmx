@@ -583,7 +583,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Get parameter definition
   size_t resp;  // Size of the response packet
-  const rdm_pd_definition_t *def = rdm_parameter_lookup(header.pid);
+  const rdm_parameter_definition_t *def = rdm_parameter_lookup(header.pid);
   if (def == NULL) {
     // Unknown PID
     resp = rdm_write_nack_reason(dmx_num, &header, RDM_NR_UNKNOWN_PID);

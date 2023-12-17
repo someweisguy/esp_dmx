@@ -9,7 +9,7 @@
 #include "rdm/responder/include/utils.h"
 
 static size_t rdm_device_info_rh(dmx_port_t dmx_num,
-                                 const rdm_pd_definition_t *def,
+                                 const rdm_parameter_definition_t *def,
                                  const rdm_header_t *header) {
   rdm_device_info_t device_info;
   size_t pdl = rdm_get_device_info(dmx_num, &device_info);
@@ -26,7 +26,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
@@ -90,7 +90,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   }
 
   // Define the parameter
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_ASCII,
@@ -156,7 +156,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_ASCII,

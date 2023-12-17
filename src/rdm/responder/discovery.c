@@ -9,7 +9,7 @@
 #include "rdm/uid.h"
 
 static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
-                                const rdm_pd_definition_t *definition,
+                                const rdm_parameter_definition_t *definition,
                                 const rdm_header_t *header) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
@@ -80,7 +80,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
@@ -110,7 +110,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_MUTE;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
@@ -149,7 +149,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
-  static const rdm_pd_definition_t definition = {
+  static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
