@@ -513,6 +513,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         packet->size = 0;
         packet->is_rdm = 0;
       }
+      rdm_parameter_commit(dmx_num);
       return 0;
     }
   } else if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA)) {
@@ -524,6 +525,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       packet->size = 0;
       packet->is_rdm = 0;
     }
+    rdm_parameter_commit(dmx_num);
     return 0;
   }
 
@@ -551,6 +553,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     if (packet != NULL) {
       packet->is_rdm = 0;
     }
+    rdm_parameter_commit(dmx_num);
     return packet_size;
   }
 
