@@ -7,6 +7,7 @@
 #include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
+#include "dmx/hal/include/nvs.h"
 
 static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
                                           const rdm_pd_definition_t *definition,
@@ -132,11 +133,20 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
       .description = NULL};
   rdm_parameter_define(&definition);
 
+  // Attempt to load the value from NVS
+  rdm_dmx_personality_t personality;
+  const rdm_ds_t ds = definition.ds;
+  if (!dmx_nvs_get(dmx_num, pid, RDM_SUB_DEVICE_ROOT, ds, &personality,
+                   sizeof(personality)) ||
+      personality.count != personality_count) {
+    personality.current = 1;
+    personality.count = personality_count;
+  }
+
   // Allocate parameter data
   const bool nvs = true;
-  const rdm_dmx_personality_t init_value = { 1, personality_count };  // FIXME
   if (!rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                                 &init_value, sizeof(init_value))) {
+                                 &personality, sizeof(personality))) {
     return false;
   }
 
@@ -254,11 +264,25 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_parameter_define(&definition);
 
+  
+  // Attempt to load the value from NVS
+  uint16_t dmx_start_address;
+  const rdm_ds_t ds = definition.ds;
+  if (!dmx_nvs_get(dmx_num, pid, RDM_SUB_DEVICE_ROOT, ds, &dmx_start_address,
+                   sizeof(dmx_start_address))) {
+    dmx_start_address = 1;
+  }
+
+  // Reset the DMX start address if the current footprint is too large
+  int fp = dmx_get_footprint(dmx_num, dmx_get_current_personality(dmx_num));
+  if (dmx_start_address + fp > DMX_PACKET_SIZE_MAX) {
+    dmx_start_address = 1;
+  }
+
   // Allocate parameter data
   const bool nvs = true;
-  const uint16_t init_value = 1;
-  rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, &init_value,
-                            sizeof(init_value));
+  rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                            &dmx_start_address, sizeof(dmx_start_address));
 
   return rdm_parameter_callback_set(pid, cb, context);
 }
