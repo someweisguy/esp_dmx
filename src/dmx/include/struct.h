@@ -111,7 +111,7 @@ enum dmx_flags_t {
 };
 
 // TODO: docs
-typedef struct rdm_parameter_s {
+typedef struct dmx_parameter_s {
   rdm_pid_t pid;
   size_t size;
   void *data;

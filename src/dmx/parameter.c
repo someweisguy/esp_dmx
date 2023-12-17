@@ -13,7 +13,7 @@ enum dmx_parameter_storage_type_t {
   DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED
 };
 
-static struct rdm_parameter_s *rdm_parameter_get_entry(
+static struct dmx_parameter_s *rdm_parameter_get_entry(
     dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -44,7 +44,7 @@ static struct rdm_parameter_s *rdm_parameter_get_entry(
   return NULL;
 }
 
-static struct rdm_parameter_s *rdm_parameter_add_entry(
+static struct dmx_parameter_s *rdm_parameter_add_entry(
     dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
@@ -61,7 +61,7 @@ static struct rdm_parameter_s *rdm_parameter_add_entry(
   // TODO: loop through sub-device until the correct sub-device is found
 
   // Iterate through parameters until the correct parameter is found
-  struct rdm_parameter_s *entry = NULL;
+  struct dmx_parameter_s *entry = NULL;
   const uint32_t parameter_count = sub_device == RDM_SUB_DEVICE_ROOT
                                        ? driver->rdm.root_device_parameter_max
                                        : driver->rdm.sub_device_parameter_max;
