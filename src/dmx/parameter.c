@@ -6,20 +6,12 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 
-#define RDM_DEFINITION_COUNT_MAX (9 + RDM_DEFINITION_COUNT_OPTIONAL)
-
+// TODO: docs
 enum rdm_pd_flags_e {
   RDM_PD_STORAGE_TYPE_VOLATILE = 0,
   RDM_PD_STORAGE_TYPE_NON_VOLATILE,
   RDM_PD_STORAGE_TYPE_NON_VOLATILE_STAGED
 };
-
-// TODO: docs
-static struct rdm_pd_dictionary_s {
-  const rdm_parameter_definition_t *definition;
-  rdm_callback_t callback;
-  void *context;
-} rdm_dictionary[RDM_DEFINITION_COUNT_MAX];
 
 static struct rdm_parameter_s *rdm_parameter_get_entry(dmx_port_t dmx_num,
                                                 rdm_sub_device_t sub_device,
@@ -90,105 +82,6 @@ static struct rdm_parameter_s *rdm_parameter_add_entry(dmx_port_t dmx_num,
 
   return entry;
 }
-
-bool rdm_parameter_define(const rdm_parameter_definition_t *definition) {
-  assert(definition != NULL);
-  assert(definition->pid > 0);
-  assert(definition->pid_cc >= RDM_CC_DISC &&
-         definition->pid_cc <= RDM_CC_GET_SET);
-  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
-          definition->ds <= RDM_DS_SIGNED_DWORD) ||
-         (definition->ds >= 0x80 && definition->ds <= 0xdf));
-  assert(rdm_format_is_valid(definition->get.request.format) &&
-         rdm_format_is_valid(definition->get.response.format));
-  assert(rdm_format_is_valid(definition->set.request.format) &&
-         rdm_format_is_valid(definition->set.response.format));
-  assert(
-      (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
-                                           definition->pid_cc == RDM_CC_GET)) ||
-      (definition->set.handler != NULL && definition->pid_cc == RDM_CC_SET) ||
-      (definition->get.handler != NULL && definition->set.handler != NULL &&
-       definition->pid_cc == RDM_CC_GET_SET));
-  assert(definition->pdl_size < RDM_PD_SIZE_MAX);
-  assert(definition->units <= RDM_UNITS_BYTES ||
-         (definition->units >= 0x80 && definition->units <= 0xff));
-  assert(definition->prefix <= RDM_PREFIX_YOCTO ||
-         (definition->prefix >= RDM_PREFIX_DECA &&
-          definition->prefix <= RDM_PREFIX_YOTTA));
-  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
-           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
-         definition->description == NULL);
-
-  // Search for the first free entry in the RDM dictionary or overwrite existing
-  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
-    if (rdm_dictionary[i].definition == NULL ||
-        rdm_dictionary[i].definition->pid == definition->pid) {
-      rdm_dictionary[i].definition = definition;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-const rdm_parameter_definition_t *rdm_parameter_lookup(rdm_pid_t pid) {
-  assert(pid > 0);
-
-  // Search for and return a pointer to the definition
-  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
-    if (rdm_dictionary[i].definition == NULL) {
-      break;
-    } else if (rdm_dictionary[i].definition->pid == pid) {
-      return rdm_dictionary[i].definition;
-    }
-  }
-
-  return NULL;
-}
-
-bool rdm_parameter_callback_set(rdm_pid_t pid, rdm_callback_t callback,
-                                void *context) {
-  assert(pid > 0);
-
-  // Search for a dictionary entry for the parameter
-  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
-    if (rdm_dictionary[i].definition == NULL) {
-      return false;  // Definition was not found
-    } else if (rdm_dictionary[i].definition->pid == pid) {
-      rdm_dictionary[i].callback = callback;
-      rdm_dictionary[i].context = context;
-      return true;
-    }
-  }
-  
-  return false;
-}
-
-bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
-                                   rdm_header_t *request_header,
-                                   rdm_header_t *response_header) {
-  assert(dmx_num < DMX_NUM_MAX);
-  assert(pid > 0);
-  assert(request_header != NULL);
-  assert(dmx_driver_is_installed(dmx_num));
-
-  // Search for a dictionary entry for the parameter
-  for (int i = 0; i < RDM_DEFINITION_COUNT_MAX; ++i) {
-    if (rdm_dictionary[i].definition == NULL) {
-      return false;  // Definition was not found
-    } else if (rdm_dictionary[i].definition->pid == pid) {
-      if (rdm_dictionary[i].callback != NULL) {
-        void *context = rdm_dictionary[i].context;
-        rdm_dictionary[i].callback(dmx_num, request_header, response_header,
-                                   context);
-      }
-      return true;
-    }
-  }
-
-  return false;
-}
-
 
 bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid, bool non_volatile,
@@ -463,9 +356,7 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   }
 
   if (pid > 0) {
-    const rdm_parameter_definition_t *definition = rdm_parameter_lookup(pid);
-    assert(definition != NULL);
-    dmx_nvs_set(dmx_num, pid, sub_device, definition->ds, data,
+    dmx_nvs_set(dmx_num, pid, sub_device, RDM_DS_NOT_DEFINED, data,
                 dmx_parameter_size(dmx_num, sub_device, pid));
   }
 

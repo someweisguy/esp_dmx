@@ -17,42 +17,6 @@ extern "C" {
 #define rdm_format_is_valid(f) \
   ((f) == NULL || dmx_parameter_format_size(f) > 0)
 
-// TODO: docs
-typedef struct rdm_parameter_definition_t {
-  rdm_pid_t pid;
-  uint8_t pid_cc;
-  uint8_t ds;
-  struct {
-    struct {
-      const char *format;
-    } request, response;
-    size_t (*handler)(dmx_port_t dmx_num,
-                      const struct rdm_parameter_definition_t *definition,
-                      const rdm_header_t *header);
-  } get, set;
-  uint8_t pdl_size;
-  uint32_t max_value;
-  uint32_t min_value;
-  uint32_t default_value;
-  uint8_t units;
-  uint8_t prefix;
-  const char *description;
-} rdm_parameter_definition_t;
-
-// TODO: docs, not thread-safe
-bool rdm_parameter_define(const rdm_parameter_definition_t *definition);
-
-const rdm_parameter_definition_t *rdm_parameter_lookup(rdm_pid_t pid);
-
-// TODO: docs, not thread-safe
-bool rdm_parameter_callback_set(rdm_pid_t pid, rdm_callback_t callback,
-                                void *context);
-
-// TODO: docs
-bool rdm_parameter_callback_handle(dmx_port_t dmx_num, rdm_pid_t pid,
-                                   rdm_header_t *request_header,
-                                   rdm_header_t *response_header);
-
 // TODO: docs, not thread-safe
 bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid, bool non_volatile,
