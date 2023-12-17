@@ -102,8 +102,10 @@ bool rdm_parameter_define(const rdm_parameter_definition_t *definition) {
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
           definition->ds <= RDM_DS_SIGNED_DWORD) ||
          (definition->ds >= 0x80 && definition->ds <= 0xdf));
-  // TODO: assert get.request.format && get.response.format is NULL or valid
-  // TODO: assert set.request.format && set.response.format is NULL or valid
+  assert(rdm_format_is_valid(definition->get.request.format) &&
+         rdm_format_is_valid(definition->get.response.format));
+  assert(rdm_format_is_valid(definition->set.request.format) &&
+         rdm_format_is_valid(definition->set.response.format));
   assert(
       (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
                                            definition->pid_cc == RDM_CC_GET)) ||
