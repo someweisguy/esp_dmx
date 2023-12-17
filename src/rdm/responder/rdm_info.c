@@ -81,7 +81,8 @@ static size_t rdm_rhd_get_parameter_description(
   pd.min_value = requested_definition->min_value;
   pd.max_value = requested_definition->max_value;
   pd.default_value = requested_definition->default_value;
-  strncpy(pd.description, requested_definition->description, 32);
+  strncpy(pd.description, requested_definition->description,
+          RDM_ASCII_SIZE_MAX);
 
   return rdm_write_ack(dmx_num, header, definition->get.response.format, &pd,
                        sizeof(pd));
@@ -215,7 +216,8 @@ size_t rdm_get_parameter_description(dmx_port_t dmx_num, rdm_pid_t pid,
   parameter->min_value = requested_definition->min_value;
   parameter->max_value = requested_definition->max_value;
   parameter->default_value = requested_definition->default_value;
-  strncpy(parameter->description, requested_definition->description, 33);
+  strncpy(parameter->description, requested_definition->description,
+          RDM_ASCII_SIZE_MAX);
 
   return sizeof(rdm_parameter_description_t);
 }

@@ -85,7 +85,8 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
   if (!rdm_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
     DMX_CHECK(device_label != NULL, false, "device_label is null");
-    DMX_CHECK(strnlen(device_label, 33) < 33, false, "device_label error");
+    DMX_CHECK(strnlen(device_label, RDM_ASCII_SIZE_MAX) < RDM_ASCII_SIZE_MAX,
+              false, "device_label error");
   }
 
   // Define the parameter
@@ -99,7 +100,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
       .set = {.handler = rdm_simple_response_handler,
               .request.format = "a",
               .response.format = NULL},
-      .pdl_size = 32,
+      .pdl_size = 32,  // FIXME: use 32 or 33?
       .max_value = 0,
       .min_value = 0,
       .units = RDM_UNITS_NONE,
@@ -148,8 +149,9 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                      RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
-    DMX_CHECK(strnlen(software_version_label, 33) < 33, false,
-              "software_version_label error");
+    DMX_CHECK(strnlen(software_version_label, RDM_ASCII_SIZE_MAX) <
+                  RDM_ASCII_SIZE_MAX,
+              false, "software_version_label error");
   }
 
   // Define the parameter
@@ -162,7 +164,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
               .request.format = NULL,
               .response.format = "a$"},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
-      .pdl_size = 32,
+      .pdl_size = RDM_ASCII_SIZE_MAX,
       .max_value = 0,
       .min_value = 0,
       .units = RDM_UNITS_NONE,
@@ -172,7 +174,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   // Add the parameter as a static variable
   const bool nvs = false;
-  const size_t size = strnlen(software_version_label, 32);
+  const size_t size = strnlen(software_version_label, RDM_ASCII_SIZE_MAX);
   rdm_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                            software_version_label, size);
 

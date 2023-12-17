@@ -30,6 +30,12 @@ extern "C" {
 #define rdm_response_type_is_valid(t) \
   ((t) >= RDM_RESPONSE_TYPE_ACK && (t) <= RDM_RESPONSE_TYPE_ACK_OVERFLOW)
 
+// TODO: Docs
+static const size_t RDM_PD_SIZE_MAX = 232;
+
+// TODO: docs
+static const size_t RDM_ASCII_SIZE_MAX = 33;
+
 /** @brief RDM sub-device type.*/
 typedef enum rdm_sub_device_t {
   /** @brief Sub-device which respresents the root of a RDM device.*/
@@ -619,14 +625,14 @@ typedef struct __attribute__((packed)) rdm_parameter_description_t {
   /** @brief The description field is used to describe the function of the
      specified PID. This text field shall be variable up to 32 characters in
      length.*/
-  char description[33];
+  char description[RDM_ASCII_SIZE_MAX];
 } rdm_parameter_description_t;
 
 // TODO: docs
 typedef struct __attribute__((packed)) rdm_dmx_personality_description_s {
    uint8_t personality_num;
    uint16_t footprint;
-   char description[33];
+   char description[RDM_ASCII_SIZE_MAX];
 } rdm_dmx_personality_description_t;
 
 // TODO: docs
@@ -650,12 +656,6 @@ static const rdm_uid_t RDM_UID_BROADCAST_ALL = {0xffff, 0xffffffff};
 
 /** @brief The maximum possible RDM UID.*/
 static const rdm_uid_t RDM_UID_MAX = {0xffff, 0xfffffffe};
-
-// TODO: Docs
-static const size_t RDM_PD_SIZE_MAX = 232;
-
-// TODO: docs
-static const size_t RDM_ASCII_SIZE_MAX = 33;
 
 #ifdef __cplusplus
 }
