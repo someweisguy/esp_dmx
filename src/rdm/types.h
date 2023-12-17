@@ -412,6 +412,10 @@ typedef enum rdm_units_t {
 typedef enum rdm_prefix_t {
   /** @brief Multiply by 1.*/
   RDM_PREFIX_NONE = 0x00,
+  /** @brief Multiply by 10E-24.*/
+  RDM_PREFIX_YOCTO = 0x0a,
+  /** @brief Multiply by 10E+1.*/
+  RDM_PREFIX_DECA = 0x11,
   /** @brief Multiply by 10E+24.*/
   RDM_PREFIX_YOTTA = 0x1a
 } rdm_prefix_t;
