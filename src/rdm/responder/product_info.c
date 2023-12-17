@@ -110,7 +110,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   // Allocate parameter data
   const bool nvs = true;
   rdm_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                            device_label, strnlen(device_label, 32));
+                            device_label, RDM_ASCII_SIZE_MAX);
   return rdm_parameter_callback_set(pid, cb, context);
 }
 
