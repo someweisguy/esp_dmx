@@ -97,17 +97,25 @@ static struct rdm_parameter_s *rdm_parameter_add_entry(dmx_port_t dmx_num,
 bool rdm_parameter_define(const rdm_parameter_definition_t *definition) {
   assert(definition != NULL);
   assert(definition->pid > 0);
+  assert(definition->pid_cc >= RDM_CC_DISC &&
+         definition->pid_cc <= RDM_CC_GET_SET);
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
           definition->ds <= RDM_DS_SIGNED_DWORD) ||
          (definition->ds >= 0x80 && definition->ds <= 0xdf));
-  assert(definition->pid_cc >= RDM_CC_DISC &&
-         definition->pid_cc <= RDM_CC_GET_SET);
+  // TODO: assert get.request.format && get.response.format is NULL or valid
+  // TODO: assert set.request.format && set.response.format is NULL or valid
   assert(
       (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
                                            definition->pid_cc == RDM_CC_GET)) ||
       (definition->set.handler != NULL && definition->pid_cc == RDM_CC_SET) ||
       (definition->get.handler != NULL && definition->set.handler != NULL &&
        definition->pid_cc == RDM_CC_GET_SET));
+  assert(definition->pdl_size < RDM_PD_SIZE_MAX);
+  assert(definition->units <= RDM_UNITS_BYTES ||
+         (definition->units >= 0x80 && definition->units <= 0xff));
+  assert(definition->prefix <= RDM_PREFIX_YOCTO ||
+         (definition->prefix >= RDM_PREFIX_DECA &&
+          definition->prefix <= RDM_PREFIX_YOTTA));
   assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
            definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
          definition->description == NULL);
