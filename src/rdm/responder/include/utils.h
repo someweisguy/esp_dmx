@@ -18,7 +18,7 @@ extern "C" {
   ((f) == NULL || rdm_format_size(f) > 0)
 
 // TODO: docs
-typedef struct rdm_parameter_definition_s {
+typedef struct rdm_parameter_definition_t {
   rdm_pid_t pid;
   uint8_t pid_cc;
   uint8_t ds;
@@ -27,7 +27,7 @@ typedef struct rdm_parameter_definition_s {
       const char *format;
     } request, response;
     size_t (*handler)(dmx_port_t dmx_num,
-                      const struct rdm_parameter_definition_s *definition,
+                      const struct rdm_parameter_definition_t *definition,
                       const rdm_header_t *header);
   } get, set;
   uint8_t pdl_size;
