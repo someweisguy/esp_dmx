@@ -102,7 +102,12 @@ bool rdm_parameter_define(const rdm_parameter_definition_t *definition) {
          (definition->ds >= 0x80 && definition->ds <= 0xdf));
   assert(definition->pid_cc >= RDM_CC_DISC &&
          definition->pid_cc <= RDM_CC_GET_SET);
-  assert(definition->get.handler != NULL || definition->set.handler != NULL);
+  assert(
+      (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
+                                           definition->pid_cc == RDM_CC_GET)) ||
+      (definition->set.handler != NULL && definition->pid_cc == RDM_CC_SET) ||
+      (definition->get.handler != NULL && definition->set.handler != NULL &&
+       definition->pid_cc == RDM_CC_GET_SET));
   assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
            definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
          definition->description == NULL);
