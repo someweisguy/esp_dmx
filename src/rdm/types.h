@@ -36,16 +36,22 @@ extern "C" {
 // TODO: Docs
 #define RDM_PD_SIZE_MAX (232)
 
+// TODO: docs
 typedef uint16_t rdm_pid_t;
 
+// TODO: docs
 typedef uint16_t rdm_sub_device_t;
 
+// TODO: docs
 typedef uint8_t rdm_cc_t;
 
+// TODO: docs
 typedef uint8_t rdm_response_type_t;
 
+// TODO: docs
 typedef uint16_t rdm_nr_t;
 
+// TODO: docs
 typedef uint8_t rdm_status_t;
 
 /** @brief RDM sub-device type.*/
