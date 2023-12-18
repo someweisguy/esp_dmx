@@ -123,7 +123,7 @@ size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Copy data from the driver buffer to the destination asynchronously
-  memcpy(destination, driver->data + offset, size);
+  memcpy(destination, driver->dmx.data + offset, size);
 
   return size;
 }
@@ -153,7 +153,7 @@ bool DMX_ISR_ATTR rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  const uint8_t *data = driver->data;
+  const uint8_t *data = driver->dmx.data;
   uint16_t checksum = 0;
 
   // Check if packet is standard RDM packet or RDM discovery response packet
@@ -240,7 +240,7 @@ size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Guard against invalid PDL
-  const size_t pdl = driver->data[23];
+  const size_t pdl = driver->dmx.data[23];
   if (pdl == 0 || pdl > 231) {
     return 0;
   }
@@ -249,7 +249,7 @@ size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
   if (destination != NULL) {
     size = pdl < size ? pdl : size;
     const bool encode_nulls = true;
-    const uint8_t *pd = &driver->data[24];
+    const uint8_t *pd = &driver->dmx.data[24];
     rdm_format_encode(destination, format, pd, size, encode_nulls);
   }
 
@@ -293,8 +293,8 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
 
   // Copy data from the source to the driver buffer asynchronously
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  memcpy(driver->data + offset, source, size);
-  driver->tx_size = offset + size;  // Update driver transmit size
+  memcpy(driver->dmx.data + offset, source, size);
+  driver->dmx.tx_size = offset + size;  // Update driver transmit size
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
@@ -350,9 +350,9 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
       header->pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // Encode the preamble bytes
     const size_t preamble_len = 7;
-    memset(driver->data, RDM_PREAMBLE, preamble_len);
-    driver->data[preamble_len] = RDM_DELIMITER;
-    uint8_t *data = &driver->data[preamble_len + 1];
+    memset(driver->dmx.data, RDM_PREAMBLE, preamble_len);
+    driver->dmx.data[preamble_len] = RDM_DELIMITER;
+    uint8_t *data = &driver->dmx.data[preamble_len + 1];
     
     // Encode the UID and calculate the checksum
     uint8_t uid[6];
@@ -377,17 +377,17 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
   } else {
     // Serialize the header and pd into the driver buffer
     const char *header_format = "xCCx01buubbbwbwb";
-    rdm_format_encode(driver->data, header_format, header, sizeof(*header),
+    rdm_format_encode(driver->dmx.data, header_format, header, sizeof(*header),
                       encode_nulls);
     size_t message_len;
-    void *data = &driver->data[24];
+    void *data = &driver->dmx.data[24];
     if (pd != NULL && header->pdl > 0) {
       size_t pdl =
           rdm_format_encode(data, format, pd, header->pdl, encode_nulls);
       if (header->pdl != pdl) {
         message_len = 24 + pdl;
-        driver->data[2] = message_len;  // Encode updated header->message_len
-        driver->data[23] = pdl;         // Encode updated header->pdl
+        driver->dmx.data[2] = message_len;  // Encode updated message_len
+        driver->dmx.data[23] = pdl;         // Encode updated pdl
       } else {
         message_len = header->message_len;
       }
@@ -399,7 +399,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     // Calculate and serialize the checksum
     uint16_t checksum = RDM_SC + RDM_SUB_SC;
     for (int i = 2; i < message_len; ++i) {
-      checksum += driver->data[i];
+      checksum += driver->dmx.data[i];
     }
     checksum = bswap16(checksum);
     memcpy(data, &checksum, sizeof(checksum));
@@ -446,7 +446,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (dmx_uart_get_rts(driver->hal.uart) == 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    driver->head = -1;  // Wait for DMX break before reading data
+    driver->dmx.head = -1;  // Wait for DMX break before reading data
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
     dmx_uart_set_rts(driver->hal.uart, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -470,7 +470,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
         header.cc == RDM_CC_DISC_COMMAND &&
         header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      const int64_t last_timestamp = driver->last_slot_ts;
+      const int64_t last_timestamp = driver->dmx.last_slot_ts;
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
       // Guard against setting hardware alarm durations with negative values
@@ -533,14 +533,14 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   uint32_t packet_size;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-  packet_size = driver->head;
+  packet_size = driver->dmx.head;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (packet_size == -1) {
     packet_size = 0;
   }
   if (packet != NULL) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    packet->sc = packet_size > 0 ? driver->data[0] : -1;
+    packet->sc = packet_size > 0 ? driver->dmx.data[0] : -1;
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     packet->err = err;
@@ -639,7 +639,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (resp > 0) {
     if (!dmx_send(dmx_num, resp)) {
       const int64_t micros_elapsed =
-          dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
+          dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
       DMX_WARN("PID 0x%04x did not send a response (size: %i, time: %lli us)",
                header.pid, resp, micros_elapsed);
       // TODO: generate more debug info: i.e. GET/SET/DISC request?
@@ -647,7 +647,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     } else {
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->head = -1;  // Wait for DMX break before reading data
+      driver->dmx.head = -1;  // Wait for DMX break before reading data
       dmx_uart_set_rts(driver->hal.uart, 1);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
@@ -694,7 +694,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Determine if it is too late to send a response packet
   int64_t elapsed = 0;
   if (is_rdm && !rdm_cc_is_request(header.cc)) {
-    elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
+    elapsed = dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
     if (elapsed >= RDM_PACKET_SPACING_RESPONDER_NO_RESPONSE) {
       xSemaphoreGiveRecursive(driver->mux);
       return 0;
@@ -719,7 +719,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     timeout = RDM_PACKET_SPACING_RESPONSE;
   }
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
+  elapsed = dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
   if (elapsed < timeout) {
     dmx_timer_set_counter(driver->hal.timer, elapsed);
     dmx_timer_set_alarm(driver->hal.timer, timeout, false);
@@ -749,11 +749,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
       size = DMX_PACKET_SIZE_MAX;
     }
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->tx_size = size;
+    driver->dmx.tx_size = size;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    size = driver->tx_size;
+    size = driver->dmx.tx_size;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
@@ -770,9 +770,9 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
 
-    size_t write_size = driver->tx_size;
-    dmx_uart_write_txfifo(driver->hal.uart, driver->data, &write_size);
-    driver->head = write_size;
+    size_t write_size = driver->dmx.tx_size;
+    dmx_uart_write_txfifo(driver->hal.uart, driver->dmx.data, &write_size);
+    driver->dmx.head = write_size;
 
     // Enable DMX write interrupts
     dmx_uart_enable_interrupt(driver->hal.uart, DMX_INTR_TX_ALL);
@@ -780,7 +780,7 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   } else {
     // Send the packet by starting the DMX break
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->head = 0;
+    driver->dmx.head = 0;
     driver->flags |=
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
     dmx_timer_set_counter(driver->hal.timer, 0);

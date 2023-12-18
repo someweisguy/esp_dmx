@@ -143,13 +143,6 @@ typedef struct dmx_driver_t {
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
   uint8_t flags;     // Flags which indicate the current state of the driver.
 
-  // Driver hardware handles
-  struct dmx_driver_hal_t {
-    dmx_uart_handle_t uart;    // The handle to the UART HAL.
-    dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
-    dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
-  } hal;
-
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
@@ -157,12 +150,21 @@ typedef struct dmx_driver_t {
   dmx_spinlock_t spinlock;  // The spinlock used for critical sections.
 #endif
 
+  // Driver hardware handles
+  struct dmx_driver_hal_t {
+    dmx_uart_handle_t uart;    // The handle to the UART HAL.
+    dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
+    dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
+  } hal;
+
   // Data buffer
-  int16_t head;     // The index of the slot being transmitted or received.
-  uint8_t data[DMX_PACKET_SIZE_MAX];  // The buffer that stores the DMX packet.
-  int16_t tx_size;  // The size of the outgoing packet.
-  int16_t rx_size;  // The expected size of the incoming packet.
-  int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
+  struct dmx_driver_dmx_t {
+    int16_t head;     // The index of the slot being transmitted or received.
+    uint8_t data[DMX_PACKET_SIZE_MAX];  // The buffer that stores the DMX packet.
+    int16_t tx_size;  // The size of the outgoing packet.
+    int16_t rx_size;  // The expected size of the incoming packet.
+    int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
+  } dmx;
   
   // DMX sniffer configuration
   dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.

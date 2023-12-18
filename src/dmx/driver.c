@@ -110,11 +110,11 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->task_waiting = NULL;
 
   // Data buffer
-  driver->head = -1;
-  driver->tx_size = DMX_PACKET_SIZE_MAX;
-  driver->rx_size = DMX_PACKET_SIZE_MAX;
-  memset(driver->data, 0, sizeof(driver->data));
-  driver->last_slot_ts = 0;
+  driver->dmx.head = -1;
+  driver->dmx.tx_size = DMX_PACKET_SIZE_MAX;
+  driver->dmx.rx_size = DMX_PACKET_SIZE_MAX;
+  memset(driver->dmx.data, 0, sizeof(driver->dmx.data));
+  driver->dmx.last_slot_ts = 0;
 
   // RDM responder configuration
   driver->rdm.staged_count = 0;
@@ -251,7 +251,7 @@ bool dmx_driver_enable(dmx_port_t dmx_num) {
 
   // Initialize driver flags and reenable interrupts
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  driver->head = -1;  // Wait for DMX break before reading data
+  driver->dmx.head = -1;  // Wait for DMX break before reading data
   driver->flags |= (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
   driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_HAS_DATA);
   dmx_uart_rxfifo_reset(driver->hal.uart);
