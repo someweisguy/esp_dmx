@@ -33,8 +33,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
-  dmx_uart_handle_t uart = driver->uart;
-  dmx_timer_handle_t timer = driver->timer;
+  dmx_uart_handle_t uart = driver->hal.uart;
+  dmx_timer_handle_t timer = driver->hal.timer;
   int task_awoken = false;
 
   while (true) {

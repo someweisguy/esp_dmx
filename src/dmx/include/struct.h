@@ -144,9 +144,11 @@ typedef struct dmx_driver_t {
   uint8_t flags;     // Flags which indicate the current state of the driver.
 
   // Driver hardware handles
-  dmx_uart_handle_t uart;    // The handle to the UART HAL.
-  dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
-  dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
+  struct dmx_driver_hal_t {
+    dmx_uart_handle_t uart;    // The handle to the UART HAL.
+    dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
+    dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
+  } hal;
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
@@ -167,6 +169,7 @@ typedef struct dmx_driver_t {
   QueueHandle_t metadata_queue;  // The queue handle used to receive sniffer data.
   int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
   int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
+
 
   struct rdm_driver_t {
     uint32_t staged_count;

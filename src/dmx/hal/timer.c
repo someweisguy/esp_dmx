@@ -22,8 +22,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 #endif
     void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  dmx_uart_handle_t uart = driver->uart;
-  dmx_timer_handle_t timer = driver->timer;
+  dmx_uart_handle_t uart = driver->hal.uart;
+  dmx_timer_handle_t timer = driver->hal.timer;
   int task_awoken = false;
 
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {

@@ -287,8 +287,8 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   }
 
   // Flip the DMX bus to write mode
-  if (dmx_uart_get_rts(driver->uart) == 1){
-    dmx_uart_set_rts(driver->uart, 0);
+  if (dmx_uart_get_rts(driver->hal.uart) == 1){
+    dmx_uart_set_rts(driver->hal.uart, 0);
   }
 
   // Copy data from the source to the driver buffer asynchronously
@@ -443,12 +443,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Set the RTS pin to enable reading from the DMX bus
-  if (dmx_uart_get_rts(driver->uart) == 0) {
+  if (dmx_uart_get_rts(driver->hal.uart) == 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     driver->head = -1;  // Wait for DMX break before reading data
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-    dmx_uart_set_rts(driver->uart, 1);
+    dmx_uart_set_rts(driver->hal.uart, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
@@ -491,17 +491,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
       // Set an early timeout with the hardware timer
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      dmx_timer_set_counter(driver->timer, elapsed);
-      dmx_timer_set_alarm(driver->timer,
+      dmx_timer_set_counter(driver->hal.timer, elapsed);
+      dmx_timer_set_alarm(driver->hal.timer,
                           RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE, false);
-      dmx_timer_start(driver->timer);
+      dmx_timer_start(driver->hal.timer);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
 
     // Wait for a task notification
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    dmx_timer_stop(driver->timer);
+    dmx_timer_stop(driver->hal.timer);
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     if (!notified) {
@@ -648,7 +648,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->head = -1;  // Wait for DMX break before reading data
-      dmx_uart_set_rts(driver->uart, 1);
+      dmx_uart_set_rts(driver->hal.uart, 1);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
   }
@@ -721,9 +721,9 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   elapsed = dmx_timer_get_micros_since_boot() - driver->last_slot_ts;
   if (elapsed < timeout) {
-    dmx_timer_set_counter(driver->timer, elapsed);
-    dmx_timer_set_alarm(driver->timer, timeout, false);
-    dmx_timer_start(driver->timer);
+    dmx_timer_set_counter(driver->hal.timer, elapsed);
+    dmx_timer_set_alarm(driver->hal.timer, timeout, false);
+    dmx_timer_start(driver->hal.timer);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -738,8 +738,8 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
 
   // Turn the DMX bus around and get the send size
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (dmx_uart_get_rts(driver->uart) == 1) {
-    dmx_uart_set_rts(driver->uart, 0);
+  if (dmx_uart_get_rts(driver->hal.uart) == 1) {
+    dmx_uart_set_rts(driver->hal.uart, 0);
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -771,11 +771,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
 
     size_t write_size = driver->tx_size;
-    dmx_uart_write_txfifo(driver->uart, driver->data, &write_size);
+    dmx_uart_write_txfifo(driver->hal.uart, driver->data, &write_size);
     driver->head = write_size;
 
     // Enable DMX write interrupts
-    dmx_uart_enable_interrupt(driver->uart, DMX_INTR_TX_ALL);
+    dmx_uart_enable_interrupt(driver->hal.uart, DMX_INTR_TX_ALL);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     // Send the packet by starting the DMX break
@@ -783,11 +783,11 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
     driver->head = 0;
     driver->flags |=
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
-    dmx_timer_set_counter(driver->timer, 0);
-    dmx_timer_set_alarm(driver->timer, driver->break_len, true);
-    dmx_timer_start(driver->timer);
+    dmx_timer_set_counter(driver->hal.timer, 0);
+    dmx_timer_set_alarm(driver->hal.timer, driver->break_len, true);
+    dmx_timer_start(driver->hal.timer);
 
-    dmx_uart_invert_tx(driver->uart, 1);
+    dmx_uart_invert_tx(driver->hal.uart, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
