@@ -20,7 +20,7 @@ size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid,
                    rdm_sub_device_t sub_device, rdm_ds_t ds, void *param,
                    size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
-  assert(pid > 0 && pid <= 0xffff);
+  assert(pid > 0);
   assert(sub_device < 513);
   assert(param != NULL);
 
@@ -101,7 +101,7 @@ size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid,
 bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
                  rdm_ds_t ds, const void *param, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
-  assert(pid > 0 && pid <= 0xffff);
+  assert(pid > 0);
   assert(sub_device < 513);
   assert(param != NULL);
 
