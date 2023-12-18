@@ -36,8 +36,20 @@ extern "C" {
 // TODO: Docs
 #define RDM_PD_SIZE_MAX (232)
 
+typedef uint16_t rdm_pid_t;
+
+typedef uint16_t rdm_sub_device_t;
+
+typedef uint8_t rdm_cc_t;
+
+typedef uint8_t rdm_response_type_t;
+
+typedef uint16_t rdm_nr_t;
+
+typedef uint8_t rdm_status_t;
+
 /** @brief RDM sub-device type.*/
-typedef enum rdm_sub_device_t {
+enum rdm_sub_device_t {
   /** @brief Sub-device which respresents the root of a RDM device.*/
   RDM_SUB_DEVICE_ROOT = 0,
   /** @brief The sub-device maximum. All sub-devices numbers must be less than
@@ -46,14 +58,14 @@ typedef enum rdm_sub_device_t {
   /** @brief The RDM sub-device number which can be used to address all
      sub-devices of an RDM device in a request.*/
   RDM_SUB_DEVICE_ALL = 0xffff
-} rdm_sub_device_t;
+};
 
 /** @brief The RDM command class (CC) type. The command class specifies the
  * action of the message. Responders shall always generate a response to
  * GET_COMMAND and SET_COMMAND messages except when the destination UID of the
  * message is a broadcast address. Responders shall not respond to commands sent
  * using broadcast addressing, in order to prevent collisions.*/
-typedef enum rdm_cc_t {
+enum rdm_cc_t {
   /** @brief The packet is an RDM discovery command.*/
   RDM_CC_DISC_COMMAND = 0x10,
   /** @brief The packet is a response to an RDM discovery command.*/
@@ -66,7 +78,7 @@ typedef enum rdm_cc_t {
   RDM_CC_SET_COMMAND = 0x30,
   /** @brief The packet is a response to an RDM SET request.*/
   RDM_CC_SET_COMMAND_RESPONSE = 0x31,
-} rdm_cc_t;
+};
 
 /** @brief The parameter ID (PID) is a 16-bit number that identifies a specific
  * type of parameter data. The PID may represent either a well known parameter
@@ -74,7 +86,7 @@ typedef enum rdm_cc_t {
  * manufacturer-specific parameter whose details are either published by the
  * manufacturer for third-party support or proprietary for the manufacturer's
  * own use.*/
-typedef enum rdm_pid_t {
+enum rdm_pid_t {
   // Category: Network Management
 
   /** @brief Discovery Unique Branch. This parameter is used for the device
@@ -214,11 +226,11 @@ typedef enum rdm_pid_t {
   RDM_PID_MANUFACTURER_SPECIFIC_BEGIN = 0x8000,
   RDM_PID_MANUFACTURER_SPECIFIC_END = 0xffdf,
   // Reserved for Future RDM Development: 0xffe0-0xffff
-} rdm_pid_t;
+};
 
 /** @brief The response type field is used in messages from Responders to
  * indicate the acknowledgement type of the response.*/
-typedef enum rdm_response_type_t {
+enum rdm_response_type_t {
   /** @brief Indicates that a response was received, but it was invalid.*/
   RDM_RESPONSE_TYPE_INVALID = 0xfe,
   /** @brief Indicates that a response was not received.*/
@@ -237,14 +249,14 @@ typedef enum rdm_response_type_t {
      message and is acting upon the message, but there is more response data
      available than will fit in a single response message.*/
   RDM_RESPONSE_TYPE_ACK_OVERFLOW = 0x03,
-} rdm_response_type_t;
+};
 
 /** @brief Status collection messages include messages used to retrieve deferred
  * (queued) responses, device status and error information, and information
  * regarding the RDM parameters supported by the device. Status collection
  * messages are normally addressed to root devices. The status type is used to
  * identify the severity of the condition.*/
-typedef enum rdm_status_t {
+enum rdm_status_t {
   /** @brief The status type of RDM_STATUS_NONE shall be used when a controller
      wants to establish whether a device is present on the network without
      retrieving any status message data from the device. Not allowed for use
@@ -272,11 +284,11 @@ typedef enum rdm_status_t {
   /** @brief The sub-device previously had an error status message but it has
      been cleared.*/
   RDM_STATUS_ERROR_CLEARED = 0x14
-} rdm_status_t;
+};
 
 /** @brief The NACK reason defines the reason that the responder is unable to
  * comply with the request.*/
-typedef enum rdm_nr_t {
+enum rdm_nr_t {
   /** @brief The responder cannot comply with the request because the message is
      not implemented in the responder.*/
   RDM_NR_UNKNOWN_PID = 0x0000,
@@ -305,7 +317,7 @@ typedef enum rdm_nr_t {
   /** @brief The proxy buffer is full and cannot store any more queued message
      or status message responses.*/
   RDM_NR_PROXY_BUFFER_FULL = 0x000a
-} rdm_nr_t;
+};
 
 /** @brief The PID command class defines whether GET and or SET messages are
  * implemented for a specified PID.*/
