@@ -222,9 +222,11 @@ enum rdm_pid_t {
   RDM_PID_PRESET_PLAYBACK = 0x1031,  // TODO: See rdm_preset_playback_t
 
   // Reserved for Future RDM Development: 0x7fe0-0x7fff
-  // Manufacturer Specific PIDs:          0x8000-0xffdf
+  
+  // Manufacturer Specific PIDs
   RDM_PID_MANUFACTURER_SPECIFIC_BEGIN = 0x8000,
   RDM_PID_MANUFACTURER_SPECIFIC_END = 0xffdf,
+  
   // Reserved for Future RDM Development: 0xffe0-0xffff
 };
 
