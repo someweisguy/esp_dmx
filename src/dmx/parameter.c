@@ -78,7 +78,6 @@ static struct dmx_parameter_s *rdm_parameter_add_entry(
   // Set default parameter values
   if (entry != NULL) {
     entry->pid = pid;
-    entry->is_queued = false;
   }
 
   return entry;

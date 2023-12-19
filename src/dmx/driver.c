@@ -119,8 +119,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->dmx.last_slot_ts = 0;
 
   // RDM responder configuration
-  driver->rdm.queue_count = 0;
-  driver->rdm.previous_popped = 0;  // A queued message has not yet been sent
   driver->rdm.tn = 0;
 
   // DMX sniffer configuration

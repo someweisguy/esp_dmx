@@ -117,7 +117,6 @@ typedef struct dmx_parameter_s {
   void *data;
   uint8_t is_heap_allocated;
   uint8_t storage_type;
-  bool is_queued;
 } rdm_parameter_t;
 
 typedef struct rdm_device_s {
@@ -175,11 +174,7 @@ typedef struct dmx_driver_t {
   } sniffer;
 
   struct dmx_driver_rdm_t {
-    uint32_t queue_count;       // The index of the RDM message queue list.
-    rdm_pid_t previous_popped;  // The PID of the last sent queued message.
-
     uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
-
   } rdm;
 
   struct dmx_driver_device_t {
