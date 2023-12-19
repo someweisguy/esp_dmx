@@ -13,12 +13,12 @@ bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Allocate the sniffer queue
-  driver->metadata_queue = xQueueCreate(1, sizeof(dmx_metadata_t));
-  DMX_CHECK(driver->metadata_queue != NULL, false,
+  driver->sniffer.metadata_queue = xQueueCreate(1, sizeof(dmx_metadata_t));
+  DMX_CHECK(driver->sniffer.metadata_queue != NULL, false,
             "DMX sniffer queue malloc error");
 
   // Set sniffer default values
-  driver->last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
+  driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
   driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
   // Add the GPIO interrupt handler
@@ -37,15 +37,15 @@ bool dmx_sniffer_disable(dmx_port_t dmx_num) {
   dmx_gpio_deinit(driver->hal.gpio);
 
   // Deallocate the sniffer queue
-  vQueueDelete(driver->metadata_queue);
-  driver->metadata_queue = NULL;
+  vQueueDelete(driver->sniffer.metadata_queue);
+  driver->sniffer.metadata_queue = NULL;
 
   return true;
 }
 
 bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
   return dmx_driver_is_installed(dmx_num) &&
-         dmx_driver[dmx_num]->metadata_queue != NULL;
+         dmx_driver[dmx_num]->sniffer.metadata_queue != NULL;
 }
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
@@ -56,5 +56,5 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  return xQueueReceive(driver->metadata_queue, metadata, wait_ticks);
+  return xQueueReceive(driver->sniffer.metadata_queue, metadata, wait_ticks);
 }

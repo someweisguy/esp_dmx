@@ -23,8 +23,8 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
                                     rdm_header_t *response, void *context) {
   if (request->cc == RDM_CC_SET_COMMAND &&
       request->sub_device == RDM_SUB_DEVICE_ROOT) {
-    const uint8_t *identify =
-        dmx_parameter_get(dmx_num, RDM_PID_IDENTIFY_DEVICE, request->sub_device);
+    const uint8_t *identify = dmx_parameter_get(
+        dmx_num, RDM_PID_IDENTIFY_DEVICE, request->sub_device);
 #ifdef ARDUINO
     printf("RDM identify device is %s\n", *identify ? "on" : "off");
 #else
@@ -80,15 +80,15 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->dmx_num = dmx_num;
   driver->uid.man_id = RDM_UID_MANUFACTURER_ID;
 #if RDM_UID_DEVICE_ID == 0xffffffff
-    // Set the device ID based on the device's MAC address
-    uint8_t mac[8];
-    esp_efuse_mac_get_default(mac);
-    driver->uid.dev_id = bswap32(*(uint32_t *)(mac + 2));
+  // Set the device ID based on the device's MAC address
+  uint8_t mac[8];
+  esp_efuse_mac_get_default(mac);
+  driver->uid.dev_id = bswap32(*(uint32_t *)(mac + 2));
 #else
-    // Set the device ID based on what the user set in the kconfig
-    driver->uid.dev_id = RDM_UID_DEVICE_UID;
+  // Set the device ID based on what the user set in the kconfig
+  driver->uid.dev_id = RDM_UID_DEVICE_UID;
 #endif
-    *(uint8_t *)(&driver->uid.dev_id) += dmx_num;  // Increment last octect
+  *(uint8_t *)(&driver->uid.dev_id) += dmx_num;  // Increment last octect
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
@@ -124,9 +124,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // DMX sniffer configuration
   // The driver->metadata field is left uninitialized
-  driver->metadata_queue = NULL;
-  driver->last_pos_edge_ts = -1;
-  driver->last_neg_edge_ts = -1;
+  driver->sniffer.metadata_queue = NULL;
+  driver->sniffer.last_pos_edge_ts = -1;
+  driver->sniffer.last_neg_edge_ts = -1;
 
   // Add the personality numbers to the DMX personalities
   rdm_dmx_personality_description_t *personality_description =

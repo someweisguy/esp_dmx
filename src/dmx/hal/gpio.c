@@ -26,26 +26,27 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     also be deduced that the driver is now in a DMX mark-after-break. */
 
     if ((driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) &&
-        driver->last_neg_edge_ts > -1) {
-      driver->metadata.break_len = now - driver->last_neg_edge_ts;
+        driver->sniffer.last_neg_edge_ts > -1) {
+      driver->sniffer.metadata.break_len =
+          now - driver->sniffer.last_neg_edge_ts;
       driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
     }
-    driver->last_pos_edge_ts = now;
+    driver->sniffer.last_pos_edge_ts = now;
   } else {
     /* If this ISR is called on a negative edge in a DMX mark-after-break then
     the DMX mark-after-break has just finished. It can be recorded. Sniffer data
     is now available to be read by the user. */
 
     if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_MAB) {
-      driver->metadata.mab_len = now - driver->last_pos_edge_ts;
+      driver->sniffer.metadata.mab_len = now - driver->sniffer.last_pos_edge_ts;
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
       // Send the sniffer data to the queue
-      xQueueOverwriteFromISR(driver->metadata_queue, &driver->metadata,
-                             &task_awoken);
+      xQueueOverwriteFromISR(driver->sniffer.metadata_queue,
+                             &driver->sniffer.metadata, &task_awoken);
     }
-    driver->last_neg_edge_ts = now;
+    driver->sniffer.last_neg_edge_ts = now;
   }
 
   if (task_awoken) portYIELD_FROM_ISR();
