@@ -423,7 +423,7 @@ typedef enum rdm_units_t {
   /** @brief An SI unit is not used.*/
   RDM_UNITS_NONE = 0x00,
   /** @brief The unit is bytes. When a prefix is used with this unit, the
-     multiplier refers to binary multiple. i.e. KILO means multiply by 1024.*/
+     multiplier refers to binary multiple. e.g. KILO means multiply by 1024.*/
   RDM_UNITS_BYTES = 0x1c
 } rdm_units_t;
 
