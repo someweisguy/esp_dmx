@@ -1,6 +1,7 @@
 #include "include/parameter.h"
 
 #include <ctype.h>
+#include <string.h>
 
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/driver.h"
