@@ -61,9 +61,10 @@ static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
                                           &response_header);
 }
 
-bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
-                                 void *context) {
+bool rdm_register_queued_message(dmx_port_t dmx_num, uint32_t max_count,
+                                 rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(max_count > 0, false, "max_count error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   // Define the parameter
@@ -86,10 +87,16 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter
   const bool nvs = false;
-  size_t size = sizeof(rdm_queue_t) + (sizeof(rdm_pid_t) * 64);  // TODO
-  dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, size);
+  size_t size = sizeof(rdm_queue_t) + (sizeof(rdm_pid_t) * max_count);
+  bool success = dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                           nvs, NULL, size);
+  if (success) {
+    rdm_queue_t *queue = rdm_get_queue(dmx_num);
+    assert(queue != NULL);
+    queue->max_size = max_count;
+  }
 
-  return true;
+  return success;
 }
 
 bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid) {
