@@ -93,18 +93,20 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->mab_len = RDM_MAB_LEN_US;
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
 
-  driver->rdm.root_device_parameter_max = config->root_device_parameter_count;
-  driver->rdm.sub_device_parameter_max = 0;  // TODO
-
   // Set the default values for the root device
-  driver->rdm.root_device.device_num = RDM_SUB_DEVICE_ROOT;
-  driver->rdm.root_device.next = NULL;
-  driver->rdm.root_device.model_id = config->model_id;
-  driver->rdm.root_device.product_category = config->product_category;
-  driver->rdm.root_device.software_version_id = config->software_version_id;
+  driver->device.root.device_num = RDM_SUB_DEVICE_ROOT;
+  driver->device.root.next = NULL;
+  driver->device.root.model_id = config->model_id;
+  driver->device.root.product_category = config->product_category;
+  driver->device.root.software_version_id = config->software_version_id;
   for (int i = 0; i < config->root_device_parameter_count; ++i) {
-    driver->rdm.root_device.parameters[i].pid = 0;
+    driver->device.root.parameters[i].pid = 0;
   }
+
+  // Set the default values for the DMX device
+  driver->device.parameter_count.root = config->root_device_parameter_count;
+  driver->device.parameter_count.sub_devices = 0;  // TODO
+  driver->device.parameter_count.staged = 0;
 
   // Synchronization state
   driver->task_waiting = NULL;
@@ -117,7 +119,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->dmx.last_slot_ts = 0;
 
   // RDM responder configuration
-  driver->rdm.staged_count = 0;
   driver->rdm.queue_count = 0;
   driver->rdm.previous_popped = 0;  // A queued message has not yet been sent
   driver->rdm.tn = 0;

@@ -209,8 +209,8 @@ rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
   rdm_pid_t pid = 0;
   if (rdm_queue_size(dmx_num) > 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    rdm_device_t *device = &driver->rdm.root_device;
-    int parameter_count = driver->rdm.root_device_parameter_max;
+    rdm_device_t *device = &driver->device.root;
+    int parameter_count = driver->device.parameter_count.root;
     while (device != NULL) {
       for (int i = 0; i < parameter_count; ++i) {
         if (device->parameters[i].is_queued) {
@@ -221,7 +221,7 @@ rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
           break;
         }
       }
-      parameter_count = driver->rdm.sub_device_parameter_max;
+      // parameter_count = driver->rdm.sub_device_parameter_max;
     }
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   }

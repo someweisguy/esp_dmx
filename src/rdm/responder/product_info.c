@@ -56,10 +56,9 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  device_info->model_id = driver->rdm.root_device.model_id;
-  device_info->product_category = driver->rdm.root_device.product_category;
-  device_info->software_version_id =
-      driver->rdm.root_device.software_version_id;
+  device_info->model_id = driver->device.root.model_id;
+  device_info->product_category = driver->device.root.product_category;
+  device_info->software_version_id = driver->device.root.software_version_id;
   if (!rdm_get_dmx_personality(dmx_num, &device_info->personality)) {
     device_info->personality.count = 0;
     device_info->personality.current = 0;

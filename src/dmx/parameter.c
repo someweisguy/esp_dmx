@@ -26,13 +26,14 @@ static struct dmx_parameter_s *rdm_parameter_get_entry(
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Get the RDM sub-device
-  rdm_device_t *device = &driver->rdm.root_device;
+  rdm_device_t *device = &driver->device.root;
   // TODO: loop through sub-device until the correct sub-device is found
 
   // Iterate through parameters until the correct parameter is found
-  const uint32_t parameter_count = sub_device == RDM_SUB_DEVICE_ROOT
-                                       ? driver->rdm.root_device_parameter_max
-                                       : driver->rdm.sub_device_parameter_max;
+  const uint32_t parameter_count =
+      sub_device == RDM_SUB_DEVICE_ROOT
+          ? driver->device.parameter_count.root
+          : driver->device.parameter_count.sub_devices;
   for (int i = 0; i < parameter_count; ++i) {
     if (device->parameters[i].pid == pid) {
       return &device->parameters[i];
@@ -57,14 +58,15 @@ static struct dmx_parameter_s *rdm_parameter_add_entry(
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Get the RDM sub-device
-  rdm_device_t *device = &driver->rdm.root_device;
+  rdm_device_t *device = &driver->device.root;
   // TODO: loop through sub-device until the correct sub-device is found
 
   // Iterate through parameters until the correct parameter is found
   struct dmx_parameter_s *entry = NULL;
-  const uint32_t parameter_count = sub_device == RDM_SUB_DEVICE_ROOT
-                                       ? driver->rdm.root_device_parameter_max
-                                       : driver->rdm.sub_device_parameter_max;
+  const uint32_t parameter_count =
+      sub_device == RDM_SUB_DEVICE_ROOT
+          ? driver->device.parameter_count.root
+          : driver->device.parameter_count.sub_devices;
   for (int i = 0; i < parameter_count; ++i) {
     if (device->parameters[i].pid == 0) {
       entry = &device->parameters[i];
@@ -211,14 +213,14 @@ rdm_pid_t dmx_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Return early if the parameter index is out of bounds
   if ((sub_device == RDM_SUB_DEVICE_ROOT &&
-       index > driver->rdm.root_device_parameter_max) ||
+       index > driver->device.parameter_count.root) ||
       (sub_device > RDM_SUB_DEVICE_ROOT &&
-       index > driver->rdm.sub_device_parameter_max)) {
+       index > driver->device.parameter_count.sub_devices)) {
     return 0;
   }
 
   // Find the desired sub-device number
-  rdm_device_t *device = &driver->rdm.root_device;
+  rdm_device_t *device = &driver->device.root;
   while (device->device_num != sub_device) {
     device = device->next;
     if (device == NULL) {
@@ -313,7 +315,7 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   memcpy(entry->data, source, size);
   if (entry->storage_type == DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE) {
     entry->storage_type = DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED;
-    ++dmx_driver[dmx_num]->rdm.staged_count;
+    ++dmx_driver[dmx_num]->device.parameter_count.staged;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -327,7 +329,7 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Guard against unnecessarily iterating through all parameters
-  if (driver->rdm.staged_count == 0) {
+  if (driver->device.parameter_count.staged == 0) {
     return 0;
   }
 
@@ -336,15 +338,15 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   void *data = NULL;
 
   // Iterate through parameters and commit the first found value to NVS
-  rdm_device_t *device = &driver->rdm.root_device;
+  rdm_device_t *device = &driver->device.root;
   for (; device != NULL && pid == 0; device = device->next) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    for (int i = 0; i < driver->rdm.root_device_parameter_max; ++i) {
+    for (int i = 0; i < driver->device.parameter_count.root; ++i) {
       if (device->parameters[i].storage_type ==
           DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED) {
         device->parameters[i].storage_type =
             DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE;
-        --driver->rdm.staged_count;
+        --driver->device.parameter_count.staged;
         sub_device = device->device_num;
         pid = device->parameters[i].pid;
         data = device->parameters[i].data;

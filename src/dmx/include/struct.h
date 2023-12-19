@@ -174,19 +174,22 @@ typedef struct dmx_driver_t {
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
 
-
-  struct rdm_driver_t {
-    uint32_t staged_count;
+  struct dmx_driver_rdm_t {
     uint32_t queue_count;       // The index of the RDM message queue list.
     rdm_pid_t previous_popped;  // The PID of the last sent queued message.
 
     uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
 
-    uint32_t root_device_parameter_max;
-    uint32_t sub_device_parameter_max;
-
-    rdm_device_t root_device;
   } rdm;
+
+  struct dmx_driver_device_t {
+    struct dmx_driver_parameter_count_t {
+      uint32_t root;
+      uint32_t sub_devices;
+      uint32_t staged;
+    } parameter_count;
+    rdm_device_t root;
+  } device;
 } dmx_driver_t;
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
