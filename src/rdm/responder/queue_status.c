@@ -5,6 +5,20 @@
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
 
+// TODO: docs
+typedef struct rdm_queue_t {
+  uint16_t head;
+  uint16_t tail;
+  rdm_pid_t previous;
+  uint16_t max_size;
+  rdm_pid_t data[];
+} rdm_queue_t;
+
+static rdm_queue_t *rdm_get_queue(dmx_port_t dmx_num) {
+  return dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+                           RDM_PID_QUEUED_MESSAGE);
+}
+
 static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
                                          const rdm_parameter_definition_t *definition,
                                          const rdm_header_t *header) {
@@ -70,9 +84,118 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   rdm_parameter_define(&definition);
 
-  // Add the parameter as a NULL static variable
+  // Add the parameter
   const bool nvs = false;
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  size_t size = sizeof(rdm_queue_t) + (sizeof(rdm_pid_t) * 64);  // TODO
+  dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, size);
 
   return true;
+}
+
+bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(pid > 0, false, "pid error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  rdm_queue_t *queue = rdm_get_queue(dmx_num);
+  if (queue == NULL) {
+    return false;
+  }
+
+  bool success = false;
+  bool already_queued = false;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  // Iterate the queue to ensure that the PID isn't already queued
+  for (int i = queue->tail; i != queue->head; ++i) {
+    if (i == queue->max_size) {
+      i = 0;
+    }
+    if (queue->data[i] == pid) {
+      already_queued = true;
+      success = true;
+      break;
+    }
+  }
+
+  // Push the new PID and increment the queue head
+  if (!already_queued && (queue->head + 1) % queue->max_size != queue->tail) {
+    queue->data[queue->head] = pid;
+    ++queue->head;
+    if (queue->head == queue->max_size) {
+      queue->head = 0;
+    }
+    success = true;
+  }
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return success;
+}
+
+rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  
+  rdm_pid_t pid;
+  if (rdm_queue_size(dmx_num) > 0) {
+    rdm_queue_t *queue = rdm_get_queue(dmx_num);
+    assert(queue != NULL);
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    pid = queue->data[queue->tail];
+    ++queue->tail;
+    if (queue->tail == queue->max_size) {
+      queue->tail = 0;
+    }
+    queue->previous = pid;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  } else {
+    pid = 0;
+  }
+
+  return pid;
+}
+
+uint8_t rdm_queue_size(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  rdm_queue_t *queue = rdm_get_queue(dmx_num);
+  if (queue == NULL) {
+    return 0;
+  }
+
+  // Get the queue size by comparing the head and tail
+  uint16_t head;
+  uint16_t tail;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  head = queue->head;
+  tail = queue->tail;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  int32_t size = -tail + head;
+  if (size < 0) {
+    size += queue->max_size;
+  }
+
+  // Clamp the queue size to 255
+  if (size > 255) {
+    size = 255;
+  }
+
+  return size;
+}
+
+rdm_pid_t rdm_queue_previous(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  rdm_queue_t *queue = rdm_get_queue(dmx_num);
+  if (queue == NULL) {
+    return 0;
+  }
+
+  rdm_pid_t pid;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  pid = queue->previous;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return pid;
 }
