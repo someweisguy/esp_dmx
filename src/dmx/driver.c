@@ -152,7 +152,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
     rdm_register_dmx_start_address(dmx_num, NULL, NULL);
   }
 
-  if (config->queue_size_max) {
+  if (config->queue_size_max > 0) {
     rdm_register_queued_message(dmx_num, config->queue_size_max, NULL, NULL);
   }
 
