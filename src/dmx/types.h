@@ -304,6 +304,8 @@ typedef struct dmx_config_s {
   // TODO: docs
   uint32_t root_device_parameter_count;
   // TODO: docs
+  uint32_t queue_size_max;
+  // TODO: docs
   int interrupt_flags;
 } dmx_config_t;
 

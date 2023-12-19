@@ -63,6 +63,7 @@ extern "C" {
         ESP_DMX_VERSION_ID,           /*software_version_id*/         \
         ESP_DMX_VERSION_LABEL,        /*software_version_label*/      \
         32,                           /*root_device_parameter_count*/ \
+        32,                           /*queue_size_max*/              \
         DMX_INTR_FLAGS_DEFAULT        /*interrupt_flags*/             \
   }
 
