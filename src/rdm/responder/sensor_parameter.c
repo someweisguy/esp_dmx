@@ -56,14 +56,14 @@ static size_t rdm_rhd_get_set_sensor_value(
   } else {
     if (sensor_num == RDM_SENSOR_NUM_MAX) {
       // Reset all the sensors
-      for (int i = sensors->sensor_count; i >= 0; --i) {
-        value = &sensors->sensor_value[sensor_num];
-        assert(value != NULL);
-        value->present_value = 0;
-        value->lowest_value = 0;
-        value->highest_value = 0;
-        value->recorded_value = 0;
+      for (int i = 0; i < sensors->sensor_count; ++i) {
+        sensors->sensor_value[i].present_value = 0;
+        sensors->sensor_value[i].lowest_value = 0;
+        sensors->sensor_value[i].highest_value = 0;
+        sensors->sensor_value[i].recorded_value = 0;
       }
+      value = &sensors->sensor_value[0];
+      assert(value != NULL);
     } else {
       // Get the requested sensor value and reset it
       value = &sensors->sensor_value[sensor_num];
@@ -145,4 +145,36 @@ uint8_t rdm_sensor_get_count(dmx_port_t dmx_num, rdm_sub_device_t sub_device) {
   }
 
   return sensors->sensor_count;
+}
+
+bool rdm_sensor_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                    uint8_t sensor_num, int16_t value) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
+            false, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  assert(sub_device == RDM_SUB_DEVICE_ROOT);
+
+  // Validate the sensor_num
+  rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
+  if (sensors == NULL || (sensor_num > sensors->sensor_count &&
+                          sensor_num != RDM_SENSOR_NUM_MAX)) {
+    return false;
+  }
+
+  // Set the sensor value
+  if (sensor_num != RDM_SENSOR_NUM_MAX) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    sensors->sensor_value[sensor_num].present_value = value;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  } else {
+    for (int i = 0; i < sensors->sensor_count; ++i) {
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      sensors->sensor_value[i].present_value = value;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    }
+  }
+
+  return true;
 }
