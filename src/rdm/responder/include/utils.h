@@ -19,7 +19,7 @@ typedef struct rdm_parameter_definition_t {
   rdm_pid_t pid;
   uint8_t pid_cc;
   uint8_t ds;
-  struct {
+  struct rdm_command_t {
     struct {
       const char *format;
     } request, response;
