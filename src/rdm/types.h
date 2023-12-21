@@ -37,6 +37,9 @@ extern "C" {
 #define RDM_PD_SIZE_MAX (232)
 
 // TODO: docs
+#define RDM_SENSOR_NUM_MAX (0xff)
+
+// TODO: docs
 typedef uint16_t rdm_pid_t;
 
 // TODO: docs
@@ -672,6 +675,32 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
     uint16_t data[2];
   };
 } rdm_status_message_t;
+
+// TODO: docs
+typedef struct __attribute__((packed)) rdm_sensor_value_t {
+  /** @brief The sensor number is in the range 0x00 to 0xFE. A value 0xFF is
+     used to represent all sensors for the SET command. The sensor value fields
+     in the response to a SET command sent to sensor 0xFF shall be ignored by
+     the controller. There is no requirement on a responder to provide specific
+     values in this response.*/
+  uint8_t sensor_num;
+  /** @brief This is a signed 16-bit value that represents the present value of
+     the sensor data.*/
+  int16_t present_value;
+  /** @brief This is a signed 16-bit value that represents the lowest value
+     registered by the sensor. Support for this data is optional. If this value
+     is not supported then this field shall be set to 0x0000.*/
+  int16_t lowest_value;
+  /** @brief This is a signed 16-bit value that represents the highest value
+   registered by the sensor. Support for this data is optional. If this value
+   is not supported then this field shall be set to 0x0000.*/
+  int16_t highest_value;
+  /** @brief This is a signed 16-bit value that represents the value that was
+     recorded  when the last RDM_PID_RECORD_SENSORS command was issued. Support
+     for this data is optional. If this value is not supported then this field
+     shall be set to 0x0000.*/
+  int16_t recorded_value;
+} rdm_sensor_value_t;
 
 /** @brief UID which indicates an RDM packet is being broadcast to all devices
  * regardless of manufacturer. Responders shall not respond to RDM broadcast
