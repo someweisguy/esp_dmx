@@ -31,4 +31,4 @@ typedef void (*rdm_callback_t)(dmx_port_t dmx_num, rdm_header_t *request_header,
 #include "rdm/responder/include/product_info.h"
 #include "rdm/responder/include/queue_status.h"
 #include "rdm/responder/include/rdm_info.h"
-// #include "rdm/responder/include/sensor_parameter.h"  // TODO
+#include "rdm/responder/include/sensor_parameter.h"
