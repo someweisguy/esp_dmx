@@ -7,6 +7,26 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 
+
+/*  // TODO
+
+dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
+dmx_parameter_add_static(dmx_num, sub_Device, pid, nvs, *data, size);
+dmx_parameter_add_null(dmx_num, sub_device, pid);
+
+bool dmx_parameter_exists(dmx_num, sub_device, pid);
+rdm_pid_t dmx_parameter_at(dmx_num, sub_device, index);
+void *dmx_parameter_get(dmx_num, sub_device, pid);
+size_t dmx_parameter_copy(dmx_num, sub_device, pid, *destination, size);
+bool dmx_parameter_set(dmx_num, sub_device, pid, const *source, size);
+bool dmx_parameter_commit(dmx_num);
+
+size_t dmx_parameter_size(dmx_num, sub_device, pid);
+
+
+
+*/
+
 // TODO: docs
 enum dmx_parameter_storage_type_t {
   DMX_PARAMETER_STORAGE_TYPE_VOLATILE = 0,
@@ -14,21 +34,24 @@ enum dmx_parameter_storage_type_t {
   DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED
 };
 
-static struct dmx_parameter_s *rdm_parameter_get_entry(
-    dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
+static dmx_parameter_t *dmx_parameter_get_entry(dmx_port_t dmx_num,
+                                                rdm_sub_device_t sub_device,
+                                                rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  // TODO: Implement sub-devices
-  assert(sub_device == 0);
-
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Get the RDM sub-device
+  // Find the sub-device
   rdm_device_t *device = &driver->device.root;
-  // TODO: loop through sub-device until the correct sub-device is found
+  while (device->device_num != sub_device) {
+    device = device->next;
+    if (device == NULL) {
+      return NULL;  // Sub-device does not exist
+    }
+  }
 
   // Iterate through parameters until the correct parameter is found
   const uint32_t parameter_count =
@@ -39,48 +62,49 @@ static struct dmx_parameter_s *rdm_parameter_get_entry(
     if (device->parameters[i].pid == pid) {
       return &device->parameters[i];
     } else if (device->parameters[i].pid == 0) {
-      break;
+      break;  // No more parameters on this sub-device
     }
   }
 
-  return NULL;
+  return NULL;  // Parameter was not found
 }
 
-static struct dmx_parameter_s *rdm_parameter_add_entry(
-    dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
+static dmx_parameter_t *dmx_parameter_add_entry(dmx_port_t dmx_num,
+                                                rdm_sub_device_t sub_device,
+                                                rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  // TODO: Implement sub-devices
-  assert(sub_device == 0);
-
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Get the RDM sub-device
+  // Find the sub-device
   rdm_device_t *device = &driver->device.root;
-  // TODO: loop through sub-device until the correct sub-device is found
+  while (device->device_num != sub_device) {
+    device = device->next;
+    if (device == NULL) {
+      return NULL;  // Sub-device does not exist
+    }
+  }
 
-  // Iterate through parameters until the correct parameter is found
-  struct dmx_parameter_s *entry = NULL;
+  // Iterate through parameters until an empty parameter is found
   const uint32_t parameter_count =
       sub_device == RDM_SUB_DEVICE_ROOT
           ? driver->device.parameter_count.root
           : driver->device.parameter_count.sub_devices;
   for (int i = 0; i < parameter_count; ++i) {
-    if (device->parameters[i].pid == 0) {
-      entry = &device->parameters[i];
-      break;
+    if (device->parameters[i].pid == pid) {
+      return NULL;  // Parameter already exists
+    } else if (device->parameters[i].pid == 0) {
+      device->parameters[i].pid = pid;
+      device->parameters[i].definition = NULL;
+      device->parameters[i].callback = NULL;
+      return &device->parameters[i];
     }
   }
 
-  // Set default parameter values
-  if (entry != NULL) {
-    entry->pid = pid;
-  }
-
-  return entry;
+  return NULL;  // No more parameters available on this sub-device
 }
 
 bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -110,7 +134,7 @@ bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there are no available parameter entries
-  rdm_parameter_t *entry = rdm_parameter_add_entry(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_add_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     if (data != NULL) {
       free(data);
@@ -151,7 +175,7 @@ bool dmx_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there are no available parameter entries
-  rdm_parameter_t *entry = rdm_parameter_add_entry(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_add_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return false;
   }
@@ -179,7 +203,7 @@ bool dmx_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Return early if there are no available parameter entries
-  rdm_parameter_t *entry = rdm_parameter_add_entry(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_add_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return false;
   }
@@ -200,7 +224,7 @@ bool dmx_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  return (rdm_parameter_get_entry(dmx_num, sub_device, pid) != NULL);
+  return (dmx_parameter_get_entry(dmx_num, sub_device, pid) != NULL);
 }
 
 rdm_pid_t dmx_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -238,7 +262,7 @@ size_t dmx_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  rdm_parameter_t *entry = rdm_parameter_get_entry(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return 0;
   }
@@ -254,7 +278,7 @@ void *dmx_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Find the parameter and return it
-  rdm_parameter_t *entry = rdm_parameter_get_entry(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return NULL;
   }
@@ -270,7 +294,7 @@ size_t dmx_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Find the parameter
-  rdm_parameter_t *entry = rdm_parameter_get_entry(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return 0;
   }
@@ -300,7 +324,7 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return 0;
   }
 
-  rdm_parameter_t *entry = rdm_parameter_get_entry(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return 0;
   }
@@ -364,7 +388,7 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   return pid;
 }
 
-size_t dmx_parameter_format_size(const char *format) {
+size_t dmx_parameter_rdm_format_size(const char *format) {
   size_t parameter_size = 0;
 
   bool format_is_terminated = false;
@@ -444,4 +468,94 @@ size_t dmx_parameter_format_size(const char *format) {
   }
 
   return parameter_size;
+}
+
+bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid,
+                          const rdm_parameter_definition_t *definition) {
+  assert(definition != NULL);
+  assert(definition->pid > 0);
+  assert(definition->pid_cc >= RDM_CC_DISC &&
+         definition->pid_cc <= RDM_CC_GET_SET);
+  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
+          definition->ds <= RDM_DS_SIGNED_DWORD) ||
+         (definition->ds >= 0x80 && definition->ds <= 0xdf));
+  assert(rdm_format_is_valid(definition->get.request.format) &&
+         rdm_format_is_valid(definition->get.response.format));
+  assert(rdm_format_is_valid(definition->set.request.format) &&
+         rdm_format_is_valid(definition->set.response.format));
+  assert(
+      (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
+                                           definition->pid_cc == RDM_CC_GET)) ||
+      (definition->set.handler != NULL && definition->pid_cc == RDM_CC_SET) ||
+      (definition->get.handler != NULL && definition->set.handler != NULL &&
+       definition->pid_cc == RDM_CC_GET_SET));
+  assert(definition->pdl_size < RDM_PD_SIZE_MAX);
+  assert(definition->units <= RDM_UNITS_BYTES ||
+         (definition->units >= 0x80 && definition->units <= 0xff));
+  assert(definition->prefix <= RDM_PREFIX_YOCTO ||
+         (definition->prefix >= RDM_PREFIX_DECA &&
+          definition->prefix <= RDM_PREFIX_YOTTA));
+  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
+           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
+         definition->description == NULL);
+
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  entry->definition = definition;
+
+  return true;
+}
+
+const rdm_parameter_definition_t *dmx_parameter_rdm_lookup(
+    dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
+  assert(pid > 0);
+
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return NULL;
+  }
+ 
+  return entry->definition;
+}
+
+bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
+                                    rdm_sub_device_t sub_device, rdm_pid_t pid,
+                                    rdm_callback_t callback, void *context) {
+  assert(pid > 0);
+
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  entry->callback = callback;
+  entry->context = context;
+  
+  return true;
+}
+
+bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
+                                       rdm_sub_device_t sub_device,
+                                       rdm_pid_t pid,
+                                       rdm_header_t *request_header,
+                                       rdm_header_t *response_header) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(pid > 0);
+  assert(request_header != NULL);
+  assert(response_header != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // Search for a dictionary entry for the parameter
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  entry->callback(dmx_num, request_header, response_header, entry->context);
+
+  return true;
 }

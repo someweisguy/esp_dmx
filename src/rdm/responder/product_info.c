@@ -40,13 +40,14 @@ bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
   dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
-  return rdm_parameter_callback_set(pid, cb, context);
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
@@ -106,13 +107,15 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Allocate parameter data
   const bool nvs = true;
   dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                             device_label, RDM_ASCII_SIZE_MAX);
-  return rdm_parameter_callback_set(pid, cb, context);
+
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
@@ -170,7 +173,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Add the parameter as a static variable
   const bool nvs = false;
@@ -178,7 +181,8 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                            software_version_label, size);
 
-  return rdm_parameter_callback_set(pid, cb, context);
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_software_version_label(dmx_port_t dmx_num,

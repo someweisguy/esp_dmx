@@ -16,7 +16,31 @@ extern "C" {
 /**
  * @brief Evaluates to true if the parameter format string is valid.
  */
-#define rdm_format_is_valid(f) ((f) == NULL || dmx_parameter_format_size(f) > 0)
+#define rdm_format_is_valid(f) \
+  ((f) == NULL || dmx_parameter_rdm_format_size(f) > 0)
+
+// TODO: docs
+typedef struct rdm_parameter_definition_t {
+  rdm_pid_t pid;
+  uint8_t pid_cc;
+  uint8_t ds;
+  struct rdm_command_t {
+    struct {
+      const char *format;
+    } request, response;
+    size_t (*handler)(dmx_port_t dmx_num,
+                      const struct rdm_parameter_definition_t *definition,
+                      const rdm_header_t *header);
+  } get, set;
+  uint8_t pdl_size;
+  uint32_t max_value;
+  uint32_t min_value;
+  uint32_t default_value;
+  uint8_t units;
+  uint8_t prefix;
+  const char *description;
+} rdm_parameter_definition_t;
+
 
 /**
  * @brief Allocates and adds a parameter to the DMX driver. The parameter is
@@ -102,8 +126,28 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 // TODO: docs, not thread-safe
 rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num);
 
+bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              rdm_pid_t pid,
+                              const rdm_parameter_definition_t *definition);
+
+const rdm_parameter_definition_t *dmx_parameter_rdm_lookup(
+    dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid);
+
+bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
+                                    rdm_sub_device_t sub_device, rdm_pid_t pid,
+                                    rdm_callback_t callback, void *context);
+
+bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
+                                       rdm_sub_device_t sub_device,
+                                       rdm_pid_t pid,
+                                       rdm_header_t *request_header,
+                                       rdm_header_t *response_header);
+
 // TODO: docs
-size_t dmx_parameter_format_size(const char *format);
+size_t dmx_parameter_rdm_format_size(const char *format);
+
+bool dmx_parameter_rdm_disable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                               rdm_pid_t pid);
 
 #ifdef __cplusplus
 }

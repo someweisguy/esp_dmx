@@ -28,7 +28,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Allocate parameter data
   const bool nvs = true;
@@ -38,7 +38,8 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
     return false;
   }
 
-  return rdm_parameter_callback_set(pid, cb, context);
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_identify_device(dmx_port_t dmx_num, bool *identify) {

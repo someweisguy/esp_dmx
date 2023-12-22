@@ -131,7 +131,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Attempt to load the value from NVS
   rdm_dmx_personality_t personality;
@@ -150,7 +150,8 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
     return false;
   }
 
-  return rdm_parameter_callback_set(pid, cb, context);
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
@@ -224,7 +225,7 @@ bool rdm_register_dmx_personality_description(
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Allocate parameter data
   const bool nvs = false;
@@ -234,7 +235,8 @@ bool rdm_register_dmx_personality_description(
     return false;
   }
 
-  return rdm_parameter_callback_set(pid, cb, context);
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -260,7 +262,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Attempt to load the value from NVS
   uint16_t dmx_start_address;
@@ -281,7 +283,8 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                             &dmx_start_address, sizeof(dmx_start_address));
 
-  return rdm_parameter_callback_set(pid, cb, context);
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,

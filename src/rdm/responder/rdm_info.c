@@ -65,7 +65,8 @@ static size_t rdm_rhd_get_parameter_description(
   }
 
   // Ensure the request PID is known
-  const rdm_parameter_definition_t *requested_definition = rdm_parameter_lookup(pid);
+  const rdm_parameter_definition_t *requested_definition =
+      dmx_parameter_rdm_lookup(dmx_num, header->sub_device, pid);
   if (requested_definition == NULL) {
     // Don't return RDM_NR_UNKNOWN_PID because it has a different meaning
     return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
@@ -109,7 +110,7 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
@@ -182,7 +183,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Add the parameter as a NULL static variable
   const bool nvs = false;
@@ -201,7 +202,8 @@ size_t rdm_get_parameter_description(dmx_port_t dmx_num, rdm_pid_t pid,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   // Ensure the request PID is known
-  const rdm_parameter_definition_t *requested_definition = rdm_parameter_lookup(pid);
+  const rdm_parameter_definition_t *requested_definition =
+      dmx_parameter_rdm_lookup(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
   if (requested_definition == NULL) {
     return 0;
   }

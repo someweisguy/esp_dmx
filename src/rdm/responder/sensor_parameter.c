@@ -107,7 +107,7 @@ bool rdm_register_sensor(dmx_port_t dmx_num, uint8_t sensor_count,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(&definition);
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   // Add the parameter
   const bool nvs = false;

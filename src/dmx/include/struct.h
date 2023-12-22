@@ -11,6 +11,7 @@
 #include "dmx/hal/include/gpio.h"
 #include "dmx/hal/include/timer.h"
 #include "dmx/hal/include/uart.h"
+#include "dmx/include/parameter.h"
 #include "dmx/types.h"
 #include "esp_check.h"
 #include "freertos/queue.h"
@@ -110,48 +111,17 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
 };
 
-/*  // TODO
+// TODO: docs
 typedef struct dmx_parameter_t {
   rdm_pid_t pid;
   size_t size;
   void *data;
   bool is_heap_allocated;
   uint8_t storage_type;
-  const rdm_definition_t *definition;
-  void (*callback)(dmx_num, *request, *response, *context);
+  const rdm_parameter_definition_t *definition;
+  rdm_callback_t callback;
   void *context;
 } dmx_parameter_t;
-
-dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
-dmx_parameter_add_static(dmx_num, sub_Device, pid, nvs, *data, size);
-dmx_parameter_add_null(dmx_num, sub_device, pid);
-
-dmx_parameter_rdm_get_definition(dmx_num, sub_device, pid);
-dmx_parameter_rdm_set_definition(dmx_num, sub_device, pid, const *definition);
-dmx_parameter_rdm_handle_callback(dmx_num, sub_device, pid);
-dmx_parameter_rdm_set_callback(dmx_num, sub_device, pid, *callback, *context);
-dmx_parameter_rdm_format_size(const *format);
-dmx_parameter_rdm_disable(dmx_num, sub_device, pid);
-
-bool dmx_parameter_exists(dmx_num, sub_device, pid);
-rdm_pid_t dmx_parameter_at(dmx_num, sub_device, index);
-void *dmx_parameter_get(dmx_num, sub_device, pid);
-size_t dmx_parameter_copy(dmx_num, sub_device, pid, *destination, size);
-bool dmx_parameter_set(dmx_num, sub_device, pid, const *source, size);
-bool dmx_parameter_commit(dmx_num);
-
-size_t dmx_parameter_size(dmx_num, sub_device, pid);
-
-*/
-
-// TODO: docs
-typedef struct dmx_parameter_s {
-  rdm_pid_t pid;
-  size_t size;
-  void *data;
-  uint8_t is_heap_allocated;
-  uint8_t storage_type;
-} rdm_parameter_t;
 
 typedef struct rdm_device_s {
   rdm_sub_device_t device_num;
@@ -162,7 +132,7 @@ typedef struct rdm_device_s {
   uint16_t product_category;
   uint32_t software_version_id;
 
-  rdm_parameter_t parameters[];
+  dmx_parameter_t parameters[];
 } rdm_device_t;
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
