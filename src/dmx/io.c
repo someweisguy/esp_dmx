@@ -212,10 +212,11 @@ bool DMX_ISR_ATTR rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header) {
       for (int i = 0; i < sizeof(rdm_uid_t); ++i) {
         ((uint8_t *)&header->src_uid)[i] = euid_buf[i];
       }
-      header->src_uid.man_id = bswap16(header->src_uid.man_id);
-      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
+      header->message_len = preamble_len + 17;
       header->dest_uid.man_id = RDM_UID_BROADCAST_ALL.man_id;
       header->dest_uid.dev_id = RDM_UID_BROADCAST_ALL.dev_id;
+      header->src_uid.man_id = bswap16(header->src_uid.man_id);
+      header->src_uid.dev_id = bswap32(header->src_uid.dev_id);
       header->tn = 0;
       header->response_type = RDM_RESPONSE_TYPE_ACK;
       header->message_count = 0;
