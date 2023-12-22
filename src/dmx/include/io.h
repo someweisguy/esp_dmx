@@ -1,5 +1,5 @@
 /**
- * @file dmx/bus_ctl.h
+ * @file dmx/include/io.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This header defines the various functions that allow for control of
  * the DMX bus. This includes reading and writing to the DMX bus as well as
@@ -53,20 +53,28 @@ int dmx_read_slot(dmx_port_t dmx_num, size_t slot_num);
 
 /**
  * @brief Reads an RDM packet from the DMX driver buffer. Header information is
- * emplaced into a header pointer so that it may be read by the caller.
- * Parameter data information needs to be emplaced before it can be properly
- * read by the caller. This function does not perform any data error checking to
- * ensure that the RDM packet is within specification.
+ * read into a header pointer so that it may be read by the caller.
  *
  * @param dmx_num The DMX port number.
  * @param[out] header A pointer which stores RDM header information.
- * @param[out] pd A pointer to store parameter data from the RDM packet.
- * @param num The size of the pd pointer. Used to prevent buffer overflows.
- * @return The size of the RDM packet that was read or 0 on error.
- */  // TODO: update docs
+ * @return true if the packet is a valid RDM packet.
+ * @return false if the packet is not a valid RDM packet.
+ */
 bool rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header);
 
-// TODO: docs
+/**
+ * @brief Reads RDM parameter data from the DMX driver buffer. This function
+ * does not verify that the packet being read is a valid RDM packet.
+ *
+ * // TODO: documentation for format strings
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] format The format string of the RDM parameter data.
+ * @param[out] destination A pointer to a destination buffer into which to copy
+ * parameter data.
+ * @param size The size of the destination buffer.
+ * @return The size of the RDM parameter data or 0 on error.
+ */
 size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
                    size_t size);
 
@@ -107,20 +115,19 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 
 /**
  * @brief Writes an RDM packet into the DMX driver buffer so it may be sent with
- * dmx_send(). Header information is emplaced into the DMX driver buffer but
- * parameter data information must be emplaced before calling this function to
- * ensure that the RDM packet is properly formatted. This function does not
- * perform any data error checking to ensure that the RDM packet is within
- * specification.
+ * dmx_send().
+ *
+ * // TODO: documentation for format strings
  *
  * @param dmx_num The DMX port number.
  * @param[in] header A pointer which stores RDM header information.
+ * @param[in] format The format string of the RDM parameter data.
  * @param[in] pd A pointer which stores parameter data to be written.
  * @return The size of the RDM packet that was written or 0 on error.
- */ // TODO: docs update
+ */
 size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
                  const char *format, const void *pd);
-    
+
 /**
  * @brief Receives a DMX packet from the DMX bus. This is a blocking function.
  * This function first blocks until the DMX driver is idle and then it blocks
