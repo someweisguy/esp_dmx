@@ -113,9 +113,9 @@ typedef struct dmx_parameter_t {
   void *context;
 } dmx_parameter_t;
 
-typedef struct rdm_device_s {
+typedef struct rdm_device_t {
   rdm_sub_device_t num;
-  struct rdm_device_s *next;
+  struct rdm_device_t *next;
   
   // Device information
   uint16_t model_id;
