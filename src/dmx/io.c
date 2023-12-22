@@ -295,7 +295,6 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   // Copy data from the source to the driver buffer asynchronously
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(driver->dmx.data + offset, source, size);
-  driver->dmx.tx_size = offset + size;  // Update driver transmit size
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return size;
