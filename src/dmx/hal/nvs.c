@@ -12,6 +12,13 @@
 
 static const char *dmx_nvs_namespace = "esp_dmx";
 
+static void dmx_nvs_get_key(char *key, dmx_port_t dmx_num,
+                            rdm_sub_device_t sub_device, rdm_pid_t pid) {
+  const size_t key_size = 9;
+  const int w = snprintf(key, key_size, "%x%x%x", dmx_num, sub_device, pid);
+  assert(w < key_size);
+}
+
 void dmx_nvs_init(dmx_port_t dmx_num) {
   nvs_flash_init_partition(DMX_NVS_PARTITION_NAME);
 }
@@ -29,8 +36,7 @@ size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Get the NVS key
   char key[9];
-  const int w = snprintf(key, sizeof(key), "%x%x%x", dmx_num, sub_device, pid);
-  assert(w < sizeof(key));
+  dmx_nvs_get_key(key, dmx_num, sub_device, pid);
 
   nvs_handle_t nvs;
   esp_err_t err = nvs_open(dmx_nvs_namespace, NVS_READONLY, &nvs);
@@ -110,8 +116,7 @@ bool dmx_nvs_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid,
 
   // Get the NVS key
   char key[9];
-  const int w = snprintf(key, sizeof(key), "%x%x%x", dmx_num, sub_device, pid);
-  assert(w < sizeof(key));
+  dmx_nvs_get_key(key, dmx_num, sub_device, pid);
 
   nvs_handle_t nvs;
   esp_err_t err = nvs_open(dmx_nvs_namespace, NVS_READWRITE, &nvs);
