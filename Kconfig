@@ -60,13 +60,5 @@ menu "DMX/RDM Configuration"
             RDM discovery needs over 500 bytes of memory. Enabling this option 
             instructs the DMX driver to allocate the needed memory on the stack
             instead of heap allocating it.
-           
-    config RDM_DEFINITION_COUNT_OPTIONAL
-        int "Max optional PID definition"
-        range 0 512
-        default 32
-        help
-            This is the maximum number of optional RDM parameter definitions 
-            that the DMX driver supports.
 
 endmenu

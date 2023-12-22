@@ -66,16 +66,6 @@ extern "C" {
 #define RDM_UID_DEVICE_ID (0xffffffff)
 #endif
 
-#ifdef CONFIG_RDM_DEFINITION_COUNT_OPTIONAL
-/** @brief The maximum number of optional parameters that the RDM responder can
- * support. This value is editable in the Kconfig.*/
-#define RDM_DEFINITION_COUNT_OPTIONAL (CONFIG_RDM_DEFINITION_COUNT_OPTIONAL)
-#else
-/** @brief The maximum number of optional parameters that the RDM responder can
- * support.*/
-#define RDM_DEFINITION_COUNT_OPTIONAL 32
-#endif
-
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
 /** @brief This macro sets certain functions used within DMX interrupt handlers
  * to be placed within IRAM. The current hardware configuration of this device
