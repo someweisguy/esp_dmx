@@ -110,6 +110,36 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
 };
 
+/*  // TODO
+typedef struct dmx_parameter_t {
+  rdm_pid_t pid;
+  size_t size;
+  void *data;
+  bool is_heap_allocated;
+  uint8_t storage_type;
+  const rdm_definition_t *definition;
+  void (*callback)(dmx_num, *request, *response, *context);
+  void *context;
+  bool rdm_is_enabled;
+} dmx_parameter_t;
+
+dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
+dmx_parameter_add_static(dmx_num, sub_Device, pid, nvs, *data, size);
+dmx_parameter_add_null(dmx_num, sub_device, pid);
+
+dmx_parameter_rdm_set_definition(dmx_num, sub_device, pid, const *definition, *getter, *setter);
+dmx_parameter_rdm_set_callback(dmx_num, sub_device, pid, *callback, *context);
+dmx_parameter_rdm_format_size(const *format);
+dmx_parameter_rdm_disable(dmx_num, sub_device, pid);
+
+dmx_parameter_exists(dmx_num, sub_device, pid);
+dmx_parameter_at(dmx_num, sub_device, index);
+dmx_parameter_get(dmx_num, sub_device, pid);
+dmx_parameter_copy(dmx_num, sub_device, pid, *destination, size);
+dmx_parameter_set(dmx_num, sub_device, pid, const *source, size);
+dmx_parameter_commit(dmx_num);
+*/
+
 // TODO: docs
 typedef struct dmx_parameter_s {
   rdm_pid_t pid;
