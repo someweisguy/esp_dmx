@@ -120,7 +120,6 @@ typedef struct dmx_parameter_t {
   const rdm_definition_t *definition;
   void (*callback)(dmx_num, *request, *response, *context);
   void *context;
-  bool rdm_is_enabled;
 } dmx_parameter_t;
 
 dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
