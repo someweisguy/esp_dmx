@@ -289,6 +289,10 @@ typedef struct __attribute__((packed)) dmx_personality_s {
 typedef struct dmx_config_s {
   // TODO: docs
   int interrupt_flags;
+  // TODO: docs
+  uint32_t root_device_parameter_count;
+  // TODO: docs
+  uint32_t sub_device_parameter_count;
   /** @brief This field identifies the device model ID of the root device or
    sub-device. The manufacturer shall not use the same ID to represent more
    than one unique model type.*/
@@ -303,10 +307,6 @@ typedef struct dmx_config_s {
    for the device's operating software version. The descriptive text returned
    by this parameter is intended for display to the user.*/
   char *software_version_label;
-  // TODO: docs
-  uint32_t root_device_parameter_count;
-  // TODO: docs
-  uint32_t sub_device_parameter_count;
   // TODO: docs
   uint32_t queue_size_max;
 } dmx_config_t;

@@ -55,12 +55,12 @@ extern "C" {
 #define DMX_CONFIG_DEFAULT                                            \
   (dmx_config_t) {                                                    \
     DMX_INTR_FLAGS_DEFAULT            /*interrupt_flags*/             \
+        32,                           /*root_device_parameter_count*/ \
+        0,                            /*sub_device_parameter_count*/  \
         0,                            /*model_id*/                    \
         RDM_PRODUCT_CATEGORY_FIXTURE, /*product_category*/            \
         ESP_DMX_VERSION_ID,           /*software_version_id*/         \
         ESP_DMX_VERSION_LABEL,        /*software_version_label*/      \
-        32,                           /*root_device_parameter_count*/ \
-        0,                            /*sub_device_parameter_count*/  \
         32,                           /*queue_size_max*/              \
   }
 
