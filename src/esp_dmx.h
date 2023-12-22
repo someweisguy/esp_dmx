@@ -54,7 +54,7 @@ extern "C" {
 /** @brief The default configuration for the DMX driver.*/
 #define DMX_CONFIG_DEFAULT                                            \
   (dmx_config_t) {                                                    \
-    DMX_INTR_FLAGS_DEFAULT            /*interrupt_flags*/             \
+    DMX_INTR_FLAGS_DEFAULT,           /*interrupt_flags*/             \
         32,                           /*root_device_parameter_count*/ \
         0,                            /*sub_device_parameter_count*/  \
         0,                            /*model_id*/                    \
