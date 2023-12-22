@@ -51,22 +51,18 @@ extern "C" {
 #define DMX_INTR_FLAGS_DEFAULT (0)
 #endif
 
-/** @brief The default configuration for the DMX driver. Passing this
- * configuration to dmx_driver_install() installs the driver with one DMX
- * personality which has a footprint of one DMX address. The DMX address will
- * automatically be searched for in NVS and set to 1 if not found or if NVS is
- * disabled. */
+/** @brief The default configuration for the DMX driver.*/
 #define DMX_CONFIG_DEFAULT                                            \
   (dmx_config_t) {                                                    \
-    0,                                /*model_id*/                    \
+    DMX_INTR_FLAGS_DEFAULT            /*interrupt_flags*/             \
+        0,                            /*model_id*/                    \
         RDM_PRODUCT_CATEGORY_FIXTURE, /*product_category*/            \
         ESP_DMX_VERSION_ID,           /*software_version_id*/         \
         ESP_DMX_VERSION_LABEL,        /*software_version_label*/      \
         32,                           /*root_device_parameter_count*/ \
+        0,                            /*sub_device_parameter_count*/  \
         32,                           /*queue_size_max*/              \
-        DMX_INTR_FLAGS_DEFAULT        /*interrupt_flags*/             \
   }
-
 
 #define DMX_PERSONALITIES_DEFAULT \
   {                               \

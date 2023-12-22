@@ -287,6 +287,8 @@ typedef struct __attribute__((packed)) dmx_personality_s {
 
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_s {
+  // TODO: docs
+  int interrupt_flags;
   /** @brief This field identifies the device model ID of the root device or
    sub-device. The manufacturer shall not use the same ID to represent more
    than one unique model type.*/
@@ -304,9 +306,9 @@ typedef struct dmx_config_s {
   // TODO: docs
   uint32_t root_device_parameter_count;
   // TODO: docs
-  uint32_t queue_size_max;
+  uint32_t sub_device_parameter_count;
   // TODO: docs
-  int interrupt_flags;
+  uint32_t queue_size_max;
 } dmx_config_t;
 
 /** @brief DMX start address which indicates the device does not have a DMX
