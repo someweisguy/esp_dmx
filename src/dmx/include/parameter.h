@@ -100,7 +100,7 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 // TODO: docs, not thread-safe
 rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num);
 
-// TODO: make static and move to dmx/io.h?
+// TODO: docs
 size_t dmx_parameter_format_size(const char *format);
 
 #ifdef __cplusplus
