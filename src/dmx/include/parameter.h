@@ -13,7 +13,9 @@
 extern "C" {
 #endif
 
-// TODO: docs
+/**
+ * @brief Evaluates to true if the parameter format string is valid.
+ */
 #define rdm_format_is_valid(f) ((f) == NULL || dmx_parameter_format_size(f) > 0)
 
 /**
@@ -29,8 +31,8 @@ extern "C" {
  * @param pid The parameter ID which to add.
  * @param non_volatile True if the parameter should persist after the ESP32 is
  * power-cycled.
- * @param[in] init The value to which the parameter should be initialized to or NULL
- * to memset the parameter to zero.
+ * @param[in] init The value to which the parameter should be initialized or
+ * NULL to memset the parameter to zero.
  * @param size The size of the parameter to allocate.
  * @return true if the parameter already existed or was allocated.
  * @return false if the parameter could not be allocated.
@@ -68,7 +70,7 @@ bool dmx_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @brief Returns true if the parameter exists on the given DMX port and
  * sub-device.
  *
- * @param dmx_num The DMX port number. 
+ * @param dmx_num The DMX port number.
  * @param sub_device The sub-device number.
  * @param pid The parameter ID.
  * @return true if the parameter exists.
