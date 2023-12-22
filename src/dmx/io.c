@@ -15,7 +15,7 @@ static size_t rdm_format_encode(void *restrict dest,
                                 const void *restrict src, size_t src_size,
                                 bool encode_nulls) {
   assert(dest != NULL);
-  // assert(rdm_pd_format_is_valid(format));  // TODO
+  assert(rdm_format_is_valid(format));
   assert(src != NULL);
 
   size_t encoded = 0;
