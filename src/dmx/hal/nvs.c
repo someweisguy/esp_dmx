@@ -17,7 +17,8 @@ static const char *dmx_nvs_namespace = "esp_dmx";
 static void dmx_nvs_get_key(char *key, dmx_port_t dmx_num,
                             rdm_sub_device_t sub_device, rdm_pid_t pid) {
   const int w =
-      snprintf(key, DMX_NVS_KEY_SIZE_MAX, "%x%x%x", dmx_num, sub_device, pid);
+      snprintf(key, DMX_NVS_KEY_SIZE_MAX, "%x%x%x%x%x", ESP_DMX_VERSION_MAJOR,
+               ESP_DMX_VERSION_MINOR, dmx_num, sub_device, pid);
   assert(w < DMX_NVS_KEY_SIZE_MAX);
 }
 
