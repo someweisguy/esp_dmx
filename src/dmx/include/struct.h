@@ -127,17 +127,20 @@ dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
 dmx_parameter_add_static(dmx_num, sub_Device, pid, nvs, *data, size);
 dmx_parameter_add_null(dmx_num, sub_device, pid);
 
-dmx_parameter_rdm_set_definition(dmx_num, sub_device, pid, const *definition, *getter, *setter);
+dmx_parameter_rdm_set_definition(dmx_num, sub_device, pid, const *definition);
 dmx_parameter_rdm_set_callback(dmx_num, sub_device, pid, *callback, *context);
 dmx_parameter_rdm_format_size(const *format);
 dmx_parameter_rdm_disable(dmx_num, sub_device, pid);
 
-dmx_parameter_exists(dmx_num, sub_device, pid);
-dmx_parameter_at(dmx_num, sub_device, index);
-dmx_parameter_get(dmx_num, sub_device, pid);
-dmx_parameter_copy(dmx_num, sub_device, pid, *destination, size);
-dmx_parameter_set(dmx_num, sub_device, pid, const *source, size);
-dmx_parameter_commit(dmx_num);
+bool dmx_parameter_exists(dmx_num, sub_device, pid);
+rdm_pid_t dmx_parameter_at(dmx_num, sub_device, index);
+void *dmx_parameter_get(dmx_num, sub_device, pid);
+size_t dmx_parameter_copy(dmx_num, sub_device, pid, *destination, size);
+bool dmx_parameter_set(dmx_num, sub_device, pid, const *source, size);
+bool dmx_parameter_commit(dmx_num);
+
+size_t dmx_parameter_size(dmx_num, sub_device, pid);
+
 */
 
 // TODO: docs
