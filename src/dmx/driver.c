@@ -94,7 +94,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
 
   // Set the default values for the root device
-  driver->device.root.device_num = RDM_SUB_DEVICE_ROOT;
+  driver->device.root.num = RDM_SUB_DEVICE_ROOT;
   driver->device.root.next = NULL;
   driver->device.root.model_id = config->model_id;
   driver->device.root.product_category = config->product_category;

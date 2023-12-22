@@ -46,7 +46,7 @@ static dmx_parameter_t *dmx_parameter_get_entry(dmx_port_t dmx_num,
 
   // Find the sub-device
   rdm_device_t *device = &driver->device.root;
-  while (device->device_num != sub_device) {
+  while (device->num != sub_device) {
     device = device->next;
     if (device == NULL) {
       return NULL;  // Sub-device does not exist
@@ -81,7 +81,7 @@ static dmx_parameter_t *dmx_parameter_add_entry(dmx_port_t dmx_num,
 
   // Find the sub-device
   rdm_device_t *device = &driver->device.root;
-  while (device->device_num != sub_device) {
+  while (device->num != sub_device) {
     device = device->next;
     if (device == NULL) {
       return NULL;  // Sub-device does not exist
@@ -245,7 +245,7 @@ rdm_pid_t dmx_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   // Find the desired sub-device number
   rdm_device_t *device = &driver->device.root;
-  while (device->device_num != sub_device) {
+  while (device->num != sub_device) {
     device = device->next;
     if (device == NULL) {
       return 0;  // Sub-device does not exist
@@ -371,7 +371,7 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
         device->parameters[i].storage_type =
             DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE;
         --driver->device.parameter_count.staged;
-        sub_device = device->device_num;
+        sub_device = device->num;
         pid = device->parameters[i].pid;
         data = device->parameters[i].data;
         break;
