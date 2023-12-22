@@ -48,8 +48,8 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   memcpy(&header.src_uid, rdm_uid_get(dmx_num), sizeof(header.src_uid));
 
   // Write and send the RDM request
-  const size_t written = rdm_write(dmx_num, &header, format, pd);
-  if (!dmx_send(dmx_num, written)) {
+  rdm_write(dmx_num, &header, format, pd);
+  if (!dmx_send(dmx_num)) {
     xSemaphoreGiveRecursive(driver->mux);
     if (ack != NULL) {
       ack->err = DMX_OK;

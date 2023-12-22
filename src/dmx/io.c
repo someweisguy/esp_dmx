@@ -638,7 +638,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Send the RDM response
   if (resp > 0) {
-    if (!dmx_send(dmx_num, resp)) {
+    if (!dmx_send(dmx_num)) {
       const int64_t micros_elapsed =
           dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
       DMX_WARN("PID 0x%04x did not send a response (size: %i, time: %lli us)",
@@ -667,7 +667,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   return packet_size;
 }
 
-size_t dmx_send(dmx_port_t dmx_num, size_t size) {
+size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
@@ -744,19 +744,20 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-  // Update the transmit size if desired
-  if (size > 0) {
-    if (size > DMX_PACKET_SIZE_MAX) {
-      size = DMX_PACKET_SIZE_MAX;
+  // Determine the size of the packet to send
+  if (is_rdm) {
+    if (header.cc == RDM_CC_DISC_COMMAND_RESPONSE &&
+        header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+      size = header.message_len;  // Send an RDM_PID_DISC_UNIQUE_BRANCH response
+    } else {
+      size = header.message_len + 2;  // Send a standard RDM packet
     }
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->dmx.tx_size = size;
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  } else {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    size = driver->dmx.tx_size;
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  } else if (size == 0 || size > DMX_PACKET_SIZE_MAX) {
+    size = DMX_PACKET_SIZE_MAX;  // Send a standard DMX packet
   }
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  driver->dmx.tx_size = size;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Update driver flags and increment the RDM transaction number if applicable
   driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
@@ -795,6 +796,14 @@ size_t dmx_send(dmx_port_t dmx_num, size_t size) {
   // Give the mutex back
   xSemaphoreGiveRecursive(driver->mux);
   return size;
+}
+
+size_t dmx_send(dmx_port_t dmx_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
+
+  return dmx_send_num(dmx_num, 0);
 }
 
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {

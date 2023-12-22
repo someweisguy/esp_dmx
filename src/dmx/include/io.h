@@ -154,7 +154,10 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
  * call to dmx_write(), dmx_write_offset(), dmx_write_slot(), or dmx_send().
  * @return The number of bytes sent on the DMX bus.
  */
-size_t dmx_send(dmx_port_t dmx_num, size_t size);
+size_t dmx_send_num(dmx_port_t dmx_num, size_t size);
+
+// TODO: docs
+size_t dmx_send(dmx_port_t dmx_num);
 
 /**
  * @brief Waits until the DMX packet is done being sent. This function can be
