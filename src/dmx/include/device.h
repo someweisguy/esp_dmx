@@ -1,5 +1,5 @@
 /**
- * @file dmx/device.h
+ * @file dmx/include/device.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This header contains functions will allow for modification of the DMX
  * device. This includes getting and setting the DMX start address, current
@@ -77,7 +77,6 @@ size_t dmx_get_footprint(dmx_port_t dmx_num, uint8_t personality_num);
  * @param personality_num The personality number of the description to get.
  * Personality numbers are indexed starting at 1.
  * @return The description of the DMX personality or NULL on failure.
- * // TODO: update docs
  */
 const char *dmx_get_personality_description(dmx_port_t dmx_num,
                                             uint8_t personality_num);
