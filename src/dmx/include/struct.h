@@ -126,7 +126,9 @@ dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
 dmx_parameter_add_static(dmx_num, sub_Device, pid, nvs, *data, size);
 dmx_parameter_add_null(dmx_num, sub_device, pid);
 
+dmx_parameter_rdm_get_definition(dmx_num, sub_device, pid);
 dmx_parameter_rdm_set_definition(dmx_num, sub_device, pid, const *definition);
+dmx_parameter_rdm_handle_callback(dmx_num, sub_device, pid);
 dmx_parameter_rdm_set_callback(dmx_num, sub_device, pid, *callback, *context);
 dmx_parameter_rdm_format_size(const *format);
 dmx_parameter_rdm_disable(dmx_num, sub_device, pid);
