@@ -141,22 +141,32 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                    TickType_t wait_ticks);
 
 /**
- * @brief Sends a DMX packet on the DMX bus. This function blocks indefinitely
- * until the DMX driver is idle and then sends a packet.
+ * @brief Sends a DMX packet on the DMX bus. This function blocks until the DMX
+ * driver is idle and then sends a packet.
  *
  * @note This function uses FreeRTOS direct-to-task notifications to block and
  * unblock. Using task notifications on the same task that calls this function
  * can lead to undesired behavior and program instability.
  *
  * @param dmx_num The DMX port number.
- * @param size The size of the packet to send. If 0, sends the number of bytes
- * equal to the highest slot number that was written or sent in the previous
- * call to dmx_write(), dmx_write_offset(), dmx_write_slot(), or dmx_send().
+ * @param size The size of the packet to send. If 0, sends a full DMX packet. If
+ * an RDM packet was written, this value is ignored.
  * @return The number of bytes sent on the DMX bus.
  */
 size_t dmx_send_num(dmx_port_t dmx_num, size_t size);
 
-// TODO: docs
+/**
+ * @brief Sends a DMX packet on the DMX bus. This function blocks until the DMX
+ * driver is idle and then sends a packet. Calling this function is the same as
+ * calling dmx_send_num(dmx_num, 0).
+ *
+ * @note This function uses FreeRTOS direct-to-task notifications to block and
+ * unblock. Using task notifications on the same task that calls this function
+ * can lead to undesired behavior and program instability.
+ *
+ * @param dmx_num The DMX port number.
+ * @return The number of bytes sent on the DMX bus.
+ */
 size_t dmx_send(dmx_port_t dmx_num);
 
 /**
