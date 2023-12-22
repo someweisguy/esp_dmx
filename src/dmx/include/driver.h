@@ -1,5 +1,5 @@
 /**
- * @file dmx/driver.h
+ * @file dmx/include/driver.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This header defines functions which allow for installation and
  * configuration of the DMX driver. This includes functions which modify DMX
@@ -15,19 +15,13 @@ extern "C" {
 #endif
 
 /**
- * @brief Installs the DMX driver and sets the default configuration. To
- * generate the DMX reset sequence, users may choose to use either the hardware
- * timers or busy-waiting. The default configuration sets the DMX break to 176
- * microseconds and the DMX mark-after-break to 12 microseconds.
+ * @brief Installs the DMX driver, sets the default configuration, and sets the
+ * DMX personalities.
  *
- * @note By default, the DMX driver will allocate a hardware timer for the DMX
- * driver to use. When using ESP-IDF v4.4 the DMX driver will allocate a
- * hardware timer group and timer relative to the DMX port number. The function
- * to determine which timer group and number to use is
- * timer_group == (dmx_num / 2) and timer_num == (dmx_num % 2). It is not
- * recommended to use the hardware timer that the DMX driver is using while the
- * DMX driver is installed. On the ESP32-C3, hardware timer number 0 will always
- * be used to avoid clobbering the watchdog timer.
+ * @note The DMX driver will allocate a hardware timer to use. When using
+ * ESP-IDF v4.4 the DMX driver will allocate a hardware timer group and timer
+ * relative to the DMX port number. It is not recommended to use the hardware
+ * timer that the DMX driver is using while the DMX driver is installed.
  *
  * @note The DMX interrupt service routine is installed on the same CPU core
  * that this function is running on.
@@ -35,10 +29,13 @@ extern "C" {
  * @param dmx_num The DMX port number.
  * @param[in] config A pointer to a DMX configuration which will be used to
  * setup the DMX driver.
- * @param intr_flags The interrupt allocation flags to use.
+ * @param[in] personalities A pointer to an array of DMX personalities which
+ * the DMX driver will support.
+ * @param personality_count The number of personalities in the previous
+ * argument. May be set to 0 if this device does not support a DMX address.
  * @return true on success.
  * @return false on failure.
- */  // TODO: update docs
+ */
 bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
                         dmx_personality_t *personalities,
                         int personality_count);
@@ -53,13 +50,15 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 bool dmx_driver_delete(dmx_port_t dmx_num);
 
 /**
- * @brief Disables the DMX driver. When the DMX driver is not placed in IRAM,
- * functions which disable the cache, such as functions which read or write to
- * flash, will also stop DMX interrupts from firing. This can cause incoming DMX
- * data to become corrupted. To avoid this issue, the DMX driver should be
- * disabled before disabling the cache. When cache is reenabled, the DMX driver
- * can be reenabled as well. When the DMX driver is placed in IRAM, disabling
- * and reenabling the DMX driver is not needed.
+ * @brief Disables the DMX driver.
+ *
+ * @note When the DMX driver is not placed in IRAM, functions which disable the
+ * cache, such as functions which read or write to flash, will also stop DMX
+ * interrupts from firing. This can cause incoming DMX data to become corrupted.
+ * To avoid this issue, the DMX driver should be disabled before disabling the
+ * cache. When cache is reenabled, the DMX driver can be reenabled as well. When
+ * the DMX driver is placed in IRAM, disabling and reenabling the DMX driver is
+ * not needed.
  *
  * @param dmx_num The DMX port number.
  * @return true on success.
@@ -68,13 +67,15 @@ bool dmx_driver_delete(dmx_port_t dmx_num);
 bool dmx_driver_disable(dmx_port_t dmx_num);
 
 /**
- * @brief Enables the DMX driver. When the DMX driver is not placed in IRAM,
- * functions which disable the cache, such as functions which read or write to
- * flash, will also stop DMX interrupts from firing. This can cause incoming DMX
- * data to become corrupted. To avoid this issue, the DMX driver should be
- * disabled before disabling the cache. When cache is reenabled, the DMX driver
- * can be reenabled as well. When the DMX driver is placed in IRAM, disabling
- * and reenabling the DMX driver is not needed.
+ * @brief Enables the DMX driver.
+ *
+ * @note When the DMX driver is not placed in IRAM, functions which disable the
+ * cache, such as functions which read or write to flash, will also stop DMX
+ * interrupts from firing. This can cause incoming DMX data to become corrupted.
+ * To avoid this issue, the DMX driver should be disabled before disabling the
+ * cache. When cache is reenabled, the DMX driver can be reenabled as well. When
+ * the DMX driver is placed in IRAM, disabling and reenabling the DMX driver is
+ * not needed.
  *
  * @param dmx_num The DMX port number.
  * @return true on success.
@@ -86,23 +87,25 @@ bool dmx_driver_enable(dmx_port_t dmx_num);
  * @brief Checks if DMX driver is installed.
  *
  * @param dmx_num The DMX port number.
- * @retval true if the driver is installed.
- * @retval false if the driver is not installed or DMX port does not exist.
+ * @return true if the driver is installed.
+ * @return false if the driver is not installed or DMX port does not exist.
  * */
 bool dmx_driver_is_installed(dmx_port_t dmx_num);
 
 /**
- * @brief Checks if the DMX driver is enabled. When the DMX driver is not placed
- * in IRAM, functions which disable the cache, such as functions which read or
- * write to flash, will also stop DMX interrupts from firing. This can cause
- * incoming DMX data to become corrupted. To avoid this issue, the DMX driver
- * should be disabled before disabling the cache. When cache is reenabled, the
- * DMX driver can be reenabled as well. When the DMX driver is placed in IRAM,
- * disabling and reenabling the DMX driver is not needed.
+ * @brief Checks if the DMX driver is enabled.
+ *
+ * @note When the DMX driver is not placed in IRAM, functions which disable the
+ * cache, such as functions which read or write to flash, will also stop DMX
+ * interrupts from firing. This can cause incoming DMX data to become corrupted.
+ * To avoid this issue, the DMX driver should be disabled before disabling the
+ * cache. When cache is reenabled, the DMX driver can be reenabled as well. When
+ * the DMX driver is placed in IRAM, disabling and reenabling the DMX driver is
+ * not needed.
  *
  * @param dmx_num The DMX port number.
- * @retval true if the driver is enabled.
- * @retval false if the driver is disabled.
+ * @return true if the driver is enabled.
+ * @return false if the driver is disabled.
  */
 bool dmx_driver_is_enabled(dmx_port_t dmx_num);
 
@@ -192,17 +195,17 @@ uint32_t dmx_get_mab_len(dmx_port_t dmx_num);
 uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
 
 /**
- * @brief Returns the 48-bit unique ID of the desired DMX port. Returns a null
- * UID if dmx_driver_install() has not been called on any port.
+ * @brief Returns the 48-bit unique ID of the desired DMX port. The specified
+ * DMX driver must be installed before calling this function.
  *
  * @param dmx_num The DMX port number.
- * @param[out] uid A pointer to a rdm_uid_t type to store the received UID.
- */  // TODO: update docs
+ * @return A pointer to the DMX driver's RDM UID or NULL on failure.
+ */
 const rdm_uid_t *rdm_uid_get(dmx_port_t dmx_num);
 
 /**
  * @brief Checks if RDM is enabled on the DMX driver.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return true if RDM is enabled.
  * @return false if RDM is not enabled.
