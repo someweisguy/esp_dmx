@@ -16,12 +16,11 @@ void dmx_nvs_init(dmx_port_t dmx_num) {
   nvs_flash_init_partition(DMX_NVS_PARTITION_NAME);
 }
 
-size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid,
-                   rdm_sub_device_t sub_device, rdm_ds_t ds, void *param,
-                   size_t size) {
+size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                   rdm_pid_t pid, rdm_ds_t ds, void *param, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(pid > 0);
-  assert(sub_device < 513);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
   assert(param != NULL);
 
   if (size == 0) {
@@ -30,7 +29,7 @@ size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid,
 
   // Get the NVS key
   char key[9];
-  const int w = snprintf(key, sizeof(key), "%x%x%x", dmx_num, pid, sub_device);
+  const int w = snprintf(key, sizeof(key), "%x%x%x", dmx_num, sub_device, pid);
   assert(w < sizeof(key));
 
   nvs_handle_t nvs;
@@ -98,7 +97,7 @@ size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_pid_t pid,
   return size;
 }
 
-bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
+bool dmx_nvs_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid,
                  rdm_ds_t ds, const void *param, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(pid > 0);
@@ -111,7 +110,7 @@ bool dmx_nvs_set(dmx_port_t dmx_num, rdm_pid_t pid, rdm_sub_device_t sub_device,
 
   // Get the NVS key
   char key[9];
-  const int w = snprintf(key, sizeof(key), "%x%x%x", dmx_num, pid, sub_device);
+  const int w = snprintf(key, sizeof(key), "%x%x%x", dmx_num, sub_device, pid);
   assert(w < sizeof(key));
 
   nvs_handle_t nvs;

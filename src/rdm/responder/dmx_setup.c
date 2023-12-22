@@ -136,7 +136,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
   // Attempt to load the value from NVS
   rdm_dmx_personality_t personality;
   const rdm_ds_t ds = definition.ds;
-  if (!dmx_nvs_get(dmx_num, pid, RDM_SUB_DEVICE_ROOT, ds, &personality,
+  if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, ds, &personality,
                    sizeof(personality)) ||
       personality.count != personality_count) {
     personality.current = 1;
@@ -265,7 +265,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   // Attempt to load the value from NVS
   uint16_t dmx_start_address;
   const rdm_ds_t ds = definition.ds;
-  if (!dmx_nvs_get(dmx_num, pid, RDM_SUB_DEVICE_ROOT, ds, &dmx_start_address,
+  if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, ds, &dmx_start_address,
                    sizeof(dmx_start_address))) {
     dmx_start_address = 1;
   }
