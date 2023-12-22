@@ -10,13 +10,15 @@
 #define DMX_NVS_PARTITION_NAME CONFIG_DMX_NVS_PARTITION_NAME
 #endif
 
+#define DMX_NVS_KEY_SIZE_MAX (16)
+
 static const char *dmx_nvs_namespace = "esp_dmx";
 
 static void dmx_nvs_get_key(char *key, dmx_port_t dmx_num,
                             rdm_sub_device_t sub_device, rdm_pid_t pid) {
-  const size_t key_size = 9;
-  const int w = snprintf(key, key_size, "%x%x%x", dmx_num, sub_device, pid);
-  assert(w < key_size);
+  const int w =
+      snprintf(key, DMX_NVS_KEY_SIZE_MAX, "%x%x%x", dmx_num, sub_device, pid);
+  assert(w < DMX_NVS_KEY_SIZE_MAX);
 }
 
 void dmx_nvs_init(dmx_port_t dmx_num) {
@@ -35,7 +37,7 @@ size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Get the NVS key
-  char key[9];
+  char key[DMX_NVS_KEY_SIZE_MAX];
   dmx_nvs_get_key(key, dmx_num, sub_device, pid);
 
   nvs_handle_t nvs;
@@ -115,7 +117,7 @@ bool dmx_nvs_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid,
   }
 
   // Get the NVS key
-  char key[9];
+  char key[DMX_NVS_KEY_SIZE_MAX];
   dmx_nvs_get_key(key, dmx_num, sub_device, pid);
 
   nvs_handle_t nvs;
