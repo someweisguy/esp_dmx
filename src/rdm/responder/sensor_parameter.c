@@ -88,9 +88,25 @@ bool rdm_register_sensor(dmx_port_t dmx_num, uint8_t sensor_count,
                          rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  
+  const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
+
+  // Add the parameter
+  const bool nvs = false;
+  size_t size =
+      sizeof(rdm_sensors_t) + (sizeof(rdm_sensor_value_t) * sensor_count);
+  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL,
+                                 size)) {
+    return false;
+  }
+  rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, RDM_SUB_DEVICE_ROOT);
+  assert(sensors != NULL);
+  sensors->sensor_count = sensor_count;
+  for (int i = 0; i < sensor_count; ++i) {
+    sensors->sensor_value[i].sensor_num = i;
+  }
 
   // Define the parameter
-  const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
   static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
@@ -108,21 +124,6 @@ bool rdm_register_sensor(dmx_port_t dmx_num, uint8_t sensor_count,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
-
-  // Add the parameter
-  const bool nvs = false;
-  size_t size =
-      sizeof(rdm_sensors_t) + (sizeof(rdm_sensor_value_t) * sensor_count);
-  bool success = dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                           nvs, NULL, size);
-  if (success) {
-    rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, RDM_SUB_DEVICE_ROOT);
-    assert(sensors != NULL);
-    sensors->sensor_count = sensor_count;
-    for (int i = 0; i < sensor_count; ++i) {
-      sensors->sensor_value[i].sensor_num = i;
-    }
-  }
 
   return true;
 }

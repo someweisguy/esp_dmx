@@ -113,29 +113,11 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY;
-  static const rdm_parameter_definition_t definition = {
-      .pid = pid,
-      .pid_cc = RDM_CC_GET_SET,
-      .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_simple_response_handler,
-              .request.format = NULL,
-              .response.format = "bb$"},
-      .set = {.handler = rdm_rhd_set_dmx_personality,
-              .request.format = "b$",
-              .response.format = NULL},
-      .pdl_size = sizeof(rdm_dmx_personality_t),
-      .max_value = 0,
-      .min_value = 0,
-      .units = RDM_UNITS_NONE,
-      .prefix = RDM_PREFIX_NONE,
-      .description = NULL};
-  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+  const rdm_ds_t ds = RDM_DS_NOT_DEFINED;
 
   // Attempt to load the value from NVS
   rdm_dmx_personality_t personality;
-  const rdm_ds_t ds = definition.ds;
   if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, ds, &personality,
                    sizeof(personality)) ||
       personality.count != personality_count) {
@@ -149,6 +131,25 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
                                  &personality, sizeof(personality))) {
     return false;
   }
+
+  // Define the parameter
+  static const rdm_parameter_definition_t definition = {
+      .pid = pid,
+      .pid_cc = RDM_CC_GET_SET,
+      .ds = ds,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = NULL,
+              .response.format = "bb$"},
+      .set = {.handler = rdm_rhd_set_dmx_personality,
+              .request.format = "b$",
+              .response.format = NULL},
+      .pdl_size = sizeof(rdm_dmx_personality_t),
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
                                         context);
@@ -210,6 +211,14 @@ bool rdm_register_dmx_personality_description(
     }
   }
 
+  // Allocate parameter data
+  const bool nvs = false;
+  const size_t size = count * sizeof(*personalities);
+  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                                 personalities, size)) {
+    return false;
+  }
+
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
       .pid = pid,
@@ -227,14 +236,6 @@ bool rdm_register_dmx_personality_description(
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  // Allocate parameter data
-  const bool nvs = false;
-  const size_t size = count * sizeof(*personalities);
-  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                                 personalities, size)) {
-    return false;
-  }
-
   return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
                                         context);
 }
@@ -244,29 +245,11 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // Define the parameter
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  static const rdm_parameter_definition_t definition = {
-      .pid = pid,
-      .pid_cc = RDM_CC_GET_SET,
-      .ds = RDM_DS_UNSIGNED_WORD,
-      .get = {.handler = rdm_simple_response_handler,
-              .request.format = NULL,
-              .response.format = "w$"},
-      .set = {.handler = rdm_simple_response_handler,
-              .request.format = "w$",
-              .response.format = NULL},
-      .pdl_size = sizeof(uint16_t),
-      .max_value = 512,
-      .min_value = 1,
-      .units = RDM_UNITS_NONE,
-      .prefix = RDM_PREFIX_NONE,
-      .description = NULL};
-  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+  const rdm_ds_t ds = RDM_DS_UNSIGNED_WORD;
 
   // Attempt to load the value from NVS
   uint16_t dmx_start_address;
-  const rdm_ds_t ds = definition.ds;
   if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, ds, &dmx_start_address,
                    sizeof(dmx_start_address))) {
     dmx_start_address = 1;
@@ -282,6 +265,25 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   const bool nvs = true;
   dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
                             &dmx_start_address, sizeof(dmx_start_address));
+
+  // Define the parameter
+  static const rdm_parameter_definition_t definition = {
+      .pid = pid,
+      .pid_cc = RDM_CC_GET_SET,
+      .ds = ds,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = NULL,
+              .response.format = "w$"},
+      .set = {.handler = rdm_simple_response_handler,
+              .request.format = "w$",
+              .response.format = NULL},
+      .pdl_size = sizeof(uint16_t),
+      .max_value = 512,
+      .min_value = 1,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
                                         context);

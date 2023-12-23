@@ -94,8 +94,12 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // Define the parameter
   const rdm_pid_t pid = RDM_PID_SUPPORTED_PARAMETERS;
+
+  // Add the parameter as a NULL variable
+  dmx_parameter_add_null(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+
+  // Define the parameter
   static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
@@ -111,10 +115,6 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
-
-  // Add the parameter as a NULL static variable
-  const bool nvs = false;
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return true;
 }
@@ -167,8 +167,12 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  // Define the parameter
   const rdm_pid_t pid = RDM_PID_PARAMETER_DESCRIPTION;
+  
+  // Add the parameter as a NULL variable
+  dmx_parameter_add_null(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+
+  // Define the parameter
   static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
@@ -184,10 +188,6 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
-
-  // Add the parameter as a NULL static variable
-  const bool nvs = false;
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return true;
 }

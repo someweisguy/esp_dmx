@@ -23,9 +23,15 @@ static size_t rdm_device_info_rh(dmx_port_t dmx_num,
 
 bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
                               void *context) {
+  // TODO: arg check
+
+  const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
+
+  // Add the parameter as a NULL static variable
+  const bool nvs = false;
+  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   // Define the parameter
-  const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
   static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
@@ -41,10 +47,6 @@ bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
-
-  // Add the parameter as a NULL static variable
-  const bool nvs = false;
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
 
   return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
                                         context);
@@ -84,11 +86,17 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
+
   if (!dmx_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
     DMX_CHECK(device_label != NULL, false, "device_label is null");
     DMX_CHECK(strnlen(device_label, RDM_ASCII_SIZE_MAX) < RDM_ASCII_SIZE_MAX,
               false, "device_label error");
   }
+
+  // Allocate parameter data
+  const bool nvs = true;
+  dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                            device_label, RDM_ASCII_SIZE_MAX);
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
@@ -108,11 +116,6 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
-
-  // Allocate parameter data
-  const bool nvs = true;
-  dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                            device_label, RDM_ASCII_SIZE_MAX);
 
   return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
                                         context);
@@ -156,9 +159,16 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                   RDM_ASCII_SIZE_MAX,
               false, "software_version_label error");
   }
+  
+  const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
+
+  // Add the parameter as a static variable
+  const bool nvs = false;
+  const size_t size = strnlen(software_version_label, RDM_ASCII_SIZE_MAX);
+  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                           software_version_label, size);
 
   // Define the parameter
-  const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
   static const rdm_parameter_definition_t definition = {
       .pid = pid,
       .pid_cc = RDM_CC_GET,
@@ -174,12 +184,6 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
-
-  // Add the parameter as a static variable
-  const bool nvs = false;
-  const size_t size = strnlen(software_version_label, RDM_ASCII_SIZE_MAX);
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                           software_version_label, size);
 
   return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
                                         context);
