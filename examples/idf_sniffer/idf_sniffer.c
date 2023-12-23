@@ -31,12 +31,14 @@ static const char *TAG = "main";  // The log tagline.
 
 void app_main() {
   const dmx_port_t dmx_num = DMX_NUM_1;
-
-  // Set communication pins and install the driver
   dmx_config_t config = DMX_CONFIG_DEFAULT;
-  dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
+  dmx_personality_t personalities[] = {
+    {1, "Default Personality"}
+  };
+  const int personality_count = 1;
+  dmx_driver_install(dmx_num, &config, personalities, personality_count);
   dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
-
+  
   // Install the default GPIO ISR and enable the sniffer
   ESP_ERROR_CHECK(gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS));
   dmx_sniffer_enable(dmx_num, SN_PIN);
