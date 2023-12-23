@@ -11,15 +11,6 @@ menu "DMX/RDM Configuration"
             operation when cache is disabled. ESP-IDF v5 only: enabling this
             option places the GPTimer functions in IRAM as well.
     
-    config DMX_MAX_PERSONALITIES
-        int "Max DMX personalities"
-        range 1 255
-        default 16
-        help
-            This is the maximum number of DMX personalities that the DMX driver
-            supports. Increasing this number increases the size of the DMX
-            driver.
-    
     config DMX_NVS_PARTITION_NAME
         string "NVS partition name for DMX parameters"
         default "nvs"
