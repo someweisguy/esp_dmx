@@ -554,8 +554,10 @@ bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
   if (entry == NULL) {
     return false;
   }
-
-  entry->callback(dmx_num, request_header, response_header, entry->context);
+  
+  if (entry->callback != NULL) {
+    entry->callback(dmx_num, request_header, response_header, entry->context);
+  }
 
   return true;
 }
