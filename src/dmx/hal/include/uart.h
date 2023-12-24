@@ -1,5 +1,5 @@
 /**
- * @file dmx/hal/uart.h
+ * @file dmx/hal/include/uart.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the UART Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the UART hardware.

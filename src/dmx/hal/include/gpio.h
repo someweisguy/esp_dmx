@@ -1,5 +1,5 @@
 /**
- * @file dmx/hal/gpio.h
+ * @file dmx/hal/include/gpio.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the GPIO Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the GPIO hardware.

@@ -1,5 +1,5 @@
 /**
- * @file dmx/hal/nvs.h
+ * @file dmx/hal/include/nvs.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the non-volatile storage (NVS) Hardware Abstraction Layer
  * (HAL) of esp_dmx. It contains low-level functions to perform tasks relating

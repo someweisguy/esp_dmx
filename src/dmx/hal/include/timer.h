@@ -1,5 +1,5 @@
 /**
- * @file dmx/hal/timer.h
+ * @file dmx/hal/include/timer.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file is the timer Hardware Abstraction Layer (HAL) of esp_dmx. It
  * contains low-level functions to perform tasks relating to the timer hardware.
