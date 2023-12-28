@@ -148,6 +148,28 @@ uint8_t rdm_sensor_get_count(dmx_port_t dmx_num, rdm_sub_device_t sub_device) {
   return sensors->sensor_count;
 }
 
+size_t rdm_sensor_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                      uint8_t sensor_num, rdm_sensor_value_t *sensor_value) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX,
+            false, "sub_device error");
+  DMX_CHECK(sensor_num < rdm_sensor_get_count(dmx_num, sub_device), 0,
+            "sensor_num error");
+  DMX_CHECK(sensor_value != NULL, 0, "sensor_value is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
+  if (sensors == NULL) {
+    return 0;
+  }
+
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  *sensor_value = sensors->sensor_value[sensor_num];
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return sizeof(*sensor_value);
+}
+
 bool rdm_sensor_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                     uint8_t sensor_num, int16_t value) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");

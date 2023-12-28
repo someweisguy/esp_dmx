@@ -30,6 +30,10 @@ bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
 uint8_t rdm_sensor_get_count(dmx_port_t dmx_num, rdm_sub_device_t sub_device);
 
 // TODO: docs
+size_t rdm_sensor_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                      uint8_t sensor_num, rdm_sensor_value_t *sensor_value);
+
+// TODO: docs
 bool rdm_sensor_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                     uint8_t sensor_num, int16_t value);
 
