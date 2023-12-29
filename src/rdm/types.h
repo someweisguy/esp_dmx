@@ -677,6 +677,22 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
 } rdm_status_message_t;
 
 // TODO: docs
+typedef struct __attribute__((packed)) rdm_sensor_definition_t {
+   uint8_t num;
+   uint8_t type;
+   uint8_t unit;
+   uint8_t prefix;
+   struct {
+      int16_t minimum;
+      int16_t maximum;
+   } range, normal;
+   uint8_t recorded_value_support : 1;
+   uint8_t lowest_highest_detected_value_support : 1;
+   uint8_t : 6;
+   char description[RDM_ASCII_SIZE_MAX];
+} rdm_sensor_definition_t;
+
+// TODO: docs
 typedef struct __attribute__((packed)) rdm_sensor_value_t {
   /** @brief The sensor number is in the range 0x00 to 0xFE. A value 0xFF is
      used to represent all sensors for the SET command. The sensor value fields
