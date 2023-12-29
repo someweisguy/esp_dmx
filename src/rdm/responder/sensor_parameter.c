@@ -79,6 +79,28 @@ static size_t rdm_rhd_get_set_sensor_value(
                        sizeof(*value));
 }
 
+static size_t rdm_rhd_set_record_sensors(
+    dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
+    const rdm_header_t *header) {
+  // Verify the requested sensor num is valid
+  uint8_t sensor_num;
+  if (!rdm_read_pd(dmx_num, definition->set.request.format, &sensor_num,
+                   sizeof(sensor_num))) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
+  }
+  if (sensor_num > rdm_sensor_get_count(dmx_num, header->sub_device) &&
+      sensor_num != RDM_SENSOR_NUM_MAX) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
+  }
+
+  // Record the RDM sensor
+  if (!rdm_sensor_record(dmx_num, header->sub_device, sensor_num)) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
+  }
+
+  return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
+}
+
 bool rdm_register_sensor_definition(dmx_port_t dmx_num, uint8_t defintion_count,
                                     rdm_callback_t cb, void *context) {
   return false;  // TODO
@@ -89,7 +111,7 @@ bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
+  const rdm_pid_t pid = RDM_PID_SENSOR_VALUE;
 
   // Add the parameter
   const bool nvs = false;
@@ -130,7 +152,36 @@ bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
 
 bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
                                  void *context) {
-  return false;  // TODO
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  const rdm_pid_t pid = RDM_PID_RECORD_SENSORS;
+
+  // Add the parameter
+  if (!dmx_parameter_add_null(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
+    return false;
+  }
+
+  // Define the parameter
+  static const rdm_parameter_definition_t definition = {
+      .pid = pid,
+      .pid_cc = RDM_CC_SET,
+      .ds = RDM_DS_NOT_DEFINED,
+      .get = {.handler = NULL,
+              .request.format = NULL,
+              .response.format = NULL},
+      .set = {.handler = rdm_rhd_set_record_sensors,
+              .request.format = "b$",
+              .response.format = NULL},
+      .pdl_size = sizeof(uint8_t),
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+
+  return true;
 }
 
 uint8_t rdm_sensor_get_count(dmx_port_t dmx_num, rdm_sub_device_t sub_device) {
