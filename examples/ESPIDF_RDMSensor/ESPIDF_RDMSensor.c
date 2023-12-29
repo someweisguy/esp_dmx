@@ -41,7 +41,7 @@ void app_main() {
   if (!rdm_register_sensor_value(dmx_num, sensor_count, callback, context)) {
     ESP_LOGE(TAG, "unable to register sensor value");
   } else if (!rdm_register_record_sensors(dmx_num, callback, context)) {
-    ESP_LOGE(TAG, "unable to register record sensors")
+    ESP_LOGE(TAG, "unable to register record sensors");
   }
 
   // Define the sensor we want to use
