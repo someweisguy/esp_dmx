@@ -16,11 +16,11 @@ extern "C" {
 
 // TODO: docs
 bool rdm_register_sensor_definition(dmx_port_t dmx_num, uint8_t defintion_count,
-                         rdm_callback_t cb, void *context);
+                                    rdm_callback_t cb, void *context);
 
 // TODO: docs
-bool rdm_register_sensor(dmx_port_t dmx_num, uint8_t sensor_count,
-                         rdm_callback_t cb, void *context);
+bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
+                               rdm_callback_t cb, void *context);
 
 // TODO: docs
 bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,

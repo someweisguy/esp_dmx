@@ -84,11 +84,11 @@ bool rdm_register_sensor_definition(dmx_port_t dmx_num, uint8_t defintion_count,
   return false;  // TODO
 }
 
-bool rdm_register_sensor(dmx_port_t dmx_num, uint8_t sensor_count,
-                         rdm_callback_t cb, void *context) {
+bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
+                               rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  
+
   const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
 
   // Add the parameter
