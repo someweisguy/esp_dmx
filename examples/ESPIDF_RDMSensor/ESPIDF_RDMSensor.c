@@ -39,11 +39,12 @@ void app_main() {
   rdm_callback_t callback = NULL;
   void *context = NULL;
   if (!rdm_register_sensor_value(dmx_num, sensor_count, callback, context)) {
-    ESP_LOGE(TAG, "Unable to register sensors");
-  } else {
-    rdm_register_record_sensors(dmx_num, callback, context);
+    ESP_LOGE(TAG, "unable to register sensor value");
+  } else if (!rdm_register_record_sensors(dmx_num, callback, context)) {
+    ESP_LOGE(TAG, "unable to register record sensors")
   }
 
+  // Define the sensor we want to use
   const int sensor_num = 0;
   const rdm_sub_device_t device_num = RDM_SUB_DEVICE_ROOT;
 
