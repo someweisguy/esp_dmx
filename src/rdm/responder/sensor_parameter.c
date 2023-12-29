@@ -167,9 +167,7 @@ bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
       .pid = pid,
       .pid_cc = RDM_CC_SET,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = NULL,
-              .request.format = NULL,
-              .response.format = NULL},
+      .get = {.handler = NULL, .request.format = NULL, .response.format = NULL},
       .set = {.handler = rdm_rhd_set_record_sensors,
               .request.format = "b$",
               .response.format = NULL},
@@ -189,8 +187,6 @@ uint8_t rdm_sensor_get_count(dmx_port_t dmx_num, rdm_sub_device_t sub_device) {
   DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX, false, "sub_device error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  assert(sub_device == RDM_SUB_DEVICE_ROOT);  // TODO: implement sub-devices
-
   rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
   if (sensors == NULL) {
     return 0;
@@ -202,8 +198,7 @@ uint8_t rdm_sensor_get_count(dmx_port_t dmx_num, rdm_sub_device_t sub_device) {
 size_t rdm_sensor_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                       uint8_t sensor_num, rdm_sensor_value_t *sensor_value) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
-  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX,
-            false, "sub_device error");
+  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX, false, "sub_device error");
   DMX_CHECK(sensor_num < rdm_sensor_get_count(dmx_num, sub_device), 0,
             "sensor_num error");
   DMX_CHECK(sensor_value != NULL, 0, "sensor_value is null");
@@ -227,8 +222,6 @@ bool rdm_sensor_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
             false, "sub_device error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  assert(sub_device == RDM_SUB_DEVICE_ROOT);
 
   // Validate the sensor_num
   rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
@@ -259,8 +252,6 @@ bool rdm_sensor_record(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
             false, "sub_device error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-
-  assert(sub_device == RDM_SUB_DEVICE_ROOT);
 
   // Validate the sensor_num
   rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
@@ -293,8 +284,6 @@ bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
             false, "sub_device error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  assert(sub_device == RDM_SUB_DEVICE_ROOT);
-
   // Validate the sensor_num
   rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
   if (sensors == NULL || (sensor_num > sensors->sensor_count &&
@@ -323,4 +312,4 @@ bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   return true;
-                      }
+}
