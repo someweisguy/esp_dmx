@@ -1,4 +1,4 @@
 idf_component_register(
-    SRCS "idf_write.c"
+    SRCS "ESPIDF_RDMController.c"
     INCLUDE_DIRS ""
 )

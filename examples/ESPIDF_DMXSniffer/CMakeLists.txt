@@ -1,4 +1,4 @@
 idf_component_register(
-    SRCS "idf_read.c"
+    SRCS "ESPIDF_DMXSniffer.c"
     INCLUDE_DIRS ""
 )
