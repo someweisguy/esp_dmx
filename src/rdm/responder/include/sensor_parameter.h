@@ -37,6 +37,14 @@ size_t rdm_sensor_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 bool rdm_sensor_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                     uint8_t sensor_num, int16_t value);
 
+// TODO: docs
+bool rdm_sensor_record(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                       uint8_t sensor_num);
+
+// TODO: docs
+bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                      uint8_t sensor_num);
+
 #ifdef __cplusplus
 }
 #endif

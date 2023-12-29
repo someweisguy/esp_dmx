@@ -201,3 +201,75 @@ bool rdm_sensor_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   return true;
 }
+
+bool rdm_sensor_record(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                       uint8_t sensor_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
+            false, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  assert(sub_device == RDM_SUB_DEVICE_ROOT);
+
+  // Validate the sensor_num
+  rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
+  if (sensors == NULL || (sensor_num > sensors->sensor_count &&
+                          sensor_num != RDM_SENSOR_NUM_MAX)) {
+    return false;
+  }
+
+  if (sensor_num == 0xff) {
+    for (int i = sensors->sensor_count; i >= 0; --i) {
+      rdm_sensor_value_t *sensor = &sensors->sensor_value[i];
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      sensor->recorded_value = sensor->present_value;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    }
+  } else {
+    rdm_sensor_value_t *sensor = &sensors->sensor_value[sensor_num];
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    sensor->recorded_value = sensor->present_value;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  }
+
+  return true;
+}
+
+bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                      uint8_t sensor_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
+            false, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  assert(sub_device == RDM_SUB_DEVICE_ROOT);
+
+  // Validate the sensor_num
+  rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
+  if (sensors == NULL || (sensor_num > sensors->sensor_count &&
+                          sensor_num != RDM_SENSOR_NUM_MAX)) {
+    return false;
+  }
+
+  if (sensor_num == 0xff) {
+    for (int i = sensors->sensor_count; i >= 0; --i) {
+      rdm_sensor_value_t *sensor = &sensors->sensor_value[i];
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      sensor->present_value = 0;
+      sensor->lowest_value = 0;
+      sensor->highest_value = 0;
+      sensor->recorded_value = 0;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    }
+  } else {
+    rdm_sensor_value_t *sensor = &sensors->sensor_value[sensor_num];
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    sensor->present_value = 0;
+    sensor->lowest_value = 0;
+    sensor->highest_value = 0;
+    sensor->recorded_value = 0;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  }
+
+  return true;
+                      }
