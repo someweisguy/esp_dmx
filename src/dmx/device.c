@@ -10,11 +10,11 @@ uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   uint16_t dmx_start_address;
-  if(!rdm_get_dmx_start_address(dmx_num, &dmx_start_address)) {
+  if (!rdm_get_dmx_start_address(dmx_num, &dmx_start_address)) {
     // This device does not use a DMX address
     dmx_start_address = DMX_START_ADDRESS_NONE;
   }
-  
+
   return dmx_start_address;
 }
 
@@ -107,5 +107,5 @@ const char *dmx_get_personality_description(dmx_port_t dmx_num,
     return NULL;
   }
 
-  return NULL; // FIXME
+  return personality.description;
 }
