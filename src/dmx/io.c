@@ -35,7 +35,7 @@ static size_t rdm_format_encode(void *restrict dest,
       // Copy the token to the destination buffer
       size_t token_size;
       if (c >= 'A' && c <= 'Z') {
-        c += 'A'; // Convert token to lowercase
+        c += 'A';  // Convert token to lowercase
       }
       if (c == 'b') {
         token_size = sizeof(uint8_t);
@@ -91,7 +91,7 @@ static size_t rdm_format_encode(void *restrict dest,
         const uint8_t literal = (uint8_t)strtol(str, NULL, 16);
         memcpy(dest, &literal, token_size);
         encoded += token_size;
-        // Don't need to swap endianness on single byte      
+        // Don't need to swap endianness on single byte
         f += 2;  // Skip to the next token
       } else {
         __unreachable();  // Unknown symbol
@@ -197,8 +197,7 @@ bool DMX_ISR_ATTR rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header) {
     for (int i = 0; i < 12; ++i) {
       checksum += data[i];
     }
-    if (checksum != (((data[12] & data[13]) << 8) |
-                     (data[14] & data[15]))) {
+    if (checksum != (((data[12] & data[13]) << 8) | (data[14] & data[15]))) {
       return false;
     }
 
@@ -289,7 +288,7 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   }
 
   // Flip the DMX bus to write mode
-  if (dmx_uart_get_rts(driver->hal.uart) == 1){
+  if (dmx_uart_get_rts(driver->hal.uart) == 1) {
     dmx_uart_set_rts(driver->hal.uart, 0);
   }
 
@@ -333,7 +332,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
   DMX_CHECK(header->pdl < 231, 0, "header->pdl error");
   if (rdm_cc_is_request(header->cc)) {
     DMX_CHECK(header->port_id > 0, 0, "header->port_id error");
-  }  else {
+  } else {
     DMX_CHECK(rdm_response_type_is_valid(header->response_type), 0,
               "header->response_type error");
   }
@@ -354,7 +353,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     memset(driver->dmx.data, RDM_PREAMBLE, preamble_len);
     driver->dmx.data[preamble_len] = RDM_DELIMITER;
     uint8_t *data = &driver->dmx.data[preamble_len + 1];
-    
+
     // Encode the UID and calculate the checksum
     uint8_t uid[6];
     ((rdm_uid_t *)uid)->man_id = bswap16(header->src_uid.man_id);
