@@ -290,11 +290,11 @@ typedef struct __attribute__((packed)) dmx_personality_t {
 
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_t {
-  // TODO: docs
+  /** @brief The interrupt allocation flags to use.*/
   int interrupt_flags;
-  // TODO: docs
+  /** @brief The number of parameters that the root device supports.*/
   uint32_t root_device_parameter_count;
-  // TODO: docs
+  /** @brief The number of parameters that the sub-devices support.*/
   uint32_t sub_device_parameter_count;
   /** @brief This field identifies the device model ID of the root device or
    sub-device. The manufacturer shall not use the same ID to represent more
@@ -310,7 +310,8 @@ typedef struct dmx_config_t {
    for the device's operating software version. The descriptive text returned
    by this parameter is intended for display to the user.*/
   char *software_version_label;
-  // TODO: docs
+  /** @brief The maximum size of the RDM queue. Setting this value to 0 disables
+   * the RDM queue.*/
   uint32_t queue_size_max;
 } dmx_config_t;
 
