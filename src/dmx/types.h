@@ -238,6 +238,9 @@ enum {
 /** @brief DMX port type.*/
 typedef unsigned int dmx_port_t;
 
+/** @brief DMX device type.*/
+typedef uint16_t dmx_device_t;
+
 /** @brief Type which indicates errors, or lack thereof, for DMX operations.*/
 typedef enum dmx_err_t {
   /** @brief DMX error value indicating no error.*/
