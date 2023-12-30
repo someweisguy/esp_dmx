@@ -38,7 +38,7 @@ extern "C" {
  */
 bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
                         dmx_personality_t *personalities,
-                        int personality_count);
+                        uint8_t personality_count);
 
 /**
  * @brief Uninstalls the DMX driver.
