@@ -101,11 +101,12 @@ const char *dmx_get_personality_description(dmx_port_t dmx_num,
              personality_num <= dmx_get_personality_count(dmx_num)),
             false, "personality_num is invalid");
 
-  rdm_dmx_personality_description_t personality;
-  if (!rdm_get_dmx_personality_description(dmx_num, personality_num,
-                                           &personality)) {
+  // Get a pointer to the stored personality
+  const rdm_dmx_personality_description_t *personalities = dmx_parameter_get(
+      dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DMX_PERSONALITY_DESCRIPTION);
+  if (personalities == NULL) {
     return NULL;
   }
 
-  return personality.description;
+  return personalities[personality_num].description;
 }
