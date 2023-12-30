@@ -388,7 +388,11 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   return pid;
 }
 
-size_t dmx_parameter_rdm_format_size(const char *format) {
+bool dmx_parameter_rdm_format_is_valid(const char *format) {
+  if (format == NULL) {
+    return true;
+  }
+
   size_t parameter_size = 0;
 
   bool format_is_terminated = false;
@@ -428,7 +432,7 @@ size_t dmx_parameter_rdm_format_size(const char *format) {
         for (int i = 0; i < 2; ++i) {
           c = *(++format);
           if (!isxdigit(c)) {
-            return 0;  // Hex literals must be 2 characters wide
+            return false;  // Hex literals must be 2 characters wide
           }
         }
         break;
@@ -442,13 +446,13 @@ size_t dmx_parameter_rdm_format_size(const char *format) {
         format_is_terminated = true;
         break;
       default:
-        return 0;  // Unknown symbol
+        return false;  // Unknown symbol
     }
 
     // Update the parameter size with the new token
     parameter_size += token_size;
     if (parameter_size > 231) {
-      return 0;  // Parameter size is too big
+      return false;  // Parameter size is too big
     }
 
     // End loop if parameter is terminated
@@ -460,14 +464,14 @@ size_t dmx_parameter_rdm_format_size(const char *format) {
   if (format_is_terminated) {
     ++format;
     if (*format != '\0' && *format != '$') {
-      return 0;  // Invalid token after terminator
+      return false;  // Invalid token after terminator
     }
   } else {
     // Get the maximum possible size if parameter is unterminated
     parameter_size = 231 - (231 % parameter_size);
   }
 
-  return parameter_size;
+  return parameter_size > 0;
 }
 
 bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -479,10 +483,10 @@ bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
           definition->ds <= RDM_DS_SIGNED_DWORD) ||
          (definition->ds >= 0x80 && definition->ds <= 0xdf));
-  assert(rdm_format_is_valid(definition->get.request.format) &&
-         rdm_format_is_valid(definition->get.response.format));
-  assert(rdm_format_is_valid(definition->set.request.format) &&
-         rdm_format_is_valid(definition->set.response.format));
+  assert(dmx_parameter_rdm_format_is_valid(definition->get.request.format) &&
+         dmx_parameter_rdm_format_is_valid(definition->get.response.format));
+  assert(dmx_parameter_rdm_format_is_valid(definition->set.request.format) &&
+         dmx_parameter_rdm_format_is_valid(definition->set.response.format));
   assert(
       (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
                                            definition->pid_cc == RDM_CC_GET)) ||

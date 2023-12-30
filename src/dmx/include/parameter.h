@@ -13,12 +13,6 @@
 extern "C" {
 #endif
 
-/**
- * @brief Evaluates to true if the parameter format string is valid.
- */
-#define rdm_format_is_valid(f) \
-  ((f) == NULL || dmx_parameter_rdm_format_size(f) > 0)
-
 // TODO: docs
 typedef struct rdm_parameter_definition_t {
   uint8_t pid_cc;
@@ -192,6 +186,9 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  */
 rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num);
 
+// TODO: docs
+bool dmx_parameter_rdm_format_is_valid(const char *format);
+
 // TODO: docs, not thread-safe
 bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               rdm_pid_t pid,
@@ -213,8 +210,6 @@ bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
                                        rdm_header_t *request_header,
                                        rdm_header_t *response_header);
 
-// TODO: docs
-size_t dmx_parameter_rdm_format_size(const char *format);
 
 // TODO: docs, implement
 bool dmx_parameter_rdm_disable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
