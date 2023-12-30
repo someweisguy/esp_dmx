@@ -186,24 +186,76 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  */
 rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num);
 
-// TODO: docs
+/**
+ * @brief Returns true if the RDM format string is valid.
+ * 
+ * @param format The RDM format string.
+ * @return true if the RDM format string is valid.
+ * @return false if it is not valid.
+ */
 bool dmx_parameter_rdm_format_is_valid(const char *format);
 
-// TODO: docs, not thread-safe
+/**
+ * @brief Adds an RDM definition to the desired DMX parameter. RDM definitions
+ * are copied by pointer; they must be valid throughout the lifetime of the DMX
+ * driver. This function is not thread-safe.
+ *
+ * Adding an RDM definition to a parameter allows for the device to respond to
+ * RDM requests for the parameter. If a request is received for a parameter that
+ * does not have an RDM definition, the device will respond with
+ * RDM_NR_UNKNOWN_PID.
+ *
+ * @param dmx_num The DMX port number.
+ * @param sub_device The sub-device number.
+ * @param pid The parameter ID of the desired parameter.
+ * @param definition A pointer to the RDM definition for the parameter.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                               rdm_pid_t pid,
                               const rdm_parameter_definition_t *definition);
 
-// TODO: docs
+/**
+ * @brief Returns a pointer to the RDM definition for the desired DMX parameter.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param sub_device The sub-device number.
+ * @param pid The parameter ID of the desired parameter.
+ * @return A pointer to the RDM definition or NULL on failure.
+ */
 const rdm_parameter_definition_t *dmx_parameter_rdm_lookup(
     dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid);
 
-// TODO: docs, not thread-safe
+/**
+ * @brief Sets the callback function and context for requests to the desired
+ * sub-device and parameter ID. The callback function is handled after a
+ * response to the RDM request is handled.
+ *
+ * @param dmx_num The DMX port number.
+ * @param sub_device The sub-device number.
+ * @param pid The parameter ID of the desired parameter.
+ * @param callback A function to be called after a request for the parameter is
+ * received.
+ * @param context A pointer to the context for the callback.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
                                     rdm_sub_device_t sub_device, rdm_pid_t pid,
                                     rdm_callback_t callback, void *context);
 
-// TODO: docs
+/**
+ * @brief Handles the callback for the desired parameter, if it exists.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param sub_device The sub-device number.
+ * @param pid The parameter ID of the desired parameter.
+ * @param[inout] request_header A pointer to the header of the RDM request.
+ * @param[inout] response_header A pointer to the header of the RDM response.
+ * @return true if the parameter exists.
+ * @return false if the parameter does not exist.
+ */
 bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
                                        rdm_sub_device_t sub_device,
                                        rdm_pid_t pid,
