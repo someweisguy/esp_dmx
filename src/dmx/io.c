@@ -644,12 +644,9 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // Generate information for the warning message if a response wasn't sent
       const int64_t micros_elapsed =
           dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
-      const char *cc_str = "DISC";
-      if (header.cc == RDM_CC_GET_COMMAND) {
-        cc_str = "GET";
-      } else if (header.cc == RDM_CC_SET_COMMAND) {
-        cc_str = "SET";
-      }
+      const char *cc_str = header.cc == RDM_CC_GET_COMMAND   ? "GET"
+                           : header.cc == RDM_CC_SET_COMMAND ? "SET"
+                                                             : "DISC";
       DMX_WARN(
           "PID 0x%04x did not send a response (cc: %s, size: %i, time: %lli "
           "us)",
