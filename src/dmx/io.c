@@ -640,12 +640,20 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Send the RDM response
   if (resp > 0) {
     if (!dmx_send(dmx_num)) {
+      rdm_set_boot_loader(dmx_num);
+      // Generate information for the warning message if a response wasn't sent
       const int64_t micros_elapsed =
           dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
-      DMX_WARN("PID 0x%04x did not send a response (size: %i, time: %lli us)",
-               header.pid, resp, micros_elapsed);
-      // TODO: generate more debug info: i.e. GET/SET/DISC request?
-      rdm_set_boot_loader(dmx_num);
+      const char *cc_str = "DISC";
+      if (header.cc == RDM_CC_GET_COMMAND) {
+        cc_str = "GET";
+      } else if (header.cc == RDM_CC_SET_COMMAND) {
+        cc_str = "SET";
+      }
+      DMX_WARN(
+          "PID 0x%04x did not send a response (cc: %s, size: %i, time: %lli "
+          "us)",
+          header.pid, cc_str, resp, micros_elapsed);
     } else {
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
