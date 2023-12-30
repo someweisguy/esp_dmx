@@ -134,7 +134,7 @@ enum rdm_pid_t {
   RDM_PID_COMMS_STATUS = 0x0015,
 
   // Category: Status Collection
-  
+
   /** @brief The RDM_PID_QUEUED_MESSAGE parameter shall be used to retrieve a
      message from the responder's message queue. The message count field of all
      response messages defines the number of messages that are queued in the
@@ -192,8 +192,18 @@ enum rdm_pid_t {
   RDM_PID_DEFAULT_SLOT_VALUE = 0x0122,
 
   // Category: Sensors (0x02xx)
+  
+  /** @brief This parameter is used to retrieve the definition of a specific
+    sensor. When this parameter is directed to a sub-device, the reply shall be
+    identical for any given sensor number in all sub-devices owned by a specific
+    root device. @note Supports GET.*/
   RDM_PID_SENSOR_DEFINITION = 0x0200,
+  /** @brief This parameter shall be used to retrieve or reset sensor data.
+    @note Supports GET and SET.*/
   RDM_PID_SENSOR_VALUE = 0x0201,
+  /** @brief This parameter instructs devices such as dimming racks that monitor
+    load changes to store the current value for monitoring sensor changes. @note
+    Supports SET.*/
   RDM_PID_RECORD_SENSORS = 0x0202,
 
   // Category: Dimmer Settings (0x03xx)
@@ -231,11 +241,11 @@ enum rdm_pid_t {
   RDM_PID_PRESET_PLAYBACK = 0x1031,  // TODO: See rdm_preset_playback_t
 
   // Reserved for Future RDM Development: 0x7fe0-0x7fff
-  
+
   // Manufacturer Specific PIDs
   RDM_PID_MANUFACTURER_SPECIFIC_BEGIN = 0x8000,
   RDM_PID_MANUFACTURER_SPECIFIC_END = 0xffdf,
-  
+
   // Reserved for Future RDM Development: 0xffe0-0xffff
 };
 
