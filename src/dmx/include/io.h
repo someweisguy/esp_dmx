@@ -81,7 +81,7 @@ bool rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header);
  *   of the format string.
  *
  * Integer literals may be written and read by beginning the integer with 'x'
- * and writing the literal in hexadecimal form. Integer literals must contain 
+ * and writing the literal in hexadecimal form. Integer literals must contain
  * two hexadecimal digits. For example, 0xAB is represented as "xab". Integer
  * literals are written into the destination regardless of what the underlying
  * value is. This is used for situations such as reading or writing an
@@ -89,7 +89,7 @@ bool rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header);
  *
  * Parameters will continue to be written or read as long as the number of bytes
  * does not exceed the size of the destination buffer as provided by the num
- * argument. A single parameter may be written or read instead of multiple by 
+ * argument. A single parameter may be written or read instead of multiple by
  * including a '$' character at the end of the format string. The 'a' and 'v'
  * fields must be at the end of each parameter. When reading or writing a
  * parameter which uses one of these fields, a terminating '$' is not necessary
@@ -167,7 +167,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
  *   of the format string.
  *
  * Integer literals may be written and read by beginning the integer with 'x'
- * and writing the literal in hexadecimal form. Integer literals must contain 
+ * and writing the literal in hexadecimal form. Integer literals must contain
  * two hexadecimal digits. For example, 0xAB is represented as "xab". Integer
  * literals are written into the destination regardless of what the underlying
  * value is. This is used for situations such as reading or writing an
@@ -175,7 +175,7 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
  *
  * Parameters will continue to be written or read as long as the number of bytes
  * does not exceed the size of the destination buffer as provided by the num
- * argument. A single parameter may be written or read instead of multiple by 
+ * argument. A single parameter may be written or read instead of multiple by
  * including a '$' character at the end of the format string. The 'a' and 'v'
  * fields must be at the end of each parameter. When reading or writing a
  * parameter which uses one of these fields, a terminating '$' is not necessary
