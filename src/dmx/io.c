@@ -599,10 +599,11 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
     // Validate the header against definition information
     const rdm_pid_cc_t pid_cc = def->pid_cc;
-    if ((pid_cc == RDM_CC_DISC && header.cc != RDM_CC_DISC_COMMAND) ||
-        (pid_cc == RDM_CC_GET_SET && header.cc == RDM_CC_DISC_COMMAND) ||
-        (pid_cc == RDM_CC_GET && header.cc != RDM_CC_GET_COMMAND) ||
-        (pid_cc == RDM_CC_SET && header.cc != RDM_CC_SET_COMMAND)) {
+    if (pid_cc == RDM_CC_DISC && header.cc != RDM_CC_DISC_COMMAND) {
+      resp = 0;  // Cannot send NACK to RDM_CC_DISC_COMMAND
+    } else if ((pid_cc == RDM_CC_GET_SET && header.cc == RDM_CC_DISC_COMMAND) ||
+               (pid_cc == RDM_CC_GET && header.cc != RDM_CC_GET_COMMAND) ||
+               (pid_cc == RDM_CC_SET && header.cc != RDM_CC_SET_COMMAND)) {
       // Unsupported command class
       resp = rdm_write_nack_reason(dmx_num, &header,
                                    RDM_NR_UNSUPPORTED_COMMAND_CLASS);
