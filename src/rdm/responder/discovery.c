@@ -86,7 +86,6 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_discovery,
@@ -127,7 +126,6 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_discovery,
@@ -168,7 +166,6 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_DISC,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_discovery,

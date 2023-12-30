@@ -471,10 +471,9 @@ size_t dmx_parameter_rdm_format_size(const char *format) {
 }
 
 bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                          rdm_pid_t pid,
-                          const rdm_parameter_definition_t *definition) {
+                              rdm_pid_t pid,
+                              const rdm_parameter_definition_t *definition) {
   assert(definition != NULL);
-  assert(definition->pid > 0);
   assert(definition->pid_cc >= RDM_CC_DISC &&
          definition->pid_cc <= RDM_CC_GET_SET);
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
@@ -496,9 +495,6 @@ bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(definition->prefix <= RDM_PREFIX_YOCTO ||
          (definition->prefix >= RDM_PREFIX_DECA &&
           definition->prefix <= RDM_PREFIX_YOTTA));
-  assert(!(definition->pid >= RDM_PID_MANUFACTURER_SPECIFIC_BEGIN &&
-           definition->pid <= RDM_PID_MANUFACTURER_SPECIFIC_END) ||
-         definition->description == NULL);
 
   dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {

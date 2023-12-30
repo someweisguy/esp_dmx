@@ -33,7 +33,6 @@ bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_device_info_rh,
@@ -100,7 +99,6 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_ASCII,
       .get = {.handler = rdm_simple_response_handler,
@@ -170,7 +168,6 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_ASCII,
       .get = {.handler = rdm_simple_response_handler,

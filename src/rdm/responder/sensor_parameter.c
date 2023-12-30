@@ -131,7 +131,6 @@ bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_get_set_sensor_value,
@@ -165,7 +164,6 @@ bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_SET,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = NULL, .request.format = NULL, .response.format = NULL},

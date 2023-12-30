@@ -101,7 +101,6 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_UNSIGNED_WORD,
       .get = {.handler = rdm_rhd_get_supported_parameters,
@@ -174,7 +173,6 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_ASCII,
       .get = {.handler = rdm_rhd_get_parameter_description,

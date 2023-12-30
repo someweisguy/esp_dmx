@@ -84,7 +84,6 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, uint32_t max_count,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_get_queued_message,

@@ -134,7 +134,6 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET_SET,
       .ds = ds,
       .get = {.handler = rdm_simple_response_handler,
@@ -221,7 +220,6 @@ bool rdm_register_dmx_personality_description(
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_rhd_get_dmx_personality_description,
@@ -268,7 +266,6 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
-      .pid = pid,
       .pid_cc = RDM_CC_GET_SET,
       .ds = ds,
       .get = {.handler = rdm_simple_response_handler,
