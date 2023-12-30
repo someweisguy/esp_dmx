@@ -656,7 +656,7 @@ typedef struct __attribute__((packed)) rdm_parameter_description_t {
 } rdm_parameter_description_t;
 
 // TODO: docs
-typedef struct __attribute__((packed)) rdm_dmx_personality_description_s {
+typedef struct __attribute__((packed)) rdm_dmx_personality_description_t {
    uint8_t personality_num;
    uint16_t footprint;
    char description[RDM_ASCII_SIZE_MAX];
