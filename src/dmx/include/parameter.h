@@ -262,10 +262,6 @@ bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
                                        rdm_header_t *request_header,
                                        rdm_header_t *response_header);
 
-// TODO: docs, implement
-bool dmx_parameter_rdm_disable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                               rdm_pid_t pid);
-
 #ifdef __cplusplus
 }
 #endif
