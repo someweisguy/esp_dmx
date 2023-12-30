@@ -639,7 +639,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   // Send the RDM response
   if (resp > 0) {
-    if (!dmx_send(dmx_num)) {
+    if (!dmx_send_num(dmx_num, resp)) {
       rdm_set_boot_loader(dmx_num);
       // Generate information for the warning message if a response wasn't sent
       const int64_t micros_elapsed =
