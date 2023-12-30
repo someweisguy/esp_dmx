@@ -22,13 +22,12 @@ extern "C" {
     0))
 
 /** @brief Evaluates to true if the start code is a start code permitted in a
-  non-prototype DMX device.
-  Several alternate start codes are reserved for special purposes or for
-  future development of the standard. No equipment shall be manufactured that
-  generates alternate start codes 0x92-0xA9 or 0xAB-0xCD until their use is
-  defined by the standard or by the E1 Accredited Standards Committee.
-  Manufacturers shall not advertise or sell products or devices that use
-  alternate start codes 0xF0-0xF7.*/
+ * non-prototype DMX device. Several alternate start codes are reserved for
+ * special purposes or for future development of the standard. No equipment
+ * shall be manufactured that generates alternate start codes 0x92-0xA9 or
+ * 0xAB-0xCD until their use is defined by the standard or by the E1 Accredited
+ * Standards Committee. Manufacturers shall not advertise or sell products or
+ * devices that use alternate start codes 0xF0-0xF7.*/
 #define dmx_start_code_is_valid(sc)                              \
   (!((sc >= 0x92 && sc <= 0xa9) || (sc >= 0xab && sc <= 0xcb) || \
      (sc == 0xcd) || (sc >= 0xf0 && sc <= 0xf7)))
@@ -255,37 +254,6 @@ typedef enum dmx_err_t {
   DMX_FAIL = -1
 } dmx_err_t;
 
-/** @brief Metadata for received DMX packets. For use in the DMX sniffer.*/
-typedef struct dmx_metadata_t {
-  /** @brief Length in microseconds of the last received DMX break.*/
-  uint32_t break_len;
-  /** @brief Length in microseconds of the last received DMX mark-after-break.*/
-  uint32_t mab_len;
-} dmx_metadata_t;
-
-/** @brief Provides a summary of the received DMX packet so that users may
- * quickly and easily process and respond to DMX data.*/
-typedef struct dmx_packet_t {
-  /** @brief Evaluates to true if an error occurred reading DMX data.*/
-  dmx_err_t err;
-  /** @brief Start code of the DMX packet.*/
-  int sc;
-  /** @brief The size of the received DMX packet in bytes.*/
-  size_t size;
-  /** @brief True if the received packet is RDM.*/
-  int is_rdm;
-} dmx_packet_t;
-
-/** @brief A struct which defines DMX personalities. Used to declare the
- * personalities of the DMX device upon calling dmx_driver_install(). */
-typedef struct __attribute__((packed)) dmx_personality_t {
-  uint8_t : 8;  // This bitfield allows this type to alias rdm_personality_t
-  /** @brief The footprint of the DMX personality.*/
-  uint16_t footprint;
-  /** @brief A description of the DMX personality.*/
-  char description[33];
-} dmx_personality_t;
-
 /** @brief Configuration settings for the DMX driver.*/
 typedef struct dmx_config_t {
   /** @brief The interrupt allocation flags to use.*/
@@ -312,6 +280,37 @@ typedef struct dmx_config_t {
    * the RDM queue.*/
   uint32_t queue_size_max;
 } dmx_config_t;
+
+/** @brief A struct which defines DMX personalities. Used to declare the
+ * personalities of the DMX device upon calling dmx_driver_install(). */
+typedef struct __attribute__((packed)) dmx_personality_t {
+  uint8_t : 8;  // This bitfield allows this type to alias rdm_personality_t
+  /** @brief The footprint of the DMX personality.*/
+  uint16_t footprint;
+  /** @brief A description of the DMX personality.*/
+  char description[33];
+} dmx_personality_t;
+
+/** @brief Provides a summary of the received DMX packet so that users may
+ * quickly and easily process and respond to DMX data.*/
+typedef struct dmx_packet_t {
+  /** @brief Evaluates to true if an error occurred reading DMX data.*/
+  dmx_err_t err;
+  /** @brief Start code of the DMX packet.*/
+  int sc;
+  /** @brief The size of the received DMX packet in bytes.*/
+  size_t size;
+  /** @brief True if the received packet is RDM.*/
+  int is_rdm;
+} dmx_packet_t;
+
+/** @brief Metadata for received DMX packets. For use in the DMX sniffer.*/
+typedef struct dmx_metadata_t {
+  /** @brief Length in microseconds of the last received DMX break.*/
+  uint32_t break_len;
+  /** @brief Length in microseconds of the last received DMX mark-after-break.*/
+  uint32_t mab_len;
+} dmx_metadata_t;
 
 /** @brief DMX start address which indicates the device does not have a DMX
  * start address.*/
