@@ -188,7 +188,7 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num);
 
 /**
  * @brief Returns true if the RDM format string is valid.
- * 
+ *
  * @param format The RDM format string.
  * @return true if the RDM format string is valid.
  * @return false if it is not valid.
@@ -218,7 +218,7 @@ bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
 /**
  * @brief Returns a pointer to the RDM definition for the desired DMX parameter.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device number.
  * @param pid The parameter ID of the desired parameter.
@@ -247,7 +247,7 @@ bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
 
 /**
  * @brief Handles the callback for the desired parameter, if it exists.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device number.
  * @param pid The parameter ID of the desired parameter.
@@ -261,7 +261,6 @@ bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
                                        rdm_pid_t pid,
                                        rdm_header_t *request_header,
                                        rdm_header_t *response_header);
-
 
 // TODO: docs, implement
 bool dmx_parameter_rdm_disable(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
