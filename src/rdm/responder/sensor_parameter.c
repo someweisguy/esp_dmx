@@ -101,8 +101,9 @@ static size_t rdm_rhd_set_record_sensors(
   return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
 }
 
-bool rdm_register_sensor_definition(dmx_port_t dmx_num, uint8_t defintion_count,
-                                    rdm_callback_t cb, void *context) {
+bool rdm_register_sensor_definition(dmx_port_t dmx_num,
+                                    uint8_t definition_count, rdm_callback_t cb,
+                                    void *context) {
   return false;  // TODO
 }
 
