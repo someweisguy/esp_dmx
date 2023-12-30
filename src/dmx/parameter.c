@@ -7,7 +7,6 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 
-
 /*  // TODO
 
 dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
@@ -518,7 +517,7 @@ const rdm_parameter_definition_t *dmx_parameter_rdm_lookup(
   if (entry == NULL) {
     return NULL;
   }
- 
+
   return entry->definition;
 }
 
@@ -534,7 +533,7 @@ bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
 
   entry->callback = callback;
   entry->context = context;
-  
+
   return true;
 }
 
@@ -554,7 +553,7 @@ bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
   if (entry == NULL) {
     return false;
   }
-  
+
   if (entry->callback != NULL) {
     entry->callback(dmx_num, request_header, response_header, entry->context);
   }
