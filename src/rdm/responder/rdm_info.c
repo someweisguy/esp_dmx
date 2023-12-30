@@ -115,7 +115,8 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return true;
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_supported_parameters(dmx_port_t dmx_num, uint16_t *pids,
@@ -187,7 +188,8 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return true;
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 size_t rdm_get_parameter_description(dmx_port_t dmx_num, rdm_pid_t pid,

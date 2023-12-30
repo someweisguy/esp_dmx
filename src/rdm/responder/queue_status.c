@@ -98,7 +98,8 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, uint32_t max_count,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return success;
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid) {

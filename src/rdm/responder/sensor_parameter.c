@@ -147,7 +147,8 @@ bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return true;
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -178,7 +179,8 @@ bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return true;
+  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                        context);
 }
 
 uint8_t rdm_sensor_get_count(dmx_port_t dmx_num, rdm_sub_device_t sub_device) {

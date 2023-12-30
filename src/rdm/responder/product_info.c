@@ -196,6 +196,6 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
-                    RDM_PID_SOFTWARE_VERSION_LABEL, software_version_label,
-                    size);
+                            RDM_PID_SOFTWARE_VERSION_LABEL,
+                            software_version_label, size);
 }
