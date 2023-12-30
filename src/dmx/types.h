@@ -62,7 +62,7 @@ extern "C" {
   (mab >= RDM_MAB_LEN_MIN_US && mab <= RDM_MAB_LEN_MAX_US)
 
 /** @brief DMX port constants.*/
-enum dmx_num_t {
+enum {
   DMX_NUM_0, /** @brief DMX port 0.*/
   DMX_NUM_1, /** @brief DMX port 1.*/
 #if SOC_UART_NUM > 2
@@ -71,7 +71,7 @@ enum dmx_num_t {
 };
 
 /** @brief DMX pin constants.*/
-enum dmx_pin_t {
+enum {
   /** @brief Constant for dmx_set_pin(). Indicates the pin should not be
      changed.*/
   DMX_PIN_NO_CHANGE = -1
@@ -82,7 +82,7 @@ enum dmx_pin_t {
  * library, these constants will ensure that library settings are always within
  * DMX specification, but it is possible for other values to be used that also
  * fall within DMX specification.*/
-enum dmx_requirements_t {
+enum {
   /** @brief The typical packet size of DMX.*/
   DMX_PACKET_SIZE = 513,
   /** @brief The maximum packet size of DMX.*/
@@ -132,7 +132,7 @@ enum dmx_requirements_t {
 /** @brief DMX start codes. These are the start codes used within the DMX
  * specification. This enum also includes RDM specific codes than can be used in
  * place of a start code or are use similarly to DMX start codes.*/
-enum dmx_start_code_t {
+enum {
   /** @brief DMX default NULL start code. A NULL start code identifies
      subsequent data slots as a block of untyped sequential 8-bit information.
      Packets identified by a NULL start code are the default packets sent on DMX
@@ -277,8 +277,8 @@ typedef struct dmx_packet_t {
  element is the footprint and description for the first personality, the
  first element is the footprint and description for the second personality,
  and so on.*/ // TODO: update docs
-typedef struct __attribute__((packed)) dmx_personality_s {
-  uint8_t : 8;
+typedef struct __attribute__((packed)) dmx_personality_t {
+  uint8_t : 8;  // This bitfield allows this type to alias rdm_personality_t
   /** @brief The footprint of the DMX personality.*/
   uint16_t footprint;
   /** @brief A description of the DMX personality.*/
@@ -286,7 +286,7 @@ typedef struct __attribute__((packed)) dmx_personality_s {
 } dmx_personality_t;
 
 /** @brief Configuration settings for the DMX driver.*/
-typedef struct dmx_config_s {
+typedef struct dmx_config_t {
   // TODO: docs
   int interrupt_flags;
   // TODO: docs
