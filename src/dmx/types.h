@@ -276,10 +276,8 @@ typedef struct dmx_packet_t {
   int is_rdm;
 } dmx_packet_t;
 
-/** @brief An array of DMX footprints and descriptions where the zeroeth
- element is the footprint and description for the first personality, the
- first element is the footprint and description for the second personality,
- and so on.*/ // TODO: update docs
+/** @brief A struct which defines DMX personalities. Used to declare the
+ * personalities of the DMX device upon calling dmx_driver_install(). */
 typedef struct __attribute__((packed)) dmx_personality_t {
   uint8_t : 8;  // This bitfield allows this type to alias rdm_personality_t
   /** @brief The footprint of the DMX personality.*/
