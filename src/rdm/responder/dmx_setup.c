@@ -206,7 +206,7 @@ bool rdm_register_dmx_personality_description(
       DMX_CHECK((personalities[i].footprint > 0 &&
                  personalities[i].footprint < DMX_PACKET_SIZE_MAX),
                 false, "footprint error");
-      // Personality description is not validated
+      // The personality description field is not validated
     }
   }
 
