@@ -105,7 +105,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Set the default values for the DMX device
   driver->device.parameter_count.root = config->root_device_parameter_count;
-  driver->device.parameter_count.sub_devices = 0;  // TODO
+  driver->device.parameter_count.sub_devices =
+      config->sub_device_parameter_count;
   driver->device.parameter_count.staged = 0;
 
   // Synchronization state
