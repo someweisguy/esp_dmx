@@ -7,27 +7,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 
-/*  // TODO
-
-dmx_parameter_add_dynamic(dmx_num, sub_device, pid, nvs, const *init, size);
-dmx_parameter_add_static(dmx_num, sub_Device, pid, nvs, *data, size);
-dmx_parameter_add_null(dmx_num, sub_device, pid);
-
-bool dmx_parameter_exists(dmx_num, sub_device, pid);
-rdm_pid_t dmx_parameter_at(dmx_num, sub_device, index);
-void *dmx_parameter_get(dmx_num, sub_device, pid);
-size_t dmx_parameter_copy(dmx_num, sub_device, pid, *destination, size);
-bool dmx_parameter_set(dmx_num, sub_device, pid, const *source, size);
-bool dmx_parameter_commit(dmx_num);
-
-size_t dmx_parameter_size(dmx_num, sub_device, pid);
-
-
-
-*/
-
-// TODO: docs
-enum dmx_parameter_storage_type_t {
+enum {
   DMX_PARAMETER_STORAGE_TYPE_VOLATILE = 0,
   DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE,
   DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED
