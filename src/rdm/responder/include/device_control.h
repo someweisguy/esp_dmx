@@ -32,11 +32,10 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
  * @brief Gets a copy of the RDM identify device state of this device.
  *
  * @param dmx_num The DMX port number.
- * @param identify A pointer which stores a copy of the identify device state of
- * this device.
- * @return true on success.
- * @return false on failure.
- */ // TODO: update docs
+ * @param[out] identify A pointer which stores a copy of the identify device
+ * state of this device.
+ * @return The number of bytes that were copied or 0 on failure.
+ */
 size_t rdm_get_identify_device(dmx_port_t dmx_num, bool *identify);
 
 /**
