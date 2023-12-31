@@ -36,14 +36,14 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 
   // Write the header using the default arguments and the caller's arguments
   rdm_header_t header = {
-    .message_len = 24 + pdl,
-    .tn = rdm_get_transaction_num(dmx_num),
-    .port_id = dmx_num + 1,
-    .message_count = 0,
-    .sub_device = sub_device,
-    .cc = cc,
-    .pid = pid,
-    .pdl = pdl,
+      .message_len = 24 + pdl,
+      .tn = rdm_get_transaction_num(dmx_num),
+      .port_id = dmx_num + 1,
+      .message_count = 0,
+      .sub_device = sub_device,
+      .cc = cc,
+      .pid = pid,
+      .pdl = pdl,
   };
   memcpy(&header.dest_uid, dest_uid, sizeof(header.dest_uid));
   memcpy(&header.src_uid, rdm_uid_get(dmx_num), sizeof(header.src_uid));
