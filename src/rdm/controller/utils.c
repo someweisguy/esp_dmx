@@ -16,10 +16,11 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   assert(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL);
   assert(pid > 0);
   assert(rdm_cc_is_valid(cc) && rdm_cc_is_request(cc));
-  assert(rdm_pd_format_is_valid(format)); // TODO
+  assert(sub_device != RDM_SUB_DEVICE_ALL || cc == RDM_CC_SET_COMMAND);
+  assert(rdm_pd_format_is_valid(format));
   assert(format != NULL || pd == NULL);
   assert(pd != NULL || pdl == 0);
-  assert(pdl < 231);
+  assert(pdl < RDM_PD_SIZE_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
