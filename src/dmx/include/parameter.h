@@ -13,24 +13,43 @@
 extern "C" {
 #endif
 
-// TODO: docs
+/**
+ * @brief The RDM parameter definition. Defines the capabilities of the
+ * parameter for RDM requests.
+ */
 typedef struct rdm_parameter_definition_t {
+  /** @brief The command class that is supported by the parameter.*/
   uint8_t pid_cc;
+  /** @brief The data type of the parameter.*/
   uint8_t ds;
+  /** @brief The RDM command information.*/
   struct rdm_command_t {
+    /** @brief The command information for the request and the response.*/
     struct {
+      /** @brief The format of the command.*/
       const char *format;
     } request, response;
+    /** @brief The function that is called to handle the RDM request.*/
     size_t (*handler)(dmx_port_t dmx_num,
                       const struct rdm_parameter_definition_t *definition,
                       const rdm_header_t *header);
   } get, set;
+  /** @brief The maximum parameter data length for the parameter.*/
   uint8_t pdl_size;
+  /** @brief The maximum value of the parameter. If this value is not
+     applicable, it should be left 0.*/
   uint32_t max_value;
+  /** @brief The minimum value of the parameter. If this value is not
+     applicable, it should be left 0.*/
   uint32_t min_value;
+  /** @brief The default value of the parameter. If this value is not
+     applicable, it should be left 0.*/
   uint32_t default_value;
+  /** @brief The unit type for this parameter, one of rdm_unit_t.*/
   uint8_t units;
+  /** @brief The prefix for this parameter, one of rdm_prefix_t.*/
   uint8_t prefix;
+  /** @brief The ASCII description of the parameter.*/
   const char *description;
 } rdm_parameter_definition_t;
 
