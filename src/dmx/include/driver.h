@@ -203,15 +203,6 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len);
  */
 const rdm_uid_t *rdm_uid_get(dmx_port_t dmx_num);
 
-/**
- * @brief Checks if RDM is enabled on the DMX driver.
- *
- * @param dmx_num The DMX port number.
- * @return true if RDM is enabled.
- * @return false if RDM is not enabled.
- */
-bool rdm_is_enabled(dmx_port_t dmx_num);
-
 #ifdef __cplusplus
 }
 #endif

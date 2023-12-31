@@ -385,16 +385,3 @@ uint32_t dmx_set_mab_len(dmx_port_t dmx_num, uint32_t mab_len) {
 const rdm_uid_t *rdm_uid_get(dmx_port_t dmx_num) {
   return dmx_driver_is_installed(dmx_num) ? &dmx_driver[dmx_num]->uid : NULL;
 }
-
-bool rdm_is_enabled(dmx_port_t dmx_num) {
-  bool is_enabled;
-  if (dmx_driver_is_installed(dmx_num)) {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    is_enabled = true;  // FIXME
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  } else {
-    is_enabled = false;
-  }
-
-  return is_enabled;
-}
