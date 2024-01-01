@@ -59,7 +59,7 @@ typedef struct rdm_parameter_definition_t {
  * @param dmx_num The DMX port number.
  * @return The number of supported sub-devices.
  */
-dmx_device_num_t dmx_get_sub_device_count(dmx_port_t dmx_num);
+int dmx_get_sub_device_count(dmx_port_t dmx_num);
 
 /**
  * @brief Allocates and adds a parameter to the DMX driver. The parameter is
