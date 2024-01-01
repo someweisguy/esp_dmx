@@ -392,10 +392,10 @@ bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert((definition->ds >= RDM_DS_NOT_DEFINED &&
           definition->ds <= RDM_DS_SIGNED_DWORD) ||
          (definition->ds >= 0x80 && definition->ds <= 0xdf));
-  assert(dmx_parameter_rdm_format_is_valid(definition->get.request.format) &&
-         dmx_parameter_rdm_format_is_valid(definition->get.response.format));
-  assert(dmx_parameter_rdm_format_is_valid(definition->set.request.format) &&
-         dmx_parameter_rdm_format_is_valid(definition->set.response.format));
+  assert(rdm_format_is_valid(definition->get.request.format) &&
+         rdm_format_is_valid(definition->get.response.format));
+  assert(rdm_format_is_valid(definition->set.request.format) &&
+         rdm_format_is_valid(definition->set.response.format));
   assert(
       (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
                                            definition->pid_cc == RDM_CC_GET)) ||

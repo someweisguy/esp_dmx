@@ -14,7 +14,7 @@ static size_t rdm_format_encode(void *restrict dest,
                                 const void *restrict src, size_t src_size,
                                 bool encode_nulls) {
   assert(dest != NULL);
-  assert(dmx_parameter_rdm_format_is_valid(format));
+  assert(rdm_format_is_valid(format));
   assert(src != NULL);
 
   size_t encoded = 0;
@@ -193,7 +193,7 @@ bool DMX_ISR_ATTR rdm_read_header(dmx_port_t dmx_num, rdm_header_t *header) {
 size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
                    size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_parameter_rdm_format_is_valid(format), 0, "format is invalid");
+  DMX_CHECK(rdm_format_is_valid(format), 0, "format is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -233,7 +233,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
     DMX_CHECK(rdm_response_type_is_valid(header->response_type), 0,
               "header->response_type error");
   }
-  DMX_CHECK(dmx_parameter_rdm_format_is_valid(format), 0, "format is invalid");
+  DMX_CHECK(rdm_format_is_valid(format), 0, "format is invalid");
   DMX_CHECK(header->pdl == 0 || (format != NULL && pd != NULL), 0,
             "pd or format is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
@@ -308,7 +308,7 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
 }
 
 
-bool dmx_parameter_rdm_format_is_valid(const char *format) {
+bool rdm_format_is_valid(const char *format) {
   if (format == NULL) {
     return true;
   }

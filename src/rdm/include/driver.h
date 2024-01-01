@@ -131,4 +131,4 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
  * @return true if the RDM format string is valid.
  * @return false if it is not valid.
  */
-bool dmx_parameter_rdm_format_is_valid(const char *format);
+bool rdm_format_is_valid(const char *format);
