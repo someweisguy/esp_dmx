@@ -2,7 +2,7 @@
  * @file uid.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief // TODO
- * 
+ *
  */
 #pragma once
 

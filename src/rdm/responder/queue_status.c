@@ -2,8 +2,8 @@
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
-#include "rdm/responder/include/utils.h"
 #include "rdm/include/driver.h"
+#include "rdm/responder/include/utils.h"
 
 // TODO: docs
 typedef struct rdm_queue_t {
@@ -19,9 +19,9 @@ static rdm_queue_t *rdm_get_queue(dmx_port_t dmx_num) {
                            RDM_PID_QUEUED_MESSAGE);
 }
 
-static size_t rdm_rhd_get_queued_message(dmx_port_t dmx_num,
-                                         const rdm_parameter_definition_t *definition,
-                                         const rdm_header_t *header) {
+static size_t rdm_rhd_get_queued_message(
+    dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
+    const rdm_header_t *header) {
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     // Requests may only be made to the root device
     return rdm_write_nack_reason(dmx_num, header,
@@ -68,7 +68,7 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, uint32_t max_count,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(max_count > 0, false, "max_count error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  
+
   const rdm_pid_t pid = RDM_PID_QUEUED_MESSAGE;
 
   // Add the parameter
@@ -144,7 +144,7 @@ bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid) {
 rdm_pid_t rdm_queue_pop(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  
+
   rdm_pid_t pid;
   if (rdm_queue_size(dmx_num) > 0) {
     rdm_queue_t *queue = rdm_get_queue(dmx_num);

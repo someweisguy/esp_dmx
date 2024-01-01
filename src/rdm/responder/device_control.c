@@ -9,7 +9,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(cb != NULL, false, "cb is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  
+
   const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
 
   // Allocate parameter data
@@ -37,7 +37,6 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
   dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
-
 
   return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
                                         context);

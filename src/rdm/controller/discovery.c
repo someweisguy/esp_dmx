@@ -9,7 +9,7 @@
 static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                                  rdm_pid_t pid, rdm_disc_mute_t *mute,
                                  rdm_ack_t *ack) {
-  const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;                                    
+  const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;
   const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
   bool success = rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, NULL,
                                   NULL, 0, ack);

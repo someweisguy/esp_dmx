@@ -16,25 +16,24 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
   assert(pd != NULL || pdl == 0);
   assert(pdl < 231);
   assert(dmx_driver_is_installed(dmx_num));
-  
+
   // Build the response header
   rdm_header_t response_header = {
-    .message_len = 24 + pdl,
-    .dest_uid = header->src_uid,
-    .src_uid = *rdm_uid_get(dmx_num),
-    .tn = header->tn,
-    .response_type = RDM_RESPONSE_TYPE_ACK,
-    .message_count = rdm_queue_size(dmx_num),
-    .sub_device = header->sub_device,
-    .cc = (header->cc | 0x1),  // Set to RDM_CC_x_COMMAND_RESPONSE
-    .pid = header->pid,
-    .pdl = pdl
-  };
+      .message_len = 24 + pdl,
+      .dest_uid = header->src_uid,
+      .src_uid = *rdm_uid_get(dmx_num),
+      .tn = header->tn,
+      .response_type = RDM_RESPONSE_TYPE_ACK,
+      .message_count = rdm_queue_size(dmx_num),
+      .sub_device = header->sub_device,
+      .cc = (header->cc | 0x1),  // Set to RDM_CC_x_COMMAND_RESPONSE
+      .pid = header->pid,
+      .pdl = pdl};
 
   return rdm_write(dmx_num, &response_header, format, pd);
 }
 
-size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header, 
+size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
                              rdm_nr_t nack_reason) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(header != NULL);
@@ -43,20 +42,19 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
 
   // PDL is a single word
   const size_t pdl = sizeof(uint16_t);
-  
+
   // Build the response header
   rdm_header_t response_header = {
-    .message_len = 24 + pdl,
-    .dest_uid = header->src_uid,
-    .src_uid = *rdm_uid_get(dmx_num),
-    .tn = header->tn,
-    .response_type = RDM_RESPONSE_TYPE_NACK_REASON,
-    .message_count = rdm_queue_size(dmx_num),
-    .sub_device = header->sub_device,
-    .cc = (header->cc | 0x1),  // Set to RDM_CC_x_COMMAND_RESPONSE
-    .pid = header->pid,
-    .pdl = pdl
-  };
+      .message_len = 24 + pdl,
+      .dest_uid = header->src_uid,
+      .src_uid = *rdm_uid_get(dmx_num),
+      .tn = header->tn,
+      .response_type = RDM_RESPONSE_TYPE_NACK_REASON,
+      .message_count = rdm_queue_size(dmx_num),
+      .sub_device = header->sub_device,
+      .cc = (header->cc | 0x1),  // Set to RDM_CC_x_COMMAND_RESPONSE
+      .pid = header->pid,
+      .pdl = pdl};
 
   return rdm_write(dmx_num, &response_header, "w", &nack_reason);
 }
@@ -69,7 +67,7 @@ size_t rdm_write_ack_timer(dmx_port_t dmx_num, const rdm_header_t *header,
 size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
                               const char *format, const void *pd, size_t pdl,
                               int page) {
-  return 0; // TODO
+  return 0;  // TODO
 }
 
 void rdm_set_boot_loader(dmx_port_t dmx_num) {
@@ -94,7 +92,8 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
   if (header->cc == RDM_CC_GET_COMMAND) {
     // Get the parameter and write it to the RDM bus
     size_t pdl = dmx_parameter_size(dmx_num, header->sub_device, header->pid);
-    const void *pd = dmx_parameter_get(dmx_num, header->sub_device, header->pid);
+    const void *pd =
+        dmx_parameter_get(dmx_num, header->sub_device, header->pid);
     format = definition->get.response.format;
     return rdm_write_ack(dmx_num, header, format, pd, pdl);
   } else {

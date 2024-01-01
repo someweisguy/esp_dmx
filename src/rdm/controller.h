@@ -47,7 +47,7 @@ typedef struct rdm_ack_t {
 }
 #endif
 
-#include "rdm/controller/include/discovery.h"
-#include "rdm/controller/include/product_info.h"
 #include "rdm/controller/include/device_control.h"
+#include "rdm/controller/include/discovery.h"
 #include "rdm/controller/include/dmx_setup.h"
+#include "rdm/controller/include/product_info.h"

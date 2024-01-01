@@ -8,8 +8,8 @@
 #include "dmx/include/sniffer.h"
 #include "dmx/include/struct.h"
 #include "endian.h"
-#include "rdm/responder/include/utils.h"
 #include "rdm/include/types.h"
+#include "rdm/responder/include/utils.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_mac.h"  // TODO: Make this hardware agnostic

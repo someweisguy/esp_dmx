@@ -34,8 +34,8 @@ extern "C" {
  * formatted, or an RDM_RESPONSE_TYPE_ACK was not received.
  */  // TODO: update docs
 size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
-                              rdm_sub_device_t sub_device,
-                              rdm_device_info_t *device_info, rdm_ack_t *ack);
+                                rdm_sub_device_t sub_device,
+                                rdm_device_info_t *device_info, rdm_ack_t *ack);
 
 /**
  * @brief Sends an RDM GET software version label request and reads the

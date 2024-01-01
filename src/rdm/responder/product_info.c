@@ -64,7 +64,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   if (!rdm_get_dmx_personality(dmx_num, &device_info->personality)) {
     device_info->personality.count = 0;
     device_info->personality.current = 0;
-  } 
+  }
   if (device_info->personality.current > 0) {
     device_info->footprint =
         dmx_get_footprint(dmx_num, device_info->personality.current);
@@ -126,7 +126,7 @@ size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_LABEL,
-                    device_label, size);
+                            device_label, size);
 }
 
 bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,
@@ -150,14 +150,14 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
   if (dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
-                     RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
+                        RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
     DMX_CHECK(strnlen(software_version_label, RDM_ASCII_SIZE_MAX) <
                   RDM_ASCII_SIZE_MAX,
               false, "software_version_label error");
   }
-  
+
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
 
   // Add the parameter as a static variable

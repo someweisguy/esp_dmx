@@ -5,8 +5,8 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "include/utils.h"
-#include "rdm/include/uid.h"
 #include "rdm/include/driver.h"
+#include "rdm/include/uid.h"
 
 static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
                                 const rdm_parameter_definition_t *definition,
@@ -83,7 +83,7 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   // Add the parameter as a NULL static variable
   const bool nvs = false;
   dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
-  
+
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
       .pid_cc = RDM_CC_DISC,
@@ -108,7 +108,7 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
                             void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  
+
   const rdm_pid_t pid = RDM_PID_DISC_MUTE;
 
   // Add the parameter as a new variable or as an alias to its counterpart
@@ -163,7 +163,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
     dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, mute,
                              sizeof(*mute));
   }
-  
+
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
       .pid_cc = RDM_CC_DISC,

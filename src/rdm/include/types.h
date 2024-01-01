@@ -192,7 +192,7 @@ enum rdm_pid_t {
   RDM_PID_DEFAULT_SLOT_VALUE = 0x0122,
 
   // Category: Sensors (0x02xx)
-  
+
   /** @brief This parameter is used to retrieve the definition of a specific
     sensor. When this parameter is directed to a sub-device, the reply shall be
     identical for any given sensor number in all sub-devices owned by a specific
@@ -667,9 +667,9 @@ typedef struct __attribute__((packed)) rdm_parameter_description_t {
 
 // TODO: docs
 typedef struct __attribute__((packed)) rdm_dmx_personality_description_t {
-   uint8_t personality_num;
-   uint16_t footprint;
-   char description[RDM_ASCII_SIZE_MAX];
+  uint8_t personality_num;
+  uint16_t footprint;
+  char description[RDM_ASCII_SIZE_MAX];
 } rdm_dmx_personality_description_t;
 
 // TODO: docs
@@ -688,18 +688,18 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
 
 // TODO: docs
 typedef struct __attribute__((packed)) rdm_sensor_definition_t {
-   uint8_t num;
-   uint8_t type;
-   uint8_t unit;
-   uint8_t prefix;
-   struct {
-      int16_t minimum;
-      int16_t maximum;
-   } range, normal;
-   uint8_t recorded_value_support : 1;
-   uint8_t lowest_highest_detected_value_support : 1;
-   uint8_t : 6;
-   char description[RDM_ASCII_SIZE_MAX];
+  uint8_t num;
+  uint8_t type;
+  uint8_t unit;
+  uint8_t prefix;
+  struct {
+    int16_t minimum;
+    int16_t maximum;
+  } range, normal;
+  uint8_t recorded_value_support : 1;
+  uint8_t lowest_highest_detected_value_support : 1;
+  uint8_t : 6;
+  char description[RDM_ASCII_SIZE_MAX];
 } rdm_sensor_definition_t;
 
 // TODO: docs

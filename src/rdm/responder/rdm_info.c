@@ -4,9 +4,8 @@
 
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
-#include "endian.h"
-#include "rdm/responder/include/utils.h"
 #include "rdm/include/driver.h"
+#include "rdm/responder/include/utils.h"
 
 static size_t rdm_rhd_get_supported_parameters(
     dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
@@ -168,7 +167,7 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_PARAMETER_DESCRIPTION;
-  
+
   // Add the parameter as a NULL variable
   dmx_parameter_add_null(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
 

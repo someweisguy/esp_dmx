@@ -1,15 +1,12 @@
-#include "dmx/include/driver.h"
-
 #include <string.h>
 
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/parameter.h"
 #include "dmx/include/struct.h"
-#include "endian.h"
-#include "rdm/responder/include/utils.h"
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
+#include "rdm/responder/include/utils.h"
 
 size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
                        size_t size) {

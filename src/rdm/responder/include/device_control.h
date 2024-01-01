@@ -6,8 +6,8 @@
 #pragma once
 
 #include "dmx/include/types.h"
-#include "rdm/responder.h"
 #include "rdm/include/types.h"
+#include "rdm/responder.h"
 
 #ifdef __cplusplus
 extern "C" {

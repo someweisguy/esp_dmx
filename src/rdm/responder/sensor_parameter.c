@@ -4,8 +4,8 @@
 #include "dmx/include/parameter.h"
 #include "dmx/include/struct.h"
 #include "dmx/include/types.h"
-#include "rdm/responder/include/utils.h"
 #include "rdm/include/driver.h"
+#include "rdm/responder/include/utils.h"
 
 typedef struct rdm_sensors_t {
   uint8_t sensor_count;

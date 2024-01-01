@@ -6,12 +6,12 @@
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
-#include "rdm/responder/include/utils.h"
 #include "rdm/include/driver.h"
+#include "rdm/responder/include/utils.h"
 
-static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
-                                          const rdm_parameter_definition_t *definition,
-                                          const rdm_header_t *header) {
+static size_t rdm_rhd_set_dmx_personality(
+    dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
+    const rdm_header_t *header) {
   // Return early if the sub-device is out of range
   if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
     return rdm_write_nack_reason(dmx_num, header,

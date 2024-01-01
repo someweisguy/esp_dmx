@@ -6,8 +6,8 @@
 #pragma once
 
 #include "dmx/include/types.h"
-#include "rdm/responder.h"
 #include "rdm/include/types.h"
+#include "rdm/responder.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,9 +46,9 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info);
 /**
  * @brief Registers the default response to RDM_PID_DEVICE_LABEL requests.
  * It is called when the DMX driver is initially installed.
- * 
+ *
  * @param dmx_num The DMX port number.
- * @param device_label A pointer to a null-terminated device label string 
+ * @param device_label A pointer to a null-terminated device label string
  * to use in RDM responses. This value is used to set the
  * parameter to a default value when this function is called for the first time
  * and is ignored (and therefore may be set to NULL) on subsequent calls.
@@ -57,21 +57,21 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info);
  * callback.
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
-*/
-bool rdm_register_device_label(dmx_port_t dmx_num,
-                               const char *device_label,
+ */
+bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
                                rdm_callback_t cb, void *context);
 
-/** 
+/**
  * @brief Gets the device label.
- * 
+ *
  * @param dmx_num The DMX port number.
- * @param[out] label A pointer to a buffer that the device_label will be copied into.
- *                   This will not contain a trailing '\0'
+ * @param[out] label A pointer to a buffer that the device_label will be copied
+ * into. This will not contain a trailing '\0'
  * @param labelLen The size of @p label
  * @return The number of bytes copied
-*/  // TODO: update docs
-size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label, size_t size);
+ */  // TODO: update docs
+size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
+                            size_t size);
 
 // TODO: docs
 bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,

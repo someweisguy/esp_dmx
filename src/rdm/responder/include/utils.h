@@ -19,7 +19,7 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
                      const char *format, const void *pd, size_t pdl);
 
 // TODO: docs
-size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header, 
+size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
                              rdm_nr_t nack_reason);
 
 /*

@@ -1,7 +1,7 @@
 #include "dmx/include/sniffer.h"
 
-#include "dmx/include/driver.h"
 #include "dmx/hal/include/gpio.h"
+#include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 
 bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {

@@ -6,8 +6,9 @@
 #include "rdm/include/driver.h"
 
 size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
-                              rdm_sub_device_t sub_device,
-                              rdm_device_info_t *device_info, rdm_ack_t *ack) {
+                                rdm_sub_device_t sub_device,
+                                rdm_device_info_t *device_info,
+                                rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
   DMX_CHECK(dest_uid != NULL, 0, "dest_uid is null");
   DMX_CHECK(device_info != NULL, 0, "device_info is null");
