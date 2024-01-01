@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#include "dmx/types.h"
+#include "dmx/include/types.h"
 #include "rdm/responder.h"
 #include "rdm/include/types.h"
 

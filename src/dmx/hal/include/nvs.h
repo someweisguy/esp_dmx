@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "dmx/types.h"
+#include "dmx/include/types.h"
 #include "rdm/include/types.h"
 
 #ifdef __cplusplus

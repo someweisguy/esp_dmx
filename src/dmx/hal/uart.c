@@ -2,7 +2,6 @@
 
 #include "dmx/include/struct.h"
 #include "driver/uart.h"
-#include "esp_dmx.h"
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 

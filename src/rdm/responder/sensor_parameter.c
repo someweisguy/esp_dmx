@@ -3,7 +3,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/parameter.h"
 #include "dmx/include/struct.h"
-#include "dmx/types.h"
+#include "dmx/include/types.h"
 #include "rdm/responder/include/utils.h"
 #include "rdm/include/driver.h"
 

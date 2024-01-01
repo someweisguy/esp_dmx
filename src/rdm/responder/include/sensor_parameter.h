@@ -6,9 +6,9 @@
 #pragma once
 
 #include "dmx/include/parameter.h"
-#include "dmx/types.h"
-#include "rdm/responder.h"
+#include "dmx/include/types.h"
 #include "rdm/include/types.h"
+#include "rdm/responder.h"
 
 #ifdef __cplusplus
 extern "C" {
