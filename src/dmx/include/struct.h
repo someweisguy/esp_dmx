@@ -113,9 +113,9 @@ typedef struct dmx_parameter_t {
   void *context;
 } dmx_parameter_t;
 
-typedef struct rdm_device_t {
+typedef struct dmx_device_t {
   rdm_sub_device_t num;
-  struct rdm_device_t *next;
+  struct dmx_device_t *next;
   
   // Device information
   uint16_t model_id;
@@ -123,7 +123,7 @@ typedef struct rdm_device_t {
   uint32_t software_version_id;
 
   dmx_parameter_t parameters[];
-} rdm_device_t;
+} dmx_device_t;
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
  * the UART port. It storese all the information needed to run and analyze DMX
@@ -178,7 +178,7 @@ typedef struct dmx_driver_t {
       uint32_t sub_devices;
       uint32_t staged;
     } parameter_count;
-    rdm_device_t root;
+    dmx_device_t root;
   } device;
 } dmx_driver_t;
 

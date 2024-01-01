@@ -24,7 +24,7 @@ static dmx_parameter_t *dmx_parameter_get_entry(dmx_port_t dmx_num,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Find the sub-device
-  rdm_device_t *device = &driver->device.root;
+  dmx_device_t *device = &driver->device.root;
   while (device->num != sub_device) {
     device = device->next;
     if (device == NULL) {
@@ -59,7 +59,7 @@ static dmx_parameter_t *dmx_parameter_add_entry(dmx_port_t dmx_num,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Find the sub-device
-  rdm_device_t *device = &driver->device.root;
+  dmx_device_t *device = &driver->device.root;
   while (device->num != sub_device) {
     device = device->next;
     if (device == NULL) {
@@ -223,7 +223,7 @@ rdm_pid_t dmx_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Find the desired sub-device number
-  rdm_device_t *device = &driver->device.root;
+  dmx_device_t *device = &driver->device.root;
   while (device->num != sub_device) {
     device = device->next;
     if (device == NULL) {
@@ -341,7 +341,7 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   void *data = NULL;
 
   // Iterate through parameters and commit the first found value to NVS
-  rdm_device_t *device = &driver->device.root;
+  dmx_device_t *device = &driver->device.root;
   for (; device != NULL && pid == 0; device = device->next) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     for (int i = 0; i < driver->device.parameter_count.root; ++i) {
