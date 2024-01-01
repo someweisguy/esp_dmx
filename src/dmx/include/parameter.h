@@ -54,6 +54,14 @@ typedef struct rdm_parameter_definition_t {
 } rdm_parameter_definition_t;
 
 /**
+ * @brief Gets the number of sub-devices that are supported.
+ * 
+ * @param dmx_num The DMX port number.
+ * @return The number of supported sub-devices.
+ */
+dmx_device_num_t dmx_get_sub_device_count(dmx_port_t dmx_num);
+
+/**
  * @brief Allocates and adds a parameter to the DMX driver. The parameter is
  * heap-allocated. This function is not thread-safe.
  *
@@ -75,14 +83,6 @@ typedef struct rdm_parameter_definition_t {
 bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid, bool non_volatile,
                                const void *init, size_t size);
-
-/**
- * @brief Gets the number of sub-devices that are supported.
- * 
- * @param dmx_num The DMX port number.
- * @return The number of supported sub-devices.
- */
-dmx_device_num_t dmx_get_sub_device_count(dmx_port_t dmx_num);
 
 /**
  * @brief Adds a parameter to the DMX driver. The parameter is statically
