@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include "rdm/types.h"
+#include "rdm/include/types.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -6,7 +6,7 @@
 #include "dmx/include/parameter.h"
 #include "dmx/include/struct.h"
 #include "endian.h"
-#include "rdm/uid.h"
+#include "rdm/include/uid.h"
 
 static size_t rdm_format_encode(void *restrict dest,
                                 const char *restrict format,

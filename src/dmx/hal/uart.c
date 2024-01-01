@@ -4,7 +4,7 @@
 #include "driver/uart.h"
 #include "esp_dmx.h"
 #include "rdm/include/driver.h"
-#include "rdm/uid.h"
+#include "rdm/include/uid.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include "esp_private/esp_clk.h"

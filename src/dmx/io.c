@@ -9,7 +9,7 @@
 #include "endian.h"
 #include "rdm/responder/include/utils.h"
 #include "rdm/include/driver.h"
-#include "rdm/uid.h"
+#include "rdm/include/uid.h"
 
 static size_t rdm_format_encode(void *restrict dest,
                                 const char *restrict format,

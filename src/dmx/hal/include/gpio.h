@@ -10,7 +10,6 @@
 
 #include "dmx/types.h"
 #include "driver/gpio.h"
-#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {

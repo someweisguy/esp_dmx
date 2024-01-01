@@ -17,7 +17,6 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "rdm/responder.h"
-#include "rdm/types.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -5,7 +5,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "include/utils.h"
-#include "rdm/uid.h"
+#include "rdm/include/uid.h"
 #include "rdm/include/driver.h"
 
 static size_t rdm_rhd_discovery(dmx_port_t dmx_num,

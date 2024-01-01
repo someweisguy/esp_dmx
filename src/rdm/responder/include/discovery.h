@@ -9,7 +9,7 @@
 
 #include "dmx/types.h"
 #include "rdm/responder.h"
-#include "rdm/types.h"
+#include "rdm/include/types.h"
 
 #ifdef __cplusplus
 extern "C" {

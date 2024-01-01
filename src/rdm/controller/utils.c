@@ -5,7 +5,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "rdm/include/driver.h"
-#include "rdm/uid.h"
+#include "rdm/include/uid.h"
 
 size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                         rdm_sub_device_t sub_device, rdm_pid_t pid, rdm_cc_t cc,

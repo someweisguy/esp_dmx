@@ -8,7 +8,7 @@
 #include "rdm/include/driver.h"
 #include "dmx/include/parameter.h"
 #include "dmx/types.h"
-#include "rdm/types.h"
+#include "rdm/include/types.h"
 
 #ifdef __cplusplus
 extern "C" {

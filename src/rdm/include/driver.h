@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dmx/types.h"
-#include "rdm/types.h"
+#include "rdm/include/types.h"
 
 /**
  * @brief Returns the 48-bit unique ID of the desired DMX port. The specified
