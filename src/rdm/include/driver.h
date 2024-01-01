@@ -123,3 +123,12 @@ size_t rdm_read_pd(dmx_port_t dmx_num, const char *format, void *destination,
  */
 size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
                  const char *format, const void *pd);
+
+/**
+ * @brief Returns true if the RDM format string is valid.
+ *
+ * @param format The RDM format string.
+ * @return true if the RDM format string is valid.
+ * @return false if it is not valid.
+ */
+bool dmx_parameter_rdm_format_is_valid(const char *format);

@@ -214,15 +214,6 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num);
 
 /**
- * @brief Returns true if the RDM format string is valid.
- *
- * @param format The RDM format string.
- * @return true if the RDM format string is valid.
- * @return false if it is not valid.
- */
-bool dmx_parameter_rdm_format_is_valid(const char *format);
-
-/**
  * @brief Adds an RDM definition to the desired DMX parameter. RDM definitions
  * are copied by pointer; they must be valid throughout the lifetime of the DMX
  * driver. This function is not thread-safe.

@@ -1,11 +1,11 @@
 #include "include/parameter.h"
 
-#include <ctype.h>
 #include <string.h>
 
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
+#include "rdm/include/driver.h"
 
 enum {
   DMX_PARAMETER_STORAGE_TYPE_VOLATILE = 0,
@@ -381,92 +381,6 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   }
 
   return pid;
-}
-
-bool dmx_parameter_rdm_format_is_valid(const char *format) {
-  if (format == NULL) {
-    return true;
-  }
-
-  size_t parameter_size = 0;
-
-  bool format_is_terminated = false;
-  for (char c = *format; c != '\0'; c = *(++format)) {
-    // Skip spaces
-    if (c == ' ') {
-      continue;
-    }
-
-    // Get the size of the current token
-    size_t token_size;
-    switch (c) {
-      case 'b':
-      case 'B':
-        token_size = sizeof(uint8_t);
-        break;
-      case 'w':
-      case 'W':
-        token_size = sizeof(uint16_t);
-        break;
-      case 'd':
-      case 'D':
-        token_size = sizeof(uint32_t);
-        break;
-      case 'u':
-      case 'U':
-        token_size = sizeof(rdm_uid_t);
-        break;
-      case 'v':
-      case 'V':
-        token_size = sizeof(rdm_uid_t);
-        format_is_terminated = true;
-        break;
-      case 'x':
-      case 'X':
-        token_size = sizeof(uint8_t);
-        for (int i = 0; i < 2; ++i) {
-          c = *(++format);
-          if (!isxdigit(c)) {
-            return false;  // Hex literals must be 2 characters wide
-          }
-        }
-        break;
-      case 'a':
-      case 'A':
-        token_size = 32;  // ASCII fields can be up to 32 bytes
-        format_is_terminated = true;
-        break;
-      case '$':
-        token_size = 0;
-        format_is_terminated = true;
-        break;
-      default:
-        return false;  // Unknown symbol
-    }
-
-    // Update the parameter size with the new token
-    parameter_size += token_size;
-    if (parameter_size > 231) {
-      return false;  // Parameter size is too big
-    }
-
-    // End loop if parameter is terminated
-    if (format_is_terminated) {
-      break;
-    }
-  }
-
-  if (format_is_terminated) {
-    ++format;
-    if (*format != '\0' && *format != '$') {
-      return false;  // Invalid token after terminator
-    }
-  } else {
-    // Get the maximum possible size if parameter is unterminated
-    parameter_size = 231 - (231 % parameter_size);
-  }
-
-  return parameter_size > 0;
 }
 
 bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
