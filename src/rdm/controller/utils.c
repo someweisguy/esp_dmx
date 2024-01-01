@@ -17,7 +17,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   assert(pid > 0);
   assert(rdm_cc_is_valid(cc) && rdm_cc_is_request(cc));
   assert(sub_device != RDM_SUB_DEVICE_ALL || cc == RDM_CC_SET_COMMAND);
-  assert(rdm_pd_format_is_valid(format));
+  assert(dmx_parameter_rdm_format_is_valid(format));
   assert(format != NULL || pd == NULL);
   assert(pd != NULL || pdl == 0);
   assert(pdl < RDM_PD_SIZE_MAX);
