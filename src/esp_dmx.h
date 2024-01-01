@@ -9,7 +9,6 @@
 
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
-#include "dmx/include/io.h"
 #include "dmx/types.h"
 #include "rdm/types.h"
 

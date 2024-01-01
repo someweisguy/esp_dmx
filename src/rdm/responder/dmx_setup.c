@@ -5,7 +5,6 @@
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
-#include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
 

@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "dmx/include/driver.h"
-#include "dmx/include/io.h"
 #include "dmx/include/struct.h"
 #include "rdm/uid.h"
 

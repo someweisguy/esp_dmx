@@ -1,7 +1,6 @@
 #include "rdm/responder/include/sensor_parameter.h"
 
 #include "dmx/include/driver.h"
-#include "dmx/include/io.h"
 #include "dmx/include/parameter.h"
 #include "dmx/include/struct.h"
 #include "dmx/types.h"
