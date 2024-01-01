@@ -86,6 +86,22 @@ static dmx_parameter_t *dmx_parameter_add_entry(dmx_port_t dmx_num,
   return NULL;  // No more parameters available on this sub-device
 }
 
+int dmx_get_sub_device_count(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  int count = -1;  // Don't count root device
+  dmx_device_t *device = &driver->device.root;
+  do {
+    ++count;
+    device = device->next;
+  } while (device != NULL);
+
+  return count;
+}
+
 bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid, bool non_volatile,
                                const void *init, size_t size) {
