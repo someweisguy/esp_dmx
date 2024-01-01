@@ -114,7 +114,7 @@ typedef struct dmx_parameter_t {
 } dmx_parameter_t;
 
 typedef struct dmx_device_t {
-  rdm_sub_device_t num;
+  dmx_device_num_t num;
   struct dmx_device_t *next;
   
   // Device information
