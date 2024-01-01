@@ -3,6 +3,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
+#include "rdm/include/driver.h"
 
 // TODO: docs
 typedef struct rdm_queue_t {

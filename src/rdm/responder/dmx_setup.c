@@ -7,6 +7,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "rdm/responder/include/utils.h"
+#include "rdm/include/driver.h"
 
 static size_t rdm_rhd_set_dmx_personality(dmx_port_t dmx_num,
                                           const rdm_parameter_definition_t *definition,

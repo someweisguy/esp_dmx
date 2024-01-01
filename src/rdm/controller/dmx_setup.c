@@ -3,6 +3,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "rdm/controller/include/utils.h"
+#include "rdm/include/driver.h"
 
 size_t rdm_send_get_dmx_start_address(dmx_port_t dmx_num,
                                       const rdm_uid_t *dest_uid,

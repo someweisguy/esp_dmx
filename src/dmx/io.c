@@ -8,6 +8,7 @@
 #include "dmx/include/struct.h"
 #include "endian.h"
 #include "rdm/responder/include/utils.h"
+#include "rdm/include/driver.h"
 #include "rdm/uid.h"
 
 static size_t rdm_format_encode(void *restrict dest,

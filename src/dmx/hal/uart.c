@@ -3,6 +3,7 @@
 #include "dmx/include/struct.h"
 #include "driver/uart.h"
 #include "esp_dmx.h"
+#include "rdm/include/driver.h"
 #include "rdm/uid.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5

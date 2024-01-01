@@ -6,6 +6,7 @@
 #include "dmx/include/struct.h"
 #include "endian.h"
 #include "rdm/responder/include/utils.h"
+#include "rdm/include/driver.h"
 
 static size_t rdm_rhd_get_supported_parameters(
     dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,

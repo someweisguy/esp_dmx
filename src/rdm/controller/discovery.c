@@ -3,6 +3,7 @@
 #include "dmx/include/driver.h"
 #include "dmx/include/struct.h"
 #include "include/utils.h"
+#include "rdm/include/driver.h"
 #include "rdm/uid.h"
 
 static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,

@@ -5,6 +5,8 @@ idf_component_register(
        "src/dmx/hal/gpio.c" "src/dmx/driver.c" "src/dmx/io.c" "src/dmx/device.c"
        "src/dmx/parameter.c" "src/dmx/sniffer.c" 
 
+       "src/rdm/driver.c"
+       
        # RDM Controller
        "src/rdm/controller/discovery.c" "src/rdm/controller/product_info.c"
        "src/rdm/controller/device_control.c" "src/rdm/controller/dmx_setup.c"

@@ -5,9 +5,9 @@
  */
 #pragma once
 
+#include "rdm/include/driver.h"
 #include "dmx/include/parameter.h"
 #include "dmx/types.h"
-#include "rdm/responder.h"
 #include "rdm/types.h"
 
 #ifdef __cplusplus
