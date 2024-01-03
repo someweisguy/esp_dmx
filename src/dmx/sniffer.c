@@ -22,9 +22,7 @@ bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
   // Add the GPIO interrupt handler
-  driver->hal.gpio = dmx_gpio_init(dmx_num, driver, intr_pin);
-
-  return true;
+  return dmx_gpio_init(dmx_num, driver, intr_pin);
 }
 
 bool dmx_sniffer_disable(dmx_port_t dmx_num) {
@@ -34,7 +32,7 @@ bool dmx_sniffer_disable(dmx_port_t dmx_num) {
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Disable the interrupt and remove the interrupt handler
-  dmx_gpio_deinit(driver->hal.gpio);
+  dmx_gpio_deinit(dmx_num);
 
   // Deallocate the sniffer queue
   vQueueDelete(driver->sniffer.metadata_queue);

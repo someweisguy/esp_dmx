@@ -48,15 +48,14 @@ typedef struct dmx_gpio_t *dmx_gpio_handle_t;
  * @param sniffer_pin The sniffer pin GPIO number.
  * @return A handle to the DMX GPIO or null on failure.
  */
-dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_context,
-                                int sniffer_pin);
+bool dmx_gpio_init(dmx_port_t dmx_num, void *isr_context, int sniffer_pin);
 
 /**
  * @brief De-initializes the GPIO for the DMX sniffer.
  *
  * @param gpio A handle to the DMX GPIO.
  */
-void dmx_gpio_deinit(dmx_gpio_handle_t gpio);
+void dmx_gpio_deinit(dmx_port_t dmx_num);
 
 /**
  * @brief Reads the level of the DMX sniffer GPIO.
@@ -64,7 +63,7 @@ void dmx_gpio_deinit(dmx_gpio_handle_t gpio);
  * @param gpio A handle to the DMX GPIO.
  * @return The level of the DMX GPIO.
  */
-int dmx_gpio_read(dmx_gpio_handle_t gpio);
+int dmx_gpio_read(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
 }

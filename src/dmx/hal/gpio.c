@@ -19,7 +19,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   int task_awoken = false;
 
-  if (dmx_gpio_read(driver->hal.gpio)) {
+  if (dmx_gpio_read(driver->dmx_num)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
@@ -52,21 +52,22 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
-dmx_gpio_handle_t dmx_gpio_init(dmx_port_t dmx_num, void *isr_context,
-                                int sniffer_pin) {
+bool dmx_gpio_init(dmx_port_t dmx_num, void *isr_context, int sniffer_pin) {
   dmx_gpio_handle_t gpio = &dmx_gpio_context[dmx_num];
   gpio_set_intr_type(sniffer_pin, GPIO_INTR_ANYEDGE);
   gpio_isr_handler_add(sniffer_pin, dmx_gpio_isr, isr_context);
   gpio->sniffer_pin = sniffer_pin;
-  return gpio;
+  return true;
 }
 
-void dmx_gpio_deinit(dmx_gpio_handle_t gpio) {
+void dmx_gpio_deinit(dmx_port_t dmx_num) {
+  struct dmx_gpio_t *gpio = &dmx_gpio_context[dmx_num];
   gpio_set_intr_type(gpio->sniffer_pin, GPIO_INTR_DISABLE);
   gpio_isr_handler_remove(gpio->sniffer_pin);
   gpio->sniffer_pin = -1;
 }
 
-int DMX_ISR_ATTR dmx_gpio_read(dmx_gpio_handle_t gpio) {
+int DMX_ISR_ATTR dmx_gpio_read(dmx_port_t dmx_num) {
+  struct dmx_gpio_t *gpio = &dmx_gpio_context[dmx_num];
   return gpio_ll_get_level(GPIO_LL_GET_HW(GPIO_PORT_0), gpio->sniffer_pin);
 }
