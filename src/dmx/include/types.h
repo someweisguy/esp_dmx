@@ -67,6 +67,7 @@ enum {
 #if SOC_UART_NUM > 2
   DMX_NUM_2, /** @brief DMX port 2.*/
 #endif
+  DMX_NUM_MAX /** @brief DMX port max. Used for error checking.*/
 };
 
 /** @brief DMX pin constants.*/
