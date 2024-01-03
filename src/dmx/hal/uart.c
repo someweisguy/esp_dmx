@@ -180,10 +180,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
-bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context,
-                                int isr_flags) {
+bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
-  
 
   periph_module_enable(uart_periph_signal[dmx_num].module);
   if (dmx_num != 0) {  // Default UART port for console

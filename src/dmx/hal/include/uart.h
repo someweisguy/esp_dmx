@@ -32,18 +32,12 @@ enum dmx_interrupt_mask_t {
 };
 
 /**
- * @brief A handle to the DMX UART.
- */
-typedef struct dmx_uart_t *dmx_uart_handle_t;
-
-/**
  * @brief Initializes the UART for DMX.
  *
  * @param[inout] isr_context Context to be used in the DMX UART ISR.
  * @return A handle to the DMX UART or NULL on failure.
  */
-bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context,
-                                int isr_flags);
+bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags);
 
 /**
  * @brief De-initializes the UART.
@@ -179,8 +173,7 @@ uint32_t dmx_uart_get_txfifo_len(dmx_port_t dmx_num);
  * @param[inout] size The number of bytes to write. Is set to the number of
  * bytes written.
  */
-void dmx_uart_write_txfifo(dmx_port_t dmx_num, const void *buf,
-                           size_t *size);
+void dmx_uart_write_txfifo(dmx_port_t dmx_num, const void *buf, size_t *size);
 
 /**
  * @brief Resets the UART TX FIFO.

@@ -57,7 +57,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 }
 
 bool dmx_timer_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
-  dmx_timer_handle_t timer = &dmx_timer_context[dmx_num];
+  struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
 
   // Initialize hardware timer
 #if ESP_IDF_VERSION_MAJOR >= 5

@@ -40,11 +40,6 @@ enum rdm_packet_spacing_t {
 };
 
 /**
- * @brief A handle to the DMX timer.
- */
-typedef struct dmx_timer_t *dmx_timer_handle_t;
-
-/**
  * @brief Initializes the DMX timer.
  *
  * @param dmx_num The DMX port number.
@@ -52,8 +47,7 @@ typedef struct dmx_timer_t *dmx_timer_handle_t;
  * @param isr_flags Interrupt flags to be used for the DMX timer ISR.
  * @return A handle to the DMX timer or NULL on failure.
  */
-bool dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
-                                  int isr_flags);
+bool dmx_timer_init(dmx_port_t dmx_num, void *isr_context, int isr_flags);
 
 /**
  * @brief De-initializes the DMX timer.
@@ -85,8 +79,7 @@ void dmx_timer_set_counter(dmx_port_t dmx_num, uint64_t counter);
  * @param auto_reload Set to true to automatically reload the alarm when the
  * alarm is triggered.
  */
-void dmx_timer_set_alarm(dmx_port_t dmx_num, uint64_t alarm,
-                         bool auto_reload);
+void dmx_timer_set_alarm(dmx_port_t dmx_num, uint64_t alarm, bool auto_reload);
 
 /**
  * @brief Starts the DMX timer.

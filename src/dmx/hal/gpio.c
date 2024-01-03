@@ -53,7 +53,7 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 }
 
 bool dmx_gpio_init(dmx_port_t dmx_num, void *isr_context, int sniffer_pin) {
-  dmx_gpio_handle_t gpio = &dmx_gpio_context[dmx_num];
+  struct dmx_gpio_t *gpio = &dmx_gpio_context[dmx_num];
   gpio_set_intr_type(sniffer_pin, GPIO_INTR_ANYEDGE);
   gpio_isr_handler_add(sniffer_pin, dmx_gpio_isr, isr_context);
   gpio->sniffer_pin = sniffer_pin;

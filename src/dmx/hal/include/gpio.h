@@ -36,11 +36,6 @@ extern "C" {
 #define dmx_sniffer_pin_is_valid(sniffer) (GPIO_IS_VALID_GPIO(sniffer))
 
 /**
- * @brief A handle to the DMX GPIO.
- */
-typedef struct dmx_gpio_t *dmx_gpio_handle_t;
-
-/**
  * @brief Initializes the GPIO for the DMX sniffer.
  *
  * @param dmx_num The DMX port number.
