@@ -287,7 +287,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Get parameter definition
   size_t resp;  // Size of the response packet
   const rdm_parameter_definition_t *def =
-      dmx_parameter_rdm_lookup(dmx_num, header.sub_device, header.pid);
+      rdm_parameter_lookup(dmx_num, header.sub_device, header.pid);
   if (def == NULL) {
     // Unknown PID
     resp = rdm_write_nack_reason(dmx_num, &header, RDM_NR_UNKNOWN_PID);
@@ -369,7 +369,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Set the response header to NULL if an RDM header can't be read
     memset(&response_header, 0, sizeof(response_header));
   }
-  dmx_parameter_rdm_handle_callback(dmx_num, header.sub_device, header.pid,
+  rdm_parameter_handle_callback(dmx_num, header.sub_device, header.pid,
                                     &header, &response_header);
 
   // Give the mutex back and return
