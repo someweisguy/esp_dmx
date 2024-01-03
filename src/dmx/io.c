@@ -1,6 +1,9 @@
 #include <string.h>
 
+#include "dmx/hal/include/gpio.h"
 #include "dmx/hal/include/nvs.h"
+#include "dmx/hal/include/timer.h"
+#include "dmx/hal/include/uart.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/parameter.h"
 #include "dmx/include/service.h"

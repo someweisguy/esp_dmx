@@ -1,5 +1,6 @@
 #include "include/uart.h"
 
+#include "dmx/hal/include/timer.h"
 #include "dmx/include/service.h"
 #include "driver/uart.h"
 #include "rdm/include/driver.h"

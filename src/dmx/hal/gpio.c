@@ -1,5 +1,6 @@
 #include "include/gpio.h"
 
+#include "dmx/hal/include/timer.h"
 #include "dmx/hal/include/uart.h"
 #include "dmx/include/service.h"
 #include "hal/gpio_hal.h"

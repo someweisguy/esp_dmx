@@ -8,9 +8,6 @@
 
 #include <stdint.h>
 
-#include "dmx/hal/include/gpio.h"
-#include "dmx/hal/include/timer.h"
-#include "dmx/hal/include/uart.h"
 #include "dmx/include/parameter.h"
 #include "dmx/include/types.h"
 #include "esp_check.h"
