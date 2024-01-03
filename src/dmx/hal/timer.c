@@ -23,12 +23,11 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
   const dmx_port_t dmx_num = driver->dmx_num;
-  dmx_uart_handle_t uart = driver->hal.uart;
   int task_awoken = false;
 
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
     if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
-      dmx_uart_invert_tx(uart, 0);
+      dmx_uart_invert_tx(dmx_num, 0);
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
 
       // Reset the alarm for the end of the DMX mark-after-break
@@ -36,14 +35,14 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
     } else {
       // Write data to the UART
       size_t write_size = driver->dmx.tx_size;
-      dmx_uart_write_txfifo(uart, driver->dmx.data, &write_size);
+      dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
       driver->dmx.head += write_size;
 
       // Pause MAB timer alarm
       dmx_timer_stop(dmx_num);
 
       // Enable DMX write interrupts
-      dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
+      dmx_uart_enable_interrupt(dmx_num, DMX_INTR_TX_ALL);
     }
   } else if (driver->task_waiting) {
     // Notify the task

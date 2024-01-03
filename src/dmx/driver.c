@@ -188,10 +188,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   rdm_register_parameter_description(dmx_num, NULL, NULL);
 
   // Initialize the UART peripheral
-  driver->hal.uart = dmx_uart_init(dmx_num, driver, config->interrupt_flags);
-  if (driver->hal.uart == NULL) {
+  if (!dmx_uart_init(dmx_num, driver, config->interrupt_flags)) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(driver->hal.uart != NULL, false, "UART init error");
+    DMX_CHECK(false, false, "UART init error");
   }
 
   // Initialize the timer peripheral
@@ -203,8 +202,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   // Enable reading on the DMX port
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-  dmx_uart_enable_interrupt(driver->hal.uart, DMX_INTR_RX_ALL);
-  dmx_uart_set_rts(driver->hal.uart, 1);
+  dmx_uart_enable_interrupt(dmx_num, DMX_INTR_RX_ALL);
+  dmx_uart_set_rts(dmx_num, 1);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Give the mutex and return
@@ -233,7 +232,7 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   dmx_timer_deinit(dmx_num);
 
   // Disable UART module
-  dmx_uart_deinit(driver->hal.uart);
+  dmx_uart_deinit(dmx_num);
 
   // Free driver
   heap_caps_free(driver);
@@ -258,8 +257,8 @@ bool dmx_driver_disable(dmx_port_t dmx_num) {
   bool ret = false;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (!(driver->flags & DMX_FLAGS_DRIVER_IS_SENDING)) {
-    dmx_uart_disable_interrupt(driver->hal.uart, DMX_INTR_RX_ALL);
-    dmx_uart_clear_interrupt(driver->hal.uart, DMX_INTR_RX_ALL);
+    dmx_uart_disable_interrupt(dmx_num, DMX_INTR_RX_ALL);
+    dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
     driver->flags &= ~DMX_FLAGS_DRIVER_IS_ENABLED;
     ret = true;
   }
@@ -281,10 +280,10 @@ bool dmx_driver_enable(dmx_port_t dmx_num) {
   driver->dmx.head = -1;  // Wait for DMX break before reading data
   driver->flags |= (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
   driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_HAS_DATA);
-  dmx_uart_rxfifo_reset(driver->hal.uart);
-  dmx_uart_txfifo_reset(driver->hal.uart);
-  dmx_uart_enable_interrupt(driver->hal.uart, DMX_INTR_RX_ALL);
-  dmx_uart_clear_interrupt(driver->hal.uart, DMX_INTR_RX_ALL);
+  dmx_uart_rxfifo_reset(dmx_num);
+  dmx_uart_txfifo_reset(dmx_num);
+  dmx_uart_enable_interrupt(dmx_num, DMX_INTR_RX_ALL);
+  dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return true;
@@ -297,7 +296,7 @@ bool dmx_set_pin(dmx_port_t dmx_num, int tx_pin, int rx_pin, int rts_pin) {
   DMX_CHECK(dmx_rts_pin_is_valid(rts_pin), false, "rts_pin error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
-  return dmx_uart_set_pin(dmx_driver[dmx_num]->hal.uart, tx_pin, rx_pin,
+  return dmx_uart_set_pin(dmx_num, tx_pin, rx_pin,
                           rts_pin);
 }
 
@@ -323,7 +322,7 @@ uint32_t dmx_get_baud_rate(dmx_port_t dmx_num) {
 
   uint32_t baud_rate;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  baud_rate = dmx_uart_get_baud_rate(dmx_driver[dmx_num]->hal.uart);
+  baud_rate = dmx_uart_get_baud_rate(dmx_num);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return baud_rate;
@@ -340,7 +339,7 @@ uint32_t dmx_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   }
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  dmx_uart_set_baud_rate(dmx_driver[dmx_num]->hal.uart, baud_rate);
+  dmx_uart_set_baud_rate(dmx_num, baud_rate);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return baud_rate;

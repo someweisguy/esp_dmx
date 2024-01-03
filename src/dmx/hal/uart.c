@@ -33,11 +33,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
-  dmx_uart_handle_t uart = driver->hal.uart;
   int task_awoken = false;
 
   while (true) {
-    const uint32_t intr_flags = dmx_uart_get_interrupt_status(uart);
+    const uint32_t intr_flags = dmx_uart_get_interrupt_status(dmx_num);
     if (intr_flags == 0) break;
 
     // DMX Receive ####################################################
@@ -52,7 +51,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       if (driver->dmx.head >= 0 && driver->dmx.head < DMX_PACKET_SIZE_MAX) {
         int read_len = DMX_PACKET_SIZE_MAX - driver->dmx.head - is_in_break;
-        dmx_uart_read_rxfifo(uart, &driver->dmx.data[driver->dmx.head],
+        dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[driver->dmx.head],
                              &read_len);
         driver->dmx.head += read_len;
         if (driver->dmx.head > driver->dmx.rx_size) {
@@ -61,9 +60,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       } else {
         if (driver->dmx.head > 0) {
           // Record the number of slots received for error reporting
-          driver->dmx.head += dmx_uart_get_rxfifo_len(uart);
+          driver->dmx.head += dmx_uart_get_rxfifo_len(dmx_num);
         }
-        dmx_uart_rxfifo_reset(uart);
+        dmx_uart_rxfifo_reset(dmx_num);
       }
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
 
@@ -92,7 +91,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
       const int dmx_flags = driver->flags;
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      dmx_uart_clear_interrupt(uart, DMX_INTR_RX_ALL);
+      dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
 
       // Don't process data if end-of-packet condition already reached
       if (dmx_flags & DMX_FLAGS_DRIVER_IS_IDLE) {
@@ -129,19 +128,19 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // Write data to the UART and clear the interrupt
       size_t write_size = driver->dmx.tx_size - driver->dmx.head;
-      dmx_uart_write_txfifo(uart, &driver->dmx.data[driver->dmx.head],
+      dmx_uart_write_txfifo(dmx_num, &driver->dmx.data[driver->dmx.head],
                             &write_size);
       driver->dmx.head += write_size;
-      dmx_uart_clear_interrupt(uart, DMX_INTR_TX_DATA);
+      dmx_uart_clear_interrupt(dmx_num, DMX_INTR_TX_DATA);
 
       // Allow FIFO to empty when done writing data
       if (driver->dmx.head == driver->dmx.tx_size) {
-        dmx_uart_disable_interrupt(uart, DMX_INTR_TX_DATA);
+        dmx_uart_disable_interrupt(dmx_num, DMX_INTR_TX_DATA);
       }
     } else if (intr_flags & DMX_INTR_TX_DONE) {
       // Disable write interrupts and clear the interrupt
-      dmx_uart_disable_interrupt(uart, DMX_INTR_TX_ALL);
-      dmx_uart_clear_interrupt(uart, DMX_INTR_TX_DONE);
+      dmx_uart_disable_interrupt(dmx_num, DMX_INTR_TX_ALL);
+      dmx_uart_clear_interrupt(dmx_num, DMX_INTR_TX_DONE);
 
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -172,8 +171,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Flip the DMX bus so the response may be read
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IDLE | DMX_FLAGS_DRIVER_HAS_DATA);
-      dmx_uart_rxfifo_reset(uart);
-      dmx_uart_set_rts(uart, 1);
+      dmx_uart_rxfifo_reset(dmx_num);
+      dmx_uart_set_rts(dmx_num, 1);
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
     }
   }
@@ -181,9 +180,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   if (task_awoken) portYIELD_FROM_ISR();
 }
 
-dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_context,
+bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context,
                                 int isr_flags) {
-  dmx_uart_handle_t uart = &dmx_uart_context[dmx_num];
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
+  
 
   periph_module_enable(uart_periph_signal[dmx_num].module);
   if (dmx_num != 0) {  // Default UART port for console
@@ -215,10 +215,10 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_context,
   uart_ll_set_txfifo_empty_thr(uart->dev, DMX_UART_EMPTY_DEFAULT);
   uart_ll_set_rxfifo_full_thr(uart->dev, DMX_UART_FULL_DEFAULT);
 
-  dmx_uart_rxfifo_reset(uart);
-  dmx_uart_txfifo_reset(uart);
-  dmx_uart_disable_interrupt(uart, UART_LL_INTR_MASK);
-  dmx_uart_clear_interrupt(uart, UART_LL_INTR_MASK);
+  dmx_uart_rxfifo_reset(dmx_num);
+  dmx_uart_txfifo_reset(dmx_num);
+  dmx_uart_disable_interrupt(dmx_num, UART_LL_INTR_MASK);
+  dmx_uart_clear_interrupt(dmx_num, UART_LL_INTR_MASK);
 
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, isr_flags, dmx_uart_isr,
                  isr_context, &uart->isr_handle);
@@ -226,18 +226,21 @@ dmx_uart_handle_t dmx_uart_init(dmx_port_t dmx_num, void *isr_context,
   return uart;
 }
 
-void dmx_uart_deinit(dmx_uart_handle_t uart) {
+void dmx_uart_deinit(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   if (uart->num != 0) {  // Default UART port for console
     periph_module_disable(uart_periph_signal[uart->num].module);
   }
 }
 
-bool dmx_uart_set_pin(dmx_uart_handle_t uart, int tx, int rx, int rts) {
+bool dmx_uart_set_pin(dmx_port_t dmx_num, int tx, int rx, int rts) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   esp_err_t err = uart_set_pin(uart->num, tx, rx, rts, -1);
   return (err == ESP_OK);
 }
 
-uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart) {
+uint32_t dmx_uart_get_baud_rate(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
 #if ESP_IDF_VERSION_MAJOR >= 5
   uint32_t sclk_freq;
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
@@ -247,7 +250,8 @@ uint32_t dmx_uart_get_baud_rate(dmx_uart_handle_t uart) {
 #endif
 }
 
-void dmx_uart_set_baud_rate(dmx_uart_handle_t uart, uint32_t baud_rate) {
+void dmx_uart_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
 #if ESP_IDF_VERSION_MAJOR >= 5
   uint32_t sclk_freq;
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
@@ -257,7 +261,8 @@ void dmx_uart_set_baud_rate(dmx_uart_handle_t uart, uint32_t baud_rate) {
 #endif
 }
 
-void DMX_ISR_ATTR dmx_uart_invert_tx(dmx_uart_handle_t uart, uint32_t invert) {
+void DMX_ISR_ATTR dmx_uart_invert_tx(dmx_port_t dmx_num, uint32_t invert) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
 #if CONFIG_IDF_TARGET_ESP32C6
   uart->dev->conf0_sync.txd_inv = invert;
   uart_ll_update(uart->dev);
@@ -266,7 +271,8 @@ void DMX_ISR_ATTR dmx_uart_invert_tx(dmx_uart_handle_t uart, uint32_t invert) {
 #endif
 }
 
-int dmx_uart_get_rts(dmx_uart_handle_t uart) {
+int dmx_uart_get_rts(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
 #if CONFIG_IDF_TARGET_ESP32C6
   return uart->dev->conf0_sync.sw_rts;
 #else
@@ -274,28 +280,34 @@ int dmx_uart_get_rts(dmx_uart_handle_t uart) {
 #endif
 }
 
-int DMX_ISR_ATTR dmx_uart_get_interrupt_status(dmx_uart_handle_t uart) {
+int DMX_ISR_ATTR dmx_uart_get_interrupt_status(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   return uart_ll_get_intsts_mask(uart->dev);
 }
 
-void DMX_ISR_ATTR dmx_uart_enable_interrupt(dmx_uart_handle_t uart, int mask) {
+void DMX_ISR_ATTR dmx_uart_enable_interrupt(dmx_port_t dmx_num, int mask) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   uart_ll_ena_intr_mask(uart->dev, mask);
 }
 
-void DMX_ISR_ATTR dmx_uart_disable_interrupt(dmx_uart_handle_t uart, int mask) {
+void DMX_ISR_ATTR dmx_uart_disable_interrupt(dmx_port_t dmx_num, int mask) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   uart_ll_disable_intr_mask(uart->dev, mask);
 }
 
-void DMX_ISR_ATTR dmx_uart_clear_interrupt(dmx_uart_handle_t uart, int mask) {
+void DMX_ISR_ATTR dmx_uart_clear_interrupt(dmx_port_t dmx_num, int mask) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   uart_ll_clr_intsts_mask(uart->dev, mask);
 }
 
-uint32_t DMX_ISR_ATTR dmx_uart_get_rxfifo_len(dmx_uart_handle_t uart) {
+uint32_t DMX_ISR_ATTR dmx_uart_get_rxfifo_len(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   return uart_ll_get_rxfifo_len(uart->dev);
 }
 
-void DMX_ISR_ATTR dmx_uart_read_rxfifo(dmx_uart_handle_t uart, uint8_t *buf,
+void DMX_ISR_ATTR dmx_uart_read_rxfifo(dmx_port_t dmx_num, uint8_t *buf,
                                        int *size) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   const size_t rxfifo_len = uart_ll_get_rxfifo_len(uart->dev);
   if (*size > rxfifo_len) {
     *size = rxfifo_len;
@@ -303,25 +315,30 @@ void DMX_ISR_ATTR dmx_uart_read_rxfifo(dmx_uart_handle_t uart, uint8_t *buf,
   uart_ll_read_rxfifo(uart->dev, buf, *size);
 }
 
-void DMX_ISR_ATTR dmx_uart_set_rts(dmx_uart_handle_t uart, int set) {
+void DMX_ISR_ATTR dmx_uart_set_rts(dmx_port_t dmx_num, int set) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   uart_ll_set_rts_active_level(uart->dev, set);
 }
 
-void DMX_ISR_ATTR dmx_uart_rxfifo_reset(dmx_uart_handle_t uart) {
+void DMX_ISR_ATTR dmx_uart_rxfifo_reset(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   uart_ll_rxfifo_rst(uart->dev);
 }
 
-uint32_t DMX_ISR_ATTR dmx_uart_get_txfifo_len(dmx_uart_handle_t uart) {
+uint32_t DMX_ISR_ATTR dmx_uart_get_txfifo_len(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   return uart_ll_get_txfifo_len(uart->dev);
 }
 
-void DMX_ISR_ATTR dmx_uart_write_txfifo(dmx_uart_handle_t uart, const void *buf,
+void DMX_ISR_ATTR dmx_uart_write_txfifo(dmx_port_t dmx_num, const void *buf,
                                         size_t *size) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   const size_t txfifo_len = uart_ll_get_txfifo_len(uart->dev);
   if (*size > txfifo_len) *size = txfifo_len;
   uart_ll_write_txfifo(uart->dev, (uint8_t *)buf, *size);
 }
 
-void DMX_ISR_ATTR dmx_uart_txfifo_reset(dmx_uart_handle_t uart) {
+void DMX_ISR_ATTR dmx_uart_txfifo_reset(dmx_port_t dmx_num) {
+  struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   uart_ll_txfifo_rst(uart->dev);
 }

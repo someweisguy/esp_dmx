@@ -115,11 +115,6 @@ typedef struct dmx_driver_t {
   dmx_spinlock_t spinlock;  // The spinlock used for critical sections.
 #endif
 
-  // Driver hardware handles
-  struct dmx_driver_hal_t {
-    dmx_uart_handle_t uart;    // The handle to the UART HAL.
-  } hal;
-
   // Data buffer
   struct dmx_driver_dmx_t {
     int16_t head;     // The index of the slot being transmitted or received.

@@ -80,8 +80,8 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   }
 
   // Flip the DMX bus to write mode
-  if (dmx_uart_get_rts(driver->hal.uart) == 1) {
-    dmx_uart_set_rts(driver->hal.uart, 0);
+  if (dmx_uart_get_rts(dmx_num) == 1) {
+    dmx_uart_set_rts(dmx_num, 0);
   }
 
   // Copy data from the source to the driver buffer asynchronously
@@ -143,12 +143,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   }
 
   // Set the RTS pin to enable reading from the DMX bus
-  if (dmx_uart_get_rts(driver->hal.uart) == 0) {
+  if (dmx_uart_get_rts(dmx_num) == 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     driver->dmx.head = -1;  // Wait for DMX break before reading data
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-    dmx_uart_set_rts(driver->hal.uart, 1);
+    dmx_uart_set_rts(dmx_num, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
@@ -355,7 +355,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->dmx.head = -1;  // Wait for DMX break before reading data
-      dmx_uart_set_rts(driver->hal.uart, 1);
+      dmx_uart_set_rts(dmx_num, 1);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
   }
@@ -446,8 +446,8 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
 
   // Turn the DMX bus around and get the send size
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (dmx_uart_get_rts(driver->hal.uart) == 1) {
-    dmx_uart_set_rts(driver->hal.uart, 0);
+  if (dmx_uart_get_rts(dmx_num) == 1) {
+    dmx_uart_set_rts(dmx_num, 0);
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
@@ -480,11 +480,11 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
 
     size_t write_size = driver->dmx.tx_size;
-    dmx_uart_write_txfifo(driver->hal.uart, driver->dmx.data, &write_size);
+    dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
     driver->dmx.head = write_size;
 
     // Enable DMX write interrupts
-    dmx_uart_enable_interrupt(driver->hal.uart, DMX_INTR_TX_ALL);
+    dmx_uart_enable_interrupt(dmx_num, DMX_INTR_TX_ALL);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     // Send the packet by starting the DMX break
@@ -496,7 +496,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     dmx_timer_set_alarm(dmx_num, driver->break_len, true);
     dmx_timer_start(dmx_num);
 
-    dmx_uart_invert_tx(driver->hal.uart, 1);
+    dmx_uart_invert_tx(dmx_num, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
