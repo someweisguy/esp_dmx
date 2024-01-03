@@ -38,30 +38,6 @@ extern "C" {
     ESP_LOGW(TAG, format, ##__VA_ARGS__); \
   } while (0);
 
-#ifdef CONFIG_RDM_DEVICE_UID_MAN_ID
-/** @brief This is the RDM Manufacturer ID used with this library. It may be set
- * using the Kconfig file. The default value is 0x05e0.*/
-#define RDM_UID_MANUFACTURER_ID (CONFIG_RDM_DEVICE_UID_MAN_ID)
-#else
-/** @brief This is the RDM Manufacturer ID that was registered with ESTA for use
- * with this software. Any device that uses this ID is associated with this
- * library. Users of this library are welcome to use this manufacturer ID (as
- * long as it is used responsibly) or may choose to register their own
- * manufacturer ID.*/
-#define RDM_UID_MANUFACTURER_ID (0x05e0)
-#endif
-
-#ifdef CONFIG_RDM_DEVICE_UID_DEV_ID
-/** @brief This is the RDM Device ID used with this library. It may be set
- * using the Kconfig file. The default value is a function of this device's MAC
- * address.*/
-#define RDM_UID_DEVICE_ID (CONFIG_RDM_DEVICE_UID_DEV_ID)
-#else
-/** @brief This is the RDM Device ID used with this library. The default value
- * is a function of this device's MAC address.*/
-#define RDM_UID_DEVICE_ID (0xffffffff)
-#endif
-
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
 /** @brief This macro sets certain functions used within DMX interrupt handlers
  * to be placed within IRAM. The current hardware configuration of this device

@@ -15,6 +15,30 @@
 #include "esp_mac.h"  // TODO: Make this hardware agnostic
 #endif
 
+#ifdef CONFIG_RDM_DEVICE_UID_MAN_ID
+/** @brief This is the RDM Manufacturer ID used with this library. It may be set
+ * using the Kconfig file. The default value is 0x05e0.*/
+#define RDM_UID_MANUFACTURER_ID (CONFIG_RDM_DEVICE_UID_MAN_ID)
+#else
+/** @brief This is the RDM Manufacturer ID that was registered with ESTA for use
+ * with this software. Any device that uses this ID is associated with this
+ * library. Users of this library are welcome to use this manufacturer ID (as
+ * long as it is used responsibly) or may choose to register their own
+ * manufacturer ID.*/
+#define RDM_UID_MANUFACTURER_ID (0x05e0)
+#endif
+
+#ifdef CONFIG_RDM_DEVICE_UID_DEV_ID
+/** @brief This is the RDM Device ID used with this library. It may be set
+ * using the Kconfig file. The default value is a function of this device's MAC
+ * address.*/
+#define RDM_UID_DEVICE_ID (CONFIG_RDM_DEVICE_UID_DEV_ID)
+#else
+/** @brief This is the RDM Device ID used with this library. The default value
+ * is a function of this device's MAC address.*/
+#define RDM_UID_DEVICE_ID (0xffffffff)
+#endif
+
 const char *TAG = "dmx";  // The log tagline for the library.
 
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};  // The DMX drivers for each port.
