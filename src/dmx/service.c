@@ -9,7 +9,7 @@ dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_device_t *device = &dmx_driver[dmx_num]->device.root;
-  while (device->num != sub_device) {
+  while (device->num != device_num) {
     device = device->next;
     if (device == NULL) {
       return NULL;  // Sub-device does not exist
