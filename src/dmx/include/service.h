@@ -149,9 +149,15 @@ typedef struct dmx_driver_t {
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
+// TODO:
+// dmx_driver_add_device(dmx_num, device_num);
+
 // TODO: docs
 dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
                                     dmx_device_num_t device_num);
+
+// TODO:
+// dmx_driver_add_parameter(dmx_num, device_num, pid, type, *data, size);
 
 // TODO: docs
 dmx_parameter_t *dmx_driver_get_parameter(dmx_port_t dmx_num,
