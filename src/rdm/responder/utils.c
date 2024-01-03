@@ -170,12 +170,10 @@ bool rdm_callback_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 bool rdm_callback_handle(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                         rdm_pid_t pid, rdm_header_t *request_header,
-                         rdm_header_t *response_header) {
+                         rdm_pid_t pid, rdm_header_t *request_header) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(pid > 0);
   assert(request_header != NULL);
-  assert(response_header != NULL);
   assert(dmx_driver_is_installed(dmx_num));
 
   // Search for a dictionary entry for the parameter
@@ -185,7 +183,12 @@ bool rdm_callback_handle(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   if (entry->callback != NULL) {
-    entry->callback(dmx_num, request_header, response_header, entry->context);
+    rdm_header_t response_header;
+    if (!rdm_read_header(dmx_num, &response_header)) {
+      // Set the response header to NULL if an RDM header can't be read
+      memset(&response_header, 0, sizeof(response_header));
+    }
+    entry->callback(dmx_num, request_header, &response_header, entry->context);
   }
 
   return true;

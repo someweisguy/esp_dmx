@@ -133,19 +133,22 @@ bool rdm_callback_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                       rdm_pid_t pid, rdm_callback_t callback, void *context);
 
 /**
- * @brief Handles the callback for the desired parameter, if it exists.
+ * @brief Handles the callback for the desired parameter, if it exists. The
+ * callback is given passed the request_header argument, which points to the
+ * header of the RDM request. Then the current RDM header is read from the DMX
+ * data buffer and passed to the callback as the response header. The callback
+ * is also passed a pointer to a user context which is declared in
+ * rdm_callback_set().
  *
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device number.
  * @param pid The parameter ID of the desired parameter.
  * @param[inout] request_header A pointer to the header of the RDM request.
- * @param[inout] response_header A pointer to the header of the RDM response.
  * @return true if the parameter exists.
  * @return false if the parameter does not exist.
  */
 bool rdm_callback_handle(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                         rdm_pid_t pid, rdm_header_t *request_header,
-                         rdm_header_t *response_header);
+                         rdm_pid_t pid, rdm_header_t *request_header);
 
 #ifdef __cplusplus
 }
