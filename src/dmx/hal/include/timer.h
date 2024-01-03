@@ -52,7 +52,7 @@ typedef struct dmx_timer_t *dmx_timer_handle_t;
  * @param isr_flags Interrupt flags to be used for the DMX timer ISR.
  * @return A handle to the DMX timer or NULL on failure.
  */
-dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
+bool dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
                                   int isr_flags);
 
 /**
@@ -60,14 +60,14 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
  *
  * @param timer A handle to the DMX timer.
  */
-void dmx_timer_deinit(dmx_timer_handle_t timer);
+void dmx_timer_deinit(dmx_port_t dmx_num);
 
 /**
  * @brief Pauses the DMX timer.
  *
  * @param timer A handle to the DMX timer.
  */
-void dmx_timer_stop(dmx_timer_handle_t timer);
+void dmx_timer_stop(dmx_port_t dmx_num);
 
 /**
  * @brief Sets the counter value for the DMX timer.
@@ -75,7 +75,7 @@ void dmx_timer_stop(dmx_timer_handle_t timer);
  * @param timer A handle to the DMX timer.
  * @param counter The counter value to which to set the DMX timer.
  */
-void dmx_timer_set_counter(dmx_timer_handle_t timer, uint64_t counter);
+void dmx_timer_set_counter(dmx_port_t dmx_num, uint64_t counter);
 
 /**
  * @brief Sets the alarm value for the DMX timer.
@@ -85,7 +85,7 @@ void dmx_timer_set_counter(dmx_timer_handle_t timer, uint64_t counter);
  * @param auto_reload Set to true to automatically reload the alarm when the
  * alarm is triggered.
  */
-void dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm,
+void dmx_timer_set_alarm(dmx_port_t dmx_num, uint64_t alarm,
                          bool auto_reload);
 
 /**
@@ -93,7 +93,7 @@ void dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm,
  *
  * @param timer A handle to the DMX timer.
  */
-void dmx_timer_start(dmx_timer_handle_t timer);
+void dmx_timer_start(dmx_port_t dmx_num);
 
 /**
  * @brief Gets the number of microseconds that have elapsed since boot.

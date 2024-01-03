@@ -22,8 +22,8 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
 #endif
     void *arg) {
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
+  const dmx_port_t dmx_num = driver->dmx_num;
   dmx_uart_handle_t uart = driver->hal.uart;
-  dmx_timer_handle_t timer = driver->hal.timer;
   int task_awoken = false;
 
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
@@ -32,7 +32,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
 
       // Reset the alarm for the end of the DMX mark-after-break
-      dmx_timer_set_alarm(timer, driver->mab_len, false);
+      dmx_timer_set_alarm(dmx_num, driver->mab_len, false);
     } else {
       // Write data to the UART
       size_t write_size = driver->dmx.tx_size;
@@ -40,7 +40,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->dmx.head += write_size;
 
       // Pause MAB timer alarm
-      dmx_timer_stop(timer);
+      dmx_timer_stop(dmx_num);
 
       // Enable DMX write interrupts
       dmx_uart_enable_interrupt(uart, DMX_INTR_TX_ALL);
@@ -51,14 +51,13 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
                        &task_awoken);  // TODO: return timeout?
 
     // Pause the receive timer alarm
-    dmx_timer_stop(timer);
+    dmx_timer_stop(dmx_num);
   }
 
   return task_awoken;
 }
 
-dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
-                                  int isr_flags) {
+bool dmx_timer_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   dmx_timer_handle_t timer = &dmx_timer_context[dmx_num];
 
   // Initialize hardware timer
@@ -99,10 +98,11 @@ dmx_timer_handle_t dmx_timer_init(dmx_port_t dmx_num, void *isr_context,
 #endif
   timer->is_running = false;
 
-  return timer;
+  return true;
 }
 
-void dmx_timer_deinit(dmx_timer_handle_t timer) {
+void dmx_timer_deinit(dmx_port_t dmx_num) {
+  struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_disable(timer->gptimer_handle);
   gptimer_del_timer(timer->gptimer_handle);
@@ -113,7 +113,8 @@ void dmx_timer_deinit(dmx_timer_handle_t timer) {
   timer->is_running = false;
 }
 
-void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_handle_t timer) {
+void DMX_ISR_ATTR dmx_timer_stop(dmx_port_t dmx_num) {
+  struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
   if (timer->is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
     gptimer_stop(timer->gptimer_handle);
@@ -125,8 +126,8 @@ void DMX_ISR_ATTR dmx_timer_stop(dmx_timer_handle_t timer) {
   }
 }
 
-void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer,
-                                        uint64_t counter) {
+void DMX_ISR_ATTR dmx_timer_set_counter(dmx_port_t dmx_num, uint64_t counter) {
+  struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_set_raw_count(timer->gptimer_handle, counter);
 #else
@@ -134,8 +135,9 @@ void DMX_ISR_ATTR dmx_timer_set_counter(dmx_timer_handle_t timer,
 #endif
 }
 
-void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm,
+void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_port_t dmx_num, uint64_t alarm,
                                       bool auto_reload) {
+  struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
 #if ESP_IDF_VERSION_MAJOR >= 5
   const gptimer_alarm_config_t alarm_config = {
       .alarm_count = alarm,
@@ -147,7 +149,8 @@ void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_timer_handle_t timer, uint64_t alarm,
 #endif
 }
 
-void DMX_ISR_ATTR dmx_timer_start(dmx_timer_handle_t timer) {
+void DMX_ISR_ATTR dmx_timer_start(dmx_port_t dmx_num) {
+  struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
 #if ESP_IDF_VERSION_MAJOR >= 5
   gptimer_start(timer->gptimer_handle);
 #else

@@ -191,17 +191,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
       // Set an early timeout with the hardware timer
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      dmx_timer_set_counter(driver->hal.timer, elapsed);
-      dmx_timer_set_alarm(driver->hal.timer,
+      dmx_timer_set_counter(dmx_num, elapsed);
+      dmx_timer_set_alarm(dmx_num,
                           RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE, false);
-      dmx_timer_start(driver->hal.timer);
+      dmx_timer_start(dmx_num);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
 
     // Wait for a task notification
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    dmx_timer_stop(driver->hal.timer);
+    dmx_timer_stop(dmx_num);
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     if (!notified) {
@@ -429,9 +429,9 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   elapsed = dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
   if (elapsed < timeout) {
-    dmx_timer_set_counter(driver->hal.timer, elapsed);
-    dmx_timer_set_alarm(driver->hal.timer, timeout, false);
-    dmx_timer_start(driver->hal.timer);
+    dmx_timer_set_counter(dmx_num, elapsed);
+    dmx_timer_set_alarm(dmx_num, timeout, false);
+    dmx_timer_start(dmx_num);
     driver->task_waiting = xTaskGetCurrentTaskHandle();
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -492,9 +492,9 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     driver->dmx.head = 0;
     driver->flags |=
         (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
-    dmx_timer_set_counter(driver->hal.timer, 0);
-    dmx_timer_set_alarm(driver->hal.timer, driver->break_len, true);
-    dmx_timer_start(driver->hal.timer);
+    dmx_timer_set_counter(dmx_num, 0);
+    dmx_timer_set_alarm(dmx_num, driver->break_len, true);
+    dmx_timer_start(dmx_num);
 
     dmx_uart_invert_tx(driver->hal.uart, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));

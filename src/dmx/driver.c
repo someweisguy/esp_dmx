@@ -195,10 +195,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
 
   // Initialize the timer peripheral
-  driver->hal.timer = dmx_timer_init(dmx_num, driver, config->interrupt_flags);
-  if (driver->hal.timer == NULL) {
+  if (!dmx_timer_init(dmx_num, driver, config->interrupt_flags)) {
     dmx_driver_delete(dmx_num);
-    DMX_CHECK(driver->hal.timer != NULL, false, "timer init error");
+    DMX_CHECK(false, false, "timer init error");
   }
 
   // Enable reading on the DMX port
@@ -231,7 +230,7 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   }
 
   // Free hardware timer ISR
-  dmx_timer_deinit(driver->hal.timer);
+  dmx_timer_deinit(dmx_num);
 
   // Disable UART module
   dmx_uart_deinit(driver->hal.uart);

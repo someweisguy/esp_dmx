@@ -118,8 +118,6 @@ typedef struct dmx_driver_t {
   // Driver hardware handles
   struct dmx_driver_hal_t {
     dmx_uart_handle_t uart;    // The handle to the UART HAL.
-    dmx_timer_handle_t timer;  // The handle to the hardware timer HAL.
-    dmx_gpio_handle_t gpio;    // The handle to the GPIO HAL.
   } hal;
 
   // Data buffer

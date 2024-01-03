@@ -34,7 +34,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   dmx_driver_t *const driver = arg;
   const dmx_port_t dmx_num = driver->dmx_num;
   dmx_uart_handle_t uart = driver->hal.uart;
-  dmx_timer_handle_t timer = driver->hal.timer;
   int task_awoken = false;
 
   while (true) {
@@ -45,7 +44,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     if (intr_flags & DMX_INTR_RX_ALL) {
       // Stop the DMX driver hardware timer if it is running
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      dmx_timer_stop(timer);
+      dmx_timer_stop(dmx_num);
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
 
       // Read data into the DMX buffer if there is enough space
