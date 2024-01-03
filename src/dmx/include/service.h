@@ -1,5 +1,5 @@
 /**
- * @file dmx/struct.h
+ * @file dmx/include/service.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
  * @brief This file contains the definition for the DMX driver. This file is not
  * considered part of the API and should not be included by the user.

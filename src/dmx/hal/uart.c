@@ -1,6 +1,6 @@
 #include "include/uart.h"
 
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "driver/uart.h"
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"

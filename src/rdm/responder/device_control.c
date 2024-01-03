@@ -1,7 +1,7 @@
 #include "rdm/responder/include/device_control.h"
 
 #include "dmx/include/driver.h"
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "rdm/responder/include/utils.h"
 
 bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,

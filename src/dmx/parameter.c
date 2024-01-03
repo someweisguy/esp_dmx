@@ -4,7 +4,7 @@
 
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/driver.h"
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "rdm/include/driver.h"
 
 enum {

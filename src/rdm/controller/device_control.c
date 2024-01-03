@@ -1,7 +1,7 @@
 #include "include/device_control.h"
 
 #include "dmx/include/driver.h"
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "rdm/controller/include/utils.h"
 #include "rdm/include/driver.h"
 

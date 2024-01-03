@@ -1,7 +1,7 @@
 #include "include/queue_status.h"
 
 #include "dmx/include/driver.h"
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "rdm/include/driver.h"
 #include "rdm/responder/include/utils.h"
 

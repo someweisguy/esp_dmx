@@ -5,7 +5,7 @@
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "rdm/responder/include/utils.h"
 
 static size_t rdm_device_info_rh(dmx_port_t dmx_num,

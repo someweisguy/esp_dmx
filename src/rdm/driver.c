@@ -5,7 +5,7 @@
 
 #include "dmx/include/driver.h"
 #include "dmx/include/parameter.h"
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "endian.h"
 #include "rdm/include/uid.h"
 

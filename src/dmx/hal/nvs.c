@@ -1,6 +1,6 @@
 #include "include/nvs.h"
 
-#include "dmx/include/struct.h"
+#include "dmx/include/service.h"
 #include "esp_dmx.h"
 #include "nvs_flash.h"
 
