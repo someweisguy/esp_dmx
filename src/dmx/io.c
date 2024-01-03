@@ -195,8 +195,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       // Set an early timeout with the hardware timer
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       dmx_timer_set_counter(dmx_num, elapsed);
-      dmx_timer_set_alarm(dmx_num,
-                          RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE, false);
+      dmx_timer_set_alarm(dmx_num, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE,
+                          false);
       dmx_timer_start(dmx_num);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
@@ -287,7 +287,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Get parameter definition
   size_t resp;  // Size of the response packet
   const rdm_parameter_definition_t *def =
-      rdm_parameter_lookup(dmx_num, header.sub_device, header.pid);
+      rdm_definition_get(dmx_num, header.sub_device, header.pid);
   if (def == NULL) {
     // Unknown PID
     resp = rdm_write_nack_reason(dmx_num, &header, RDM_NR_UNKNOWN_PID);
@@ -369,8 +369,8 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
     // Set the response header to NULL if an RDM header can't be read
     memset(&response_header, 0, sizeof(response_header));
   }
-  rdm_parameter_handle_callback(dmx_num, header.sub_device, header.pid,
-                                    &header, &response_header);
+  rdm_callback_handle(dmx_num, header.sub_device, header.pid, &header,
+                      &response_header);
 
   // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);

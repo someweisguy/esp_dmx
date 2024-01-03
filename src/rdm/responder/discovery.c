@@ -98,10 +98,9 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+  rdm_definition_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return rdm_parameter_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
-                                    context);
+  return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
 bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -138,10 +137,9 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+  rdm_definition_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return rdm_parameter_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
-                                    context);
+  return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
 bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
@@ -178,8 +176,7 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  rdm_parameter_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+  rdm_definition_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return rdm_parameter_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
-                                    context);
+  return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }

@@ -106,9 +106,9 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
   }
 }
 
-bool rdm_parameter_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                          rdm_pid_t pid,
-                          const rdm_parameter_definition_t *definition) {
+bool rdm_definition_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                        rdm_pid_t pid,
+                        const rdm_parameter_definition_t *definition) {
   assert(definition != NULL);
   assert(definition->pid_cc >= RDM_CC_DISC &&
          definition->pid_cc <= RDM_CC_GET_SET);
@@ -142,7 +142,7 @@ bool rdm_parameter_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-const rdm_parameter_definition_t *rdm_parameter_lookup(
+const rdm_parameter_definition_t *rdm_definition_get(
     dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
   assert(pid > 0);
 
@@ -154,9 +154,8 @@ const rdm_parameter_definition_t *rdm_parameter_lookup(
   return entry->definition;
 }
 
-bool rdm_parameter_set_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                                rdm_pid_t pid, rdm_callback_t callback,
-                                void *context) {
+bool rdm_callback_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                      rdm_pid_t pid, rdm_callback_t callback, void *context) {
   assert(pid > 0);
 
   dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
@@ -170,10 +169,9 @@ bool rdm_parameter_set_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-bool rdm_parameter_handle_callback(dmx_port_t dmx_num,
-                                   rdm_sub_device_t sub_device, rdm_pid_t pid,
-                                   rdm_header_t *request_header,
-                                   rdm_header_t *response_header) {
+bool rdm_callback_handle(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                         rdm_pid_t pid, rdm_header_t *request_header,
+                         rdm_header_t *response_header) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(pid > 0);
   assert(request_header != NULL);
