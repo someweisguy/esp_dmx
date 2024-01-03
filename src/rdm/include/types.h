@@ -43,7 +43,7 @@ extern "C" {
 typedef uint16_t rdm_pid_t;
 
 // TODO: docs
-typedef uint16_t rdm_sub_device_t;
+typedef dmx_device_num_t rdm_sub_device_t;
 
 // TODO: docs
 typedef uint8_t rdm_cc_t;
