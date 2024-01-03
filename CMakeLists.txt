@@ -2,8 +2,9 @@ idf_component_register(
   SRCS 
        # DMX driver and HAL
        "src/dmx/hal/uart.c" "src/dmx/hal/timer.c" "src/dmx/hal/nvs.c"
-       "src/dmx/hal/gpio.c" "src/dmx/driver.c" "src/dmx/io.c" "src/dmx/device.c"
-       "src/dmx/parameter.c" "src/dmx/sniffer.c" 
+       "src/dmx/hal/gpio.c" "src/dmx/service.c" "src/dmx/driver.c"
+       "src/dmx/io.c" "src/dmx/device.c" "src/dmx/parameter.c"
+       "src/dmx/sniffer.c" 
 
        "src/rdm/driver.c"
        
