@@ -13,7 +13,6 @@
 #include "esp_check.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
-#include "rdm/responder.h"
 
 #ifdef __cplusplus
 extern "C" {
