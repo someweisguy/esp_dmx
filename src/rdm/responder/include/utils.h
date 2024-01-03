@@ -100,9 +100,9 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
  * @return true on success.
  * @return false on failure.
  */
-bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid,
-                              const rdm_parameter_definition_t *definition);
+bool rdm_parameter_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                          rdm_pid_t pid,
+                          const rdm_parameter_definition_t *definition);
 
 /**
  * @brief Returns a pointer to the RDM definition for the desired DMX parameter.
@@ -112,7 +112,7 @@ bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @param pid The parameter ID of the desired parameter.
  * @return A pointer to the RDM definition or NULL on failure.
  */
-const rdm_parameter_definition_t *dmx_parameter_rdm_lookup(
+const rdm_parameter_definition_t *rdm_parameter_lookup(
     dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid);
 
 /**
@@ -129,9 +129,9 @@ const rdm_parameter_definition_t *dmx_parameter_rdm_lookup(
  * @return true on success.
  * @return false on failure.
  */
-bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
-                                    rdm_sub_device_t sub_device, rdm_pid_t pid,
-                                    rdm_callback_t callback, void *context);
+bool rdm_parameter_set_callback(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                                rdm_pid_t pid, rdm_callback_t callback,
+                                void *context);
 
 /**
  * @brief Handles the callback for the desired parameter, if it exists.
@@ -144,11 +144,10 @@ bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
  * @return true if the parameter exists.
  * @return false if the parameter does not exist.
  */
-bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
-                                       rdm_sub_device_t sub_device,
-                                       rdm_pid_t pid,
-                                       rdm_header_t *request_header,
-                                       rdm_header_t *response_header);
+bool rdm_parameter_handle_callback(dmx_port_t dmx_num,
+                                   rdm_sub_device_t sub_device, rdm_pid_t pid,
+                                   rdm_header_t *request_header,
+                                   rdm_header_t *response_header);
 
 #ifdef __cplusplus
 }

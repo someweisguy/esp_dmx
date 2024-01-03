@@ -46,12 +46,12 @@ static size_t rdm_rhd_get_queued_message(
   if (rdm_queue_size(dmx_num) > 0) {
     pid = rdm_queue_pop(dmx_num);
     response_definition =
-        dmx_parameter_rdm_lookup(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+        rdm_parameter_lookup(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
     assert(response_definition != NULL);
   } else {
     pid = RDM_PID_STATUS_MESSAGE;
     response_definition =
-        dmx_parameter_rdm_lookup(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+        rdm_parameter_lookup(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
     if (response_definition == NULL) {
       response_header.pid = RDM_PID_STATUS_MESSAGE;
       return rdm_write_ack(dmx_num, &response_header, NULL, NULL, 0);
@@ -96,10 +96,10 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, uint32_t max_count,
       .units = RDM_UNITS_NONE,
       .prefix = RDM_PREFIX_NONE,
       .description = NULL};
-  dmx_parameter_rdm_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+  rdm_parameter_define(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
-  return dmx_parameter_rdm_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
-                                        context);
+  return rdm_parameter_set_callback(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb,
+                                    context);
 }
 
 bool rdm_queue_push(dmx_port_t dmx_num, rdm_pid_t pid) {
