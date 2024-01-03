@@ -105,3 +105,91 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
     return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
   }
 }
+
+bool dmx_parameter_rdm_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                              rdm_pid_t pid,
+                              const rdm_parameter_definition_t *definition) {
+  assert(definition != NULL);
+  assert(definition->pid_cc >= RDM_CC_DISC &&
+         definition->pid_cc <= RDM_CC_GET_SET);
+  assert((definition->ds >= RDM_DS_NOT_DEFINED &&
+          definition->ds <= RDM_DS_SIGNED_DWORD) ||
+         (definition->ds >= 0x80 && definition->ds <= 0xdf));
+  assert(rdm_format_is_valid(definition->get.request.format) &&
+         rdm_format_is_valid(definition->get.response.format));
+  assert(rdm_format_is_valid(definition->set.request.format) &&
+         rdm_format_is_valid(definition->set.response.format));
+  assert(
+      (definition->get.handler != NULL && (definition->pid_cc == RDM_CC_DISC ||
+                                           definition->pid_cc == RDM_CC_GET)) ||
+      (definition->set.handler != NULL && definition->pid_cc == RDM_CC_SET) ||
+      (definition->get.handler != NULL && definition->set.handler != NULL &&
+       definition->pid_cc == RDM_CC_GET_SET));
+  assert(definition->pdl_size < RDM_PD_SIZE_MAX);
+  assert(definition->units <= RDM_UNITS_BYTES ||
+         (definition->units >= 0x80 && definition->units <= 0xff));
+  assert(definition->prefix <= RDM_PREFIX_YOCTO ||
+         (definition->prefix >= RDM_PREFIX_DECA &&
+          definition->prefix <= RDM_PREFIX_YOTTA));
+
+  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  entry->definition = definition;
+
+  return true;
+}
+
+const rdm_parameter_definition_t *dmx_parameter_rdm_lookup(
+    dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
+  assert(pid > 0);
+
+  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return NULL;
+  }
+
+  return entry->definition;
+}
+
+bool dmx_parameter_rdm_set_callback(dmx_port_t dmx_num,
+                                    rdm_sub_device_t sub_device, rdm_pid_t pid,
+                                    rdm_callback_t callback, void *context) {
+  assert(pid > 0);
+
+  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  entry->callback = callback;
+  entry->context = context;
+
+  return true;
+}
+
+bool dmx_parameter_rdm_handle_callback(dmx_port_t dmx_num,
+                                       rdm_sub_device_t sub_device,
+                                       rdm_pid_t pid,
+                                       rdm_header_t *request_header,
+                                       rdm_header_t *response_header) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(pid > 0);
+  assert(request_header != NULL);
+  assert(response_header != NULL);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  // Search for a dictionary entry for the parameter
+  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  if (entry == NULL) {
+    return false;
+  }
+
+  if (entry->callback != NULL) {
+    entry->callback(dmx_num, request_header, response_header, entry->context);
+  }
+
+  return true;
+}

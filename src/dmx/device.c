@@ -3,6 +3,7 @@
 #include "dmx/hal/include/nvs.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/service.h"
+#include "rdm/responder/include/dmx_setup.h"
 #include "rdm/responder/include/utils.h"
 
 uint16_t dmx_get_start_address(dmx_port_t dmx_num) {
