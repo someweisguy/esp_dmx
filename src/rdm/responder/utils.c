@@ -11,7 +11,7 @@ size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
   assert(dmx_num < DMX_NUM_MAX);
   assert(header != NULL);
   assert(rdm_cc_is_request(header->cc));
-  // assert(format == NULL || rdm_pd_format_is_valid(format)); // TODO
+  assert(rdm_format_is_valid(format));
   assert(format != NULL || pd == NULL);
   assert(pd != NULL || pdl == 0);
   assert(pdl < 231);
