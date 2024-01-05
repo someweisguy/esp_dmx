@@ -24,16 +24,15 @@ extern "C" {
  * start address of the responding device.
  *
  * @param dmx_num The DMX port number.
- * @param[inout] header A pointer to an RDM header which includes information
- * about where to address the request.
+ * @param[in] dest_uid A pointer to the UID of the destination.
+ * @param sub_device The sub-device number of the destination.
  * @param[out] dmx_start_address A pointer to a parameter which will be received
  * in the response.
  * @param[out] ack A pointer to an ACK struct which contains information about
  * the response, including information if no response is received.
- * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
- * @return false if no response was received, was improperly formatted, or an
- * RDM_RESPONSE_TYPE_ACK was not received.
- */  // TODO: update docs
+ * @return The number of bytes that were received in the response parameter
+ * data.
+ */
 size_t rdm_send_get_dmx_start_address(dmx_port_t dmx_num,
                                       const rdm_uid_t *dest_uid,
                                       rdm_sub_device_t sub_device,
@@ -49,8 +48,8 @@ size_t rdm_send_get_dmx_start_address(dmx_port_t dmx_num,
  * devices send a response without any parameter data.
  *
  * @param dmx_num The DMX port number.
- * @param[inout] header A pointer to an RDM header which includes information
- * about where to address the request.
+ * @param[in] dest_uid A pointer to the UID of the destination.
+ * @param sub_device The sub-device number of the destination.
  * @param dmx_start_address The value to which responding device(s) should set
  * their DMX start address. Must be between 1 and 512 (inclusive).
  * @param[out] ack A pointer to an ACK struct which contains information about
@@ -58,7 +57,7 @@ size_t rdm_send_get_dmx_start_address(dmx_port_t dmx_num,
  * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
  * @return false if no response was received, was improperly formatted, or an
  * RDM_RESPONSE_TYPE_ACK was not received.
- */  // TODO: update docs
+ */
 bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num,
                                     const rdm_uid_t *dest_uid,
                                     rdm_sub_device_t sub_device,

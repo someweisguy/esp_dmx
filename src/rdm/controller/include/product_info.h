@@ -23,16 +23,15 @@ extern "C" {
  * the responding device.
  *
  * @param dmx_num The DMX port number.
- * @param[inout] header A pointer to an RDM header which includes information
- * about where to address the request.
+ * @param[in] dest_uid A pointer to the UID of the destination.
+ * @param sub_device The sub-device number of the destination.
  * @param[out] device_info A pointer to a parameter which will be received in
  * the response.
  * @param[out] ack A pointer to an ACK struct which contains information about
  * the response, including information if no response is received.
- * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
- * @return false if no response was received, the response was improperly
- * formatted, or an RDM_RESPONSE_TYPE_ACK was not received.
- */  // TODO: update docs
+ * @return The number of bytes that were received in the response parameter
+ * data.
+ */
 size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                                 rdm_sub_device_t sub_device,
                                 rdm_device_info_t *device_info, rdm_ack_t *ack);
@@ -46,8 +45,8 @@ size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
  * in the form of a string up to 32 bytes long.
  *
  * @param dmx_num The DMX port number.
- * @param[inout] header A pointer to an RDM header which includes information
- * about where to address the request.
+ * @param[in] dest_uid A pointer to the UID of the destination.
+ * @param sub_device The sub-device number of the destination.
  * @param[out] software_version_label A pointer to a parameter which will be
  * received in the response.
  * @param size The size of the software_version_label string. Used to prevent
@@ -57,7 +56,7 @@ size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
  * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
  * @return false if no response was received, was improperly formatted, or an
  * RDM_RESPONSE_TYPE_ACK was not received.
- */ // TODO: update docs
+ */
 size_t rdm_send_get_software_version_label(dmx_port_t dmx_num,
                                            const rdm_uid_t *dest_uid,
                                            rdm_sub_device_t sub_device,
