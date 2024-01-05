@@ -87,7 +87,7 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
  * @param dmx_num The DMX port number.
  * @return The current RDM transaction number.
  */
-size_t rdm_get_transaction_num(dmx_port_t dmx_num);
+uint32_t rdm_get_transaction_num(dmx_port_t dmx_num);
 
 #ifdef __cplusplus
 }

@@ -143,11 +143,11 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   return header.pdl;
 }
 
-size_t rdm_get_transaction_num(dmx_port_t dmx_num) {
+uint32_t rdm_get_transaction_num(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
-  size_t tn;
+  uint32_t tn;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   tn = dmx_driver[dmx_num]->rdm.tn;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
