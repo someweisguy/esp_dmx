@@ -72,7 +72,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
     device_info->footprint = 0;
   }
   device_info->dmx_start_address = dmx_get_start_address(dmx_num);
-  device_info->sub_device_count = 0;  // TODO
+  device_info->sub_device_count = dmx_get_sub_device_count(dmx_num);
   device_info->sensor_count =
       rdm_sensor_get_count(dmx_num, RDM_SUB_DEVICE_ROOT);
 
