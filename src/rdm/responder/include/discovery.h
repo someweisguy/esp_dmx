@@ -1,7 +1,9 @@
 /**
- * @file rdm/responder/discovery.h
+ * @file rdm/responder/include/discovery.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This file contains RDM discovery functions for the RDM responder. The
+ * PIDs in discovery include RDM_PID_DISC_UNIQUE_BRANCH, RDM_PID_DISC_MUTE, and
+ * RDM_PID_DISC_UN_MUTE.
  */
 #pragma once
 

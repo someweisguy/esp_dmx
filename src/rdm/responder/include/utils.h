@@ -1,7 +1,8 @@
 /**
- * @file utils.h
+ * @file rdm/responder/include/utils.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This header includes utility functions that are needed or may be
+ * useful for various purposes pertaining to the RDM responder.
  */
 #pragma once
 

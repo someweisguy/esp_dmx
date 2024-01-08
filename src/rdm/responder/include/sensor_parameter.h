@@ -1,7 +1,10 @@
 /**
- * @file rdm/responder/include/sensor_param.h
+ * @file rdm/responder/include/sensor_parameter.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This file contains RDM sensor parameter functions for the RDM
+ * responder. The PIDs in sensor parameter include RDM_PID_SENSOR_DEFINITION,
+ * RDM_PID_SENSOR_VALUE, and RDM_PID_RECORD_SENSORS. This file also includes
+ * getters and setters for these function as appropriate.
  */
 #pragma once
 

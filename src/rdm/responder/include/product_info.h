@@ -1,7 +1,14 @@
 /**
- * @file rdm/responder/product_info.h
+ * @file rdm/responder/include/product_info.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This file contains product information functions for the RDM
+ * responder. The PIDs in product information include RDM_PID_DEVICE_INFO,
+ * RDM_PID_PRODUCT_DETAIL_ID_LIST, RDM_PID_DEVICE_MODEL_DESCRIPTION,
+ * RDM_PID_MANUFACTURER_LABEL, RDM_PID_DEVICE_LABEL, RDM_PID_FACTORY_DEFAULTS,
+ * RDM_PID_LANGUAGE_CAPABILITIES, RDM_PID_LANGUAGE,
+ * RDM_PID_SOFTWARE_VERSION_LABEL, RDM_PID_BOOT_SOFTWARE_VERSION_ID,
+ * RDM_PID_BOOT_SOFTWARE_VERSION_LABEL. This file also includes getters and
+ * setters for these function as appropriate.
  */
 #pragma once
 

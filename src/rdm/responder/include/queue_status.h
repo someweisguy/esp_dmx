@@ -1,7 +1,11 @@
 /**
- * @file rdm/responder/queue_status.h
+ * @file rdm/responder/include/queue_status.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This file contains RDM queue and status functions for the RDM
+ * responder. The PIDs in RDM queue and status include RDM_PID_QUEUED_MESSAGE,
+ * RDM_PID_STATUS_MESSAGES, RDM_PID_STATUS_ID_DESCRIPTION,
+ * RDM_PID_CLEAR_STATUS_ID, and RDM_PID_SUB_DEVICE_STATUS_ID_THRESHOLD. This
+ * file also includes getters and setters for these function as appropriate.
  */
 #pragma once
 
