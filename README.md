@@ -865,7 +865,7 @@ The table below lists the Parameter IDs specified by the RDM standard. Parameter
 
 Parameter                                   |GET|SET|Supported|Notes
 :-------------------------------------------|:---:|:---:|:-------:|:-----
-`RDM_PID_DISC_UNIQUE_BRANCH`                | | |v3.1.0|Must be sent to the root sub-device. Must be sent to `RDM_UID_BROADCAST_ALL`.
+`RDM_PID_DISC_UNIQUE_BRANCH`                | | |v3.1.0|Must be broadcast to all devices. Must be sent to the root sub-device.
 `RDM_PID_DISC_MUTE`                         | | |v3.1.0|Must be sent to the root sub-device.
 `RDM_PID_DISC_UN_MUTE`                      | | |v3.1.0|Must be sent to the root sub-device.
 `RDM_PID_PROXIED_DEVICES`                   |✔️| |      |Must be sent to the root sub-device.
