@@ -1,5 +1,5 @@
 /**
- * @file rdm/responder/disc.h
+ * @file rdm/responder/discovery.h
  * @author Mitch Weisbrod
  * @brief // TODO
  */

@@ -1,7 +1,7 @@
 /**
- * @file uid.h
+ * @file rdm/include/uid.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
- * @brief // TODO
+ * @brief This file includes functions used for comparing RDM unique IDs.
  *
  */
 #pragma once
