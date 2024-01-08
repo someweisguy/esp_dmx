@@ -23,7 +23,8 @@ static size_t rdm_device_info_rh(dmx_port_t dmx_num,
 
 bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
                               void *context) {
-  // TODO: arg check
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
 
