@@ -56,22 +56,42 @@ typedef struct rdm_parameter_definition_t {
   const char *description;
 } rdm_parameter_definition_t;
 
-// TODO: docs
+/**
+ * @brief Writes an ACK packet response to a RDM request packet. This function
+ * uses the header of an RDM request packet to write a response. The header for
+ * the RDM request must be a valid RDM request header.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param[in] header A pointer to the header of the RDM request packet.
+ * @param[in] format The format string of the RDM parameter data. 
+ * @param[in] pd A pointer to the parameter data for the RDM ACK packet.
+ * @param pdl The parameter data length of the RDM ack packet.
+ * @return The number of bytes written.
+ */
 size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
                      const char *format, const void *pd, size_t pdl);
 
-// TODO: docs
+/**
+ * @brief Writes an NACK packet response to a RDM request packet. This function
+ * uses the header of an RDM request packet to write a response. The header for
+ * the RDM request must be a valid RDM request header.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param[in] header A pointer to the header of the RDM request packet.
+ * @param nack_reason The NACK reason for the RDM response packet.
+ * @return The number of bytes written.
+ */
 size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
                              rdm_nr_t nack_reason);
 
 /*
-// TODO:
+// TODO: implement rdm_write_ack_timer()
 size_t rdm_write_ack_timer(dmx_port_t dmx_num, const rdm_header_t *header,
                            TickType_t ready_ticks);
 */
 
 /*
-// TODO:
+// TODO: implement rdm_write_ack_overflow()
 size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
                               const char *format, const void *pd, size_t pdl,
                               int page);
