@@ -57,6 +57,16 @@ typedef struct rdm_parameter_definition_t {
 } rdm_parameter_definition_t;
 
 /**
+ * @brief Returns true if the sub-device exists.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param sub_device The sub-device number.
+ * @return true if the sub-device exists.
+ * @return false if it does not exist.
+ */
+bool rdm_sub_device_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device);
+
+/**
  * @brief Writes an ACK packet response to a RDM request packet. This function
  * uses the header of an RDM request packet to write a response. The header for
  * the RDM request must be a valid RDM request header.

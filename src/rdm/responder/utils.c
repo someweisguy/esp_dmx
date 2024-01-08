@@ -6,6 +6,16 @@
 #include "dmx/include/service.h"
 #include "rdm/include/uid.h"
 
+bool rdm_sub_device_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(sub_device < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_device_t *device = dmx_driver_get_device(dmx_num, sub_device);
+
+  return device != NULL;
+}
+
 size_t rdm_write_ack(dmx_port_t dmx_num, const rdm_header_t *header,
                      const char *format, const void *pd, size_t pdl) {
   assert(dmx_num < DMX_NUM_MAX);
