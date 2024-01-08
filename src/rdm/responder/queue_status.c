@@ -5,13 +5,17 @@
 #include "rdm/include/driver.h"
 #include "rdm/responder/include/utils.h"
 
-// TODO: docs
+/**
+ * @brief The implementation for the RDM queue. The RDM queue is implemented
+ * using a deque with an additional field to recall the previous PID which was
+ * popped from the deque.
+ */
 typedef struct rdm_queue_t {
-  uint16_t head;
-  uint16_t tail;
-  rdm_pid_t previous;
-  uint16_t max_size;
-  rdm_pid_t data[];
+  uint16_t head;       // The head of the deque.
+  uint16_t tail;       // The tail of the deque.
+  rdm_pid_t previous;  // The PID that was previously popped from the RDM queue.
+  uint16_t max_size;   // The maximum size of the RDM queue.
+  rdm_pid_t data[];    // The buffer containing the RDM queue information.
 } rdm_queue_t;
 
 static rdm_queue_t *rdm_get_queue(dmx_port_t dmx_num) {
