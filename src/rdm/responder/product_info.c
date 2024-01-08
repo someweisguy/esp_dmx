@@ -8,9 +8,9 @@
 #include "dmx/include/service.h"
 #include "rdm/responder/include/utils.h"
 
-static size_t rdm_device_info_rh(dmx_port_t dmx_num,
-                                 const rdm_parameter_definition_t *def,
-                                 const rdm_header_t *header) {
+static size_t rdm_rhd_get_device_info(dmx_port_t dmx_num,
+                                      const rdm_parameter_definition_t *def,
+                                      const rdm_header_t *header) {
   rdm_device_info_t device_info;
   size_t pdl = rdm_get_device_info(dmx_num, &device_info);
   if (pdl != sizeof(device_info)) {
@@ -36,7 +36,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
   static const rdm_parameter_definition_t definition = {
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = rdm_device_info_rh,
+      .get = {.handler = rdm_rhd_get_device_info,
               .request.format = NULL,
               .response.format = "x01x00wwdwbbwwb$"},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},

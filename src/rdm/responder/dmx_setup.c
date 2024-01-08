@@ -12,12 +12,6 @@
 static size_t rdm_rhd_set_dmx_personality(
     dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
     const rdm_header_t *header) {
-  // Return early if the sub-device is out of range
-  if (header->sub_device != RDM_SUB_DEVICE_ROOT) {
-    return rdm_write_nack_reason(dmx_num, header,
-                                 RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
-  }
-
   // Get the personality number from the packet
   uint8_t personality_num;
   if (!rdm_read_pd(dmx_num, definition->set.request.format, &personality_num,
