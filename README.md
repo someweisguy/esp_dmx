@@ -876,8 +876,8 @@ Parameter                                   |GET|SET|Supported|Notes
 `RDM_PID_STATUS_ID_DESCRIPTION`             |✔️| |      |Must be sent to the root sub-device.
 `RDM_PID_CLEAR_STATUS_ID`                   | |✔️|      |
 `RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD`|✔️|✔️|      |Must **not** be sent to the root sub-device.
-`RDM_PID_SUPPORTED_PARAMETERS`              |✔️| |      |Support required only if supporting parameters beyond the minimum required set.
-`RDM_PID_PARAMETER_DESCRIPTION`             |✔️| |      |Must be sent to the root sub-device. Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.
+`RDM_PID_SUPPORTED_PARAMETERS`              |✔️| |v4.0.0|Support required only if supporting parameters beyond the minimum required set.
+`RDM_PID_PARAMETER_DESCRIPTION`             |✔️| |v4.0.0|Must be sent to the root sub-device. Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.
 `RDM_PID_DEVICE_INFO`                       |✔️| |v3.1.0|
 `RDM_PID_PRODUCT_DETAIL_ID_LIST`            |✔️| | |      |
 `RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️| | |      |
