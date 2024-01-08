@@ -685,11 +685,12 @@ typedef struct __attribute__((packed)) rdm_parameter_description_t {
   char description[RDM_ASCII_SIZE_MAX];
 } rdm_parameter_description_t;
 
-// TODO: docs
+/** @brief Used to get a descriptive ASCII text label for a given DMX
+ * personality. The label may be up to 32 characters.*/
 typedef struct __attribute__((packed)) rdm_dmx_personality_description_t {
-  uint8_t personality_num;
-  uint16_t footprint;
-  char description[RDM_ASCII_SIZE_MAX];
+  uint8_t personality_num;               // The personality number requested.
+  uint16_t footprint;                    // The footprint of the personality.
+  char description[RDM_ASCII_SIZE_MAX];  // The description of the personality.
 } rdm_dmx_personality_description_t;
 
 // TODO: docs
@@ -722,7 +723,7 @@ typedef struct __attribute__((packed)) rdm_sensor_definition_t {
   char description[RDM_ASCII_SIZE_MAX];
 } rdm_sensor_definition_t;
 
-// TODO: docs
+/** @brief Stores information pertaining to RDM sensors.*/
 typedef struct __attribute__((packed)) rdm_sensor_value_t {
   /** @brief The sensor number is in the range 0x00 to 0xFE. A value 0xFF is
      used to represent all sensors for the SET command. The sensor value fields
