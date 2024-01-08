@@ -913,7 +913,7 @@ Parameter                                   |GET|SET|Supported|Notes
 `RDM_PID_IDENTIFY_DEVICE`                   |✔️|✔️|v3.1.0|
 `RDM_PID_RESET_DEVICE`                      | |✔️|      |
 `RDM_PID_POWER_STATE`                       |✔️|✔️|      |
-`RDM_PID_PERFORM_SELF_TEST`                 |✔️|✔️|      |
+`RDM_PID_PERFORM_SELFTEST`                  |✔️|✔️|      |
 `RDM_PID_SELF_TEST_DESCRIPTION`             |✔️|      |
 `RDM_PID_CAPTURE_PRESET`                    | |✔️|      |
 `RDM_PID_PRESET_PLAYBACK`                   |✔️|✔️|      |
