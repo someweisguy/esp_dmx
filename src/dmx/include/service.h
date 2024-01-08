@@ -131,7 +131,6 @@ typedef struct dmx_driver_t {
 
   struct dmx_driver_rdm_t {
     uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
-    uint16_t control_field;  // TODO
   } rdm;
 
   struct dmx_driver_device_t {
