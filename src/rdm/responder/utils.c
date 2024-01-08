@@ -92,26 +92,52 @@ void rdm_set_boot_loader(dmx_port_t dmx_num) {
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
                                    const rdm_parameter_definition_t *definition,
                                    const rdm_header_t *header) {
-  // TODO: support header->sub_device == RDM_SUB_DEVICE_ALL
-  if (!dmx_parameter_exists(dmx_num, header->sub_device, header->pid)) {
-    return rdm_write_nack_reason(dmx_num, header,
-                                 RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
-  }
-
   const char *format;
-  if (header->cc == RDM_CC_GET_COMMAND) {
-    // Get the parameter and write it to the RDM bus
-    size_t pdl = dmx_parameter_size(dmx_num, header->sub_device, header->pid);
-    const void *pd =
-        dmx_parameter_get(dmx_num, header->sub_device, header->pid);
-    format = definition->get.response.format;
-    return rdm_write_ack(dmx_num, header, format, pd, pdl);
+  if (header->sub_device != RDM_SUB_DEVICE_ALL) {
+    // Ensure the sub-device exists
+    if (!rdm_sub_device_exists(dmx_num, header->sub_device)) {
+      return rdm_write_nack_reason(dmx_num, header,
+                                   RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    }
+
+    // Ensure the sub-device has the requested parameter
+    if (!dmx_parameter_exists(dmx_num, header->sub_device, header->pid)) {
+      return rdm_write_nack_reason(dmx_num, header,
+                                   RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    }
+
+    // Handle the GET or SET command
+    if (header->cc == RDM_CC_GET_COMMAND) {
+      // Get the parameter and write it to the RDM bus
+      size_t pdl = dmx_parameter_size(dmx_num, header->sub_device, header->pid);
+      const void *pd =
+          dmx_parameter_get(dmx_num, header->sub_device, header->pid);
+      format = definition->get.response.format;
+      return rdm_write_ack(dmx_num, header, format, pd, pdl);
+    } else {
+      // Get the parameter from the request and write it to the RDM driver
+      uint8_t pd[231];
+      format = definition->set.request.format;
+      size_t size = rdm_read_pd(dmx_num, format, pd, header->pdl);
+      dmx_parameter_set(dmx_num, header->sub_device, header->pid, pd, size);
+      return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
+    }
+
   } else {
-    // Get the parameter from the request and write it to the RDM driver
+    // Return early if a GET command is received with RDM_SUB_DEVICE_ALL
+    if (header->cc == RDM_CC_GET_COMMAND) {
+      // Must return NACK with RDM_NR_SUB_DEVICE_OUT_OF_RANGE
+      return rdm_write_nack_reason(dmx_num, header,
+                                   RDM_NR_SUB_DEVICE_OUT_OF_RANGE);
+    }
+
+    // Iterate through all sub-devices and update the parameter
     uint8_t pd[231];
     format = definition->set.request.format;
     size_t size = rdm_read_pd(dmx_num, format, pd, header->pdl);
-    dmx_parameter_set(dmx_num, header->sub_device, header->pid, pd, size);
+    for (int i = RDM_SUB_DEVICE_ROOT; i < RDM_SUB_DEVICE_MAX; ++i) {
+      dmx_parameter_set(dmx_num, i, header->pid, pd, size);
+    }
     return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
   }
 }
