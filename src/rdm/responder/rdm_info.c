@@ -14,7 +14,7 @@ static size_t rdm_rhd_get_supported_parameters(
   uint16_t pids[115];
 
   // Handle situation where parameters overflowed last request
-  int i = 0;  // TODO
+  int i = 0;  // TODO: handle ACK overflow
 
   for (; i < 115; ++i) {
     uint16_t pid = dmx_parameter_at(dmx_num, header->sub_device, i);
