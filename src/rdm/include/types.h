@@ -24,40 +24,60 @@ extern "C" {
  * printf-like functions.*/
 #define UID2STR(uid) (uid).man_id, (uid).dev_id
 
-// TODO: docs
+/** @brief Evaluates to true if the rdm_cc_t is a valid value.*/
 #define rdm_cc_is_valid(cc) (((cc) >> 8) < 0x4 && ((cc) & 0xf) < 0x2)
+
+/** @brief Evaluates to true if the rdm_cc_t is either RDM_CC_GET_COMMAND,
+ * RDM_CC_SET_COMMAND, or RDM_CC_DISC_COMMAND.*/
 #define rdm_cc_is_request(cc) (((cc) & 0x1) == 0)
+
+/** @brief Evaluates to true if the response type is a valid value.*/
 #define rdm_response_type_is_valid(t) \
   ((t) >= RDM_RESPONSE_TYPE_ACK && (t) <= RDM_RESPONSE_TYPE_ACK_OVERFLOW)
 
-// TODO: docs
+/** @brief The typical, maximum size for RDM ASCII parameters.*/
 #define RDM_ASCII_SIZE_MAX (33)
 
-// TODO: Docs
+/** @brief The maximum size for RDM parameter data.*/
 #define RDM_PD_SIZE_MAX (232)
 
-// TODO: docs
+/** @brief The maximum RDM sensor number.*/
 #define RDM_SENSOR_NUM_MAX (0xff)
 
-// TODO: docs
+/** @brief The parameter ID (PID) is a 16-bit number that identifies a specific
+ * type of parameter data. The PID may represent either a well known parameter
+ * such as those defined in the RDM standard document, or a
+ * manufacturer-specific parameter whose details are either published by the
+ * manufacturer for third-party support or proprietary for the manufacturer's
+ * own use.*/
 typedef uint16_t rdm_pid_t;
 
-// TODO: docs
+/** @brief RDM sub-device number type.*/
 typedef dmx_device_num_t rdm_sub_device_t;
 
-// TODO: docs
+/** @brief The RDM command class (CC) type. The command class specifies the
+ * action of the message. Responders shall always generate a response to
+ * GET_COMMAND and SET_COMMAND messages except when the destination UID of the
+ * message is a broadcast address. Responders shall not respond to commands sent
+ * using broadcast addressing, in order to prevent collisions.*/
 typedef uint8_t rdm_cc_t;
 
-// TODO: docs
+/** @brief The response type field is used in messages from responders to
+ * indicate the acknowledgement type of the response.*/
 typedef uint8_t rdm_response_type_t;
 
-// TODO: docs
+/** @brief The NACK reason defines the reason that the responder is unable to
+ * comply with the request.*/
 typedef uint16_t rdm_nr_t;
 
-// TODO: docs
+/** @brief Status collection messages include messages used to retrieve deferred
+ * (queued) responses, device status and error information, and information
+ * regarding the RDM parameters supported by the device. Status collection
+ * messages are normally addressed to root devices. The status type is used to
+ * identify the severity of the condition.*/
 typedef uint8_t rdm_status_t;
 
-/** @brief RDM sub-device type.*/
+/** @brief RDM sub-device number type.*/
 enum rdm_sub_device_t {
   /** @brief Sub-device which respresents the root of a RDM device.*/
   RDM_SUB_DEVICE_ROOT = 0,
@@ -249,7 +269,7 @@ enum rdm_pid_t {
   // Reserved for Future RDM Development: 0xffe0-0xffff
 };
 
-/** @brief The response type field is used in messages from Responders to
+/** @brief The response type field is used in messages from responders to
  * indicate the acknowledgement type of the response.*/
 enum rdm_response_type_t {
   /** @brief Indicates that a response was received, but it was invalid.*/
@@ -270,6 +290,39 @@ enum rdm_response_type_t {
      message and is acting upon the message, but there is more response data
      available than will fit in a single response message.*/
   RDM_RESPONSE_TYPE_ACK_OVERFLOW = 0x03,
+};
+
+/** @brief The NACK reason defines the reason that the responder is unable to
+ * comply with the request.*/
+enum rdm_nr_t {
+  /** @brief The responder cannot comply with the request because the message is
+     not implemented in the responder.*/
+  RDM_NR_UNKNOWN_PID = 0x0000,
+  /** @brief The responder cannot interpret the request as the controller data
+     was not formatted correctly.*/
+  RDM_NR_FORMAT_ERROR = 0x0001,
+  /** @brief The responder cannot comply due to an internal hardware fault.*/
+  RDM_NR_HARDWARE_FAULT = 0x0002,
+  /** @brief Proxy is not the RDM line master and cannot comply with the
+     message.*/
+  RDM_NR_PROXY_REJECT = 0x0003,
+  /** @brief Set command normally allowed but being blocked currently.*/
+  RDM_NR_WRITE_PROTECT = 0x0004,
+  /** @brief Not valid for command class attempted. May be used where get
+     allowed but set is not supported.*/
+  RDM_NR_UNSUPPORTED_COMMAND_CLASS = 0x0005,
+  /** @brief Value for given parameter out of allowable range or not
+     supported.*/
+  RDM_NR_DATA_OUT_OF_RANGE = 0x0006,
+  /** @brief Buffer or queue space currently has no free space to store data.*/
+  RDM_NR_BUFFER_FULL = 0x0007,
+  /** @brief Incoming message exceeds buffer capacity.*/
+  RDM_NR_PACKET_SIZE_UNSUPPORTED = 0x0008,
+  /** @brief Sub-device is out of range or unknown.*/
+  RDM_NR_SUB_DEVICE_OUT_OF_RANGE = 0x0009,
+  /** @brief The proxy buffer is full and cannot store any more queued message
+     or status message responses.*/
+  RDM_NR_PROXY_BUFFER_FULL = 0x000a
 };
 
 /** @brief Status collection messages include messages used to retrieve deferred
@@ -305,39 +358,6 @@ enum rdm_status_t {
   /** @brief The sub-device previously had an error status message but it has
      been cleared.*/
   RDM_STATUS_ERROR_CLEARED = 0x14
-};
-
-/** @brief The NACK reason defines the reason that the responder is unable to
- * comply with the request.*/
-enum rdm_nr_t {
-  /** @brief The responder cannot comply with the request because the message is
-     not implemented in the responder.*/
-  RDM_NR_UNKNOWN_PID = 0x0000,
-  /** @brief The responder cannot interpret the request as the controller data
-     was not formatted correctly.*/
-  RDM_NR_FORMAT_ERROR = 0x0001,
-  /** @brief The responder cannot comply due to an internal hardware fault.*/
-  RDM_NR_HARDWARE_FAULT = 0x0002,
-  /** @brief Proxy is not the RDM line master and cannot comply with the
-     message.*/
-  RDM_NR_PROXY_REJECT = 0x0003,
-  /** @brief Set command normally allowed but being blocked currently.*/
-  RDM_NR_WRITE_PROTECT = 0x0004,
-  /** @brief Not valid for command class attempted. May be used where get
-     allowed but set is not supported.*/
-  RDM_NR_UNSUPPORTED_COMMAND_CLASS = 0x0005,
-  /** @brief Value for given parameter out of allowable range or not
-     supported.*/
-  RDM_NR_DATA_OUT_OF_RANGE = 0x0006,
-  /** @brief Buffer or queue space currently has no free space to store data.*/
-  RDM_NR_BUFFER_FULL = 0x0007,
-  /** @brief Incoming message exceeds buffer capacity.*/
-  RDM_NR_PACKET_SIZE_UNSUPPORTED = 0x0008,
-  /** @brief Sub-device is out of range or unknown.*/
-  RDM_NR_SUB_DEVICE_OUT_OF_RANGE = 0x0009,
-  /** @brief The proxy buffer is full and cannot store any more queued message
-     or status message responses.*/
-  RDM_NR_PROXY_BUFFER_FULL = 0x000a
 };
 
 /** @brief The PID command class defines whether GET and or SET messages are
