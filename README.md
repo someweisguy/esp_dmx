@@ -861,62 +861,62 @@ The NACK reason defines the reason that the responder is unable to comply with t
 
 ### Parameter IDs
 
-The table below lists the Parameter IDs specified by the RDM standard. Parameters which support GET or SET are indicated accordingly. Parameters which are required are indicated in the "Req'd" column. Required parameters are automatically registered by the DMX driver. Parameters which are placed in non-volatile storage are indicated in the "NVS" column. PIDs which are currently supported by this library are indicated in the "supported" column by the earliest version of this library which supports the PID.
+The table below lists the Parameter IDs specified by the RDM standard. Parameters which support GET or SET are indicated accordingly. PRequired parameters are automatically registered by the DMX driver. PIDs which are currently supported by this library are indicated in the "supported" column by the earliest version of this library which supports the PID.
 
-Parameter                                   |GET|SET|Req'd|NVS|Supported|Notes
-:-------------------------------------------|:---:|:---:|:---:|:---:|:-------:|:-----
-`RDM_PID_DISC_UNIQUE_BRANCH`                | | |✔️| |v3.1.0|Must be sent to the root sub-device. Must be sent to `RDM_UID_BROADCAST_ALL`.
-`RDM_PID_DISC_MUTE`                         | | |✔️| |v3.1.0|Must be sent to the root sub-device.
-`RDM_PID_DISC_UN_MUTE`                      | | |✔️| |v3.1.0|Must be sent to the root sub-device.
-`RDM_PID_PROXIED_DEVICES`                   |✔️| | | |      |Must be sent to the root sub-device.
-`RDM_PID_PROXIED_DEVICE_COUNT`              |✔️| | | |      |Must be sent to the root sub-device.
-`RDM_PID_COMMS_STATUS`                      |✔️|✔️| | |      |Must be sent to the root sub-device.
-`RDM_PID_QUEUED_MESSAGE`                    |✔️| | | |      |Must be sent to the root sub-device.
-`RDM_PID_STATUS_MESSAGE`                    |✔️| | | |      |Must be sent to the root sub-device.
-`RDM_PID_STATUS_ID_DESCRIPTION`             |✔️| | | |      |Must be sent to the root sub-device.
-`RDM_PID_CLEAR_STATUS_ID`                   | |✔️| | |      |
-`RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD`|✔️|✔️| | |      |Must **not** be sent to the root sub-device.
-`RDM_PID_SUPPORTED_PARAMETERS`              |✔️| |✔️| |      |Support required only if supporting parameters beyond the minimum required set.
-`RDM_PID_PARAMETER_DESCRIPTION`             |✔️| |✔️| |      |Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.
-`RDM_PID_DEVICE_INFO`                       |✔️| |✔️| |v3.1.0|
-`RDM_PID_PRODUCT_DETAIL_ID_LIST`            |✔️| | | | |      |
-`RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️| | | | |      |
-`RDM_PID_MANUFACTURER_LABEL`                |✔️| | | | |      |
-`RDM_PID_DEVICE_LABEL`                      |✔️|✔️| | |✔️|      |
-`RDM_PID_FACTORY_DEFAULTS`                  |✔️|✔️| | | |      |
-`RDM_PID_LANGUAGE_CAPABILITIES`             |✔️| | | | |      |
-`RDM_PID_LANGUAGE`                          |✔️|✔️| |✔️|      |
-`RDM_PID_SOFTWARE_VERSION_LABEL`            |✔️| |✔️| |v3.1.0|
-`RDM_PID_BOOT_SOFTWARE_VERSION_ID`          |✔️| | | |      |
-`RDM_PID_BOOT_SOFTWARE_VERSION_LABEL`       |✔️| | | |      |
-`RDM_PID_DMX_PERSONALITY`                   |✔️|✔️| |✔️|      |
-`RDM_PID_DMX_PERSONALITY_DESCRIPTION`       |✔️| | | |      |
-`RDM_PID_DMX_START_ADDRESS`                 |✔️|✔️|✔️|✔️|v3.1.0|Support required if device uses a DMX slot.
-`RDM_PID_SLOT_INFO`                         |✔️| | | |      |
-`RDM_PID_SLOT_DESCRIPTION`                  |✔️| | | |      |
-`RDM_PID_DEFAULT_SLOT_VALUE`                |✔️| | | |      |
-`RDM_PID_SENSOR_DEFINITION`                 |✔️| | | |      |
-`RDM_PID_SENSOR_VALUE`                      |✔️|✔️| | |      |
-`RDM_PID_RECORD_SENSORS`                    | |✔️| | |      |
-`RDM_PID_DEVICE_HOURS`                      |✔️|✔️| |✔️|      |
-`RDM_PID_LAMP_HOURS`                        |✔️|✔️| |✔️|      |
-`RDM_PID_LAMP_STRIKES`                      |✔️|✔️| |✔️|      |
-`RDM_PID_LAMP_STATE`                        |✔️|✔️| |✔️|      |
-`RDM_PID_LAMP_ON_MODE`                      |✔️|✔️| |✔️|      |
-`RDM_PID_DEVICE_POWER_CYCLES`               |✔️|✔️| |✔️|      |
-`RDM_PID_DISPLAY_INVERT`                    |✔️|✔️| |✔️|      |
-`RDM_PID_DISPLAY_LEVEL`                     |✔️|✔️| |✔️|      |
-`RDM_PID_PAN_INVERT`                        |✔️|✔️| |✔️|      |
-`RDM_PID_TILT_INVERT`                       |✔️|✔️| |✔️|      |
-`RDM_PID_PAN_TILT_SWAP`                     |✔️|✔️| |✔️|      |
-`RDM_PID_REAL_TIME_CLOCK`                   |✔️|✔️| | |      |
-`RDM_PID_IDENTIFY_DEVICE`                   |✔️|✔️|✔️| |v3.1.0|
-`RDM_PID_RESET_DEVICE`                      | |✔️| | |      |
-`RDM_PID_POWER_STATE`                       |✔️|✔️| | |      |
-`RDM_PID_PERFORM_SELF_TEST`                 |✔️|✔️| | |      |
-`RDM_PID_SELF_TEST_DESCRIPTION`             |✔️| | |      |
-`RDM_PID_CAPTURE_PRESET`                    | |✔️| |      |
-`RDM_PID_PRESET_PLAYBACK`                   |✔️|✔️| | |      |
+Parameter                                   |GET|SET|Supported|Notes
+:-------------------------------------------|:---:|:---:|:-------:|:-----
+`RDM_PID_DISC_UNIQUE_BRANCH`                | | |v3.1.0|Must be sent to the root sub-device. Must be sent to `RDM_UID_BROADCAST_ALL`.
+`RDM_PID_DISC_MUTE`                         | | |v3.1.0|Must be sent to the root sub-device.
+`RDM_PID_DISC_UN_MUTE`                      | | |v3.1.0|Must be sent to the root sub-device.
+`RDM_PID_PROXIED_DEVICES`                   |✔️| |      |Must be sent to the root sub-device.
+`RDM_PID_PROXIED_DEVICE_COUNT`              |✔️| |      |Must be sent to the root sub-device.
+`RDM_PID_COMMS_STATUS`                      |✔️|✔️|      |Must be sent to the root sub-device.
+`RDM_PID_QUEUED_MESSAGE`                    |✔️| |      |Must be sent to the root sub-device.
+`RDM_PID_STATUS_MESSAGE`                    |✔️| |      |Must be sent to the root sub-device.
+`RDM_PID_STATUS_ID_DESCRIPTION`             |✔️| |      |Must be sent to the root sub-device.
+`RDM_PID_CLEAR_STATUS_ID`                   | |✔️|      |
+`RDM_PID_SUB_DEVICE_STATUS_REPORT_THRESHOLD`|✔️|✔️|      |Must **not** be sent to the root sub-device.
+`RDM_PID_SUPPORTED_PARAMETERS`              |✔️| |      |Support required only if supporting parameters beyond the minimum required set.
+`RDM_PID_PARAMETER_DESCRIPTION`             |✔️| |      |Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.
+`RDM_PID_DEVICE_INFO`                       |✔️| |v3.1.0|
+`RDM_PID_PRODUCT_DETAIL_ID_LIST`            |✔️| | |      |
+`RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️| | |      |
+`RDM_PID_MANUFACTURER_LABEL`                |✔️| | |      |
+`RDM_PID_DEVICE_LABEL`                      |✔️|✔️|v3.1.0|      |
+`RDM_PID_FACTORY_DEFAULTS`                  |✔️|✔️| |      |
+`RDM_PID_LANGUAGE_CAPABILITIES`             |✔️| | |      |
+`RDM_PID_LANGUAGE`                          |✔️|✔️|      |
+`RDM_PID_SOFTWARE_VERSION_LABEL`            |✔️| |v3.1.0|
+`RDM_PID_BOOT_SOFTWARE_VERSION_ID`          |✔️| |      |
+`RDM_PID_BOOT_SOFTWARE_VERSION_LABEL`       |✔️| |      |
+`RDM_PID_DMX_PERSONALITY`                   |✔️|✔️|      |
+`RDM_PID_DMX_PERSONALITY_DESCRIPTION`       |✔️| |      |
+`RDM_PID_DMX_START_ADDRESS`                 |✔️|✔️|v3.1.0|Support required if device uses a DMX slot.
+`RDM_PID_SLOT_INFO`                         |✔️| |      |
+`RDM_PID_SLOT_DESCRIPTION`                  |✔️| |      |
+`RDM_PID_DEFAULT_SLOT_VALUE`                |✔️| |      |
+`RDM_PID_SENSOR_DEFINITION`                 |✔️| |      |
+`RDM_PID_SENSOR_VALUE`                      |✔️|✔️|v4.0.0|
+`RDM_PID_RECORD_SENSORS`                    | |✔️|v4.0.0|
+`RDM_PID_DEVICE_HOURS`                      |✔️|✔️|      |
+`RDM_PID_LAMP_HOURS`                        |✔️|✔️|      |
+`RDM_PID_LAMP_STRIKES`                      |✔️|✔️|      |
+`RDM_PID_LAMP_STATE`                        |✔️|✔️|      |
+`RDM_PID_LAMP_ON_MODE`                      |✔️|✔️|      |
+`RDM_PID_DEVICE_POWER_CYCLES`               |✔️|✔️|      |
+`RDM_PID_DISPLAY_INVERT`                    |✔️|✔️|      |
+`RDM_PID_DISPLAY_LEVEL`                     |✔️|✔️|      |
+`RDM_PID_PAN_INVERT`                        |✔️|✔️|      |
+`RDM_PID_TILT_INVERT`                       |✔️|✔️|      |
+`RDM_PID_PAN_TILT_SWAP`                     |✔️|✔️|      |
+`RDM_PID_REAL_TIME_CLOCK`                   |✔️|✔️|      |
+`RDM_PID_IDENTIFY_DEVICE`                   |✔️|✔️|v3.1.0|
+`RDM_PID_RESET_DEVICE`                      | |✔️|      |
+`RDM_PID_POWER_STATE`                       |✔️|✔️|      |
+`RDM_PID_PERFORM_SELF_TEST`                 |✔️|✔️|      |
+`RDM_PID_SELF_TEST_DESCRIPTION`             |✔️|      |
+`RDM_PID_CAPTURE_PRESET`                    | |✔️|      |
+`RDM_PID_PRESET_PLAYBACK`                   |✔️|✔️|      |
 
 ### Product Categories
 
