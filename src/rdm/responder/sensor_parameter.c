@@ -104,7 +104,7 @@ static size_t rdm_rhd_set_record_sensors(
 bool rdm_register_sensor_definition(dmx_port_t dmx_num,
                                     uint8_t definition_count, rdm_callback_t cb,
                                     void *context) {
-  return false;  // TODO
+  return false;  // TODO: implement register_sensor_definition()
 }
 
 bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,

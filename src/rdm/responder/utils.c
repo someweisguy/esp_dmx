@@ -61,13 +61,13 @@ size_t rdm_write_nack_reason(dmx_port_t dmx_num, const rdm_header_t *header,
 
 size_t rdm_write_ack_timer(dmx_port_t dmx_num, const rdm_header_t *header,
                            TickType_t ready_ticks) {
-  return 0;  // TODO
+  return 0;  // TODO: implement write_ack_timer()
 }
 
 size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
                               const char *format, const void *pd, size_t pdl,
                               int page) {
-  return 0;  // TODO
+  return 0;  // TODO: implement write_ack_overflow()
 }
 
 void rdm_set_boot_loader(dmx_port_t dmx_num) {
