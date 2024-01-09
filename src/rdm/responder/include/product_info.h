@@ -26,16 +26,12 @@ extern "C" {
  * driver is initially installed.
  *
  * @param dmx_num The DMX port number.
- * @param[inout] device_info A pointer to the device info parameter to use in
- * RDM responses.  This value is used to set the parameter to a default value
- * when this function is called for the first time and is ignored (and therefore
- * may be set to NULL) on subsequent calls.
  * @param cb A callback which is called upon receiving a request for this PID.
  * @param[inout] context A pointer to context which is used in the user
  * callback.
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
- */  // TODO: update docs
+ */
 bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
                               void *context);
 
@@ -45,9 +41,8 @@ bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
  * @param dmx_num The DMX port number.
  * @param[out] device_info A pointer which stores a copy of the device info of
  * this device.
- * @return true on success.
- * @return false on failure.
- */ // TODO: update docs
+ * @return The number of bytes that were written to device_info.
+ */
 size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info);
 
 /**
@@ -72,15 +67,24 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
  * @brief Gets the device label.
  *
  * @param dmx_num The DMX port number.
- * @param[out] label A pointer to a buffer that the device_label will be copied
- * into. This will not contain a trailing '\0'
- * @param labelLen The size of @p label
+ * @param[out] device_label A pointer to a buffer that the device label will be
+ * copied into.
+ * @param size The size of the device label.
  * @return The number of bytes copied
- */  // TODO: update docs
+ */
 size_t rdm_get_device_label(dmx_port_t dmx_num, char *device_label,
                             size_t size);
 
-// TODO: docs
+/**
+ * @brief Sets the device label.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] device_label A pointer to a buffer which contains the value to
+ * which the device label should be set.
+ * @param size The size of the device label.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,
                           size_t size);
 /**
@@ -109,11 +113,9 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
  * @param dmx_num The DMX port number.
  * @param[out] software_version_label A pointer which stores a copy of the
  * software version label of this device.
- * @param[inout] size A pointer to the size of the software_version_label
- * buffer. Is set to the size of the software_version_label on success.
- * @return true on success.
- * @return false on failure.
- */ // TODO: update docs
+ * @param size The size of the software_version_label buffer.
+ * @return the number of bytes written to software_version_label.
+ */
 size_t rdm_get_software_version_label(dmx_port_t dmx_num,
                                       char *software_version_label,
                                       size_t size);
