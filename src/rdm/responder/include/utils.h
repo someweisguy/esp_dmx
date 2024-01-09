@@ -107,7 +107,7 @@ size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
                               int page);
 */
 
-// TODO: docs
+// TODO: docs, should this function be here?
 void rdm_set_boot_loader(dmx_port_t dmx_num);
 
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,
