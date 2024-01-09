@@ -38,11 +38,30 @@ extern "C" {
 bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
                                   rdm_callback_t cb, void *context);
 
-// TODO docs
+/**
+ * @brief Copies the RDM DMX personality parameter into a user buffer. This
+ * function differs from dmx_get_personality() because it gets the full
+ * rdm_dmx_personality_t which contains two fields: current and count. The
+ * current field is the current personality to which the DMX driver is set. The
+ * count field is the number of personalities that this personality supports.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] personality A pointer to a rdm_dmx_personality_t to store the
+ * gotten data.
+ * @return The number of bytes written to personality.
+ */
 size_t rdm_get_dmx_personality(dmx_port_t dmx_num,
                                rdm_dmx_personality_t *personality);
 
-// TODO: docs
+/**
+ * @brief Sets the current personality number of the DMX driver. Personalities
+ * are indexed beginning at 1. There is no zeroeth personality.
+ *
+ * @param dmx_num The DMX port number.
+ * @param personality_num The personality number to which to set the DMX driver.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool rdm_set_dmx_personality(dmx_port_t dmx_num, uint8_t personality_num);
 
 /**
@@ -63,7 +82,20 @@ bool rdm_register_dmx_personality_description(
     dmx_port_t dmx_num, rdm_dmx_personality_description_t *personalities,
     uint32_t count, rdm_callback_t cb, void *context);
 
-// TODO: docs
+/**
+ * @brief Copies the RDM DMX personality description into a user buffer. This
+ * function is different from dmx_get_personality_description() because it gets
+ * the full rdm_dmx_personality_description_t which contains three fields:
+ * personality_num, footprint, and description. The personality_num field is the
+ * personality number, the footprint field is the size of the personality, and
+ * the description field is an ASCII description of the personality.
+ *
+ * @param dmx_num The DMX port number.
+ * @param personality_num The personality number to get.
+ * @param[out] personality_description A pointer to a
+ * rdm_dmx_personality_description_t to store the gotten data.
+ * @return The number of bytes written to personality_description.
+ */
 size_t rdm_get_dmx_personality_description(
     dmx_port_t dmx_num, uint8_t personality_num,
     rdm_dmx_personality_description_t *personality_description);
@@ -93,9 +125,8 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
  * @param dmx_num The DMX port number.
  * @param[out] dmx_start_address A pointer which stores a copy of the DMX start
  * address of this device.
- * @return true on success.
- * @return false on failure.
- */  // TODO: update docs
+ * @return The number of bytes written to dmx_start_address.
+ */
 size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,
                                  uint16_t *dmx_start_address);
 
@@ -109,8 +140,7 @@ size_t rdm_get_dmx_start_address(dmx_port_t dmx_num,
  * @return true on success.
  * @return false on failure.
  */
-bool rdm_set_dmx_start_address(dmx_port_t dmx_num,
-                               const uint16_t dmx_start_address);
+bool rdm_set_dmx_start_address(dmx_port_t dmx_num, uint16_t dmx_start_address);
 
 #ifdef __cplusplus
 }
