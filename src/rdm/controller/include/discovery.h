@@ -1,7 +1,11 @@
 /**
- * @file rdm/controller/disc.h
+ * @file rdm/controller/include/discovery.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This file contains RDM discovery functions for the RDM controller. The
+ * PIDs in discovery include RDM_PID_DISC_UNIQUE_BRANCH, RDM_PID_DISC_MUTE, and
+ * RDM_PID_DISC_UN_MUTE. This header also includes a default RDM discovery
+ * algorithm with a simple caller and a discovery function which provides a
+ * custom callback for more complex behavior.
  */
 #pragma once
 

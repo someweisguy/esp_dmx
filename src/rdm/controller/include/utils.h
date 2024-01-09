@@ -1,7 +1,8 @@
 /**
- * @file utils.h
+ * @file rdm/controller/include/utils.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This header includes utility functions that are needed or may be
+ * useful for various purposes pertaining to the RDM controller.
  */
 #pragma once
 
@@ -14,15 +15,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*
-
-    size_t pdl;
-
-    TickType_t timer;
-
-    rdm_nr_t nack_reason;
-*/
 
 /**
  * @brief Sends an RDM controller request and processes the response. This

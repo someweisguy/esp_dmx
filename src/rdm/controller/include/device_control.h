@@ -1,7 +1,11 @@
 /**
- * @file rdm/controller/device_control.h
+ * @file rdm/controller/include/device_control.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This file contains device control functions for the RDM controller.
+ * The PIDs in device control include RDM_PID_IDENTIFY_DEVICE,
+ * RDM_PID_RESET_DEVICE, RDM_PID_POWER_STATE, RDM_PID_PERFORM_SELFTEST,
+ * RDM_PID_SELF_TEST_DESCRIPTION, RDM_PID_CAPTURE_PRESET, and
+ * RDM_PID_PRESET_PLAYBACK.
  */
 #pragma once
 

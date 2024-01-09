@@ -1,7 +1,10 @@
 /**
- * @file rdm/controller/dmx_setup.h
+ * @file rdm/controller/include/dmx_setup.h
  * @author Mitch Weisbrod
- * @brief // TODO
+ * @brief This file contains DMX setup functions for the RDM controller. The
+ * PIDs in DMX setup include RDM_PID_DMX_PERSONALITY,
+ * RDM_PID_DMX_PERSONALITY_DESCRIPTION, RDM_PID_DMX_START_ADDRESS,
+ * RDM_PID_SLOT_INFO, RDM_PID_SLOT_DESCRIPTION, and RDM_PID_DEFAULT_SLOT_VALUE.
  */
 #pragma once
 
