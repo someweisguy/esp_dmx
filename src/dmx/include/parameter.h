@@ -1,7 +1,12 @@
 /**
  * @file dmx/include/parameter.h
  * @author Mitch Weisbrod (mitch@theweisbrods.com)
- * @brief // TODO
+ * @brief This file contains functions which are used for declaring information
+ * about DMX devices and parameters. Parameters can include information about
+ * DMX start address, DMX personality, DMX footprints, or other information. DMX
+ * parameters are closely related to RDM parameters and use RDM parameter IDs.
+ * To register RDM parameter definitions, see the
+ * rdm/responder/include/parameter.h header.
  */
 #pragma once
 
@@ -14,7 +19,7 @@ extern "C" {
 
 /**
  * @brief Gets the number of sub-devices that are supported.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @return The number of supported sub-devices.
  */
@@ -22,7 +27,7 @@ int dmx_get_sub_device_count(dmx_port_t dmx_num);
 
 /**
  * @brief Returns true if the sub-device exists.
- * 
+ *
  * @param dmx_num The DMX port number.
  * @param device_num The sub-device number.
  * @return true if the sub-device exists.
