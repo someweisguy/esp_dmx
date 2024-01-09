@@ -121,9 +121,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   // Set the default values for the root device
   driver->device.root.num = RDM_SUB_DEVICE_ROOT;
   driver->device.root.next = NULL;
-  driver->device.root.model_id = config->model_id;
-  driver->device.root.product_category = config->product_category;
-  driver->device.root.software_version_id = config->software_version_id;
   for (int i = 0; i < config->root_device_parameter_count; ++i) {
     driver->device.root.parameters[i].pid = 0;
   }
@@ -165,7 +162,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   rdm_register_disc_unique_branch(dmx_num, NULL, NULL);
   rdm_register_disc_mute(dmx_num, NULL, NULL);
   rdm_register_disc_un_mute(dmx_num, NULL, NULL);
-  rdm_register_device_info(dmx_num, NULL, NULL);
+  rdm_register_device_info(dmx_num, config->model_id, config->product_category,
+                           config->software_version_id, NULL, NULL);
   rdm_register_software_version_label(dmx_num, config->software_version_label,
                                       NULL, NULL);
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);

@@ -8,6 +8,15 @@
 #include "dmx/include/service.h"
 #include "rdm/responder/include/utils.h"
 
+/** @brief Product information used in the RDM_PID_DEVICE_INFO parameter. All
+ * other fields in RDM_PID_DEVICE_INFO can be computed at call-time. 
+*/
+struct rdm_product_info_t {
+  uint16_t model_id;  // The model ID of the device. Unique per manufacturer.
+  uint16_t product_category;  // Enumerated in rdm_product_category_t.
+  uint32_t software_version_id;  // The unique software verion id of the device.
+};
+
 static size_t rdm_rhd_get_device_info(dmx_port_t dmx_num,
                                       const rdm_parameter_definition_t *def,
                                       const rdm_header_t *header) {
@@ -21,16 +30,27 @@ static size_t rdm_rhd_get_device_info(dmx_port_t dmx_num,
   return rdm_write_ack(dmx_num, header, format, &device_info, pdl);
 }
 
-bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
+bool rdm_register_device_info(dmx_port_t dmx_num, uint16_t model_id,
+                              uint16_t product_category,
+                              uint32_t software_version_id, rdm_callback_t cb,
                               void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
 
-  // Add the parameter as a NULL static variable
+  // Add the parameter dynamically - only the product info is stored
   const bool nvs = false;
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  struct rdm_product_info_t product_info = {
+    .model_id = model_id,
+    .product_category = product_category,
+    .software_version_id = software_version_id
+  };
+  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
+                            &product_info, sizeof(product_info))) {
+    DMX_ERR("RDM_PID_DEVICE_INFO malloc error");
+    return false;
+  }
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
@@ -56,11 +76,19 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
   DMX_CHECK(device_info != NULL, 0, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
+  // Get the product info for the device
+  const struct rdm_product_info_t *product_info =
+      dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO);
 
-  device_info->model_id = driver->device.root.model_id;
-  device_info->product_category = driver->device.root.product_category;
-  device_info->software_version_id = driver->device.root.software_version_id;
+  if (product_info != NULL) {
+    device_info->model_id = product_info->model_id;
+    device_info->product_category = product_info->product_category;
+    device_info->software_version_id = product_info->software_version_id;
+  } else {
+    device_info->model_id = -1;
+    device_info->product_category = -1;
+    device_info->software_version_id = -1;
+  }
   if (!rdm_get_dmx_personality(dmx_num, &device_info->personality)) {
     device_info->personality.count = 0;
     device_info->personality.current = 0;

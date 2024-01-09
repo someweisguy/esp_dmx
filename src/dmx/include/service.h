@@ -92,12 +92,6 @@ typedef struct dmx_parameter_t {
 typedef struct dmx_device_t {
   dmx_device_num_t num;  // The device number.
   struct dmx_device_t *next;  // A pointer to the next device.
-  
-  // Device information
-  uint16_t model_id;
-  uint16_t product_category;
-  uint32_t software_version_id;
-
   dmx_parameter_t parameters[];  // An array of parameters associated with this device.
 } dmx_device_t;
 

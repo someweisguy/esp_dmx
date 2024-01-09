@@ -26,13 +26,23 @@ extern "C" {
  * driver is initially installed.
  *
  * @param dmx_num The DMX port number.
+ * @param model_id This field identifies the device model ID of the root device
+ * or sub-device. The manufacturer shall not use the same ID to represent more
+ * than one unique model type.
+ * @param product_category Devices shall report a product category based on the
+ * product's primary function, enumerated in rdm_product_category_t.
+ * @param software_version_id This field indicates the software version ID for
+ * the device. The software version ID is a 32-bit value determined by the
+ * manufacturer.
  * @param cb A callback which is called upon receiving a request for this PID.
  * @param[inout] context A pointer to context which is used in the user
  * callback.
  * @return true if the PID response was registered.
  * @return false if there is not enough memory to register additional responses.
  */
-bool rdm_register_device_info(dmx_port_t dmx_num, rdm_callback_t cb,
+bool rdm_register_device_info(dmx_port_t dmx_num, uint16_t model_id,
+                              uint16_t product_category,
+                              uint32_t software_version_id, rdm_callback_t cb,
                               void *context);
 
 /**
@@ -52,13 +62,14 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info);
  * @param dmx_num The DMX port number.
  * @param device_label A pointer to a null-terminated device label string
  * to use in RDM responses. This value is used to set the
- * parameter to a default value when this function is called for the first time
- * and is ignored (and therefore may be set to NULL) on subsequent calls.
+ * parameter to a default value when this function is called for the first
+ * time and is ignored (and therefore may be set to NULL) on subsequent calls.
  * @param cb A callback which is called upon receiving a request for this PID.
  * @param[inout] context A pointer to context which is used in the user
  * callback.
  * @return true if the PID response was registered.
- * @return false if there is not enough memory to register additional responses.
+ * @return false if there is not enough memory to register additional
+ * responses.
  */
 bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
                                rdm_callback_t cb, void *context);
@@ -67,8 +78,8 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
  * @brief Gets the device label.
  *
  * @param dmx_num The DMX port number.
- * @param[out] device_label A pointer to a buffer that the device label will be
- * copied into.
+ * @param[out] device_label A pointer to a buffer that the device label will
+ * be copied into.
  * @param size The size of the device label.
  * @return The number of bytes copied
  */
@@ -89,19 +100,20 @@ bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,
                           size_t size);
 /**
  * @brief Registers the default response to RDM_PID_SOFTWARE_VERSION_LABEL
- * requests. This response is required by all RDM-capable devices. It is called
- * when the DMX driver is initially installed.
+ * requests. This response is required by all RDM-capable devices. It is
+ * called when the DMX driver is initially installed.
  *
  * @param dmx_num The DMX port number.
  * @param[in] software_version_label A pointer to a null-terminated software
  * version label string to use in RDM responses. This value is used to set the
- * parameter to a default value when this function is called for the first time
- * and is ignored (and therefore may be set to NULL) on subsequent calls.
+ * parameter to a default value when this function is called for the first
+ * time and is ignored (and therefore may be set to NULL) on subsequent calls.
  * @param cb A callback which is called upon receiving a request for this PID.
  * @param[inout] context A pointer to context which is used in the user
  * callback.
  * @return true if the PID response was registered.
- * @return false if there is not enough memory to register additional responses.
+ * @return false if there is not enough memory to register additional
+ * responses.
  */
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          char *software_version_label,
