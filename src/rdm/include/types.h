@@ -739,7 +739,7 @@ typedef struct __attribute__((packed)) rdm_status_message_t {
   };
 } rdm_status_message_t;
 
-// TODO: docs
+/** @brief This struct contains information about a specific sensor.*/
 typedef struct __attribute__((packed)) rdm_sensor_definition_t {
   /** @brief The sensor number requested is in the range from 0x00 to 0xfe
      (inclusive).*/
