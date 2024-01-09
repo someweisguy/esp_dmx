@@ -8,7 +8,7 @@
  * RDM_PID_LANGUAGE_CAPABILITIES, RDM_PID_LANGUAGE,
  * RDM_PID_SOFTWARE_VERSION_LABEL, RDM_PID_BOOT_SOFTWARE_VERSION_ID,
  * RDM_PID_BOOT_SOFTWARE_VERSION_LABEL. This file also includes getters and
- * setters for these function as appropriate.
+ * setters for these functions as appropriate.
  */
 #pragma once
 

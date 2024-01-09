@@ -5,7 +5,7 @@
  * PIDs in device control include RDM_PID_IDENTIFY_DEVICE, RDM_PID_RESET_DEVICE,
  * RDM_PID_POWER_STATE, RDM_PID_PERFORM_SELFTEST, RDM_PID_SELF_TEST_DESCRIPTION,
  * RDM_PID_CAPTURE_PRESET, and RDM_PID_PRESET_PLAYBACK. This file also includes
- * getters and setters for these function as appropriate.
+ * getters and setters for these functions as appropriate.
  */
 #pragma once
 

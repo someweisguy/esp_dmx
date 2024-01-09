@@ -4,7 +4,7 @@
  * @brief This file contains RDM information functions for the RDM responder.
  * The PIDs in RDM information include RDM_PID_SUPPORTED_PARAMETERS and
  * RDM_PID_PARAMTER_DESCRIPTION. This file also includes getters and setters for
- * these function as appropriate.
+ * these functions as appropriate.
  */
 #pragma once
 
