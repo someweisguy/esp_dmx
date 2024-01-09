@@ -473,6 +473,81 @@ typedef enum rdm_prefix_t {
   RDM_PREFIX_YOTTA = 0x1a
 } rdm_prefix_t;
 
+/** @brief Sensor type enums used in rdm_sensor_definition_t. Defines what the
+ * sensor measures, but not the units of the measurement.
+ */
+typedef enum rdm_sensor_type_t {
+  /** @brief The sensor measures temperature.*/
+  RDM_SENSOR_TYPE_TEMPERATURE = 0x00,
+  /** @brief The sensor measures electric voltage.*/
+  RDM_SENSOR_TYPE_VOLTAGE = 0x01,
+  /** @brief The sensor measures electric current.*/
+  RDM_SENSOR_TYPE_CURRENT = 0x02,
+  /** @brief The sensor measures frequency.*/
+  RDM_SENSOR_TYPE_FREQUENCY = 0x03,
+  /** @brief The sensor measures electric resistance, e.g. cable resistance.*/
+  RDM_SENSOR_TYPE_RESISTANCE = 0x04,
+  /** @brief The sensor measures power.*/
+  RDM_SENSOR_TYPE_POWER = 0x05,
+  /** @brief The sensor measures mass.*/
+  RDM_SENSOR_TYPE_MASS = 0x06,
+  /** @brief The sensor measures length.*/
+  RDM_SENSOR_TYPE_LENGTH = 0x07,
+  /** @brief The sensor measures area.*/
+  RDM_SENSOR_TYPE_AREA = 0x08,
+  /** @brief The sensor measures volume, e.g. the volume of smoke fluid.*/
+  RDM_SENSOR_TYPE_VOLUME = 0x09,
+  /** @brief The sensor measures density.*/
+  RDM_SENSOR_TYPE_DENSITY = 0x0a,
+  /** @brief The sensor measures velocity.*/
+  RDM_SENSOR_TYPE_VELOCITY = 0x0b,
+  /** @brief The sensor measures acceleration.*/
+  RDM_SENSOR_TYPE_ACCELERATION = 0x0c,
+  /** @brief The sensor measures force.*/
+  RDM_SENSOR_TYPE_FORCE = 0x0d,
+  /** @brief The sensor measures energy.*/
+  RDM_SENSOR_TYPE_ENERGY = 0x0e,
+  /** @brief The sensor measures pressure.*/
+  RDM_SENSOR_TYPE_PRESSURE = 0x0f,
+  /** @brief The sensor measures time.*/
+  RDM_SENSOR_TYPE_TIME = 0x10,
+  /** @brief The sensor measures angle.*/
+  RDM_SENSOR_TYPE_ANGLE = 0x11,
+  /** @brief The sensor measures X position, e.g. lamp position on truss.*/
+  RDM_SENSOR_TYPE_POSITION_X = 0x12,
+  /** @brief The sensor measures Y position.*/
+  RDM_SENSOR_TYPE_POSITION_Y = 0x13,
+  /** @brief The sensor measures Z position.*/
+  RDM_SENSOR_TYPE_POSITION_Z = 0x14,
+  /** @brief The sensor measures angular velocity, e.g. wind speed.*/
+  RDM_SENSOR_TYPE_ANGULAR_VELOCITY = 0x15,
+  /** @brief The sensor measures luminous intensity.*/
+  RDM_SENSOR_TYPE_LUMINOUS_INTENSITY = 0x16,
+  /** @brief The sensor measures luminous flux.*/
+  RDM_SENSOR_TYPE_LUMINOUS_FLUX = 0x17,
+  /** @brief The sensor measures illuminance.*/
+  RDM_SENSOR_TYPE_ILLUMINANCE = 0x18,
+  /** @brief The sensor measures red chrominance.*/
+  RDM_SENSOR_TYPE_CHROMINANCE_RED = 0x19,
+  /** @brief The sensor measures green chrominance.*/
+  RDM_SENSOR_TYPE_CHROMINANCE_GREEN = 0x1a,
+  /** @brief The sensor measures blue chrominance.*/
+  RDM_SENSOR_TYPE_CHROMINANCE_BLUE = 0x1b,
+  /** @brief The sensor measures contacts, e.g. switch inputs.*/
+  RDM_SENSOR_TYPE_CONTACTS = 0x1c,
+  /** @brief The sensor measures memory, e.g. ROM size.*/
+  RDM_SENSOR_TYPE_MEMORY = 0x1d,
+  /** @brief The sensor measures items, e.g. scroller gel frames.*/
+  RDM_SENSOR_TYPE_ITEMS = 0x1e,
+  /** @brief The sensor measures humidity.*/
+  RDM_SENSOR_TYPE_HUMIDITY = 0x1f,
+  /** @brief The sensor is a 16-bit counter.*/
+  RDM_SENSOR_TYPE_COUNTER_16BIT = 0x20,
+  /** @brief The sensor measures some other value, but does not have a
+     manufacturer-specific definition.*/
+  RDM_SENSOR_TYPE_OTHER = 0x21,
+} rdm_sensor_type_t;
+
 /** @brief Responders and controllers identify themselves with a 48-bit Unique
  * ID (UID). The UID consists of a 16-bit ESTA assigned manufacturer ID with a
  * 32-bit device ID.*/
@@ -695,7 +770,7 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_description_t {
 
 /**
  * @brief The RDM status message struct returned from a GET request to
- * RDM_PID_STATUS_MESSAGES. Used to report any informational, warning, or error 
+ * RDM_PID_STATUS_MESSAGES. Used to report any informational, warning, or error
  * messages which are reported by the device.
  */
 typedef struct __attribute__((packed)) rdm_status_message_t {
@@ -747,7 +822,7 @@ typedef struct __attribute__((packed)) rdm_sensor_definition_t {
   /** @brief Type is an unsigned 8-bit value enumerated in rdm_sensor_type_t. It
      defines the type of data that is measured by the sensor.*/
   uint8_t type;
-  /** @brief Unit is an unsigned 8-bit value enumerated in rdm_sensor_unit_t*/
+  /** @brief Unit is an unsigned 8-bit value enumerated in rdm_unit_t*/
   uint8_t unit;
   /** @brief Prefix is an unsigned 8-bit value enumerated in rdm_prefix_t. It
      defines the SI unit of the sensor data.*/
