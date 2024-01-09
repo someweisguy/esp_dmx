@@ -693,33 +693,95 @@ typedef struct __attribute__((packed)) rdm_dmx_personality_description_t {
   char description[RDM_ASCII_SIZE_MAX];  // The description of the personality.
 } rdm_dmx_personality_description_t;
 
-// TODO: docs
+/**
+ * @brief The RDM status message struct returned from a GET request to
+ * RDM_PID_STATUS_MESSAGES. Used to report any informational, warning, or error 
+ * messages which are reported by the device.
+ */
 typedef struct __attribute__((packed)) rdm_status_message_t {
+  /** @brief In a system containing sub-devices, this field shall be used to
+     indicate the sub-device to which the status message belongs. If the status
+     message does not reference a particular sub-device, the field shall be set
+     to 0x0000 to reference the root device.*/
   uint16_t sub_device;
+  /** @brief The type field is used to identify the severity of the condition.
+     The message shall be reported with a status type enumerated in
+     rdm_status_t.*/
   uint8_t type;
+  /** @brief Status message IDs witthin the range of 0x000 and 0x7fff
+     (inclusive) are reserved for publicly defined status messages. These are
+     enumerated in rdm_status_id_t. Manufacturer specific messages are in the
+     range 0x8000 and 0xffdf (inclusive). Each manufacturer specific status ID
+     shall have a unique meaning which shall be consistent across all products
+     having a given manufacturer ID.*/
   uint16_t id;
   union {
     struct {
-      uint16_t data1;
-      uint16_t data2;
+      /** @brief Each status message supports the return of two separate data
+         values relevant to the context of the specific message. The data value
+         for ESTA public status messages is used to identify a property within
+         the device to which the message corresponds. Each data value shall be a
+         signed integer.*/
+      int16_t data1;
+      /** @brief Each status message supports the return of two separate data
+         values relevant to the context of the specific message. The data value
+         for ESTA public status messages is used to identify a property within
+         the device to which the message corresponds. Each data value shall be a
+         signed integer.*/
+      int16_t data2;
     };
-    uint16_t data[2];
+    /** @brief Each status message supports the return of two separate data
+       values relevant to the context of the specific message. The data value
+       for ESTA public status messages is used to identify a property within the
+       device to which the message corresponds. Each data value shall be a
+       signed integer.*/
+    int16_t data[2];
   };
 } rdm_status_message_t;
 
 // TODO: docs
 typedef struct __attribute__((packed)) rdm_sensor_definition_t {
+  /** @brief The sensor number requested is in the range from 0x00 to 0xfe
+     (inclusive).*/
   uint8_t num;
+  /** @brief Type is an unsigned 8-bit value enumerated in rdm_sensor_type_t. It
+     defines the type of data that is measured by the sensor.*/
   uint8_t type;
+  /** @brief Unit is an unsigned 8-bit value enumerated in rdm_sensor_unit_t*/
   uint8_t unit;
+  /** @brief Prefix is an unsigned 8-bit value enumerated in rdm_prefix_t. It
+     defines the SI unit of the sensor data.*/
   uint8_t prefix;
   struct {
+    /** @brief This is a 2's compliment signed 16-bit value that represents the
+       lowest value the sensor can report. A value of -32768 indicates that the
+       minimum is not defined.*/
     int16_t minimum;
+    /** @brief This is a 2's compliment signed 16-bit value that represents the
+       highest value the sensor can report. This also defines the maximum
+       capacity. A value of 32767 indicates that the maximum is not defined.*/
     int16_t maximum;
-  } range, normal;
+  } range;
+  struct {
+    /** @brief This is a 2's compliment signed 16-bit value that represents the
+       lowest value for which the sensor is in normal operation. A value of
+       -32768 indicates that the minimum is not defined.*/
+    int16_t minimum;
+    /** @brief This is a 2's compliment signed 16-bit value that represents the
+       highest value for which the sensor is in normal operation. A value of
+       32767 indicates that the maximum is not defined.*/
+    int16_t maximum;
+  } normal;
+  /** @brief This bit shall be set to 1 if this sensor supports recording
+     data. This feature is optional. */
   uint8_t recorded_value_support : 1;
+  /** @brief This bit shall be set to 1 if this sensor supports the highest or
+     lowest detected value. This feature is optional.*/
   uint8_t lowest_highest_detected_value_support : 1;
-  uint8_t : 6;
+  uint8_t : 6;  // Reserved. Should be set to 0.
+  /** @brief The description field is used to describe the function of the
+     sensor. This text shall be variable up to 32 characters in length, not
+     including the null terminator.*/
   char description[RDM_ASCII_SIZE_MAX];
 } rdm_sensor_definition_t;
 
