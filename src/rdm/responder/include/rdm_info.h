@@ -16,11 +16,36 @@
 extern "C" {
 #endif
 
-// TODO docs
+/**
+ * @brief Registers the RDM_PID_SUPPORTED_PARAMETERS parameter. This parameter
+ * is required when supported parameters beyond the minimum required parameters.
+ * This function is automatically called when installing the DMX driver.
+ *
+ * @param dmx_num The DMX port number.
+ * @param cb A callback which is called upon receiving a request for this PID.
+ * @param[inout] context A pointer to context which is used in the user
+ * callback.
+ * @return true if the PID response was registered.
+ * @return false if there is not enough memory to register additional
+ * parameters.
+ */
 bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
                                        void *context);
 
-// TODO docs
+/**
+ * @brief Registers the RDM_PID_PARAMETER_DESCRIPTION parameter. This parameter
+ * provides RDM controllers with a description of the specified parameter. It is
+ * designed to provide RDM controllers with information on non-standard RDM
+ * parameters.
+ *
+ * @param dmx_num The DMX port number.
+ * @param cb A callback which is called upon receiving a request for this PID.
+ * @param[inout] context A pointer to context which is used in the user
+ * callback.
+ * @return true if the PID response was registered.
+ * @return false if there is not enough memory to register additional
+ * parameters.
+ */
 bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
                                         void *context);
 
