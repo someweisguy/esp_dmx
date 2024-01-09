@@ -41,6 +41,7 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
 bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                         rdm_disc_mute_t *mute, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dest_uid != NULL, 0, "dest_uid is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   rdm_pid_t pid = RDM_PID_DISC_MUTE;
@@ -50,6 +51,7 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 bool rdm_send_disc_un_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                            rdm_disc_mute_t *mute, rdm_ack_t *ack) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dest_uid != NULL, 0, "dest_uid is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
