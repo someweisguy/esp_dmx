@@ -70,28 +70,35 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
 };
 
-// TODO: docs
+/**
+ * @brief The DMX parameter type. Contains information necessary for maintaining
+ * parameter information as well as RDM response information if necessary.
+ */
 typedef struct dmx_parameter_t {
-  rdm_pid_t pid;
-  size_t size;
-  void *data;
-  bool is_heap_allocated;
-  uint8_t storage_type;
-  const rdm_parameter_definition_t *definition;
-  rdm_callback_t callback;
-  void *context;
+  rdm_pid_t pid;  // The parameter ID of the parameter.
+  size_t size;    // The size of the parameter in bytes.
+  void *data;     // A pointer to the data pertaining to the parameter.
+  bool is_heap_allocated;  // True if the parameter data is heap allocated.
+  uint8_t storage_type;  // The storage type of the parameter data. Determines if the parameter is non-volatile or not.
+  const rdm_parameter_definition_t *definition;  // The RDM definition of the parameter. Is only needed for RDM responders.
+  rdm_callback_t callback;  // A user callback for the parameter. Is only needed for RDM responders.
+  void *context;            // Context for the user callback.
 } dmx_parameter_t;
 
+/**
+ * @brief The DMX device type. Holds an array of parameters associated with the
+ * device as well as a linked-list style pointer to the next DMX device.
+ */
 typedef struct dmx_device_t {
-  dmx_device_num_t num;
-  struct dmx_device_t *next;
+  dmx_device_num_t num;  // The device number.
+  struct dmx_device_t *next;  // A pointer to the next device.
   
   // Device information
   uint16_t model_id;
   uint16_t product_category;
   uint32_t software_version_id;
 
-  dmx_parameter_t parameters[];
+  dmx_parameter_t parameters[];  // An array of parameters associated with this device.
 } dmx_device_t;
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
@@ -129,33 +136,48 @@ typedef struct dmx_driver_t {
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
 
+  // RDM driver information
   struct dmx_driver_rdm_t {
     uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
   } rdm;
 
+  // DMX device information
   struct dmx_driver_device_t {
     struct dmx_driver_parameter_count_t {
-      uint32_t root;
-      uint32_t sub_devices;
-      uint32_t staged;
-    } parameter_count;
-    dmx_device_t root;
+      uint32_t root;  // The number of parameters supported by the root device.
+      uint32_t sub_devices;  // The number of parameters supported by sub-devices.
+      uint32_t staged;  // The number of non-volatile parameters waiting to be committed to non-volatile storage.
+    } parameter_count;  // Parameter counts for various purposes.
+    dmx_device_t root;  // The root device of the RDM driver.
   } device;
 } dmx_driver_t;
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
-// TODO:
+// TODO: implement dmx_driver_add_device()
 // dmx_driver_add_device(dmx_num, device_num);
 
-// TODO: docs
+/**
+ * @brief Gets a pointer to the desired device, if it exists.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param device_num The sub-device number.
+ * @return A pointer to the device, or NULL on failure.
+ */
 dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
                                     dmx_device_num_t device_num);
 
-// TODO:
+// TODO: implement dmx_driver_add_parameter()?
 // dmx_driver_add_parameter(dmx_num, device_num, pid, type, *data, size);
 
-// TODO: docs
+/**
+ * @brief Gets a pointer to the desired parameter, if it exists.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param device_num The sub-device number.
+ * @param pid The parameter ID.
+ * @return A pointer to the parameter, or NULL on failure.
+ */
 dmx_parameter_t *dmx_driver_get_parameter(dmx_port_t dmx_num,
                                           dmx_device_num_t device_num,
                                           rdm_pid_t pid);
