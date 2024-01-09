@@ -21,6 +21,16 @@ extern "C" {
 int dmx_get_sub_device_count(dmx_port_t dmx_num);
 
 /**
+ * @brief Returns true if the sub-device exists.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param device_num The sub-device number.
+ * @return true if the sub-device exists.
+ * @return false if it does not exist.
+ */
+bool dmx_sub_device_exists(dmx_port_t dmx_num, dmx_device_num_t device_num);
+
+/**
  * @brief Allocates and adds a parameter to the DMX driver. The parameter is
  * heap-allocated. This function is not thread-safe.
  *

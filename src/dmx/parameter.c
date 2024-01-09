@@ -67,6 +67,16 @@ int dmx_get_sub_device_count(dmx_port_t dmx_num) {
   return count;
 }
 
+bool dmx_sub_device_exists(dmx_port_t dmx_num, dmx_device_num_t device_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(device_num < RDM_SUB_DEVICE_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  dmx_device_t *device = dmx_driver_get_device(dmx_num, device_num);
+
+  return device != NULL;
+}
+
 bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                                rdm_pid_t pid, bool non_volatile,
                                const void *init, size_t size) {
