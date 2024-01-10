@@ -233,6 +233,30 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
   // Disable UART module
   dmx_uart_deinit(dmx_num);
 
+  // Free parameters
+  dmx_device_t *device = &driver->device.root;
+  int param_count = driver->device.parameter_count.root;
+  do {
+    for (int i = 0; i < param_count; ++i) {
+      if (device->parameters[i].pid == 0) {
+        break;  // No more parameters remaining
+      } else if (!device->parameters[i].is_heap_allocated) {
+        continue;  // Nothing to free
+      }
+      free(device->parameters[i].data);
+    }
+    param_count = driver->device.parameter_count.sub_devices;
+    device = device->next;   
+  } while (device != NULL);
+
+  // Free devices
+  device = driver->device.root.next;
+  while (device != NULL) {
+    dmx_device_t *next_device = device->next;
+    free(device);
+    device = next_device;
+  } 
+
   // Free driver
   heap_caps_free(driver);
   dmx_driver[dmx_num] = NULL;
