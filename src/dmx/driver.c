@@ -235,8 +235,10 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
 
   // Free parameters
   dmx_device_t *device = &driver->device.root;
-  int param_count = driver->device.parameter_count.root;
   do {
+    int param_count = device->num == RDM_SUB_DEVICE_ROOT
+                          ? driver->device.parameter_count.root
+                          : driver->device.parameter_count.sub_devices;
     for (int i = 0; i < param_count; ++i) {
       if (device->parameters[i].pid == 0) {
         break;  // No more parameters remaining
@@ -245,12 +247,11 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
       }
       free(device->parameters[i].data);
     }
-    param_count = driver->device.parameter_count.sub_devices;
     device = device->next;   
   } while (device != NULL);
 
   // Free devices
-  device = driver->device.root.next;
+  device = driver->device.root.next;  // Can't free root device
   while (device != NULL) {
     dmx_device_t *next_device = device->next;
     free(device);
