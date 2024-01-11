@@ -465,7 +465,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
 
   // Update driver flags and increment the RDM transaction number if applicable
   driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
-  if (is_rdm) {
+  if (is_rdm && rdm_cc_is_request(header.cc)) {
     ++driver->rdm.tn;
   }
 

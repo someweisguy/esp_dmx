@@ -74,7 +74,8 @@ size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 /**
  * @brief Get the transaction number of the RDM controller. This number is
  * included in every RDM controller request. It is incremented after every RDM
- * message is sent.
+ * message is sent. This function should only be used when the port is being
+ * used as an RDM controller.
  *
  * @param dmx_num The DMX port number.
  * @return The current RDM transaction number or 0 on failure.

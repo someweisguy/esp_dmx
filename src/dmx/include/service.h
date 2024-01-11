@@ -67,7 +67,6 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_IN_BREAK = BIT4,  // The driver is in a DMX break.
   DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
   DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
-  DMX_FLAGS_DRIVER_BOOT_LOADER = BIT7,  // An error occurred with the driver.
 };
 
 /**
@@ -132,7 +131,10 @@ typedef struct dmx_driver_t {
 
   // RDM driver information
   struct dmx_driver_rdm_t {
-    uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM packet sent.
+    union {
+      uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM request sent.
+      uint8_t boot_loader;  // The RDM responder boot-loader flag. True when when the device is incapable of normal operation until receiving a firmware upload.
+    };
   } rdm;
 
   // DMX device information

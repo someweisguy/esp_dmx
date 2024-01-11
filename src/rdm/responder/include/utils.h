@@ -97,7 +97,26 @@ size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
                               int page);
 */
 
-// TODO: docs, should this function be here?
+/**
+ * @brief Gets the RDM boot-loader flag. The boot-loader flag is true when the
+ * device is incapable of normal operation until receiving a firmware upload.
+ * This function should only be used when the port is being used as an RDM
+ * responder.
+ *
+ * @param dmx_num The DMX port number.
+ * @return true if the boot-loader flag is set.
+ * @return false if the flag is not set.
+ */
+bool rdm_get_boot_loader(dmx_port_t dmx_num);
+
+/**
+ * @brief Sets the RDM boot-loader flag to true. The boot-loader flag is true
+ * when the device is incapable of normal operation until receiving a firmware
+ * upload. This function should only be used when the port is being used as an
+ * RDM responder.
+ *
+ * @param dmx_num The DMX port number.
+ */
 void rdm_set_boot_loader(dmx_port_t dmx_num);
 
 size_t rdm_simple_response_handler(dmx_port_t dmx_num,

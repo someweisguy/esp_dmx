@@ -70,12 +70,24 @@ size_t rdm_write_ack_overflow(dmx_port_t dmx_num, const rdm_header_t *header,
   return 0;  // TODO: implement write_ack_overflow()
 }
 
+bool rdm_get_boot_loader(dmx_port_t dmx_num) {
+  assert(dmx_num < DMX_NUM_MAX);
+  assert(dmx_driver_is_installed(dmx_num));
+
+  bool boot_loader;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  boot_loader = dmx_driver[dmx_num]->rdm.boot_loader;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return boot_loader;
+}
+
 void rdm_set_boot_loader(dmx_port_t dmx_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  dmx_driver[dmx_num]->flags |= DMX_FLAGS_DRIVER_BOOT_LOADER;
+  dmx_driver[dmx_num]->rdm.boot_loader = true;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 }
 
