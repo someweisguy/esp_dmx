@@ -61,8 +61,7 @@ bool dmx_sniffer_is_enabled(dmx_port_t dmx_num);
  * @return true if data was copied.
  * @return false if data was not copied.
  */
-bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata,
-                          TickType_t wait_ticks);
+bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata);
 
 #ifdef __cplusplus
 }

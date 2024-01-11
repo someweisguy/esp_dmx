@@ -42,10 +42,6 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_MAB) {
       driver->sniffer.metadata.mab_len = now - driver->sniffer.last_pos_edge_ts;
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
-
-      // Send the sniffer data to the queue
-      xQueueOverwriteFromISR(driver->sniffer.metadata_queue,
-                             &driver->sniffer.metadata, &task_awoken);
     }
     driver->sniffer.last_neg_edge_ts = now;
   }

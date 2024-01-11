@@ -146,7 +146,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // DMX sniffer configuration
   // The driver->metadata field is left uninitialized
-  driver->sniffer.metadata_queue = NULL;
   driver->sniffer.last_pos_edge_ts = -1;
   driver->sniffer.last_neg_edge_ts = -1;
 
