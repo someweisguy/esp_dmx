@@ -85,7 +85,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   // Allocate the DMX driver
   const size_t driver_size =
       sizeof(dmx_driver_t) +
-      (sizeof(dmx_device_t) * config->root_device_parameter_count);
+      (sizeof(dmx_parameter_t) * config->root_device_parameter_count);
   dmx_driver_t *driver = heap_caps_malloc(driver_size, MALLOC_CAP_8BIT);
   DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
