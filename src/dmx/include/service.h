@@ -69,6 +69,13 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
 };
 
+enum dmx_parameter_type_t {
+  DMX_PARAMETER_TYPE_NULL,
+  DMX_PARAMETER_TYPE_DYNAMIC,
+  DMX_PARAMETER_TYPE_STATIC,
+  DMX_PARAMETER_TYPE_NON_VOLATILE,
+};
+
 /**
  * @brief The DMX parameter type. Contains information necessary for maintaining
  * parameter information as well as RDM response information if necessary.
@@ -77,8 +84,7 @@ typedef struct dmx_parameter_t {
   rdm_pid_t pid;  // The parameter ID of the parameter.
   size_t size;    // The size of the parameter in bytes.
   void *data;     // A pointer to the data pertaining to the parameter.
-  bool is_heap_allocated;  // True if the parameter data is heap allocated.
-  uint8_t storage_type;  // The storage type of the parameter data. Determines if the parameter is non-volatile or not.
+  uint8_t type;  // The storage type of the parameter data. Determines if the parameter is non-volatile or not.
   const rdm_parameter_definition_t *definition;  // The RDM definition of the parameter. Is only needed for RDM responders.
   rdm_callback_t callback;  // A user callback for the parameter. Is only needed for RDM responders.
   void *context;            // Context for the user callback.
@@ -163,7 +169,8 @@ dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
                                     dmx_device_num_t device_num);
 
 // TODO: implement dmx_driver_add_parameter()?
-// dmx_driver_add_parameter(dmx_num, device_num, pid, type, *data, size);
+bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
+                              rdm_pid_t pid, int type, void *data, size_t size);
 
 /**
  * @brief Gets a pointer to the desired parameter, if it exists.
