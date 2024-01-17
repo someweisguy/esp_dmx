@@ -10,6 +10,7 @@
 #include "dmx/include/device.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/types.h"
+#include "rdm/include/types.h"
 
 #ifdef __cplusplus
 extern "C" {
