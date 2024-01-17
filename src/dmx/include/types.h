@@ -32,6 +32,12 @@ extern "C" {
   (!((sc >= 0x92 && sc <= 0xa9) || (sc >= 0xab && sc <= 0xcb) || \
      (sc == 0xcd) || (sc >= 0xf0 && sc <= 0xf7)))
 
+/** @brief Evaluates to true if the start code is one of the three start codes
+ * used in RDM. The start codes used in RDM are one of RDM_SC, RDM_PREAMBLE, or
+ * RDM_DELIMITER.*/
+#define dmx_start_code_is_rdm(sc) \
+  (sc == RDM_SC || sc == RDM_PREAMBLE || sc == RDM_DELIMITER)
+
 /** @brief Evaluates to true if the baud rate is within DMX specification.*/
 #define dmx_baud_rate_is_valid(baud) \
   (baud >= DMX_BAUD_RATE_MIN && baud <= DMX_BAUD_RATE_MAX)
