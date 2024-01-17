@@ -84,6 +84,8 @@ typedef struct dmx_parameter_t {
   rdm_pid_t pid;  // The parameter ID of the parameter.
   size_t size;    // The size of the parameter in bytes.
   void *data;     // A pointer to the data pertaining to the parameter.
+  uint8_t storage_type;  // FIXME: remove
+  bool is_heap_allocated;  // FIXME: remove
   uint8_t type;  // The storage type of the parameter data. Determines if the parameter is non-volatile or not.
   const rdm_parameter_definition_t *definition;  // The RDM definition of the parameter. Is only needed for RDM responders.
   rdm_callback_t callback;  // A user callback for the parameter. Is only needed for RDM responders.
