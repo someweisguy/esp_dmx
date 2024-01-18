@@ -30,6 +30,14 @@ static struct dmx_uart_t {
 #endif
 };
 
+enum {
+  DMX_PACKET_TYPE_INVALID,
+  DMX_PACKET_TYPE_UNKNOWN,
+  DMX_PACKET_TYPE_DMX,
+  DMX_PACKET_TYPE_RDM_STANDARD,
+  DMX_PACKET_TYPE_RDM_DISC_RESPONSE,
+};
+
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = arg;
@@ -42,22 +50,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ALL) {
-      // Stop the DMX driver hardware timer if it is running
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      dmx_timer_stop(dmx_num);
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-
       // Read data into the DMX buffer if there is enough space
-      const bool is_in_break = (intr_flags & DMX_INTR_RX_BREAK);
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      const bool is_in_break = (intr_flags & DMX_INTR_RX_BREAK) ? 1 : 0;
       if (driver->dmx.head >= 0 && driver->dmx.head < DMX_PACKET_SIZE_MAX) {
         int read_len = DMX_PACKET_SIZE_MAX - driver->dmx.head - is_in_break;
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[driver->dmx.head],
                              &read_len);
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.head += read_len;
-        if (driver->dmx.head > driver->dmx.rx_size) {
-          driver->dmx.rx_size = driver->dmx.head;  // Update expected rx_size
-        }
       } else {
         if (driver->dmx.head > 0) {
           // Record the number of slots received for error reporting
@@ -65,52 +66,115 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         }
         dmx_uart_rxfifo_reset(dmx_num);
       }
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
 
       // Handle DMX break condition
       if (is_in_break) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        // Handle receiveing a valid packet with smaller than expected size
-        if (!(driver->flags & DMX_FLAGS_DRIVER_IS_IDLE) &&
-            driver->dmx.head > 0 && driver->dmx.head < DMX_PACKET_SIZE_MAX) {
-          driver->dmx.rx_size = driver->dmx.head - 1;
-        }
-
-        // Set driver flags
+        driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
         driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
         driver->dmx.head = 0;  // Driver is ready for data
+        driver->dmx.is_stale = false;
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        continue;  // Nothing else to do on DMX break
+      } else if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       }
 
-      // Set last slot timestamp, DMX break flag, and clear interrupts
-      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->dmx.last_slot_ts = now;
-      if (is_in_break) {
-        driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
-      } else {
-        driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
-      }
-      const int dmx_flags = driver->flags;
-      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
-
-      // Don't process data if end-of-packet condition already reached
-      if (dmx_flags & DMX_FLAGS_DRIVER_IS_IDLE) {
+      // Guard against notifying multiple times for the same packet
+      if (driver->dmx.is_stale) {
         continue;
       }
 
-      // Continue loop if an end-of-packet condition has not been met
-      dmx_err_t err = DMX_OK;
+      int packet_type = DMX_PACKET_TYPE_UNKNOWN;
+
+      // Process the data depending on the type of packet that was received
+      dmx_err_t err;
+      bool packet_is_complete;
       if (intr_flags & DMX_INTR_RX_ERR) {
+        packet_is_complete = true;
         err = intr_flags & DMX_INTR_RX_FIFO_OVERFLOW
                   ? DMX_ERR_UART_OVERFLOW   // UART overflow
                   : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
-      } else if ((driver->dmx.data[0] != RDM_SC &&
-                  driver->dmx.data[0] != RDM_PREAMBLE &&
-                  driver->dmx.data[0] != RDM_DELIMITER &&
-                  driver->dmx.head < driver->dmx.rx_size) ||
-                 !(driver->dmx.head > 16 && rdm_read_header(dmx_num, NULL))) {
-        // DMX packet is too small or RDM packet is not complete
+      } else {
+        // Determine the type of the packet that was received
+        if (packet_type == DMX_PACKET_TYPE_UNKNOWN) {
+          const uint8_t sc = driver->dmx.data[0];  // DMX start-code.
+          if (sc == RDM_SC) {
+            packet_type = DMX_PACKET_TYPE_RDM_STANDARD;
+          } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
+            packet_type = DMX_PACKET_TYPE_RDM_DISC_RESPONSE;
+          } else {
+            packet_type = DMX_PACKET_TYPE_DMX;
+          }
+        }
+        err = DMX_OK;
+      }
+      while (err == DMX_OK) {
+        if (packet_type == DMX_PACKET_TYPE_RDM_STANDARD) {
+          // Parse a standard RDM packet
+          size_t msg_len;
+          if (driver->dmx.head < sizeof(rdm_header_t) + 2) {
+            packet_is_complete = false;
+            break;  // Haven't received full RDM header and checksum yet
+          } else if (driver->dmx.data[1] != RDM_SUB_SC ||
+                     (msg_len = driver->dmx.data[2]) < sizeof(rdm_header_t) ||
+                     driver->dmx.data[23] >= RDM_PD_SIZE_MAX) {
+            packet_type = DMX_PACKET_TYPE_INVALID;
+            continue;  // Packet is malformed - treat it as DMX
+          } else if (driver->dmx.head < msg_len + 2) {
+            packet_is_complete = false;
+            break;  // Haven't received full RDM packet and checksum yet
+          } else if (!rdm_read_header(dmx_num, NULL)) {
+            packet_type = DMX_PACKET_TYPE_INVALID;
+            continue;  // Packet is malformed - treat it as DMX
+          } else {
+            packet_is_complete = true;
+            break;
+          }
+        } else if (packet_type == DMX_PACKET_TYPE_RDM_DISC_RESPONSE) {
+          // Parse an RDM discovery response packet
+          if (driver->dmx.head < 17) {
+            packet_is_complete = false;
+            break;  // Haven't received the minimum packet size
+          }
+
+          // Get the delimiter index
+          uint8_t delimiter_idx = 0;
+          for (; delimiter_idx <= 7; ++delimiter_idx) {
+            const uint8_t slot_value = driver->dmx.data[delimiter_idx];
+            if (slot_value != RDM_PREAMBLE) {
+              if (slot_value != RDM_DELIMITER) {
+                delimiter_idx = -1;  // Force invalid packet type
+              }
+              break;
+            }
+          }
+          if (delimiter_idx > 8) {
+            packet_type = DMX_PACKET_TYPE_INVALID;
+            continue;  // Packet is malformed - treat it as DMX
+          }
+          
+          // Process RDM discovery response packet
+          if (driver->dmx.head < delimiter_idx + 17) {
+            packet_is_complete = false;
+            break;  // Haven't received full RDM_PID_DISC_UNIQUE_BRANCH response
+          } else if (!rdm_read_header(dmx_num, NULL)) {
+            packet_type = DMX_PACKET_TYPE_INVALID;
+            continue;  // Packet is malformed - treat it as DMX
+          } else {
+            packet_is_complete = true;
+            break;
+          }
+        } else {
+          // Parse a standard DMX packet
+          packet_is_complete = (driver->dmx.head >= driver->dmx.rx_size);
+          break;
+        }
+      }
+      if (!packet_is_complete) {
         continue;
       }
 
