@@ -51,7 +51,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ALL) {
       // Read data into the DMX buffer if there is enough space
-      const bool is_in_break = (intr_flags & DMX_INTR_RX_BREAK) ? 1 : 0;
+      const int is_in_break = (intr_flags & DMX_INTR_RX_BREAK) ? 1 : 0;
+      if (is_in_break) {
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        driver->dmx.head = 0;  // Driver is ready for data
+        driver->dmx.is_stale = false;
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      }
+
       if (driver->dmx.head >= 0 && driver->dmx.head < DMX_PACKET_SIZE_MAX) {
         int read_len = DMX_PACKET_SIZE_MAX - driver->dmx.head - is_in_break;
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -88,6 +95,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         continue;
       }
 
+      // TODO: move this value to the driver?
       int packet_type = DMX_PACKET_TYPE_UNKNOWN;
 
       // Process the data depending on the type of packet that was received
