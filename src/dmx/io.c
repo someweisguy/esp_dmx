@@ -211,10 +211,11 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     driver->task_waiting = this_task;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-    // TODO: set an early timeout depending on the last DMX/RDM packet
+    // FIXME: set an early timeout depending on the last DMX/RDM packet
 
     // Wait for the DMX driver to notify this task that DMX is ready
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
+    dmx_timer_stop(dmx_num);
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     packet_size = driver->dmx.head;
     driver->task_waiting = NULL;
@@ -241,7 +242,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       return packet_size;
     }
   } else {
-    // TODO: Fix condition where DMX error can be lost if no task is waiting
+    // TODO: Fix condition where DMX error can be lost if no task is waiting?
     err = DMX_OK;
   }
   if (packet_size < 0) {
@@ -249,8 +250,10 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   }
 
   // Parse DMX packet data
+  rdm_pid_t pid;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   driver->dmx.status = DMX_STATUS_STALE;  // Prevent parsing old data
+  pid = driver->dmx.rdm_pid;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (packet != NULL) {
     if (packet_size > 0) {
@@ -262,263 +265,85 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     }
     packet->err = err;
     packet->size = packet_size;
+    packet->is_rdm = pid;  // FIXME: driver->dmx.rdm_pid should be parsed here
   }
 
-  // TODO: parse RDM
-  if (packet != NULL) {
-    packet->is_rdm = 0;
-  }
-
-  xSemaphoreGiveRecursive(driver->mux);
-  dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
-  return packet_size;
-}
-
-size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
-                   TickType_t wait_ticks) {
-  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
-  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
-  DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
-
-  dmx_driver_t *const driver = dmx_driver[dmx_num];
-
-  // Block until mutex is taken and driver is idle, or until a timeout
-  TimeOut_t timeout;
-  vTaskSetTimeOutState(&timeout);
-  if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
-      (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
-    if (packet != NULL) {
-      packet->err = DMX_ERR_TIMEOUT;
-      packet->sc = -1;
-      packet->size = 0;
-      packet->is_rdm = 0;
-    }
-    return 0;
-  } else if (!dmx_wait_sent(dmx_num, wait_ticks) ||
-             (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
+  // Return early if an error occurred
+  if (err != DMX_OK) {
     xSemaphoreGiveRecursive(driver->mux);
-    if (packet != NULL) {
-      packet->err = DMX_ERR_TIMEOUT;
-      packet->sc = -1;
-      packet->size = 0;
-      packet->is_rdm = 0;
-    }
-    return 0;
-  }
-
-  // Set the RTS pin to enable reading from the DMX bus
-  if (dmx_uart_get_rts(dmx_num) == 0) {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
-    driver->dmx.status = DMX_STATUS_NOT_READY;
-    driver->dmx.head = -1;  // Wait for DMX break before reading data
-    driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-    dmx_uart_set_rts(dmx_num, 1);
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  }
-
-  /*
-  if the received packet is DMX, then we can't be sure that the packet is valid 
-  */
-
-  size_t size = 512;
-
-  // Update the receive size only if it has changed
-  if (size != driver->dmx.rx_size) {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->dmx.rx_size = size;
-    if (!driver->dmx.is_rdm && driver->dmx.head > 0) {
-      // It is necessary to revalidate if the DMX data is ready
-      if (driver->dmx.head >= driver->dmx.rx_size) {
-        driver->dmx.status = DMX_STATUS_READY;
-      } else {
-        driver->dmx.status = DMX_STATUS_NOT_READY;
-      }
-    }
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  }
-
-
-
-  // TODO: describe this code block
-  dmx_err_t err;
-  int dmx_head;
-  int dmx_status;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  dmx_head = driver->dmx.head;
-  dmx_status = driver->dmx.status;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (wait_ticks == 0) {
-    // The task cannot block
-    if (dmx_status != DMX_STATUS_READY || dmx_head < size) {
-      // Not enough DMX data has been received yet - return early
-      if (packet != NULL) {
-        packet->err = DMX_ERR_TIMEOUT;
-        if (dmx_head > 0) {
-          taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-          packet->sc = driver->dmx.data[0];
-          taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-        } else {
-          packet->sc = -1;
-        }
-        packet->size = dmx_head;
-        packet->is_rdm = 0;
-      }
-      xSemaphoreGiveRecursive(driver->mux);
-      dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
-      return dmx_head >= 0 ? dmx_head : 0;
-    }
-  } else {
-    // The task is allowed to block
-    if (dmx_status == DMX_STATUS_STALE || dmx_head < size) {
-      // Not enough DMX data has been received yet - block the task
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->task_waiting = xTaskGetCurrentTaskHandle();
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-      // Check for RDM early timeout and set a timer if appropriate
-      // TODO
-
-      // Wait for a task notification
-      bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->task_waiting = NULL;
-      dmx_head = driver->dmx.head;          // Update after blocking
-      dmx_status = driver->dmx.status;      // Update after blocking
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-      if (!notified) {
-        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-        if (packet != NULL) {
-          packet->err = DMX_ERR_TIMEOUT;
-          if (dmx_head > 0) {
-            taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-            packet->sc = driver->dmx.data[0];
-            taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-          } else {
-            packet->sc = -1;
-          }
-          packet->size = dmx_head;
-          packet->is_rdm = 0;
-        }
-        xSemaphoreGiveRecursive(driver->mux);
-        dmx_parameter_commit(dmx_num);  // Commit pending parameters
-        return dmx_head >= 0 ? dmx_head : 0;
-      }
-    }
-  }
-
-  // Return early if packet size is smaller than re
-  if (dmx_head < size) {
-    xSemaphoreGiveRecursive(driver->mux);
-    if (packet != NULL) {
-      packet->err = DMX_ERR_TIMEOUT;
-      packet->sc = -1;
-      packet->size = 0;
-      packet->is_rdm = 0;
-    }
-    dmx_parameter_commit(dmx_num);  // Commit pending parameters
-    return 0;
-  }
-  
-  // DMX data is stale now that it may be received by the user
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  driver->dmx.status = DMX_STATUS_STALE;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-  // Parse DMX data packet
-  uint32_t packet_size = dmx_head >= 0 ? dmx_head : 0;
-  if (packet_size == -1) {
-    packet_size = 0;
-  }
-  if (packet != NULL) {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    packet->sc = packet_size > 0 ? driver->dmx.data[0] : -1;
-    driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    packet->err = err;
-    packet->size = packet_size;
-  }
-
-  // Return early if the no data was received
-  if (packet_size == 0) {
-    xSemaphoreGiveRecursive(driver->mux);
-    if (packet != NULL) {
-      packet->is_rdm = 0;
-    }
-    dmx_parameter_commit(dmx_num);
+    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
     return packet_size;
-  }
-
-  // Validate checksum and get the packet header
-  rdm_header_t header;
-  if (!rdm_read_header(dmx_num, &header)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    if (packet != NULL) {
-      packet->is_rdm = 0;
-    }
-    return packet_size;
-  }
-
-  // Record the RDM PID
-  if (packet != NULL) {
-    packet->is_rdm = header.pid;
   }
 
   // TODO: Return early if RDM is disabled
 
-  // Validate that the packet targets this device and is a request
-  if (!rdm_uid_is_target(rdm_uid_get(dmx_num), &header.dest_uid) ||
-      !rdm_cc_is_request(header.cc)) {
+  // Return early if the packet isn't a request or this device isn't addressed
+  int rdm_flags;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  rdm_flags = driver->dmx.is_rdm;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if ((rdm_flags & (DMX_TYPE_IS_REQUEST | DMX_TYPE_IS_ADDRESSEE)) !=
+      (DMX_TYPE_IS_REQUEST | DMX_TYPE_IS_ADDRESSEE)) {
     xSemaphoreGiveRecursive(driver->mux);
+    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
     return packet_size;
   }
 
+  rdm_header_t header;
+  rdm_read_header(dmx_num, &header);
+
+  // Update PID repeat counter - used for PIDs that ACK overflow
+  if (driver->dmx.rdm_pid == header.pid) {
+    ++driver->dmx.pid_repeat_count;
+  } else {
+    driver->dmx.rdm_pid = header.pid;
+    driver->dmx.pid_repeat_count = 0;
+  }
+
   // Get parameter definition
-  size_t resp;  // Size of the response packet
+  size_t reply;  // Size of the response packet
   const rdm_parameter_definition_t *def =
       rdm_definition_get(dmx_num, header.sub_device, header.pid);
   if (def == NULL) {
     // Unknown PID
-    resp = rdm_write_nack_reason(dmx_num, &header, RDM_NR_UNKNOWN_PID);
-  } else if (header.message_len < 24 ||
-             (header.sub_device >= RDM_SUB_DEVICE_MAX &&
+    reply = rdm_write_nack_reason(dmx_num, &header, RDM_NR_UNKNOWN_PID);
+  } else if ((header.sub_device >= RDM_SUB_DEVICE_MAX &&
               header.sub_device != RDM_SUB_DEVICE_ALL) ||
-             !rdm_cc_is_valid(header.cc) || header.pdl > 231) {
+             header.pdl >= RDM_PD_SIZE_MAX) {
     // Header format is invalid
-    resp = rdm_write_nack_reason(dmx_num, &header, RDM_NR_FORMAT_ERROR);
+    reply = rdm_write_nack_reason(dmx_num, &header, RDM_NR_FORMAT_ERROR);
   } else {
     // Request is valid, handle the response
 
     // Validate the header against definition information
     const rdm_pid_cc_t pid_cc = def->pid_cc;
     if (pid_cc == RDM_CC_DISC && header.cc != RDM_CC_DISC_COMMAND) {
-      resp = 0;  // Cannot send NACK to RDM_CC_DISC_COMMAND
+      reply = 0;  // Cannot send NACK to RDM_CC_DISC_COMMAND
     } else if ((pid_cc == RDM_CC_GET_SET && header.cc == RDM_CC_DISC_COMMAND) ||
                (pid_cc == RDM_CC_GET && header.cc != RDM_CC_GET_COMMAND) ||
                (pid_cc == RDM_CC_SET && header.cc != RDM_CC_SET_COMMAND)) {
       // Unsupported command class
-      resp = rdm_write_nack_reason(dmx_num, &header,
-                                   RDM_NR_UNSUPPORTED_COMMAND_CLASS);
+      reply = rdm_write_nack_reason(dmx_num, &header,
+                                    RDM_NR_UNSUPPORTED_COMMAND_CLASS);
     } else {
       // Call the response handler for the parameter
       if (header.cc == RDM_CC_SET_COMMAND) {
-        resp = def->set.handler(dmx_num, def, &header);
+        reply = def->set.handler(dmx_num, def, &header);
       } else {
         // RDM_CC_DISC_COMMAND uses get.handler()
-        resp = def->get.handler(dmx_num, def, &header);
+        reply = def->get.handler(dmx_num, def, &header);
       }
 
       // Validate the response
       if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH &&
-          ((resp > 0 && resp < 17) || resp > 24)) {
+          ((reply > 0 && reply < 17) || reply > 24)) {
         // Invalid RDM_CC_DISC_COMMAND_RESPONSE packet size
-        resp = 0;  // Silence invalid discovery responses
+        reply = 0;  // Silence invalid discovery responses
         rdm_set_boot_loader(dmx_num);
-      } else if (resp > 255 ||
-                 (resp == 0 && !rdm_uid_is_broadcast(&header.dest_uid))) {
+      } else if (reply > 255 ||
+                 (reply == 0 && !rdm_uid_is_broadcast(&header.dest_uid))) {
         // Response size is too large or zero after a non-broadcast request
-        resp = rdm_write_nack_reason(dmx_num, &header, RDM_NR_HARDWARE_FAULT);
+        reply = rdm_write_nack_reason(dmx_num, &header, RDM_NR_HARDWARE_FAULT);
         rdm_set_boot_loader(dmx_num);
       }
     }
@@ -527,12 +352,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Do not send a response to non-discovery broadcast packets
   if (rdm_uid_is_broadcast(&header.dest_uid) &&
       header.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-    resp = 0;
+    reply = 0;
   }
 
   // Send the RDM response
-  if (resp > 0) {
-    if (!dmx_send_num(dmx_num, resp)) {
+  if (reply > 0) {
+    if (!dmx_send_num(dmx_num, reply)) {
       rdm_set_boot_loader(dmx_num);
       // Generate information for the warning message if a response wasn't sent
       const int64_t micros_elapsed =
@@ -543,7 +368,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       DMX_WARN(
           "PID 0x%04x did not send a response (cc: %s, size: %i, time: %lli "
           "us)",
-          header.pid, cc_str, resp, micros_elapsed);
+          header.pid, cc_str, reply, micros_elapsed);
     } else {
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -556,9 +381,18 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   // Call the after-response callback
   rdm_callback_handle(dmx_num, header.sub_device, header.pid, &header);
 
-  // Give the mutex back and return
   xSemaphoreGiveRecursive(driver->mux);
+  dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
   return packet_size;
+}
+
+size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
+                   TickType_t wait_ticks) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
+
+  return dmx_receive_num(dmx_num, packet, 0, wait_ticks);
 }
 
 size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
