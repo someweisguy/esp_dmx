@@ -174,8 +174,8 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   }
 
   // Guard against condition where this task cannot block and data isn't ready
-  int dmx_status;
-  int packet_size;
+  uint8_t dmx_status;
+  int16_t packet_size;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   dmx_status = driver->dmx.status;
   packet_size = driver->dmx.head;
