@@ -59,6 +59,18 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Handle DMX break condition
       if (intr_flags & DMX_INTR_RX_BREAK) {
+        // Handle possible condition where expected packet size is too large
+        if (driver->dmx.status == DMX_STATUS_NOT_READY) {
+          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+          driver->dmx.rx_size = driver->dmx.head - 1;  // Attempt to fix
+          if (driver->task_waiting) {
+            xTaskNotifyFromISR(driver->task_waiting, DMX_ERR_NOT_ENOUGH_SLOTS,
+                               eSetValueWithOverwrite, &task_awoken);
+          }
+          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        }
+
+        // Reset the DMX buffer for the next packet
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.status = DMX_STATUS_NOT_READY;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
