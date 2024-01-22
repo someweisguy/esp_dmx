@@ -61,7 +61,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Handle DMX break condition
       if (intr_flags & DMX_INTR_RX_BREAK) {
         // Handle possible condition where expected packet size is too large
-        if (driver->dmx.status == DMX_STATUS_NOT_READY) {
+        if (driver->dmx.status == DMX_STATUS_NOT_READY &&
+            driver->dmx.head > 0) {
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.rx_size = driver->dmx.head - 1;  // Attempt to fix
           if (driver->task_waiting) {
