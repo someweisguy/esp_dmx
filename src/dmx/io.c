@@ -392,7 +392,12 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
-  return dmx_receive_num(dmx_num, packet, 0, wait_ticks);
+  size_t size;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  size = dmx_driver[dmx_num]->dmx.rx_size;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+  return dmx_receive_num(dmx_num, packet, size, wait_ticks);
 }
 
 size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
