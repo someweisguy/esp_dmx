@@ -129,6 +129,7 @@ typedef struct dmx_driver_t {
     int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     uint8_t is_rdm;
     uint8_t is_stale;
+    uint8_t sent_last;
   } dmx;
   
   // DMX sniffer configuration

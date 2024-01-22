@@ -101,11 +101,11 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_err_t err;
       bool packet_is_complete;
       if (intr_flags & DMX_INTR_RX_ERR) {
-        // TODO: sent_last = false
         packet_is_complete = true;
         err = intr_flags & DMX_INTR_RX_FIFO_OVERFLOW
                   ? DMX_ERR_UART_OVERFLOW   // UART overflow
                   : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
+        driver->dmx.sent_last = false;
       } else {
         // Determine the type of the packet that was received
         if (dmx_start_head == 0 && driver->dmx.head > 0) {
@@ -117,7 +117,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else {
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
           }
-          // TODO: sent_last = false
+          driver->dmx.sent_last = false;
         }
         err = DMX_OK;
       }
