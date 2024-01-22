@@ -119,7 +119,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             const uint8_t slot_value = driver->dmx.data[delimiter_idx];
             if (slot_value != RDM_PREAMBLE) {
               if (slot_value != RDM_DELIMITER) {
-                delimiter_idx = -1;  // Force invalid packet type
+                delimiter_idx = 9;  // Force invalid packet type
               }
               break;
             }
