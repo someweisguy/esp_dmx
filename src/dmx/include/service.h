@@ -143,6 +143,8 @@ typedef struct dmx_driver_t {
     int16_t rx_size;  // The expected size of the incoming packet.
     int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     uint8_t is_rdm;
+    rdm_pid_t rdm_pid;
+    uint8_t pid_repeat_count;
     uint8_t sent_last;
     uint8_t status;
   } dmx;

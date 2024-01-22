@@ -203,6 +203,17 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         driver->dmx.is_rdm |= rdm_uid_is_target(&driver->uid, &header.dest_uid)
                                   ? DMX_TYPE_IS_ADDRESSEE
                                   : 0;
+        if (driver->dmx.rdm_pid == header.pid) {
+          ++driver->dmx.pid_repeat_count;
+        } else {
+          driver->dmx.rdm_pid = header.pid;
+          driver->dmx.pid_repeat_count = 0;
+        }
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      } else {
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        driver->dmx.rdm_pid = 0;
+        driver->dmx.pid_repeat_count = 0;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       }
 
