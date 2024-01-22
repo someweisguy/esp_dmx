@@ -43,26 +43,24 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ALL) {
       // Read data into the DMX buffer if there is enough space
-      const int dmx_start_head = driver->dmx.head;
-      const int is_in_break = (intr_flags & DMX_INTR_RX_BREAK) ? 1 : 0;
-      if (driver->dmx.head >= 0 && driver->dmx.head < DMX_PACKET_SIZE_MAX) {
-        int read_len = DMX_PACKET_SIZE_MAX - driver->dmx.head - is_in_break;
-        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[driver->dmx.head],
-                             &read_len);
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      const int dmx_head = driver->dmx.head;
+      if (dmx_head >= 0 && dmx_head < DMX_PACKET_SIZE_MAX) {
+        int read_len = DMX_PACKET_SIZE_MAX - dmx_head;
+        dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[dmx_head], &read_len);
         driver->dmx.head += read_len;
       } else {
         if (driver->dmx.head > 0) {
           // Record the number of slots received for error reporting
+          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.head += dmx_uart_get_rxfifo_len(dmx_num);
+          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         }
         dmx_uart_rxfifo_reset(dmx_num);
       }
       dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
 
       // Handle DMX break condition
-      if (is_in_break) {
+      if (intr_flags & DMX_INTR_RX_BREAK) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
         driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
@@ -92,7 +90,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         driver->dmx.sent_last = false;
       } else {
         // Determine the type of the packet that was received
-        if (dmx_start_head == 0 && driver->dmx.head > 0) {
+        if (dmx_head == 0 && driver->dmx.head > 0) {
           const uint8_t sc = driver->dmx.data[0];  // DMX start-code.
           if (sc == RDM_SC) {
             driver->dmx.is_rdm = DMX_TYPE_IS_RDM;
