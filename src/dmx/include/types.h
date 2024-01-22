@@ -257,6 +257,8 @@ typedef enum dmx_err_t {
   DMX_ERR_UART_OVERFLOW = ESP_ERR_NOT_FINISHED,
   /** @brief The UART received an improperly framed DMX slot.*/
   DMX_ERR_IMPROPER_SLOT = ESP_ERR_INVALID_RESPONSE,
+  /** @brief The DMX packet size is smaller than expected.*/
+  DMX_ERR_NOT_ENOUGH_SLOTS = ESP_ERR_INVALID_SIZE,
   /** @brief Generic DMX error code indicating failure.*/
   DMX_FAIL = -1
 } dmx_err_t;
