@@ -3,6 +3,7 @@
 #include "dmx/hal/include/timer.h"
 #include "dmx/include/service.h"
 #include "driver/uart.h"
+#include "endian.h"
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 
@@ -116,7 +117,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         }
         err = DMX_OK;
       }
-      rdm_header_t header;
       while (err == DMX_OK) {
         if (driver->dmx.is_rdm & DMX_TYPE_IS_DISCOVERY) {
           // Parse an RDM discovery response packet
@@ -147,7 +147,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           if (driver->dmx.head < delimiter_idx + 17) {
             packet_is_complete = false;
             break;  // Haven't received full RDM_PID_DISC_UNIQUE_BRANCH response
-          } else if (!rdm_read_header(dmx_num, &header)) {
+          } else if (!rdm_read_header(dmx_num, NULL)) {
             taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
             taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -163,8 +163,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             packet_is_complete = false;
             break;  // Haven't received full RDM header and checksum yet
           } else if (driver->dmx.data[1] != RDM_SUB_SC ||
-                     (msg_len = driver->dmx.data[2]) < sizeof(rdm_header_t) ||
-                     driver->dmx.data[23] >= RDM_PD_SIZE_MAX) {
+                     (msg_len = driver->dmx.data[2]) < sizeof(rdm_header_t)) {
             taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
             taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -172,7 +171,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else if (driver->dmx.head < msg_len + 2) {
             packet_is_complete = false;
             break;  // Haven't received full RDM packet and checksum yet
-          } else if (!rdm_read_header(dmx_num, &header)) {
+          } else if (!rdm_read_header(dmx_num, NULL)) {
             taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
             taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -192,30 +191,26 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Fill out remaining RDM flags
-      if (driver->dmx.is_rdm) {
-        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        driver->dmx.is_rdm |=
-            rdm_cc_is_valid(header.cc) && rdm_cc_is_request(header.cc)
-                ? DMX_TYPE_IS_REQUEST
-                : 0;
-        driver->dmx.is_rdm |=
-            rdm_uid_is_broadcast(&header.dest_uid) ? DMX_TYPE_IS_BROADCAST : 0;
-        driver->dmx.is_rdm |= rdm_uid_is_target(&driver->uid, &header.dest_uid)
-                                  ? DMX_TYPE_IS_ADDRESSEE
-                                  : 0;
-        if (driver->dmx.rdm_pid == header.pid) {
-          ++driver->dmx.pid_repeat_count;
-        } else {
-          driver->dmx.rdm_pid = header.pid;
-          driver->dmx.pid_repeat_count = 0;
-        }
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      uint8_t rdm_flags;
+      if (driver->dmx.is_rdm & DMX_TYPE_IS_DISCOVERY) {
+        rdm_flags = 0;  // Discovery response packets don't get additional flags
+      } else if (driver->dmx.is_rdm & DMX_TYPE_IS_RDM) {
+        const rdm_cc_t cc = driver->dmx.data[20];
+        rdm_flags = rdm_cc_is_valid(cc) && rdm_cc_is_request(cc)
+                        ? DMX_TYPE_IS_REQUEST
+                        : 0;
+        const rdm_uid_t *uid_ptr = (rdm_uid_t *)&driver->dmx.data[3];
+        const rdm_uid_t dest_uid = {.man_id = bswap16(uid_ptr->man_id),
+                                    .dev_id = bswap32(uid_ptr->dev_id)};
+        rdm_flags |= rdm_uid_is_target(&driver->uid, &dest_uid)
+                         ? DMX_TYPE_IS_ADDRESSEE
+                         : 0;
       } else {
-        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        driver->dmx.rdm_pid = 0;
-        driver->dmx.pid_repeat_count = 0;
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        rdm_flags = 0;  // DMX packets don't get RDM flags
       }
+      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      driver->dmx.is_rdm |= rdm_flags;
+      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
