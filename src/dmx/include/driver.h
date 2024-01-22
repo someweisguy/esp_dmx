@@ -264,6 +264,10 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
  */
 int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 
+// TODO: docs
+size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
+                       TickType_t wait_ticks);
+
 /**
  * @brief Receives a DMX packet from the DMX bus. This is a blocking function.
  * This function first blocks until the DMX driver is idle and then it blocks

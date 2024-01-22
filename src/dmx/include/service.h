@@ -76,6 +76,21 @@ enum dmx_parameter_type_t {
   DMX_PARAMETER_TYPE_NON_VOLATILE,
 };
 
+enum {
+  DMX_TYPE_IS_NOT_RDM = 0,
+  DMX_TYPE_IS_RDM = BIT0,
+  DMX_TYPE_IS_REQUEST = BIT1,
+  DMX_TYPE_IS_DISCOVERY = BIT2,
+  DMX_TYPE_IS_BROADCAST = BIT3,
+  DMX_TYPE_IS_ADDRESSEE = BIT4,
+};
+
+enum {
+  DMX_STATUS_NOT_READY = 0,
+  DMX_STATUS_READY,
+  DMX_STATUS_STALE,
+};
+
 /**
  * @brief The DMX parameter type. Contains information necessary for maintaining
  * parameter information as well as RDM response information if necessary.
@@ -128,8 +143,8 @@ typedef struct dmx_driver_t {
     int16_t rx_size;  // The expected size of the incoming packet.
     int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
     uint8_t is_rdm;
-    uint8_t is_stale;
     uint8_t sent_last;
+    uint8_t status;
   } dmx;
   
   // DMX sniffer configuration

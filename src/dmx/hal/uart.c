@@ -30,22 +30,6 @@ static struct dmx_uart_t {
 #endif
 };
 
-/*
-
-
-*/
-
-enum {
-  DMX_TYPE_IS_NOT_RDM = 0,
-  DMX_TYPE_IS_RDM = BIT0,
-  DMX_TYPE_IS_REQUEST = BIT1,
-  DMX_TYPE_IS_DISCOVERY = BIT2,
-  DMX_TYPE_IS_BROADCAST = BIT3,
-
-  DMX_TYPE_IS_ADDRESSEE = BIT4,
-  // is_source ? 
-};
-
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = arg;
@@ -82,7 +66,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
         driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
-        driver->dmx.is_stale = false;
+        driver->dmx.status = DMX_STATUS_NOT_READY;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.head = 0;
         continue;  // Nothing else to do on DMX break
@@ -93,7 +77,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Guard against notifying multiple times for the same packet
-      if (driver->dmx.is_stale) {
+      if (driver->dmx.status == DMX_STATUS_STALE) {
         continue;
       }
 
@@ -190,6 +174,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Fill out remaining RDM flags
       if (driver->dmx.is_rdm) {
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.is_rdm |=
             rdm_cc_is_valid(header.cc) && rdm_cc_is_request(header.cc)
                 ? DMX_TYPE_IS_REQUEST
@@ -199,12 +184,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         driver->dmx.is_rdm |= rdm_uid_is_target(&driver->uid, &header.dest_uid)
                                   ? DMX_TYPE_IS_ADDRESSEE
                                   : 0;
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       }
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->flags |= (DMX_FLAGS_DRIVER_HAS_DATA | DMX_FLAGS_DRIVER_IS_IDLE);
       driver->flags &= ~DMX_FLAGS_DRIVER_SENT_LAST;
+      driver->dmx.status = DMX_STATUS_READY;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, err, eSetValueWithOverwrite,
                            &task_awoken);

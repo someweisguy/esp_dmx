@@ -113,6 +113,167 @@ int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value) {
   return value;
 }
 
+size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
+                       TickType_t wait_ticks) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+  DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
+
+  dmx_driver_t *const driver = dmx_driver[dmx_num];
+
+  // Block until mutex is taken and driver is idle, or until a timeout
+  TimeOut_t timeout;
+  vTaskSetTimeOutState(&timeout);
+  if (!xSemaphoreTakeRecursive(driver->mux, wait_ticks) ||
+      (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
+    if (packet != NULL) {
+      packet->err = DMX_ERR_TIMEOUT;
+      packet->sc = -1;
+      packet->size = 0;
+      packet->is_rdm = 0;
+    }
+    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
+    return 0;
+  } else if (!dmx_wait_sent(dmx_num, wait_ticks) ||
+             (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
+    xSemaphoreGiveRecursive(driver->mux);
+    if (packet != NULL) {
+      packet->err = DMX_ERR_TIMEOUT;
+      packet->sc = -1;
+      packet->size = 0;
+      packet->is_rdm = 0;
+    }
+    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
+    return 0;
+  }
+
+  // Set the RTS pin to enable reading from the DMX bus
+  if (dmx_uart_get_rts(dmx_num) == 0) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+    driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+    driver->dmx.status = DMX_STATUS_NOT_READY;
+    driver->dmx.head = -1;  // Wait for DMX break before reading data
+    dmx_uart_set_rts(dmx_num, 1);
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  }
+
+  // Update the receive size only if it has changed
+  if (size != driver->dmx.rx_size) {
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    driver->dmx.rx_size = size;
+    if (!driver->dmx.is_rdm && driver->dmx.head > 0) {
+      // It is necessary to revalidate if the DMX data is ready
+      if (driver->dmx.head >= driver->dmx.rx_size) {
+        driver->dmx.status = DMX_STATUS_READY;
+      } else {
+        driver->dmx.status = DMX_STATUS_NOT_READY;
+      }
+    }
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  }
+
+  // Guard against condition where this task cannot block and data isn't ready
+  int dmx_status;
+  int packet_size;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  dmx_status = driver->dmx.status;
+  packet_size = driver->dmx.head;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (dmx_status != DMX_STATUS_READY && wait_ticks == 0) {
+    // Not enough DMX data has been received yet - return early
+    if (packet_size < 0) {
+      packet_size = 0;
+    }
+    if (packet != NULL) {
+      packet->err = DMX_ERR_TIMEOUT;
+      if (packet_size > 0) {
+        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+        packet->sc = driver->dmx.data[0];
+        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      } else {
+        packet->sc = -1;
+      }
+      packet->size = packet_size;
+      packet->is_rdm = 0;
+    }
+    xSemaphoreGiveRecursive(driver->mux);
+    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
+    return packet_size;
+  }
+  
+  // Block the task to wait for data to be ready
+  dmx_err_t err;
+  if (dmx_status != DMX_STATUS_READY) {
+    // Tell the DMX driver that this task is awaiting a DMX packet
+    const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    driver->task_waiting = this_task;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+    // TODO: set an early timeout depending on the last DMX/RDM packet
+
+    // Wait for the DMX driver to notify this task that DMX is ready
+    const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    packet_size = driver->dmx.head;
+    driver->task_waiting = NULL;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    if (!notified) {
+      xTaskNotifyStateClear(this_task);  // Avoid potential race condition
+      if (packet_size < 0) {
+        packet_size = 0;
+      }
+      if (packet != NULL) {
+        packet->err = DMX_ERR_TIMEOUT;
+        if (packet_size > 0) {
+          taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+          packet->sc = driver->dmx.data[0];
+          taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+        } else {
+          packet->sc = -1;
+        }
+        packet->size = packet_size;
+        packet->is_rdm = 0;
+      }
+      xSemaphoreGiveRecursive(driver->mux);
+      dmx_parameter_commit(dmx_num);
+      return packet_size;
+    }
+  } else {
+    // TODO: Fix condition where DMX error can be lost if no task is waiting
+    err = DMX_OK;
+  }
+  if (packet_size < 0) {
+    packet_size = 0;
+  }
+
+  // Parse DMX packet data
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  driver->dmx.status = DMX_STATUS_STALE;  // Prevent parsing old data
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (packet != NULL) {
+    if (packet_size > 0) {
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      packet->sc = driver->dmx.data[0];
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    } else {
+      packet->sc = -1;
+    }
+    packet->err = err;
+    packet->size = packet_size;
+  }
+
+  // TODO: parse RDM
+  if (packet != NULL) {
+    packet->is_rdm = 0;
+  }
+
+  xSemaphoreGiveRecursive(driver->mux);
+  dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
+  return packet_size;
+}
+
 size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
                    TickType_t wait_ticks) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -149,78 +310,106 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
   if (dmx_uart_get_rts(dmx_num) == 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+    driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+    driver->dmx.status = DMX_STATUS_NOT_READY;
     driver->dmx.head = -1;  // Wait for DMX break before reading data
     driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
     dmx_uart_set_rts(dmx_num, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
-  // Wait for new DMX packet to be received
-  dmx_err_t err = DMX_OK;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const int driver_flags = driver->flags;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA) && wait_ticks > 0) {
-    // Set task waiting and get additional DMX driver flags
-    rdm_header_t header;
+  /*
+  if the received packet is DMX, then we can't be sure that the packet is valid 
+  */
+
+  size_t size = 512;
+
+  // Update the receive size only if it has changed
+  if (size != driver->dmx.rx_size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    const bool is_rdm = rdm_read_header(dmx_num, &header);
-    driver->task_waiting = xTaskGetCurrentTaskHandle();
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-    // Check for early timeout according to RDM specification
-    if ((driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) && is_rdm &&
-        header.cc == RDM_CC_DISC_COMMAND &&
-        header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      const int64_t last_timestamp = driver->dmx.last_slot_ts;
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-
-      // Guard against setting hardware alarm durations with negative values
-      int64_t elapsed = dmx_timer_get_micros_since_boot() - last_timestamp;
-      if (elapsed >= RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE) {
-        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-        driver->task_waiting = NULL;
-        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-        xSemaphoreGiveRecursive(driver->mux);
-        if (packet != NULL) {
-          packet->err = DMX_ERR_TIMEOUT;
-          packet->sc = -1;
-          packet->size = 0;
-          packet->is_rdm = 0;
-        }
-        return 0;
+    driver->dmx.rx_size = size;
+    if (!driver->dmx.is_rdm && driver->dmx.head > 0) {
+      // It is necessary to revalidate if the DMX data is ready
+      if (driver->dmx.head >= driver->dmx.rx_size) {
+        driver->dmx.status = DMX_STATUS_READY;
+      } else {
+        driver->dmx.status = DMX_STATUS_NOT_READY;
       }
-
-      // Set an early timeout with the hardware timer
-      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      dmx_timer_set_counter(dmx_num, elapsed);
-      dmx_timer_set_alarm(dmx_num, RDM_PACKET_SPACING_CONTROLLER_NO_RESPONSE,
-                          false);
-      dmx_timer_start(dmx_num);
-      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
-
-    // Wait for a task notification
-    const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    dmx_timer_stop(dmx_num);
-    driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (!notified) {
-      xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-      xSemaphoreGiveRecursive(driver->mux);
+  }
+
+
+
+  // TODO: describe this code block
+  dmx_err_t err;
+  int dmx_head;
+  int dmx_status;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  dmx_head = driver->dmx.head;
+  dmx_status = driver->dmx.status;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (wait_ticks == 0) {
+    // The task cannot block
+    if (dmx_status != DMX_STATUS_READY || dmx_head < size) {
+      // Not enough DMX data has been received yet - return early
       if (packet != NULL) {
         packet->err = DMX_ERR_TIMEOUT;
-        packet->sc = -1;
-        packet->size = 0;
+        if (dmx_head > 0) {
+          taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+          packet->sc = driver->dmx.data[0];
+          taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+        } else {
+          packet->sc = -1;
+        }
+        packet->size = dmx_head;
         packet->is_rdm = 0;
       }
-      dmx_parameter_commit(dmx_num);
-      return 0;
+      xSemaphoreGiveRecursive(driver->mux);
+      dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
+      return dmx_head >= 0 ? dmx_head : 0;
     }
-  } else if (!(driver_flags & DMX_FLAGS_DRIVER_HAS_DATA)) {
-    // Fail early if there is no data available and this function cannot block
+  } else {
+    // The task is allowed to block
+    if (dmx_status == DMX_STATUS_STALE || dmx_head < size) {
+      // Not enough DMX data has been received yet - block the task
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      driver->task_waiting = xTaskGetCurrentTaskHandle();
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+
+      // Check for RDM early timeout and set a timer if appropriate
+      // TODO
+
+      // Wait for a task notification
+      bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      driver->task_waiting = NULL;
+      dmx_head = driver->dmx.head;          // Update after blocking
+      dmx_status = driver->dmx.status;      // Update after blocking
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      if (!notified) {
+        xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+        if (packet != NULL) {
+          packet->err = DMX_ERR_TIMEOUT;
+          if (dmx_head > 0) {
+            taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+            packet->sc = driver->dmx.data[0];
+            taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+          } else {
+            packet->sc = -1;
+          }
+          packet->size = dmx_head;
+          packet->is_rdm = 0;
+        }
+        xSemaphoreGiveRecursive(driver->mux);
+        dmx_parameter_commit(dmx_num);  // Commit pending parameters
+        return dmx_head >= 0 ? dmx_head : 0;
+      }
+    }
+  }
+
+  // Return early if packet size is smaller than re
+  if (dmx_head < size) {
     xSemaphoreGiveRecursive(driver->mux);
     if (packet != NULL) {
       packet->err = DMX_ERR_TIMEOUT;
@@ -228,16 +417,17 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
       packet->size = 0;
       packet->is_rdm = 0;
     }
-    dmx_parameter_commit(dmx_num);
+    dmx_parameter_commit(dmx_num);  // Commit pending parameters
     return 0;
   }
+  
+  // DMX data is stale now that it may be received by the user
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  driver->dmx.status = DMX_STATUS_STALE;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Parse DMX data packet
-  uint32_t packet_size;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  driver->flags &= ~DMX_FLAGS_DRIVER_HAS_DATA;
-  packet_size = driver->dmx.head;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  uint32_t packet_size = dmx_head >= 0 ? dmx_head : 0;
   if (packet_size == -1) {
     packet_size = 0;
   }

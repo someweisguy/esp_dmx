@@ -140,7 +140,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->dmx.rx_size = DMX_PACKET_SIZE_MAX;
   memset(driver->dmx.data, 0, sizeof(driver->dmx.data));
   driver->dmx.last_slot_ts = 0;
-  driver->dmx.is_stale = false;
+  driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+  driver->dmx.status = DMX_STATUS_NOT_READY;
+  driver->dmx.sent_last = false;
 
   // RDM responder configuration
   driver->rdm.tn = 0;
