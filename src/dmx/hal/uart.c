@@ -51,9 +51,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       } else {
         if (driver->dmx.head > 0) {
           // Record the number of slots received for error reporting
-          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.head += dmx_uart_get_rxfifo_len(dmx_num);
-          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         }
         dmx_uart_rxfifo_reset(dmx_num);
       }
