@@ -60,20 +60,19 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Handle DMX break condition
       if (intr_flags & DMX_INTR_RX_BREAK) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
-        driver->flags &= ~DMX_FLAGS_DRIVER_IS_IDLE;
         driver->dmx.status = DMX_STATUS_NOT_READY;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.head = 0;
         continue;  // Nothing else to do on DMX break
       } else if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
+        // TODO: update these vars with sniffer-specific vars
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       }
 
       // Guard against notifying multiple times for the same packet
-      if (driver->dmx.status == DMX_STATUS_STALE) {
+      if (driver->dmx.status != DMX_STATUS_NOT_READY) {
         continue;
       }
 
@@ -89,14 +88,18 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       } else {
         // Determine the type of the packet that was received
         if (dmx_head == 0 && driver->dmx.head > 0) {
+          uint8_t initial_rdm_flags;
           const uint8_t sc = driver->dmx.data[0];  // DMX start-code.
           if (sc == RDM_SC) {
-            driver->dmx.is_rdm = DMX_TYPE_IS_RDM;
+            initial_rdm_flags = DMX_TYPE_IS_RDM;
           } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
-            driver->dmx.is_rdm = DMX_TYPE_IS_RDM | DMX_TYPE_IS_DISCOVERY;
+            initial_rdm_flags = DMX_TYPE_IS_RDM | DMX_TYPE_IS_DISCOVERY;
           } else {
-            driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+            initial_rdm_flags = DMX_TYPE_IS_NOT_RDM;
           }
+          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+          driver->dmx.is_rdm = initial_rdm_flags;
+          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.sent_last = false;
         }
         err = DMX_OK;
@@ -122,7 +125,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             }
           }
           if (delimiter_idx > 8) {
+            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             continue;  // Packet is malformed - treat it as DMX
           }
 
@@ -131,7 +136,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             packet_is_complete = false;
             break;  // Haven't received full RDM_PID_DISC_UNIQUE_BRANCH response
           } else if (!rdm_read_header(dmx_num, &header)) {
+            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             continue;  // Packet is malformed - treat it as DMX
           } else {
             packet_is_complete = true;
@@ -146,13 +153,17 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else if (driver->dmx.data[1] != RDM_SUB_SC ||
                      (msg_len = driver->dmx.data[2]) < sizeof(rdm_header_t) ||
                      driver->dmx.data[23] >= RDM_PD_SIZE_MAX) {
+            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             continue;  // Packet is malformed - treat it as DMX
           } else if (driver->dmx.head < msg_len + 2) {
             packet_is_complete = false;
             break;  // Haven't received full RDM packet and checksum yet
           } else if (!rdm_read_header(dmx_num, &header)) {
+            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
+            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             continue;  // Packet is malformed - treat it as DMX
           } else {
             packet_is_complete = true;
@@ -185,8 +196,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->flags |= (DMX_FLAGS_DRIVER_HAS_DATA | DMX_FLAGS_DRIVER_IS_IDLE);
-      driver->flags &= ~DMX_FLAGS_DRIVER_SENT_LAST;
       driver->dmx.status = DMX_STATUS_READY;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, err, eSetValueWithOverwrite,
