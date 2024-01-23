@@ -211,11 +211,55 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     driver->task_waiting = this_task;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
-    // FIXME: set an early timeout depending on the last DMX/RDM packet
+    // Determine if it is necessary to set a hardware timeout alarm
+    int64_t timer_alarm;
+    if (driver->dmx.sent_last && driver->dmx.is_rdm) {
+
+      timer_alarm = 0;  // TODO
+    } else {
+      timer_alarm = 0;  // No alarm is necessary
+    }
+    
+    if (timer_alarm > 0) {
+      int64_t last_timestamp;
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      last_timestamp = driver->dmx.last_slot_ts;
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+      int64_t timer_elapsed = dmx_timer_get_micros_since_boot() - last_timestamp;
+      if (timer_elapsed > timer_alarm) {
+        // Return early if the time elapsed is greater than the timer alarm
+        if (packet_size < 0) {
+          packet_size = 0;
+        }
+        if (packet != NULL) {
+          packet->err = DMX_ERR_TIMEOUT;
+          if (packet_size > 0) {
+            taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+            packet->sc = driver->dmx.data[0];
+            taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+          } else {
+            packet->sc = -1;
+          }
+          packet->size = packet_size;
+          packet->is_rdm = 0;
+        }
+        xSemaphoreGiveRecursive(driver->mux);
+        return packet_size;
+      }
+
+      // Set the timer
+      taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+      dmx_timer_set_counter(dmx_num, timer_elapsed);
+      dmx_timer_set_alarm(dmx_num, timer_alarm, false);
+      dmx_timer_start(dmx_num);
+      taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    }
 
     // Wait for the DMX driver to notify this task that DMX is ready
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
-    dmx_timer_stop(dmx_num);
+    if (timer_alarm > 0) {
+      dmx_timer_stop(dmx_num);
+    }
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     packet_size = driver->dmx.head;
     driver->task_waiting = NULL;
