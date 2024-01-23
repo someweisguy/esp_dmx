@@ -107,7 +107,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           uint8_t rdm_type;
           const uint8_t sc = driver->dmx.data[0];  // DMX start-code.
           if (sc == RDM_SC) {
-            rdm_type = RDM_TYPE_IS_GENERIC_RDM;  // Determine actual type later
+            rdm_type = RDM_TYPE_IS_UNKNOWN;  // Determine actual type later
           } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
             rdm_type = RDM_TYPE_IS_DISCOVERY;
           } else {
