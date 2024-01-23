@@ -192,25 +192,25 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Fill out remaining RDM flags
-      uint8_t rdm_flags;
+      uint8_t additional_rdm_flags;
       if (driver->dmx.is_rdm & DMX_TYPE_IS_DISCOVERY) {
-        rdm_flags = 0;  // Discovery response packets don't get additional flags
+        additional_rdm_flags = 0;  // Discovery response packets don't get flags
       } else if (driver->dmx.is_rdm & DMX_TYPE_IS_RDM) {
         const rdm_cc_t cc = driver->dmx.data[20];
-        rdm_flags = rdm_cc_is_valid(cc) && rdm_cc_is_request(cc)
+        additional_rdm_flags = rdm_cc_is_valid(cc) && rdm_cc_is_request(cc)
                         ? DMX_TYPE_IS_REQUEST
                         : 0;
         const rdm_uid_t *uid_ptr = (rdm_uid_t *)&driver->dmx.data[3];
         const rdm_uid_t dest_uid = {.man_id = bswap16(uid_ptr->man_id),
                                     .dev_id = bswap32(uid_ptr->dev_id)};
-        rdm_flags |= rdm_uid_is_target(&driver->uid, &dest_uid)
+        additional_rdm_flags |= rdm_uid_is_target(&driver->uid, &dest_uid)
                          ? DMX_TYPE_IS_ADDRESSEE
                          : 0;
       } else {
-        rdm_flags = 0;  // DMX packets don't get RDM flags
+        additional_rdm_flags = 0;  // DMX packets don't get RDM flags
       }
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->dmx.is_rdm |= rdm_flags;
+      driver->dmx.is_rdm |= additional_rdm_flags;
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
 
       // Set driver flags and notify task
