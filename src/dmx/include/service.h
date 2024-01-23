@@ -60,7 +60,7 @@ typedef spinlock_t dmx_spinlock_t;
 extern const char *TAG;  // The log tagline for the library.
 
 enum dmx_flags_t {
-  DMX_FLAGS_DRIVER_IS_ENABLED = BIT0,   // The driver is enabled.
+  // DMX_FLAGS_DRIVER_IS_ENABLED = BIT0,   // The driver is enabled.
   DMX_FLAGS_DRIVER_IS_IDLE = BIT1,      // The driver is not sending data.
   DMX_FLAGS_DRIVER_IS_SENDING = BIT2,   // The driver is sending.
   DMX_FLAGS_DRIVER_SENT_LAST = BIT3,    // The driver sent the last packet.
@@ -89,6 +89,11 @@ enum {
   DMX_STATUS_NOT_READY = 0,
   DMX_STATUS_READY,
   DMX_STATUS_STALE,
+  DMX_STATUS_IS_SENDING,
+
+  DMX_SNIFFER_IDLE = 0,
+  DMX_SNIFFER_IS_IN_BREAK,
+  DMX_SNIFFER_IS_IN_MAB,
 };
 
 /**
@@ -128,6 +133,8 @@ typedef struct dmx_driver_t {
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
   uint8_t flags;     // Flags which indicate the current state of the driver.
 
+  uint8_t is_enabled;
+
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
   TaskHandle_t task_waiting;  // The handle to a task that is waiting for data to be sent or received.
@@ -164,6 +171,7 @@ typedef struct dmx_driver_t {
   
   // DMX sniffer configuration
   struct dmx_driver_sniffer_t {
+    uint8_t status;
     dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.

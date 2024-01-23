@@ -116,7 +116,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   *(uint8_t *)(&driver->uid.dev_id) += dmx_num;  // Increment last octect
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
-  driver->flags = (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
+  driver->flags = (DMX_FLAGS_DRIVER_IS_IDLE);
 
   // Set the default values for the root device
   driver->device.root.num = RDM_SUB_DEVICE_ROOT;
@@ -130,6 +130,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->device.parameter_count.sub_devices =
       config->sub_device_parameter_count;
   driver->device.parameter_count.staged = 0;
+
+  driver->is_enabled = true;
 
   // Synchronization state
   driver->task_waiting = NULL;
@@ -287,7 +289,7 @@ bool dmx_driver_disable(dmx_port_t dmx_num) {
   if (!(driver->flags & DMX_FLAGS_DRIVER_IS_SENDING)) {
     dmx_uart_disable_interrupt(dmx_num, DMX_INTR_RX_ALL);
     dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
-    driver->flags &= ~DMX_FLAGS_DRIVER_IS_ENABLED;
+    driver->is_enabled = false;
     ret = true;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -306,8 +308,7 @@ bool dmx_driver_enable(dmx_port_t dmx_num) {
   // Initialize driver flags and reenable interrupts
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   driver->dmx.head = -1;  // Wait for DMX break before reading data
-  driver->flags |= (DMX_FLAGS_DRIVER_IS_ENABLED | DMX_FLAGS_DRIVER_IS_IDLE);
-  driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_HAS_DATA);
+  driver->is_enabled = true;
   dmx_uart_rxfifo_reset(dmx_num);
   dmx_uart_txfifo_reset(dmx_num);
   dmx_uart_enable_interrupt(dmx_num, DMX_INTR_RX_ALL);
@@ -336,7 +337,7 @@ bool dmx_driver_is_enabled(dmx_port_t dmx_num) {
   bool is_enabled;
   if (dmx_driver_is_installed(dmx_num)) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    is_enabled = dmx_driver[dmx_num]->flags & DMX_FLAGS_DRIVER_IS_ENABLED;
+    is_enabled = dmx_driver[dmx_num]->is_enabled;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   } else {
     is_enabled = false;
