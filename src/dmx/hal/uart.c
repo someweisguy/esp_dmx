@@ -64,7 +64,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Handle DMX break condition
       if (intr_flags & DMX_INTR_RX_BREAK) {
         // Handle possible condition where expected packet size is too large
-        if (driver->dmx.packet == DMX_PACKET_IS_IN_DATA &&
+        if (driver->dmx.progress == DMX_PROGRESS_IN_DATA &&
             driver->dmx.head > 0) {
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.size = driver->dmx.head - 1;  // Attempt to fix
@@ -77,20 +77,20 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
         // Reset the DMX buffer for the next packet
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        driver->dmx.port = DMX_PORT_IS_RECEIVING;
-        driver->dmx.packet = DMX_PACKET_IS_IN_BREAK;
+        driver->dmx.status = DMX_STATUS_RECEIVING;
+        driver->dmx.progress = DMX_PROGRESS_IN_BREAK;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.head = 0;
         continue;  // Nothing else to do on DMX break
-      } else if (driver->dmx.packet == DMX_PACKET_IS_IN_BREAK) {
+      } else if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         // UART interrupt cannot detect if the packet is in MAB
-        driver->dmx.packet = DMX_PACKET_IS_IN_DATA;
+        driver->dmx.progress = DMX_PROGRESS_IN_DATA;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       }
 
       // Guard against notifying multiple times for the same packet
-      if (driver->dmx.packet != DMX_PACKET_IS_IN_DATA) {
+      if (driver->dmx.progress != DMX_PROGRESS_IN_DATA) {
         continue;
       }
 
@@ -211,8 +211,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->dmx.packet = DMX_PACKET_IS_COMPLETE;
-      driver->dmx.port = DMX_PORT_IS_IDLE;  // Could still be receiving data
+      driver->dmx.progress = DMX_PROGRESS_COMPLETE;
+      driver->dmx.status = DMX_STATUS_IDLE;  // Could still be receiving data
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, err, eSetValueWithOverwrite,
                            &task_awoken);

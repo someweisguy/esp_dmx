@@ -142,8 +142,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   memset(driver->dmx.data, 0, sizeof(driver->dmx.data));
   driver->dmx.rx.ts = 0;
   driver->dmx.tx.ts = 0;
-  driver->dmx.packet = DMX_PACKET_IS_STALE;
-  driver->dmx.port = DMX_PORT_IS_IDLE;
+  driver->dmx.progress = DMX_PROGRESS_STALE;
+  driver->dmx.status = DMX_STATUS_IDLE;
 
   // RDM responder configuration
   driver->rdm.rx.type = RDM_TYPE_IS_NOT_RDM;

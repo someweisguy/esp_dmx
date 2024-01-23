@@ -151,7 +151,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   if (dmx_uart_get_rts(dmx_num) == 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    driver->dmx.packet = DMX_PACKET_IS_STALE;
+    driver->dmx.progress = DMX_PROGRESS_STALE;
     driver->dmx.head = -1;  // Wait for DMX break before reading data
     dmx_uart_set_rts(dmx_num, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -164,9 +164,9 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     if (!driver->rdm.rx.type && driver->dmx.head > 0) {
       // It is necessary to revalidate if the DMX data is ready
       if (driver->dmx.head >= driver->dmx.size) {
-        driver->dmx.packet = DMX_PACKET_IS_COMPLETE;
+        driver->dmx.progress = DMX_PROGRESS_COMPLETE;
       } else {
-        driver->dmx.packet = DMX_PACKET_IS_STALE;
+        driver->dmx.progress = DMX_PROGRESS_STALE;
       }
     }
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -176,10 +176,10 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   uint8_t packet_status;
   int16_t packet_size;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  packet_status = driver->dmx.packet;
+  packet_status = driver->dmx.progress;
   packet_size = driver->dmx.head;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (packet_status != DMX_PACKET_IS_COMPLETE && wait_ticks == 0) {
+  if (packet_status != DMX_PROGRESS_COMPLETE && wait_ticks == 0) {
     // Not enough DMX data has been received yet - return early
     if (packet_size < 0) {
       packet_size = 0;
@@ -203,7 +203,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
 
   // Block the task to wait for data to be ready
   dmx_err_t err;
-  if (packet_status != DMX_PACKET_IS_COMPLETE) {
+  if (packet_status != DMX_PROGRESS_COMPLETE) {
     // Tell the DMX driver that this task is awaiting a DMX packet
     bool sent_last;
     const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
@@ -296,7 +296,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
 
   // Parse DMX packet data
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  driver->dmx.packet = DMX_PACKET_IS_STALE;  // Prevent parsing old data
+  driver->dmx.progress = DMX_PROGRESS_STALE;  // Prevent parsing old data
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (packet != NULL) {
     if (packet_size > 0) {
