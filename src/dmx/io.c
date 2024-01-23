@@ -151,7 +151,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   if (dmx_uart_get_rts(dmx_num) == 0) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
-    driver->dmx.is_rdm = DMX_TYPE_IS_NOT_RDM;
     driver->dmx.status = DMX_STATUS_NOT_READY;
     driver->dmx.head = -1;  // Wait for DMX break before reading data
     dmx_uart_set_rts(dmx_num, 1);
@@ -162,7 +161,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   if (size != driver->dmx.rx_size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.rx_size = size;
-    if (!driver->dmx.is_rdm && driver->dmx.head > 0) {
+    if (!driver->rdm.rx.type && driver->dmx.head > 0) {
       // It is necessary to revalidate if the DMX data is ready
       if (driver->dmx.head >= driver->dmx.rx_size) {
         driver->dmx.status = DMX_STATUS_READY;
@@ -213,7 +212,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
 
     // Determine if it is necessary to set a hardware timeout alarm
     int64_t timer_alarm;
-    if (driver->dmx.sent_last && driver->dmx.is_rdm) {
+    if (driver->dmx.sent_last && driver->rdm.rx.type) {
 
       timer_alarm = 0;  // TODO
     } else {
@@ -294,10 +293,8 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   }
 
   // Parse DMX packet data
-  rdm_pid_t pid;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   driver->dmx.status = DMX_STATUS_STALE;  // Prevent parsing old data
-  pid = driver->dmx.rdm_pid;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (packet != NULL) {
     if (packet_size > 0) {
@@ -309,7 +306,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     }
     packet->err = err;
     packet->size = packet_size;
-    packet->is_rdm = pid;  // FIXME: driver->dmx.rdm_pid should be parsed here
+    packet->is_rdm = 0;
   }
 
   // Return early if an error occurred
@@ -319,29 +316,35 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     return packet_size;
   }
 
+  // Get the RDM header information and update miscellaneous RDM driver fields
+  bool is_rdm;
+  rdm_header_t header;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  is_rdm = rdm_read_header(dmx_num, &header);
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (is_rdm) {
+    if (packet != NULL) {
+      packet->is_rdm = header.pid;
+    }
+  } else {
+    header.pid = 0;
+  }
+  if (driver->rdm.rx.pid == header.pid) {
+    ++driver->rdm.rx.pid_repeats;
+  } else {
+    driver->rdm.rx.pid = header.pid;
+    driver->rdm.rx.pid_repeats = 0;
+  }
+
   // TODO: Return early if RDM is disabled
 
   // Return early if the packet isn't a request or this device isn't addressed
-  int rdm_flags;
-  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  rdm_flags = driver->dmx.is_rdm;
-  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if ((rdm_flags & (DMX_TYPE_IS_REQUEST | DMX_TYPE_IS_ADDRESSEE)) !=
-      (DMX_TYPE_IS_REQUEST | DMX_TYPE_IS_ADDRESSEE)) {
+  const rdm_uid_t *this_uid = rdm_uid_get(dmx_num);
+  if (!is_rdm || !rdm_cc_is_valid(header.cc) || !rdm_cc_is_request(header.cc) ||
+      !rdm_uid_is_target(this_uid, &header.dest_uid)) {
     xSemaphoreGiveRecursive(driver->mux);
     dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
     return packet_size;
-  }
-
-  rdm_header_t header;
-  rdm_read_header(dmx_num, &header);
-
-  // Update PID repeat counter - used for PIDs that ACK overflow
-  if (driver->dmx.rdm_pid == header.pid) {
-    ++driver->dmx.pid_repeat_count;
-  } else {
-    driver->dmx.rdm_pid = header.pid;
-    driver->dmx.pid_repeat_count = 0;
   }
 
   // Get parameter definition

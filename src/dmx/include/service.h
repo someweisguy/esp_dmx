@@ -77,12 +77,12 @@ enum dmx_parameter_type_t {
 };
 
 enum {
-  DMX_TYPE_IS_NOT_RDM = 0,
-  DMX_TYPE_IS_RDM = BIT0,
-  DMX_TYPE_IS_REQUEST = BIT1,
-  DMX_TYPE_IS_DISCOVERY = BIT2,
-  DMX_TYPE_IS_BROADCAST = BIT3,
-  DMX_TYPE_IS_ADDRESSEE = BIT4,
+  RDM_TYPE_IS_NOT_RDM = 0,
+  RDM_TYPE_IS_DISCOVERY,
+  RDM_TYPE_IS_RESPONSE,
+  RDM_TYPE_IS_BROADCAST,
+  RDM_TYPE_IS_REQUEST,
+  RDM_TYPE_IS_GENERIC_RDM,
 };
 
 enum {
@@ -142,12 +142,28 @@ typedef struct dmx_driver_t {
     int16_t tx_size;  // The size of the outgoing packet.
     int16_t rx_size;  // The expected size of the incoming packet.
     int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
-    uint8_t is_rdm;
-    rdm_pid_t rdm_pid;
-    uint8_t pid_repeat_count;
     uint8_t sent_last;
     uint8_t status;
+    struct {
+      int64_t ts;
+    } rx, tx;
   } dmx;
+
+  // RDM driver information
+  struct dmx_driver_rdm_t {
+    struct {
+      uint8_t type;
+      rdm_pid_t pid;
+      uint8_t pid_repeats;
+    } rx;
+    struct {
+      uint8_t type;
+    } tx;
+    union {
+      uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM request sent.
+      uint8_t boot_loader;  // The RDM responder boot-loader flag. True when when the device is incapable of normal operation until receiving a firmware upload.
+    };
+  } rdm;
   
   // DMX sniffer configuration
   struct dmx_driver_sniffer_t {
@@ -155,14 +171,6 @@ typedef struct dmx_driver_t {
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
-
-  // RDM driver information
-  struct dmx_driver_rdm_t {
-    union {
-      uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM request sent.
-      uint8_t boot_loader;  // The RDM responder boot-loader flag. True when when the device is incapable of normal operation until receiving a firmware upload.
-    };
-  } rdm;
 
   // DMX device information
   struct dmx_driver_device_t {
