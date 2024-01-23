@@ -86,14 +86,15 @@ enum {
 };
 
 enum {
-  DMX_STATUS_NOT_READY = 0,
-  DMX_STATUS_READY,
-  DMX_STATUS_STALE,
-  DMX_STATUS_IS_SENDING,
+  DMX_PACKET_IS_STALE = 0,
+  DMX_PACKET_IS_IN_BREAK,
+  DMX_PACKET_IS_IN_MAB,
+  DMX_PACKET_IS_IN_DATA,
+  DMX_PACKET_IS_COMPLETE,
 
-  DMX_SNIFFER_IDLE = 0,
-  DMX_SNIFFER_IS_IN_BREAK,
-  DMX_SNIFFER_IS_IN_MAB,
+  DMX_PORT_IS_IDLE = 0,
+  DMX_PORT_IS_RECEIVING,
+  DMX_PORT_IS_SENDING,
 };
 
 /**
@@ -147,10 +148,15 @@ typedef struct dmx_driver_t {
     int16_t head;     // The index of the slot being transmitted or received.
     uint8_t data[DMX_PACKET_SIZE_MAX];  // The buffer that stores the DMX packet.
     int16_t size;  // The expected size of the incoming/outgoing packet.
+    
+    uint8_t port;  // The status of the DMX port.
+    uint8_t packet;  // The progress of the current packet.
+    int64_t timestamp;
+    uint8_t sent_last;
+
     struct {
       int64_t ts;
     } rx, tx;
-    uint8_t status;
   } dmx;
 
   // RDM driver information
