@@ -35,7 +35,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       dmx_timer_set_alarm(dmx_num, driver->mab_len, false);
     } else {
       // Write data to the UART
-      size_t write_size = driver->dmx.tx_size;
+      size_t write_size = driver->dmx.size;
       dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
       driver->dmx.head += write_size;
 
@@ -48,7 +48,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   } else if (driver->task_waiting) {
     // Notify the task
     xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
-                       &task_awoken);  // TODO: return timeout?
+                       &task_awoken);
 
     // Pause the receive timer alarm
     dmx_timer_stop(dmx_num);

@@ -158,12 +158,12 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   }
 
   // Update the receive size only if it has changed
-  if (size != driver->dmx.rx_size) {
+  if (size != driver->dmx.size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->dmx.rx_size = size;
+    driver->dmx.size = size;
     if (!driver->rdm.rx.type && driver->dmx.head > 0) {
       // It is necessary to revalidate if the DMX data is ready
-      if (driver->dmx.head >= driver->dmx.rx_size) {
+      if (driver->dmx.head >= driver->dmx.size) {
         driver->dmx.status = DMX_STATUS_READY;
       } else {
         driver->dmx.status = DMX_STATUS_NOT_READY;
@@ -443,7 +443,7 @@ size_t dmx_receive(dmx_port_t dmx_num, dmx_packet_t *packet,
 
   size_t size;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  size = dmx_driver[dmx_num]->dmx.rx_size;
+  size = dmx_driver[dmx_num]->dmx.size;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return dmx_receive_num(dmx_num, packet, size, wait_ticks);
@@ -538,7 +538,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     size = DMX_PACKET_SIZE_MAX;  // Send a standard DMX packet
   }
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  driver->dmx.tx_size = size;
+  driver->dmx.size = size;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Update driver flags and increment the RDM transaction number if applicable
@@ -554,7 +554,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
 
-    size_t write_size = driver->dmx.tx_size;
+    size_t write_size = driver->dmx.size;
     dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
     driver->dmx.head = write_size;
 

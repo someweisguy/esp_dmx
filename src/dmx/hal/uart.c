@@ -67,7 +67,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         if (driver->dmx.status == DMX_STATUS_NOT_READY &&
             driver->dmx.head > 0) {
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-          driver->dmx.rx_size = driver->dmx.head - 1;  // Attempt to fix
+          driver->dmx.size = driver->dmx.head - 1;  // Attempt to fix
           if (driver->task_waiting) {
             xTaskNotifyFromISR(driver->task_waiting, DMX_ERR_NOT_ENOUGH_SLOTS,
                                eSetValueWithOverwrite, &task_awoken);
@@ -200,7 +200,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
         } else {
           // Parse a standard DMX packet
-          packet_is_complete = (driver->dmx.head >= driver->dmx.rx_size);
+          packet_is_complete = (driver->dmx.head >= driver->dmx.size);
           break;
         }
       }
@@ -221,14 +221,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Transmit #####################################################
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // Write data to the UART and clear the interrupt
-      size_t write_size = driver->dmx.tx_size - driver->dmx.head;
+      size_t write_size = driver->dmx.size - driver->dmx.head;
       dmx_uart_write_txfifo(dmx_num, &driver->dmx.data[driver->dmx.head],
                             &write_size);
       driver->dmx.head += write_size;
       dmx_uart_clear_interrupt(dmx_num, DMX_INTR_TX_DATA);
 
       // Allow FIFO to empty when done writing data
-      if (driver->dmx.head == driver->dmx.tx_size) {
+      if (driver->dmx.head == driver->dmx.size) {
         dmx_uart_disable_interrupt(dmx_num, DMX_INTR_TX_DATA);
       }
     } else if (intr_flags & DMX_INTR_TX_DONE) {

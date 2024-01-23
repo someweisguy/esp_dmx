@@ -139,12 +139,11 @@ typedef struct dmx_driver_t {
   struct dmx_driver_dmx_t {
     int16_t head;     // The index of the slot being transmitted or received.
     uint8_t data[DMX_PACKET_SIZE_MAX];  // The buffer that stores the DMX packet.
-    int16_t tx_size;  // The size of the outgoing packet.
-    int16_t rx_size;  // The expected size of the incoming packet.
-    uint8_t status;
+    int16_t size;  // The expected size of the incoming/outgoing packet.
     struct {
       int64_t ts;
     } rx, tx;
+    uint8_t status;
   } dmx;
 
   // RDM driver information

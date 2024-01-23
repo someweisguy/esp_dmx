@@ -136,8 +136,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
 
   // Data buffer
   driver->dmx.head = -1;
-  driver->dmx.tx_size = DMX_PACKET_SIZE_MAX;
-  driver->dmx.rx_size = DMX_PACKET_SIZE_MAX;
+  driver->dmx.size = DMX_PACKET_SIZE_MAX;
   memset(driver->dmx.data, 0, sizeof(driver->dmx.data));
   driver->dmx.rx.ts = 0;
   driver->dmx.tx.ts = 0;
