@@ -205,14 +205,16 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   dmx_err_t err;
   if (dmx_status != DMX_STATUS_READY) {
     // Tell the DMX driver that this task is awaiting a DMX packet
+    bool sent_last;
     const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->task_waiting = this_task;
+    sent_last = (driver->dmx.rx.ts < driver->dmx.tx.ts);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
     // Determine if it is necessary to set a hardware timeout alarm
     int64_t timer_alarm;
-    if (driver->dmx.sent_last && driver->rdm.rx.type) {
+    if (sent_last && driver->rdm.rx.type) {
 
       timer_alarm = 0;  // TODO
     } else {
@@ -222,7 +224,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     if (timer_alarm > 0) {
       int64_t last_timestamp;
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      last_timestamp = driver->dmx.last_slot_ts;
+      last_timestamp = 0;  // FIXME determine timer_alarm value
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
       int64_t timer_elapsed = dmx_timer_get_micros_since_boot() - last_timestamp;
       if (timer_elapsed > timer_alarm) {
@@ -408,7 +410,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       rdm_set_boot_loader(dmx_num);
       // Generate information for the warning message if a response wasn't sent
       const int64_t micros_elapsed =
-          dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
+          dmx_timer_get_micros_since_boot() - driver->dmx.rx.ts;
       const char *cc_str = header.cc == RDM_CC_GET_COMMAND   ? "GET"
                            : header.cc == RDM_CC_SET_COMMAND ? "SET"
                                                              : "DISC";
@@ -475,7 +477,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   // Determine if it is too late to send a response packet
   int64_t elapsed = 0;
   if (is_rdm && !rdm_cc_is_request(header.cc)) {
-    elapsed = dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
+    elapsed = 0;  // FIXME
     if (elapsed >= RDM_PACKET_SPACING_RESPONDER_NO_RESPONSE) {
       xSemaphoreGiveRecursive(driver->mux);
       return 0;
@@ -500,7 +502,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     timeout = RDM_PACKET_SPACING_RESPONSE;
   }
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  elapsed = dmx_timer_get_micros_since_boot() - driver->dmx.last_slot_ts;
+  elapsed = 0;  // FIXME
   if (elapsed < timeout) {
     dmx_timer_set_counter(dmx_num, elapsed);
     dmx_timer_set_alarm(dmx_num, timeout, false);

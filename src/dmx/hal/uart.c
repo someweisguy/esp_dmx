@@ -49,6 +49,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         int read_len = DMX_PACKET_SIZE_MAX - dmx_head;
         dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[dmx_head], &read_len);
         driver->dmx.head += read_len;
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        driver->dmx.rx.ts = now;
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       } else {
         if (driver->dmx.head > 0) {
           // Record the number of slots received for error reporting
@@ -98,7 +101,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         err = intr_flags & DMX_INTR_RX_FIFO_OVERFLOW
                   ? DMX_ERR_UART_OVERFLOW   // UART overflow
                   : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
-        driver->dmx.sent_last = false;
       } else {
         // Determine the type of the packet that was received
         if (dmx_head == 0 && driver->dmx.head > 0) {
@@ -114,7 +116,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->rdm.rx.type = rdm_type;
           taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-          driver->dmx.sent_last = false;
         }
         err = DMX_OK;
       }
@@ -238,7 +239,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
-      driver->dmx.last_slot_ts = now;
+      driver->dmx.tx.ts = now;  // Only update TX timestamp on last sent slot
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eNoAction,
                            &task_awoken);
