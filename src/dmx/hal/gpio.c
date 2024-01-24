@@ -26,12 +26,11 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     just finished. Therefore the DMX break length is able to be recorded. It can
     also be deduced that the driver is now in a DMX mark-after-break. */
 
-    if ((driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) &&
+    if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK &&
         driver->sniffer.last_neg_edge_ts > -1) {
       driver->sniffer.metadata.break_len =
           now - driver->sniffer.last_neg_edge_ts;
-      driver->flags |= DMX_FLAGS_DRIVER_IS_IN_BREAK;
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
+      driver->dmx.progress = DMX_PROGRESS_IN_MAB;
     }
     driver->sniffer.last_pos_edge_ts = now;
   } else {
@@ -39,9 +38,9 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     the DMX mark-after-break has just finished. It can be recorded. Sniffer data
     is now available to be read by the user. */
 
-    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_MAB) {
+    if (driver->dmx.progress == DMX_PROGRESS_IN_MAB) {
       driver->sniffer.metadata.mab_len = now - driver->sniffer.last_pos_edge_ts;
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
+      driver->dmx.progress = DMX_PROGRESS_IN_DATA;
     }
     driver->sniffer.last_neg_edge_ts = now;
   }

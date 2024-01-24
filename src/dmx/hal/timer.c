@@ -27,9 +27,9 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   int task_awoken = false;
 
   if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
-    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
+    if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK) {
       dmx_uart_invert_tx(dmx_num, 0);
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
+      driver->dmx.progress = DMX_PROGRESS_IN_MAB;
 
       // Reset the alarm for the end of the DMX mark-after-break
       dmx_timer_set_alarm(dmx_num, driver->mab_len, false);

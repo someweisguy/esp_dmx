@@ -566,8 +566,8 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     // Send the packet by starting the DMX break
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.head = 0;
-    driver->flags |=
-        (DMX_FLAGS_DRIVER_IS_IN_BREAK | DMX_FLAGS_DRIVER_IS_SENDING);
+    driver->dmx.progress = DMX_PROGRESS_IN_BREAK;
+    driver->dmx.status = DMX_STATUS_SENDING;
     dmx_timer_set_counter(dmx_num, 0);
     dmx_timer_set_alarm(dmx_num, driver->break_len, true);
     dmx_timer_start(dmx_num);

@@ -64,8 +64,6 @@ enum dmx_flags_t {
   DMX_FLAGS_DRIVER_IS_IDLE = BIT1,      // The driver is not sending data.
   DMX_FLAGS_DRIVER_IS_SENDING = BIT2,   // The driver is sending.
   DMX_FLAGS_DRIVER_SENT_LAST = BIT3,    // The driver sent the last packet.
-  DMX_FLAGS_DRIVER_IS_IN_BREAK = BIT4,  // The driver is in a DMX break.
-  DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
   DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
 };
 

@@ -14,7 +14,6 @@ bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
 
   // Set sniffer default values
   driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
-  driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_MAB;
 
   // Add the GPIO interrupt handler
   return dmx_gpio_init(dmx_num, driver, intr_pin);
