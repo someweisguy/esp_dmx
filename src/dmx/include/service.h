@@ -144,8 +144,13 @@ typedef struct dmx_driver_t {
     int64_t controller_eop_timestamp;  // The timestamp (in microseconds since boot) of the end-of-packet of the last controller-generated packet.
     rdm_pid_t last_responder_pid;  // The PID of the last responder-generated packet.
     bool responder_sent_last;  // True if the last packet was a responder-generated packet.
-    rdm_pid_t last_request_pid;  // The PID of the last packet which targeted this device.
-    unsigned int last_request_pid_repeats;  // The number of times the last request targeting this device repeated its PID. Used for PIDs which can generate ACK overflow responses.
+    union {
+      struct {
+        rdm_pid_t last_request_pid;  // The PID of the last packet which targeted this device. Is only used when this device is a DMX responder.
+        uint8_t last_request_pid_repeats;  // The number of times the last request targeting this device repeated its PID. Used for PIDs which can generate ACK overflow responses. Is only used when this device is a DMX responder.
+      }; 
+      bool last_request_was_broadcast;  // True if the last request was a broadcast. Is only used when this device is a DMX controller.
+    };
   } dmx;
 
   // RDM driver information
