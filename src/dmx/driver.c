@@ -116,7 +116,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   *(uint8_t *)(&driver->uid.dev_id) += dmx_num;  // Increment last octect
   driver->break_len = RDM_BREAK_LEN_US;
   driver->mab_len = RDM_MAB_LEN_US;
-  driver->flags = (DMX_FLAGS_DRIVER_IS_IDLE);
 
   // Set the default values for the root device
   driver->device.root.num = RDM_SUB_DEVICE_ROOT;
@@ -287,7 +286,7 @@ bool dmx_driver_disable(dmx_port_t dmx_num) {
   // Disable receive interrupts
   bool ret = false;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (!(driver->flags & DMX_FLAGS_DRIVER_IS_SENDING)) {
+  if (driver->dmx.status != DMX_STATUS_SENDING) {
     dmx_uart_disable_interrupt(dmx_num, DMX_INTR_RX_ALL);
     dmx_uart_clear_interrupt(dmx_num, DMX_INTR_RX_ALL);
     driver->is_enabled = false;

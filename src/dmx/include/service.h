@@ -59,12 +59,6 @@ typedef spinlock_t dmx_spinlock_t;
 
 extern const char *TAG;  // The log tagline for the library.
 
-enum dmx_flags_t {
-  DMX_FLAGS_DRIVER_IS_IDLE = BIT1,      // The driver is not sending data.
-  DMX_FLAGS_DRIVER_IS_SENDING = BIT2,   // The driver is sending.
-  DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
-};
-
 enum dmx_parameter_type_t {
   DMX_PARAMETER_TYPE_NULL,
   DMX_PARAMETER_TYPE_DYNAMIC,

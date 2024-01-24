@@ -69,10 +69,11 @@ size_t dmx_write_offset(dmx_port_t dmx_num, size_t offset, const void *source,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Check if the driver is currently sending an RDM packet
+  int dmx_status;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-  const int driver_flags = driver->flags;
+  dmx_status = driver->dmx.status;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  if (driver_flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+  if (dmx_status == DMX_STATUS_SENDING) {
     rdm_header_t header;
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     const bool is_rdm = rdm_read_header(dmx_num, &header);
@@ -551,7 +552,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
       header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
     // RDM discovery responses do not send a DMX break - write immediately
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->flags |= DMX_FLAGS_DRIVER_IS_SENDING;
+    driver->dmx.status = DMX_STATUS_SENDING;
 
     size_t write_size = driver->dmx.size;
     dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
@@ -606,7 +607,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
   if (wait_ticks > 0) {
     bool task_waiting = false;
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+    if (driver->dmx.status == DMX_STATUS_SENDING) {
       driver->task_waiting = xTaskGetCurrentTaskHandle();
       task_waiting = true;
     }
@@ -619,7 +620,7 @@ bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
     }
   } else {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+    if (driver->dmx.status == DMX_STATUS_SENDING) {
       result = false;
     }
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));

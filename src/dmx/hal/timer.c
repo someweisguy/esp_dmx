@@ -26,7 +26,7 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   const dmx_port_t dmx_num = driver->dmx_num;
   int task_awoken = false;
 
-  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
+  if (driver->dmx.status == DMX_STATUS_SENDING) {
     if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK) {
       dmx_uart_invert_tx(dmx_num, 0);
       driver->dmx.progress = DMX_PROGRESS_IN_MAB;

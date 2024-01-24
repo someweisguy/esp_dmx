@@ -244,7 +244,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
+      driver->dmx.status = DMX_STATUS_IDLE;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eNoAction,
                            &task_awoken);
@@ -264,12 +264,12 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
         driver->dmx.head = 0;  // Not expecting a DMX break
       } else {
-        driver->dmx.head = -1;  // Expecting a DMX break
+        driver->dmx.head = DMX_HEAD_WAITING_FOR_BREAK;
       }
 
       // Flip the DMX bus so the response may be read
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->flags &= ~(DMX_FLAGS_DRIVER_IS_IDLE | DMX_FLAGS_DRIVER_HAS_DATA);
+      driver->dmx.progress = DMX_PROGRESS_COMPLETE;
       dmx_uart_rxfifo_reset(dmx_num);
       dmx_uart_set_rts(dmx_num, 1);
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
