@@ -40,12 +40,14 @@ void app_main() {
 
   dmx_packet_t packet;
   bool is_connected = false;
+  int packet_count = 0;
 
   TickType_t last_update = xTaskGetTickCount();
   while (true) {
     // Block until a packet is received
     if (dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK)) {
       const TickType_t now = xTaskGetTickCount();
+      ++packet_count;
 
       if (!is_connected) {
         // Log when we first connect
@@ -56,9 +58,11 @@ void app_main() {
       if (now - last_update >= pdMS_TO_TICKS(1000)) {
         // Only read data every 1000ms
         dmx_read(dmx_num, data, DMX_PACKET_SIZE);
-        ESP_LOGI(TAG, "Start code: %02x, Size: %i", packet.sc, packet.size);
+        ESP_LOGI(TAG, "Start code: %02x, Size: %i, Packets/second: %i",
+                 packet.sc, packet.size, packet_count);
         ESP_LOG_BUFFER_HEX(TAG, data, 16);  // Log first 16 bytes
         last_update = now;
+        packet_count = 0;
       }
 
     } else if (is_connected) {
