@@ -182,24 +182,15 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   if (packet_status != DMX_PROGRESS_COMPLETE && wait_ticks == 0) {
     // Not enough DMX data has been received yet - return early
-    if (packet_size < 0) {
-      packet_size = 0;
-    }
     if (packet != NULL) {
       packet->err = DMX_ERR_TIMEOUT;
-      if (packet_size > 0) {
-        taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-        packet->sc = driver->dmx.data[0];
-        taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-      } else {
-        packet->sc = -1;
-      }
-      packet->size = packet_size;
+      packet->sc = -1;
+      packet->size = 0;
       packet->is_rdm = 0;
     }
     xSemaphoreGiveRecursive(driver->mux);
     dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
-    return packet_size;
+    return 0;
   }
 
   // Block the task to wait for data to be ready
@@ -225,23 +216,14 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
           dmx_timer_get_micros_since_boot() - last_timestamp;
       if (timer_elapsed > timer_alarm) {
         // Return early if the time elapsed is greater than the timer alarm
-        if (packet_size < 0) {
-          packet_size = 0;
-        }
         if (packet != NULL) {
           packet->err = DMX_ERR_TIMEOUT;
-          if (packet_size > 0) {
-            taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-            packet->sc = driver->dmx.data[0];
-            taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-          } else {
-            packet->sc = -1;
-          }
-          packet->size = packet_size;
+          packet->sc = -1;
+          packet->size = 0;
           packet->is_rdm = 0;
         }
         xSemaphoreGiveRecursive(driver->mux);
-        return packet_size;
+        return 0;
       }
 
       // Set the timer
@@ -263,24 +245,15 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     if (!notified) {
       xTaskNotifyStateClear(current_task_handle);  // Avoid race condition
-      if (packet_size < 0) {
-        packet_size = 0;
-      }
       if (packet != NULL) {
         packet->err = DMX_ERR_TIMEOUT;
-        if (packet_size > 0) {
-          taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-          packet->sc = driver->dmx.data[0];
-          taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-        } else {
-          packet->sc = -1;
-        }
-        packet->size = packet_size;
+        packet->sc = -1;
+        packet->size = 0;
         packet->is_rdm = 0;
       }
       xSemaphoreGiveRecursive(driver->mux);
       dmx_parameter_commit(dmx_num);
-      return packet_size;
+      return 0;
     }
   } else {
     // TODO: Fix condition where DMX error can be lost if no task is waiting?
