@@ -124,7 +124,6 @@ typedef struct dmx_driver_t {
   rdm_uid_t uid;       // The driver's UID.
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
-  uint8_t flags;     // Flags which indicate the current state of the driver.
 
   uint8_t is_enabled;
   bool is_controller;
