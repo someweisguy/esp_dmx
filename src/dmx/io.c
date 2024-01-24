@@ -256,7 +256,9 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       return 0;
     }
   } else {
-    // TODO: Fix condition where DMX error can be lost if no task is waiting?
+    /* Errors can be lost if they are not caught by dmx_receive() or 
+      dmx_receive_num() but that is acceptable behavior. Errors should only be
+      reported if the device is able to handle the packet.*/
     err = DMX_OK;
   }
   if (packet_size < 0) {
