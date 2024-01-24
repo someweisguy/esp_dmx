@@ -290,20 +290,38 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   is_rdm = rdm_read_header(dmx_num, &header);
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (!rdm_cc_is_valid(header.cc)) {
+    is_rdm = false;  // Packet is not RDM if CC is invalid
+  }
+  const rdm_uid_t *this_uid = rdm_uid_get(dmx_num);
   if (is_rdm) {
     if (packet != NULL) {
       packet->is_rdm = header.pid;
     }
+    if (rdm_cc_is_request(header.cc)) {
+      // Packet is an RDM request packet
+      driver->dmx.last_controller_pid = header.pid;
+      if (rdm_uid_is_target(this_uid, &header.dest_uid)) {
+        if (header.pid == driver->dmx.last_request_pid) {
+          ++driver->dmx.last_request_pid_repeats;
+        } else {
+          driver->dmx.last_request_pid = header.pid;
+          driver->dmx.last_request_pid_repeats = 0;
+        }
+      }
+    } else {
+      // Packet is an RDM response packet
+      driver->dmx.last_responder_pid = header.pid;
+    }
   } else {
-    header.pid = 0;
+    // Packet is DMX so this device must be a responder
+    driver->dmx.last_controller_pid = 0;
   }
-  // FIXME: update miscellaneous RDM info
 
   // TODO: Return early if RDM is disabled
 
   // Return early if the packet isn't a request or this device isn't addressed
-  const rdm_uid_t *this_uid = rdm_uid_get(dmx_num);
-  if (!is_rdm || !rdm_cc_is_valid(header.cc) || !rdm_cc_is_request(header.cc) ||
+  if (!is_rdm || !rdm_cc_is_request(header.cc) ||
       !rdm_uid_is_target(this_uid, &header.dest_uid)) {
     xSemaphoreGiveRecursive(driver->mux);
     dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
