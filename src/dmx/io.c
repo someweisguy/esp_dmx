@@ -461,7 +461,6 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   rdm_header_t header;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   const bool is_rdm = rdm_read_header(dmx_num, &header);
-  const int driver_flags = driver->flags;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Determine if it is too late to send a response packet
@@ -486,22 +485,22 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   }
 
   // Determine if an alarm needs to be set to wait until driver is ready
-  uint32_t timeout;
-  if (!is_rdm) {
-    timeout = 0;
-  } else if (driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) {
-    if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
-      timeout = RDM_PACKET_SPACING_DISCOVERY_NO_RESPONSE;
-    } else if (rdm_uid_is_broadcast(&header.dest_uid)) {
-      timeout = RDM_PACKET_SPACING_BROADCAST;
-    } else if (rdm_cc_is_request(header.cc)) {
-      timeout = RDM_PACKET_SPACING_REQUEST_NO_RESPONSE;
-    } else {
-      timeout = 0;
-    }
-  } else {
-    timeout = RDM_PACKET_SPACING_RESPONSE;
-  }
+  uint32_t timeout = 0;  // FIXME
+  // if (!is_rdm) {
+  //   timeout = 0;
+  // } else if (driver_flags & DMX_FLAGS_DRIVER_SENT_LAST) {
+  //   if (header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+  //     timeout = RDM_PACKET_SPACING_DISCOVERY_NO_RESPONSE;
+  //   } else if (rdm_uid_is_broadcast(&header.dest_uid)) {
+  //     timeout = RDM_PACKET_SPACING_BROADCAST;
+  //   } else if (rdm_cc_is_request(header.cc)) {
+  //     timeout = RDM_PACKET_SPACING_REQUEST_NO_RESPONSE;
+  //   } else {
+  //     timeout = 0;
+  //   }
+  // } else {
+  //   timeout = RDM_PACKET_SPACING_RESPONSE;
+  // }
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   elapsed = 0;  // FIXME
   if (elapsed < timeout) {
@@ -543,7 +542,6 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   // Update driver flags and increment the RDM transaction number if applicable
-  driver->flags |= DMX_FLAGS_DRIVER_SENT_LAST;
   if (is_rdm && rdm_cc_is_request(header.cc)) {
     ++driver->rdm.tn;
   }
