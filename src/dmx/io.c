@@ -133,7 +133,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       packet->size = 0;
       packet->is_rdm = 0;
     }
-    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
     return 0;
   } else if (!dmx_wait_sent(dmx_num, wait_ticks) ||
              (wait_ticks && xTaskCheckForTimeOut(&timeout, &wait_ticks))) {
@@ -144,7 +143,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       packet->size = 0;
       packet->is_rdm = 0;
     }
-    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
     return 0;
   }
 
@@ -189,7 +187,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       packet->is_rdm = 0;
     }
     xSemaphoreGiveRecursive(driver->mux);
-    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
     return 0;
   }
 
@@ -284,7 +281,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   // Return early if an error occurred
   if (err != DMX_OK) {
     xSemaphoreGiveRecursive(driver->mux);
-    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
     return packet_size;
   }
 
