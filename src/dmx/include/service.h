@@ -125,8 +125,8 @@ typedef struct dmx_driver_t {
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
 
-  uint8_t is_enabled;
-  bool is_controller;
+  bool is_enabled;  // True if the DMX driver is enabled.
+  bool is_controller;  // True if the DMX driver is the controller on the DMX bus.
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
@@ -168,9 +168,9 @@ typedef struct dmx_driver_t {
   // DMX device information
   struct dmx_driver_device_t {
     struct dmx_driver_parameter_count_t {
-      uint32_t root;  // The number of parameters supported by the root device.
-      uint32_t sub_devices;  // The number of parameters supported by sub-devices.
-      uint32_t staged;  // The number of non-volatile parameters waiting to be committed to non-volatile storage.
+      unsigned int root;  // The number of parameters supported by the root device.
+      unsigned int sub_devices;  // The number of parameters supported by sub-devices.
+      unsigned int staged;  // The number of non-volatile parameters waiting to be committed to non-volatile storage.
     } parameter_count;  // Parameter counts for various purposes.
     dmx_device_t root;  // The root device of the RDM driver.
   } device;
