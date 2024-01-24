@@ -137,13 +137,17 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->task_waiting = NULL;
 
   // Data buffer
-  driver->dmx.head = -1;
+  driver->dmx.head = DMX_HEAD_WAITING_FOR_BREAK;
   driver->dmx.size = DMX_PACKET_SIZE_MAX;
   memset(driver->dmx.data, 0, sizeof(driver->dmx.data));
-  driver->dmx.rx.ts = 0;
-  driver->dmx.tx.ts = 0;
-  driver->dmx.progress = DMX_PROGRESS_STALE;
   driver->dmx.status = DMX_STATUS_IDLE;
+  driver->dmx.progress = DMX_PROGRESS_STALE;
+  driver->dmx.last_controller_pid = 0;
+  driver->dmx.controller_eop_timestamp = 0;
+  driver->dmx.last_responder_pid = 0;
+  driver->dmx.responder_sent_last = false;
+  driver->dmx.last_request_pid = 0;
+  driver->dmx.last_request_pid_repeats = 0;
 
   // RDM responder configuration
   driver->rdm.rx.type = RDM_TYPE_IS_NOT_RDM;

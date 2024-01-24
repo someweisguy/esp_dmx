@@ -49,9 +49,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         int read_len = DMX_PACKET_SIZE_MAX - dmx_head;
         dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[dmx_head], &read_len);
         driver->dmx.head += read_len;
-        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        driver->dmx.rx.ts = now;
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       } else {
         if (driver->dmx.head > 0) {
           // Record the number of slots received for error reporting
@@ -249,10 +246,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_disable_interrupt(dmx_num, DMX_INTR_TX_ALL);
       dmx_uart_clear_interrupt(dmx_num, DMX_INTR_TX_DONE);
 
+      if (driver->is_controller) {
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        driver->dmx.controller_eop_timestamp = now;
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      }
+
       // Record timestamp, unset sending flag, and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->flags &= ~DMX_FLAGS_DRIVER_IS_SENDING;
-      driver->dmx.tx.ts = now;  // Only update TX timestamp on last sent slot
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eNoAction,
                            &task_awoken);

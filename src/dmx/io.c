@@ -205,20 +205,15 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   dmx_err_t err;
   if (packet_status != DMX_PROGRESS_COMPLETE) {
     // Tell the DMX driver that this task is awaiting a DMX packet
-    bool sent_last;
-    const TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
+
+    const TaskHandle_t current_task_handle = xTaskGetCurrentTaskHandle();
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->task_waiting = this_task;
-    sent_last = (driver->dmx.rx.ts < driver->dmx.tx.ts);
+    driver->task_waiting = current_task_handle;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
     // Determine if it is necessary to set a hardware timeout alarm
     int64_t timer_alarm;
-    if (sent_last && driver->rdm.rx.type) {
-      timer_alarm = 0;  // TODO
-    } else {
-      timer_alarm = 0;  // No alarm is necessary
-    }
+    timer_alarm = 0;  // TODO: determine if an alarm needs to be set
 
     if (timer_alarm > 0) {
       int64_t last_timestamp;
@@ -266,7 +261,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     driver->task_waiting = NULL;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     if (!notified) {
-      xTaskNotifyStateClear(this_task);  // Avoid potential race condition
+      xTaskNotifyStateClear(current_task_handle);  // Avoid race condition
       if (packet_size < 0) {
         packet_size = 0;
       }
@@ -410,7 +405,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       rdm_set_boot_loader(dmx_num);
       // Generate information for the warning message if a response wasn't sent
       const int64_t micros_elapsed =
-          dmx_timer_get_micros_since_boot() - driver->dmx.rx.ts;
+          dmx_timer_get_micros_since_boot() - 0;  // FIXME: get actual elapsed
       const char *cc_str = header.cc == RDM_CC_GET_COMMAND   ? "GET"
                            : header.cc == RDM_CC_SET_COMMAND ? "SET"
                                                              : "DISC";

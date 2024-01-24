@@ -86,6 +86,8 @@ enum {
 };
 
 enum {
+  DMX_HEAD_WAITING_FOR_BREAK = -1,
+
   DMX_PROGRESS_STALE = 0,
   DMX_PROGRESS_IN_BREAK,
   DMX_PROGRESS_IN_MAB,
@@ -146,22 +148,17 @@ typedef struct dmx_driver_t {
 
   // Data buffer
   struct dmx_driver_dmx_t {
-    int16_t head;     // The index of the slot being transmitted or received.
+    int16_t head;  // The index of the slot being transmitted or received.
     uint8_t data[DMX_PACKET_SIZE_MAX];  // The buffer that stores the DMX packet.
     int16_t size;  // The expected size of the incoming/outgoing packet.
-    
     uint8_t status;  // The status of the DMX port.
     uint8_t progress;  // The progress of the current packet.
-
-    rdm_pid_t last_controller_pid;
-    int64_t controller_eop_timestamp;
-    rdm_pid_t last_responder_pid;
-    bool responder_sent_last;
-    rdm_pid_t last_request_pid;
-
-    struct {
-      int64_t ts;
-    } rx, tx;
+    rdm_pid_t last_controller_pid;  // The PID of the last controller-generated packet.
+    int64_t controller_eop_timestamp;  // The timestamp (in microseconds since boot) of the end-of-packet of the last controller-generated packet.
+    rdm_pid_t last_responder_pid;  // The PID of the last responder-generated packet.
+    bool responder_sent_last;  // True if the last packet was a responder-generated packet.
+    rdm_pid_t last_request_pid;  // The PID of the last packet which targeted this device.
+    uint8_t last_request_pid_repeats;  // The number of times the last request targeting this device repeated its PID. Used for PIDs which can generate ACK overflow responses.
   } dmx;
 
   // RDM driver information
