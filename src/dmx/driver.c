@@ -130,7 +130,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->device.parameter_count.sub_devices =
       config->sub_device_parameter_count;
   driver->device.parameter_count.staged = 0;
-
+  driver->is_controller = false;
   driver->is_enabled = true;
 
   // Synchronization state

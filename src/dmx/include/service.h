@@ -135,6 +135,7 @@ typedef struct dmx_driver_t {
   uint8_t flags;     // Flags which indicate the current state of the driver.
 
   uint8_t is_enabled;
+  bool is_controller;
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
@@ -151,8 +152,12 @@ typedef struct dmx_driver_t {
     
     uint8_t status;  // The status of the DMX port.
     uint8_t progress;  // The progress of the current packet.
-    int64_t timestamp;
-    uint8_t sent_last;
+
+    rdm_pid_t last_controller_pid;
+    int64_t controller_eop_timestamp;
+    rdm_pid_t last_responder_pid;
+    bool responder_sent_last;
+    rdm_pid_t last_request_pid;
 
     struct {
       int64_t ts;

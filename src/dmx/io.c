@@ -484,6 +484,17 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     }
   }
 
+  // Set the flag indicating this device is the DMX controller
+  if (!driver->is_controller) {
+    if (is_rdm) {
+      if (rdm_cc_is_request(header.cc)) {
+        driver->is_controller = true;
+      }
+    } else {
+      driver->is_controller = true;
+    }
+  }
+
   // Determine if an alarm needs to be set to wait until driver is ready
   uint32_t timeout;
   if (!is_rdm) {

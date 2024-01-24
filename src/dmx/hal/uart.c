@@ -156,6 +156,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             continue;  // Packet is malformed - treat it as DMX
           } else {
+            driver->dmx.responder_sent_last = true;
             packet_is_complete = true;
             break;
           }
@@ -183,18 +184,28 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             continue;  // Packet is malformed - treat it as DMX
           } else {
             uint8_t rdm_type;
+            bool responder_sent_last;
             const rdm_uid_t *uid_ptr = (rdm_uid_t *)&driver->dmx.data[3];
             const rdm_uid_t dest_uid = {.man_id = bswap16(uid_ptr->man_id),
                                         .dev_id = bswap32(uid_ptr->dev_id)};
             if (!rdm_cc_is_request(cc)) {
               rdm_type = RDM_TYPE_IS_RESPONSE;
+              responder_sent_last = true;
             } else if (rdm_uid_is_broadcast(&dest_uid)) {
               rdm_type = RDM_TYPE_IS_BROADCAST;
+              responder_sent_last = false;
             } else {
               rdm_type = RDM_TYPE_IS_REQUEST;
+              responder_sent_last = false;
+            }
+            if (!responder_sent_last) {
+              taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+              driver->dmx.controller_eop_timestamp = now;
+              taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             }
             taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->rdm.rx.type = rdm_type;
+            driver->dmx.responder_sent_last = responder_sent_last;
             taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             packet_is_complete = true;
             break;
