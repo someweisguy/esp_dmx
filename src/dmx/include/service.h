@@ -148,38 +148,29 @@ typedef struct dmx_driver_t {
 
   // Data buffer
   struct dmx_driver_dmx_t {
-    int16_t head;  // The index of the slot being transmitted or received.
+    int head;  // The index of the slot being transmitted or received.
     uint8_t data[DMX_PACKET_SIZE_MAX];  // The buffer that stores the DMX packet.
-    int16_t size;  // The expected size of the incoming/outgoing packet.
-    uint8_t status;  // The status of the DMX port.
-    uint8_t progress;  // The progress of the current packet.
+    int size;  // The expected size of the incoming/outgoing packet.
+    int status;  // The status of the DMX port.
+    int progress;  // The progress of the current packet.
     rdm_pid_t last_controller_pid;  // The PID of the last controller-generated packet.
     int64_t controller_eop_timestamp;  // The timestamp (in microseconds since boot) of the end-of-packet of the last controller-generated packet.
     rdm_pid_t last_responder_pid;  // The PID of the last responder-generated packet.
     bool responder_sent_last;  // True if the last packet was a responder-generated packet.
     rdm_pid_t last_request_pid;  // The PID of the last packet which targeted this device.
-    uint8_t last_request_pid_repeats;  // The number of times the last request targeting this device repeated its PID. Used for PIDs which can generate ACK overflow responses.
+    unsigned int last_request_pid_repeats;  // The number of times the last request targeting this device repeated its PID. Used for PIDs which can generate ACK overflow responses.
   } dmx;
 
   // RDM driver information
   struct dmx_driver_rdm_t {
-    struct {
-      uint8_t type;
-      rdm_pid_t pid;
-      uint8_t pid_repeats;
-    } rx;
-    struct {
-      uint8_t type;
-    } tx;
     union {
       uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM request sent.
-      uint8_t boot_loader;  // The RDM responder boot-loader flag. True when when the device is incapable of normal operation until receiving a firmware upload.
+      bool boot_loader;  // The RDM responder boot-loader flag. True when when the device is incapable of normal operation until receiving a firmware upload.
     };
   } rdm;
   
   // DMX sniffer configuration
   struct dmx_driver_sniffer_t {
-    uint8_t status;
     dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.

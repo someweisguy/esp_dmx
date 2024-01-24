@@ -150,10 +150,6 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   driver->dmx.last_request_pid_repeats = 0;
 
   // RDM responder configuration
-  driver->rdm.rx.type = RDM_TYPE_IS_NOT_RDM;
-  driver->rdm.rx.pid = 0;
-  driver->rdm.rx.pid_repeats = 0;
-  driver->rdm.tx.type = RDM_TYPE_IS_NOT_RDM;
   driver->rdm.tn = 0;
 
   // DMX sniffer configuration

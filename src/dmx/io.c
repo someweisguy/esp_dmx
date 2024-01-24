@@ -161,7 +161,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   if (size != driver->dmx.size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.size = size;
-    if (!driver->rdm.rx.type && driver->dmx.head > 0) {
+    if (driver->dmx.head > 0 && !dmx_start_code_is_rdm(driver->dmx.data[0])) {
       // It is necessary to revalidate if the DMX data is ready
       if (driver->dmx.head >= driver->dmx.size) {
         driver->dmx.progress = DMX_PROGRESS_COMPLETE;
@@ -326,12 +326,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   } else {
     header.pid = 0;
   }
-  if (driver->rdm.rx.pid == header.pid) {
-    ++driver->rdm.rx.pid_repeats;
-  } else {
-    driver->rdm.rx.pid = header.pid;
-    driver->rdm.rx.pid_repeats = 0;
-  }
+  // FIXME: update miscellaneous RDM info
 
   // TODO: Return early if RDM is disabled
 

@@ -93,8 +93,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Process the data depending on the type of packet that was received
       dmx_err_t err;
+      int rdm_type;
       bool packet_is_complete;
       if (intr_flags & DMX_INTR_RX_ERR) {
+        rdm_type = RDM_TYPE_IS_NOT_RDM;
         packet_is_complete = true;
         err = intr_flags & DMX_INTR_RX_FIFO_OVERFLOW
                   ? DMX_ERR_UART_OVERFLOW   // UART overflow
@@ -102,7 +104,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       } else {
         // Determine the type of the packet that was received
         if (dmx_head == 0 && driver->dmx.head > 0) {
-          uint8_t rdm_type;
           const uint8_t sc = driver->dmx.data[0];  // DMX start-code.
           if (sc == RDM_SC) {
             rdm_type = RDM_TYPE_IS_UNKNOWN;  // Determine actual type later
@@ -111,14 +112,13 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else {
             rdm_type = RDM_TYPE_IS_NOT_RDM;
           }
-          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-          driver->rdm.rx.type = rdm_type;
-          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        } else {
+          rdm_type = RDM_TYPE_IS_UNKNOWN;
         }
         err = DMX_OK;
       }
       while (err == DMX_OK) {
-        if (driver->rdm.rx.type == RDM_TYPE_IS_DISCOVERY) {
+        if (rdm_type == RDM_TYPE_IS_DISCOVERY) {
           // Parse an RDM discovery response packet
           if (driver->dmx.head < 17) {
             packet_is_complete = false;
@@ -137,9 +137,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             }
           }
           if (delimiter_idx > 8) {
-            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-            driver->rdm.rx.type = RDM_TYPE_IS_NOT_RDM;
-            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+            rdm_type = RDM_TYPE_IS_NOT_RDM;
             continue;  // Packet is malformed - treat it as DMX
           }
 
@@ -148,16 +146,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             packet_is_complete = false;
             break;  // Haven't received full RDM_PID_DISC_UNIQUE_BRANCH response
           } else if (!rdm_read_header(dmx_num, NULL)) {
-            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-            driver->rdm.rx.type = RDM_TYPE_IS_NOT_RDM;
-            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+            rdm_type = RDM_TYPE_IS_NOT_RDM;
             continue;  // Packet is malformed - treat it as DMX
           } else {
             driver->dmx.responder_sent_last = true;
             packet_is_complete = true;
             break;
           }
-        } else if (driver->rdm.rx.type != RDM_TYPE_IS_NOT_RDM) {
+        } else if (rdm_type != RDM_TYPE_IS_NOT_RDM) {
           // Parse a standard RDM packet
           size_t msg_len;
           rdm_cc_t cc;
@@ -167,20 +163,15 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else if (driver->dmx.data[1] != RDM_SUB_SC ||
                      !rdm_cc_is_valid((cc = driver->dmx.data[20])) ||
                      (msg_len = driver->dmx.data[2]) < sizeof(rdm_header_t)) {
-            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-            driver->rdm.rx.type = RDM_TYPE_IS_NOT_RDM;
-            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+            rdm_type = RDM_TYPE_IS_NOT_RDM;
             continue;  // Packet is malformed - treat it as DMX
           } else if (driver->dmx.head < msg_len + 2) {
             packet_is_complete = false;
             break;  // Haven't received full RDM packet and checksum yet
           } else if (!rdm_read_header(dmx_num, NULL)) {
-            taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-            driver->rdm.rx.type = RDM_TYPE_IS_NOT_RDM;
-            taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+            rdm_type = RDM_TYPE_IS_NOT_RDM;
             continue;  // Packet is malformed - treat it as DMX
           } else {
-            uint8_t rdm_type;
             bool responder_sent_last;
             const rdm_uid_t *uid_ptr = (rdm_uid_t *)&driver->dmx.data[3];
             const rdm_uid_t dest_uid = {.man_id = bswap16(uid_ptr->man_id),
@@ -201,7 +192,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
               taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             }
             taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-            driver->rdm.rx.type = rdm_type;
             driver->dmx.responder_sent_last = responder_sent_last;
             taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             packet_is_complete = true;
