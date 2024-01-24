@@ -150,8 +150,8 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
 
   // Set the RTS pin to enable reading from the DMX bus
   if (dmx_uart_get_rts(dmx_num) == 0) {
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.progress = DMX_PROGRESS_STALE;
     driver->dmx.head = -1;  // Wait for DMX break before reading data
     dmx_uart_set_rts(dmx_num, 1);
@@ -197,7 +197,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   dmx_err_t err;
   if (packet_status != DMX_PROGRESS_COMPLETE) {
     // Tell the DMX driver that this task is awaiting a DMX packet
-
     const TaskHandle_t current_task_handle = xTaskGetCurrentTaskHandle();
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->task_waiting = current_task_handle;
