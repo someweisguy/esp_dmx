@@ -103,17 +103,17 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                   : DMX_ERR_IMPROPER_SLOT;  // Missing stop bits
       } else {
         // Determine the type of the packet that was received
-        if (dmx_head == 0 && driver->dmx.head > 0) {
-          const uint8_t sc = driver->dmx.data[0];  // DMX start-code.
-          if (sc == RDM_SC) {
-            rdm_type = RDM_TYPE_IS_UNKNOWN;  // Determine actual type later
-          } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
-            rdm_type = RDM_TYPE_IS_DISCOVERY;
-          } else {
-            rdm_type = RDM_TYPE_IS_NOT_RDM;
-          }
+        const uint8_t sc = driver->dmx.data[0];  // DMX start-code.
+        if (sc == RDM_SC) {
+          rdm_type = RDM_TYPE_IS_UNKNOWN;  // Determine actual type later
+        } else if (sc == RDM_PREAMBLE || sc == RDM_DELIMITER) {
+          rdm_type = RDM_TYPE_IS_DISCOVERY;
         } else {
-          rdm_type = RDM_TYPE_IS_UNKNOWN;
+          rdm_type = RDM_TYPE_IS_NOT_RDM;
+          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+          // Get the best resolution on the controller EOP timestamp
+          driver->dmx.controller_eop_timestamp = now;
+          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         }
         err = DMX_OK;
       }
@@ -199,6 +199,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
         } else {
           // Parse a standard DMX packet
+          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+          driver->dmx.responder_sent_last = false;
+          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           packet_is_complete = (driver->dmx.head >= driver->dmx.size);
           break;
         }
@@ -236,15 +239,17 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_uart_disable_interrupt(dmx_num, DMX_INTR_TX_ALL);
       dmx_uart_clear_interrupt(dmx_num, DMX_INTR_TX_DONE);
 
+      // Record the EOP timestamp if this device is the DMX controller
       if (driver->is_controller) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.controller_eop_timestamp = now;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       }
 
-      // Record timestamp, unset sending flag, and notify task
+      // Update the DMX status and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->dmx.status = DMX_STATUS_IDLE;
+      driver->dmx.progress = DMX_PROGRESS_COMPLETE;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eNoAction,
                            &task_awoken);
@@ -252,16 +257,14 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
 
       // Skip the rest of the ISR loop if an RDM response is not expected
-      rdm_header_t header;
-      if (!rdm_read_header(dmx_num, &header) || !rdm_cc_is_request(header.cc) ||
-          (rdm_uid_is_broadcast(&header.dest_uid) &&
-           header.pid != RDM_PID_DISC_UNIQUE_BRANCH)) {
+      if (!driver->is_controller || driver->dmx.last_controller_pid == 0 ||
+          (driver->dmx.last_request_was_broadcast &&
+           driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH)) {
         continue;
       }
 
       // Determine if a DMX break is expected in the response packet
-      if (header.cc == RDM_CC_DISC_COMMAND &&
-          header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+      if (driver->dmx.last_controller_pid == RDM_PID_DISC_UNIQUE_BRANCH) {
         driver->dmx.head = 0;  // Not expecting a DMX break
       } else {
         driver->dmx.head = DMX_HEAD_WAITING_FOR_BREAK;
@@ -269,9 +272,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Flip the DMX bus so the response may be read
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->dmx.progress = DMX_PROGRESS_COMPLETE;
       dmx_uart_rxfifo_reset(dmx_num);
       dmx_uart_set_rts(dmx_num, 1);
+      driver->dmx.progress = DMX_PROGRESS_STALE;
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
     }
   }
