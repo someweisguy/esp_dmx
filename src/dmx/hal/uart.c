@@ -233,7 +233,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Transmit #####################################################
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // Write data to the UART and clear the interrupt
-      size_t write_size = driver->dmx.size - driver->dmx.head;
+      int write_size = driver->dmx.size - driver->dmx.head;
       dmx_uart_write_txfifo(dmx_num, &driver->dmx.data[driver->dmx.head],
                             &write_size);
       driver->dmx.head += write_size;
