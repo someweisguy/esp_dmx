@@ -80,7 +80,7 @@ void dmx_uart_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate);
  * @param uart A handle to the DMX UART.
  * @param invert_mask 1 to invert, 0 to un-invert.
  */
-void dmx_uart_invert_tx(dmx_port_t dmx_num, uint32_t invert);
+void dmx_uart_invert_tx(dmx_port_t dmx_num, int invert);
 
 /**
  * @brief Gets the level of the UART RTS line.
@@ -139,7 +139,7 @@ uint32_t dmx_uart_get_rxfifo_len(dmx_port_t dmx_num);
  * @param[inout] num The maximum number of characters to read. Set to 0 to read
  * all data. Is set to the number of characters read.
  */
-void dmx_uart_read_rxfifo(dmx_port_t dmx_num, uint8_t *buf, size_t *size);
+void dmx_uart_read_rxfifo(dmx_port_t dmx_num, uint8_t *buf, int *size);
 
 /**
  * @brief Enables or disables the UART RTS line.
@@ -173,7 +173,7 @@ uint32_t dmx_uart_get_txfifo_len(dmx_port_t dmx_num);
  * @param[inout] size The number of bytes to write. Is set to the number of
  * bytes written.
  */
-void dmx_uart_write_txfifo(dmx_port_t dmx_num, const void *buf, size_t *size);
+void dmx_uart_write_txfifo(dmx_port_t dmx_num, const void *buf, int *size);
 
 /**
  * @brief Resets the UART TX FIFO.

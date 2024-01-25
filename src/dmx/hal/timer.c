@@ -35,9 +35,9 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       dmx_timer_set_alarm(dmx_num, driver->mab_len, false);
     } else {
       // Write data to the UART
-      size_t write_size = driver->dmx.size;
-      dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
-      driver->dmx.head += write_size;
+      int write_len = driver->dmx.size;
+      dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_len);
+      driver->dmx.head += write_len;
 
       // Pause MAB timer alarm
       dmx_timer_stop(dmx_num);

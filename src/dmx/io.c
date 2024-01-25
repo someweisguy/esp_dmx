@@ -542,7 +542,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.status = DMX_STATUS_SENDING;
 
-    size_t write_size = driver->dmx.size;
+    int write_size = driver->dmx.size;
     dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
     driver->dmx.head = write_size;
 
