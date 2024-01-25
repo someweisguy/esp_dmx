@@ -151,7 +151,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     xTaskNotifyStateClear(xTaskGetCurrentTaskHandle());
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.progress = DMX_PROGRESS_STALE;
-    driver->dmx.head = -1;  // Wait for DMX break before reading data
+    driver->dmx.head = DMX_HEAD_WAITING_FOR_BREAK;
     dmx_uart_set_rts(dmx_num, 1);
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
@@ -400,7 +400,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     } else {
       dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-      driver->dmx.head = -1;  // Wait for DMX break before reading data
+      driver->dmx.head = DMX_HEAD_WAITING_FOR_BREAK;
       dmx_uart_set_rts(dmx_num, 1);
       taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     }
