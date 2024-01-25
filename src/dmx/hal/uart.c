@@ -79,9 +79,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.head = 0;
         continue;  // Nothing else to do on DMX break
-      } else if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK) {
+      } else if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK ||
+                 driver->dmx.progress == DMX_PROGRESS_IN_MAB) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-        // UART interrupt cannot detect if the packet is in MAB
+        // UART ISR cannot detect MAB so we go straight to DMX_PROGRESS_IN_DATA
         driver->dmx.progress = DMX_PROGRESS_IN_DATA;
         taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       }
