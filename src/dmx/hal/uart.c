@@ -44,15 +44,24 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Receive ####################################################
     if (intr_flags & DMX_INTR_RX_ALL) {
       // Read data into the DMX buffer if there is enough space
-      const int dmx_head = driver->dmx.head;
+      int dmx_head;
+      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      dmx_head = driver->dmx.head;
+      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       if (dmx_head >= 0 && dmx_head < DMX_PACKET_SIZE_MAX) {
         int read_len = DMX_PACKET_SIZE_MAX - dmx_head;
         dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[dmx_head], &read_len);
-        driver->dmx.head += read_len;
+        dmx_head += read_len;
+        taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+        driver->dmx.head = dmx_head;
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       } else {
-        if (driver->dmx.head > 0) {
+        if (dmx_head > 0) {
           // Record the number of slots received for error reporting
-          driver->dmx.head += dmx_uart_get_rxfifo_len(dmx_num);
+          dmx_head += dmx_uart_get_rxfifo_len(dmx_num);
+          taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+          driver->dmx.head = dmx_head;
+          taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         }
         dmx_uart_rxfifo_reset(dmx_num);
       }
@@ -61,10 +70,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       // Handle DMX break condition
       if (intr_flags & DMX_INTR_RX_BREAK) {
         // Handle possible condition where expected packet size is too large
-        if (driver->dmx.progress == DMX_PROGRESS_IN_DATA &&
-            driver->dmx.head > 0) {
+        if (driver->dmx.progress == DMX_PROGRESS_IN_DATA && dmx_head > 0) {
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-          driver->dmx.size = driver->dmx.head - 1;  // Attempt to fix
+          driver->dmx.size = dmx_head - 1;  // Attempt to fix packet size
           if (driver->task_waiting) {
             xTaskNotifyFromISR(driver->task_waiting, DMX_ERR_NOT_ENOUGH_SLOTS,
                                eSetValueWithOverwrite, &task_awoken);
@@ -76,8 +84,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.status = DMX_STATUS_RECEIVING;
         driver->dmx.progress = DMX_PROGRESS_IN_BREAK;
-        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.head = 0;
+        taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         continue;  // Nothing else to do on DMX break
       } else if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK ||
                  driver->dmx.progress == DMX_PROGRESS_IN_MAB) {
@@ -121,7 +129,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       while (err == DMX_OK) {
         if (rdm_type == RDM_TYPE_IS_DISCOVERY) {
           // Parse an RDM discovery response packet
-          if (driver->dmx.head < 17) {
+          if (dmx_head < 17) {
             packet_is_complete = false;
             break;  // Haven't received the minimum packet size
           }
@@ -143,7 +151,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
 
           // Process RDM discovery response packet
-          if (driver->dmx.head < delimiter_idx + 17) {
+          if (dmx_head < delimiter_idx + 17) {
             packet_is_complete = false;
             break;  // Haven't received full RDM_PID_DISC_UNIQUE_BRANCH response
           } else if (!rdm_read_header(dmx_num, NULL)) {
@@ -158,7 +166,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           // Parse a standard RDM packet
           size_t msg_len;
           rdm_cc_t cc;
-          if (driver->dmx.head < sizeof(rdm_header_t) + 2) {
+          if (dmx_head < sizeof(rdm_header_t) + 2) {
             packet_is_complete = false;
             break;  // Haven't received full RDM header and checksum yet
           } else if (driver->dmx.data[1] != RDM_SUB_SC ||
@@ -166,7 +174,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
                      (msg_len = driver->dmx.data[2]) < sizeof(rdm_header_t)) {
             rdm_type = RDM_TYPE_IS_NOT_RDM;
             continue;  // Packet is malformed - treat it as DMX
-          } else if (driver->dmx.head < msg_len + 2) {
+          } else if (dmx_head < msg_len + 2) {
             packet_is_complete = false;
             break;  // Haven't received full RDM packet and checksum yet
           } else if (!rdm_read_header(dmx_num, NULL)) {
@@ -203,7 +211,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.responder_sent_last = false;
           taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-          packet_is_complete = (driver->dmx.head >= driver->dmx.size);
+          packet_is_complete = (dmx_head >= driver->dmx.size);
           break;
         }
       }
