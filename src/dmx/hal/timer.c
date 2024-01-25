@@ -40,18 +40,19 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
       driver->dmx.head += write_len;
 
       // Pause MAB timer alarm
-      dmx_timer_stop(dmx_num);
+      dmx_timer_stop(dmx_num);  // TODO: is this needed?
 
       // Enable DMX write interrupts
       dmx_uart_enable_interrupt(dmx_num, DMX_INTR_TX_ALL);
     }
-  } else if (driver->task_waiting) {
-    // Notify the task
-    xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
-                       &task_awoken);
-
-    // Pause the receive timer alarm
-    dmx_timer_stop(dmx_num);
+  } else {
+    taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+    if (driver->task_waiting) {
+      xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
+                         &task_awoken);
+    }
+    taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+    dmx_timer_stop(dmx_num);  // TODO: is this needed?
   }
 
   return task_awoken;
