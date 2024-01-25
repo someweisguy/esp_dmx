@@ -139,7 +139,7 @@ uint32_t dmx_uart_get_rxfifo_len(dmx_port_t dmx_num);
  * @param[inout] num The maximum number of characters to read. Set to 0 to read
  * all data. Is set to the number of characters read.
  */
-void dmx_uart_read_rxfifo(dmx_port_t dmx_num, uint8_t *buf, int *size);
+void dmx_uart_read_rxfifo(dmx_port_t dmx_num, uint8_t *buf, size_t *size);
 
 /**
  * @brief Enables or disables the UART RTS line.

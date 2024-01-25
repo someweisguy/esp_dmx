@@ -49,7 +49,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       dmx_head = driver->dmx.head;
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       if (dmx_head >= 0 && dmx_head < DMX_PACKET_SIZE_MAX) {
-        int read_len = DMX_PACKET_SIZE_MAX - dmx_head;
+        size_t read_len = DMX_PACKET_SIZE_MAX - dmx_head;
         dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[dmx_head], &read_len);
         dmx_head += read_len;
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -233,10 +233,10 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
     // DMX Transmit #####################################################
     else if (intr_flags & DMX_INTR_TX_DATA) {
       // Write data to the UART and clear the interrupt
-      int write_size = driver->dmx.size - driver->dmx.head;
+      size_t write_len = driver->dmx.size - driver->dmx.head;
       dmx_uart_write_txfifo(dmx_num, &driver->dmx.data[driver->dmx.head],
-                            &write_size);
-      driver->dmx.head += write_size;
+                            &write_len);
+      driver->dmx.head += write_len;
       dmx_uart_clear_interrupt(dmx_num, DMX_INTR_TX_DATA);
 
       // Allow FIFO to empty when done writing data
@@ -415,7 +415,7 @@ uint32_t DMX_ISR_ATTR dmx_uart_get_rxfifo_len(dmx_port_t dmx_num) {
 }
 
 void DMX_ISR_ATTR dmx_uart_read_rxfifo(dmx_port_t dmx_num, uint8_t *buf,
-                                       int *size) {
+                                       size_t *size) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   const size_t rxfifo_len = uart_ll_get_rxfifo_len(uart->dev);
   if (*size > rxfifo_len) {
