@@ -137,7 +137,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
         // Set inter-slot timer for RDM response packets
         if (driver->is_controller && rdm_type != RDM_TYPE_IS_NOT_RDM) {
           dmx_timer_set_counter(dmx_num, 0);
-          dmx_timer_set_alarm(dmx_num, 2000, false);  // FIXME: use constant
+          dmx_timer_set_alarm(dmx_num, RDM_TIMING_RESPONDER_INTER_SLOT_MAX,
+                              false);
         }
 
         err = DMX_OK;

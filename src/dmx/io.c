@@ -474,7 +474,14 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
       }
     } else {
       if (driver->dmx.responder_sent_last) {
-        timer_alarm = 2800;  // FIXME: use constant
+        /* This is a condition in which the RDM controller sends an
+          RDM_PID_DISC_UNIQUE_BRANCH message and a valid response has already
+          been received. The RDM standard doesn't specify how long the RDM
+          controller should wait before sending the next RDM request. This
+          library makes an inference to what this duration should be in order to
+          reduce RDM discovery times. This inference is based on related
+          information from the RDM specification.*/
+        timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_RESPONSE_TO_REQUEST_MIN;
       } else {
         timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST_MIN;
       }
