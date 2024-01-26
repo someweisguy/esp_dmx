@@ -476,7 +476,8 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   if (driver->is_controller) {
     if (driver->dmx.responder_sent_last ||
         driver->dmx.last_controller_pid == 0 ||
-        driver->dmx.last_request_was_broadcast) {
+        (driver->dmx.last_request_was_broadcast &&
+         driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH)) {
       timer_alarm = 176;  // FIXME: use constant
     } else if (driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH) {
       timer_alarm = 3000;  // FIXME: use constant
@@ -484,7 +485,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
       timer_alarm = 5800;  // FIXME: use constant
     }
   } else {
-    timer_alarm = 176;  // FIXME: use constant
+    timer_alarm = 176;  // FIXME: use RDM_PACKET_SPACING_RESPONDER_MINIMUM
   }
 
   // If necessary, set an alarm to wait the minimum duration before sending
@@ -574,6 +575,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.last_controller_pid = pid;
     driver->dmx.last_request_was_broadcast = was_broadcast;
+    driver->dmx.responder_sent_last = false;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
     if (pid != 0) {
       ++driver->rdm.tn;
