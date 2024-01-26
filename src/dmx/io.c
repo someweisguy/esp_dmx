@@ -501,7 +501,6 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     } else {
       timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST_MIN;
     }
-
   } else {
     timer_alarm = RDM_TIMING_RESPONDER_MIN;
   }
