@@ -316,7 +316,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       driver->dmx.last_responder_pid = header.pid;
     }
   } else {
-    // Packet is DMX so this device must be a responder
     driver->dmx.last_controller_pid = 0;
   }
 
