@@ -31,6 +31,15 @@ static struct dmx_uart_t {
 #endif
 };
 
+enum {
+  RDM_TYPE_IS_NOT_RDM = 0,
+  RDM_TYPE_IS_DISCOVERY,
+  RDM_TYPE_IS_RESPONSE,
+  RDM_TYPE_IS_BROADCAST,
+  RDM_TYPE_IS_REQUEST,
+  RDM_TYPE_IS_UNKNOWN,
+};
+
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = arg;
