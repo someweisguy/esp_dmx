@@ -152,12 +152,14 @@ void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_port_t dmx_num, uint64_t alarm,
 
 void DMX_ISR_ATTR dmx_timer_start(dmx_port_t dmx_num) {
   struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
+  if (!timer->is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-  gptimer_start(timer->gptimer_handle);
+    gptimer_start(timer->gptimer_handle);
 #else
-  timer_start(timer->group, timer->idx);
+    timer_start(timer->group, timer->idx);
 #endif
-  timer->is_running = true;
+    timer->is_running = true;
+  }
 }
 
 int64_t DMX_ISR_ATTR dmx_timer_get_micros_since_boot() {
