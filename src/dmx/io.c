@@ -253,9 +253,6 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
 
     // Wait for the DMX driver to notify this task that DMX is ready
     const bool notified = xTaskNotifyWait(0, -1, (uint32_t *)&err, wait_ticks);
-    if (timer_alarm > 0) {
-      dmx_timer_stop(dmx_num);
-    }
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     packet_size = driver->dmx.head;
     driver->task_waiting = NULL;
@@ -492,7 +489,11 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
         timer_alarm = RDM_TIMING_CONTROLLER_RESPONSE_LOST_MIN;
       }
     } else {
-      timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST_MIN;
+      if (driver->dmx.responder_sent_last) {
+        timer_alarm = 2800;  // FIXME: use constant
+      } else {
+        timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST_MIN;
+      }
     }
   } else {
     timer_alarm = RDM_TIMING_RESPONDER_MIN;

@@ -133,6 +133,13 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           driver->dmx.controller_eop_timestamp = now;
           taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         }
+
+        // Set inter-slot timer for RDM response packets
+        if (driver->is_controller && rdm_type != RDM_TYPE_IS_NOT_RDM) {
+          dmx_timer_set_counter(dmx_num, 0);
+          dmx_timer_set_alarm(dmx_num, 2000, false);  // FIXME: use constant
+        }
+
         err = DMX_OK;
       }
       while (err == DMX_OK) {
@@ -230,6 +237,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (!packet_is_complete) {
         continue;
       }
+      dmx_timer_stop(dmx_num);
 
       // Set driver flags and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
