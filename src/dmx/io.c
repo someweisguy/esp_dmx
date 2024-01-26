@@ -393,8 +393,8 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     if (!dmx_send_num(dmx_num, reply)) {
       rdm_set_boot_loader(dmx_num);
       // Generate information for the warning message if a response wasn't sent
-      const int64_t micros_elapsed =
-          dmx_timer_get_micros_since_boot() - 0;  // FIXME: get actual elapsed
+      const int64_t micros_elapsed = dmx_timer_get_micros_since_boot() -
+                                     driver->dmx.controller_eop_timestamp;
       const char *cc_str = header.cc == RDM_CC_GET_COMMAND   ? "GET"
                            : header.cc == RDM_CC_SET_COMMAND ? "SET"
                                                              : "DISC";
