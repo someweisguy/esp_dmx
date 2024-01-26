@@ -159,6 +159,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             continue;  // Packet is malformed - treat it as DMX
           } else {
             driver->dmx.responder_sent_last = true;
+            driver->is_controller = true;
             packet_is_complete = true;
             break;
           }
@@ -203,6 +204,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             driver->dmx.responder_sent_last = responder_sent_last;
             taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+            driver->is_controller = !responder_sent_last;
             packet_is_complete = true;
             break;
           }
@@ -211,6 +213,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.responder_sent_last = false;
           taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+          driver->is_controller = false;
           packet_is_complete = (dmx_head >= driver->dmx.size);
           break;
         }
