@@ -257,8 +257,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 
       // Update the DMX status and notify task
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
-      driver->dmx.status = DMX_STATUS_IDLE;
       driver->dmx.progress = DMX_PROGRESS_COMPLETE;
+      driver->dmx.status = DMX_STATUS_IDLE;
       if (driver->task_waiting) {
         xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eNoAction,
                            &task_awoken);
