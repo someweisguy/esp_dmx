@@ -556,6 +556,26 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   driver->dmx.size = size;
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
+  // Record information about the packet that is being sent
+  if (driver->is_controller) {
+    rdm_pid_t pid = is_rdm ? header.pid : 0;
+    bool was_broadcast = is_rdm ? rdm_uid_is_broadcast(&header.dest_uid) : 0;
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    driver->dmx.last_controller_pid = pid;
+    driver->dmx.last_request_was_broadcast = was_broadcast;
+    driver->dmx.responder_sent_last = false;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+    if (pid != 0) {
+      ++driver->rdm.tn;
+    }
+  } else {
+    rdm_pid_t pid = is_rdm ? header.pid : 0;
+    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+    driver->dmx.last_responder_pid = pid;
+    driver->dmx.responder_sent_last = true;
+    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  }
+
   // Determine if a DMX break is required and send the packet
   if (is_rdm && header.cc == RDM_CC_DISC_COMMAND_RESPONSE &&
       header.pid == RDM_PID_DISC_UNIQUE_BRANCH) {
@@ -581,26 +601,6 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
     dmx_timer_start(dmx_num);
 
     dmx_uart_invert_tx(dmx_num, 1);
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-  }
-
-  // Record information about the packet that is being sent
-  if (driver->is_controller) {
-    rdm_pid_t pid = is_rdm ? header.pid : 0;
-    bool was_broadcast = is_rdm ? rdm_uid_is_broadcast(&header.dest_uid) : 0;
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->dmx.last_controller_pid = pid;
-    driver->dmx.last_request_was_broadcast = was_broadcast;
-    driver->dmx.responder_sent_last = false;
-    taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
-    if (pid != 0) {
-      ++driver->rdm.tn;
-    }
-  } else {
-    rdm_pid_t pid = is_rdm ? header.pid : 0;
-    taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
-    driver->dmx.last_responder_pid = pid;
-    driver->dmx.responder_sent_last = true;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
