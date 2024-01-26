@@ -11,6 +11,22 @@
 #include "rdm/include/uid.h"
 #include "rdm/responder/include/utils.h"
 
+/**
+ * @brief RDM packet spacing constants. These values are the length of time in
+ * microseconds between RDM packets that must elapse in certain situations.
+ * These constants are defined in page 9 through 11 of the ANSI/ESTA e1.20
+ * document.
+ */
+enum {
+  RDM_TIMING_CONTROLLER_REQUEST_TO_REQUEST_MIN = 176,
+  RDM_TIMING_CONTROLLER_REQUEST_TO_RESPONSE_MAX = 2800,
+  RDM_TIMING_CONTROLLER_RESPONSE_LOST_MIN = 3000,
+  RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST = 5800,
+
+  RDM_TIMING_RESPONDER_MIN = 176,
+  RDM_TIMING_RESPONDER_MAX = 2000,
+};
+
 size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
                        size_t size) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
@@ -202,7 +218,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
     // Determine if it is necessary to set a hardware timeout alarm
     int64_t timer_alarm;
     if (driver->is_controller) {
-      timer_alarm = 2800;  // FIXME: use constant
+      timer_alarm = RDM_TIMING_CONTROLLER_REQUEST_TO_RESPONSE_MAX;
     } else {
       timer_alarm = 0;
     }
@@ -478,14 +494,14 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
         driver->dmx.last_controller_pid == 0 ||
         (driver->dmx.last_request_was_broadcast &&
          driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH)) {
-      timer_alarm = 176;  // FIXME: use constant
+      timer_alarm = RDM_TIMING_CONTROLLER_REQUEST_TO_REQUEST_MIN;
     } else if (driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-      timer_alarm = 3000;  // FIXME: use constant
+      timer_alarm = RDM_TIMING_CONTROLLER_RESPONSE_LOST_MIN;
     } else {
-      timer_alarm = 5800;  // FIXME: use constant
+      timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST;
     }
   } else {
-    timer_alarm = 176;  // FIXME: use RDM_PACKET_SPACING_RESPONDER_MINIMUM
+    timer_alarm = RDM_TIMING_RESPONDER_MIN;
   }
 
   // If necessary, set an alarm to wait the minimum duration before sending
@@ -512,7 +528,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
 
   // Return early if it is too late to send a response packet
   if (!driver->is_controller) {
-    if (timer_elapsed > 2000) {  // FIXME: use constant
+    if (timer_elapsed > RDM_TIMING_RESPONDER_MAX) {
       xSemaphoreGiveRecursive(driver->mux);
       return 0;
     }
