@@ -479,13 +479,6 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
 
   // Determine if this device is the controller
   driver->is_controller = !is_rdm || rdm_cc_is_request(header.cc);
-  if (!driver->is_controller) {
-    if (is_rdm) {
-      ESP_LOGE(TAG, "Sending PID: %04x, CC: %02x", header.pid, header.cc);
-    } else {
-      ESP_LOGE(TAG, "Sending DMX packet");
-    }
-  }
 
   // Determine if it is necessary to set a hardware timeout alarm
   int64_t timer_alarm;
