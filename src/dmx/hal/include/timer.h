@@ -24,6 +24,22 @@ extern "C" {
 #endif
 
 /**
+ * @brief RDM packet spacing constants. These values are the length of time in
+ * microseconds between RDM packets that must elapse in certain situations.
+ * These constants are defined in page 9 through 11 of the ANSI/ESTA e1.20
+ * document.
+ */
+enum {
+  RDM_TIMING_CONTROLLER_REQUEST_TO_REQUEST_MIN = 176,
+  RDM_TIMING_CONTROLLER_REQUEST_TO_RESPONSE_MAX = 2800,
+  RDM_TIMING_CONTROLLER_RESPONSE_LOST_MIN = 3000,
+  RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST_MIN = 5800,
+
+  RDM_TIMING_RESPONDER_MIN = 176,
+  RDM_TIMING_RESPONDER_MAX = 2000,
+};
+
+/**
  * @brief Initializes the DMX timer.
  *
  * @param dmx_num The DMX port number.
