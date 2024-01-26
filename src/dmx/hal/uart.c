@@ -285,9 +285,12 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       }
 
       // Determine if a DMX break is expected in the response packet
+      int progress;
       if (driver->dmx.last_controller_pid == RDM_PID_DISC_UNIQUE_BRANCH) {
+        progress = DMX_PROGRESS_IN_DATA;
         driver->dmx.head = 0;  // Not expecting a DMX break
       } else {
+        progress = DMX_PROGRESS_STALE;
         driver->dmx.head = DMX_HEAD_WAITING_FOR_BREAK;
       }
 
@@ -295,7 +298,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       dmx_uart_rxfifo_reset(dmx_num);
       dmx_uart_set_rts(dmx_num, 1);
-      driver->dmx.progress = DMX_PROGRESS_STALE;
+      driver->dmx.progress = progress;
       taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
     }
   }
