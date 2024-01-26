@@ -490,16 +490,18 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   // Determine if it is necessary to set a hardware timeout alarm
   int64_t timer_alarm;
   if (driver->is_controller) {
-    if (driver->dmx.responder_sent_last ||
-        driver->dmx.last_controller_pid == 0 ||
-        (driver->dmx.last_request_was_broadcast &&
-         driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH)) {
-      timer_alarm = RDM_TIMING_CONTROLLER_REQUEST_TO_REQUEST_MIN;
-    } else if (driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-      timer_alarm = RDM_TIMING_CONTROLLER_RESPONSE_LOST_MIN;
+    if (driver->dmx.last_controller_pid != RDM_PID_DISC_UNIQUE_BRANCH) {
+      if (driver->dmx.responder_sent_last ||
+          driver->dmx.last_controller_pid == 0 ||
+          driver->dmx.last_request_was_broadcast) {
+        timer_alarm = RDM_TIMING_CONTROLLER_REQUEST_TO_REQUEST_MIN;
+      } else {
+        timer_alarm = RDM_TIMING_CONTROLLER_RESPONSE_LOST_MIN;
+      }
     } else {
       timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST_MIN;
     }
+
   } else {
     timer_alarm = RDM_TIMING_RESPONDER_MIN;
   }
