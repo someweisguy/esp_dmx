@@ -248,7 +248,7 @@ bool dmx_driver_delete(dmx_port_t dmx_num) {
     for (int i = 0; i < param_count; ++i) {
       if (device->parameters[i].pid == 0) {
         break;  // No more parameters remaining
-      } else if (!device->parameters[i].is_heap_allocated) {
+      } else if (device->parameters[i].type != DMX_PARAMETER_TYPE_DYNAMIC) {
         continue;  // Nothing to free
       }
       free(device->parameters[i].data);

@@ -7,12 +7,6 @@
 #include "dmx/include/service.h"
 #include "rdm/include/driver.h"
 
-enum {
-  DMX_PARAMETER_STORAGE_TYPE_VOLATILE = 0,
-  DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE,
-  DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED
-};
-
 static dmx_parameter_t *dmx_parameter_add_entry(dmx_port_t dmx_num,
                                                 rdm_sub_device_t sub_device,
                                                 rdm_pid_t pid) {
@@ -115,9 +109,12 @@ bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Configure parameter
   entry->size = size;
   entry->data = data;
-  entry->is_heap_allocated = (size > 0);
-  entry->storage_type = non_volatile ? DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE
-                                     : DMX_PARAMETER_STORAGE_TYPE_VOLATILE;
+  if (non_volatile) {
+    non_volatile = false;
+  }
+  // entry->is_heap_allocated = (size > 0);
+  // entry->storage_type = non_volatile ? DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE
+  //                                    : DMX_PARAMETER_STORAGE_TYPE_VOLATILE;
 
   // Set the initial value of the variable
   if (entry->data != NULL) {
@@ -153,9 +150,9 @@ bool dmx_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Configure parameter
   entry->size = size;
   entry->data = data;
-  entry->is_heap_allocated = false;
-  entry->storage_type = non_volatile ? DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE
-                                     : DMX_PARAMETER_STORAGE_TYPE_VOLATILE;
+  // entry->is_heap_allocated = false;
+  // entry->storage_type = non_volatile ? DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE
+  //                                    : DMX_PARAMETER_STORAGE_TYPE_VOLATILE;
 
   return true;
 }
@@ -181,8 +178,8 @@ bool dmx_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   // Configure parameter
   entry->size = 0;
   entry->data = NULL;
-  entry->is_heap_allocated = false;
-  entry->storage_type = DMX_PARAMETER_STORAGE_TYPE_VOLATILE;
+  // entry->is_heap_allocated = false;
+  // entry->storage_type = DMX_PARAMETER_STORAGE_TYPE_VOLATILE;
 
   return true;
 }
@@ -307,8 +304,8 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   memcpy(entry->data, source, size);
-  if (entry->storage_type == DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE) {
-    entry->storage_type = DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED;
+  if (entry->type == DMX_PARAMETER_TYPE_NON_VOLATILE) {
+    entry->type = DMX_PARAMETER_TYPE_NON_VOLATILE_STAGED;
     ++dmx_driver[dmx_num]->device.parameter_count.staged;
   }
   taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
@@ -336,10 +333,9 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   for (; device != NULL && pid == 0; device = device->next) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     for (int i = 0; i < driver->device.parameter_count.root; ++i) {
-      if (device->parameters[i].storage_type ==
-          DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE_STAGED) {
-        device->parameters[i].storage_type =
-            DMX_PARAMETER_STORAGE_TYPE_NON_VOLATILE;
+      if (device->parameters[i].type ==
+          DMX_PARAMETER_TYPE_NON_VOLATILE_STAGED) {
+        device->parameters[i].type = DMX_PARAMETER_TYPE_NON_VOLATILE;
         --driver->device.parameter_count.staged;
         sub_device = device->num;
         pid = device->parameters[i].pid;

@@ -1,5 +1,7 @@
 #include "dmx/include/service.h"
 
+#include <string.h>
+
 #include "dmx/include/driver.h"
 
 dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
@@ -45,10 +47,34 @@ bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
     if (device->parameters[i].pid == pid) {
       return true;  // Parameter already exists
     } else if (device->parameters[i].pid == 0) {
-
-      // TODO: Initialize parameter memory; dynamic, nvs, static, or null
+      // Initialize parameter memory
+      switch (type) {
+        case DMX_PARAMETER_TYPE_DYNAMIC:
+        case DMX_PARAMETER_TYPE_NON_VOLATILE:
+          device->parameters[i].data = malloc(size);
+          if (device->parameters[i].data == NULL) {
+            DMX_ERR("parameter malloc error");
+            return false;
+          }
+          if (data == NULL) {
+            memset(device->parameters[i].data, 0, size);
+          } else {
+            memcpy(device->parameters[i].data, data, size);
+          }
+          break;
+        case DMX_PARAMETER_TYPE_STATIC:
+          device->parameters[i].data = data;
+          break;
+        case DMX_PARAMETER_TYPE_NULL:
+          device->parameters[i].data = NULL;
+          break;
+        default:
+          return false;
+      }
 
       device->parameters[i].pid = pid;
+      device->parameters[i].size = size;
+      device->parameters[i].type = type;
       device->parameters[i].definition = NULL;
       device->parameters[i].callback = NULL;
       return true;
