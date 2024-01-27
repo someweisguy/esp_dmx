@@ -32,12 +32,12 @@ static struct dmx_uart_t {
 };
 
 enum {
-  RDM_TYPE_IS_NOT_RDM = 0,
-  RDM_TYPE_IS_DISCOVERY,
-  RDM_TYPE_IS_RESPONSE,
-  RDM_TYPE_IS_BROADCAST,
-  RDM_TYPE_IS_REQUEST,
-  RDM_TYPE_IS_UNKNOWN,
+  RDM_TYPE_IS_NOT_RDM = 0,  // The packet is not RDM.
+  RDM_TYPE_IS_DISCOVERY,    // The packet is an RDM discovery request.
+  RDM_TYPE_IS_RESPONSE,     // The packet is an RDM response.
+  RDM_TYPE_IS_BROADCAST,    // The packet is a non-discovery RDM broadcast.
+  RDM_TYPE_IS_REQUEST,      // The packet is a standard RDM request.
+  RDM_TYPE_IS_UNKNOWN,  // The packet is RDM, but it is unclear what type it is.
 };
 
 static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {

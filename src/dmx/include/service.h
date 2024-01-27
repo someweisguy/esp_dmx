@@ -67,17 +67,17 @@ enum dmx_parameter_type_t {
 };
 
 enum {
-  DMX_HEAD_WAITING_FOR_BREAK = -1,
+  DMX_HEAD_WAITING_FOR_BREAK = -1,  // The driver is awaiting a DMX break.
 
-  DMX_PROGRESS_STALE = 0,
-  DMX_PROGRESS_IN_BREAK,
-  DMX_PROGRESS_IN_MAB,
-  DMX_PROGRESS_IN_DATA,
-  DMX_PROGRESS_COMPLETE,
+  DMX_PROGRESS_STALE = 0,  // The packet has already been received.
+  DMX_PROGRESS_IN_BREAK,   // The packet is in the DMX break.
+  DMX_PROGRESS_IN_MAB,     // The packet is in the DMX mark-after-break.
+  DMX_PROGRESS_IN_DATA,    // Packet slot data is being sent or received.
+  DMX_PROGRESS_COMPLETE,   // The packet is complete.
 
-  DMX_STATUS_IDLE = 0,
-  DMX_STATUS_RECEIVING,
-  DMX_STATUS_SENDING,
+  DMX_STATUS_IDLE = 0,   // The DMX driver is idle.
+  DMX_STATUS_RECEIVING,  // The DMX driver is receiving data.
+  DMX_STATUS_SENDING,    // The DMX driver is sending data.
 };
 
 /**
