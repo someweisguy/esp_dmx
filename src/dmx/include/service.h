@@ -107,7 +107,7 @@ typedef struct dmx_device_t {
 } dmx_device_t;
 
 /** @brief The DMX driver object used to handle reading and writing DMX data on
- * the UART port. It storese all the information needed to run and analyze DMX
+ * the UART port. It stores all the information needed to run and analyze DMX
  * and RDM.*/
 typedef struct dmx_driver_t {
   // Driver configuration
