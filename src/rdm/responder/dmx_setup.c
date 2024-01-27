@@ -108,11 +108,10 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_DMX_PERSONALITY;
-  const rdm_ds_t ds = RDM_DS_NOT_DEFINED;
 
   // Attempt to load the value from NVS
   rdm_dmx_personality_t personality;
-  if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, ds, &personality,
+  if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &personality,
                    sizeof(personality)) ||
       personality.count != personality_count) {
     personality.current = 1;
@@ -129,7 +128,7 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
       .pid_cc = RDM_CC_GET_SET,
-      .ds = ds,
+      .ds = RDM_DS_NOT_DEFINED,
       .get = {.handler = rdm_simple_response_handler,
               .request.format = NULL,
               .response.format = "bb$"},
@@ -236,11 +235,10 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
 
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  const rdm_ds_t ds = RDM_DS_UNSIGNED_WORD;
 
   // Attempt to load the value from NVS
   uint16_t dmx_start_address;
-  if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, ds, &dmx_start_address,
+  if (!dmx_nvs_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &dmx_start_address,
                    sizeof(dmx_start_address))) {
     dmx_start_address = 1;
   }
@@ -261,7 +259,7 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
       .pid_cc = RDM_CC_GET_SET,
-      .ds = ds,
+      .ds = RDM_DS_UNSIGNED_WORD,
       .get = {.handler = rdm_simple_response_handler,
               .request.format = NULL,
               .response.format = "w$"},

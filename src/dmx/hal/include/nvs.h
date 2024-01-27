@@ -29,13 +29,12 @@ void dmx_nvs_init(dmx_port_t dmx_num);
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device which owns the parameter.
  * @param pid The parameter ID to get.
- * @param ds The parameter data type.
  * @param[out] param A pointer into which to copy the parameter data.
  * @param size The size of the param pointer.
  * @return The size of the parameter or 0 on failure.
  */
 size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                   rdm_pid_t pid, rdm_ds_t ds, void *param, size_t size);
+                   rdm_pid_t pid, void *param, size_t size);
 
 /**
  * @brief Sets the parameter data to non-volatile storage.
@@ -43,14 +42,13 @@ size_t dmx_nvs_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @param dmx_num The DMX port number.
  * @param sub_device The sub-device which owns the parameter.
  * @param pid The parameter ID to set.
- * @param ds The parameter data type.
  * @param[in] param A pointer to the parameter data to copy to NVS.
  * @param size The size of the parameter data.
  * @return true on success.
  * @return false on failure.
  */
 bool dmx_nvs_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid,
-                 rdm_ds_t ds, const void *param, size_t size);
+                 const void *param, size_t size);
 
 #ifdef __cplusplus
 }

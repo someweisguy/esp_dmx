@@ -196,7 +196,7 @@ rdm_pid_t dmx_parameter_commit(dmx_port_t dmx_num) {
   }
 
   if (pid > 0) {
-    dmx_nvs_set(dmx_num, sub_device, pid, RDM_DS_NOT_DEFINED, data,
+    dmx_nvs_set(dmx_num, sub_device, pid, data,
                 dmx_parameter_size(dmx_num, sub_device, pid));
   }
 
