@@ -157,24 +157,23 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   }
 
   // Update the receive size only if it has changed
-  if (size != driver->dmx.size) {
+  int old_size;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  old_size = driver->dmx.size;
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
+  if (size != old_size) {
     taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
     driver->dmx.size = size;
-    if (driver->dmx.progress != DMX_PROGRESS_STALE && driver->dmx.head > 0 &&
-        !dmx_start_code_is_rdm(driver->dmx.data[0])) {
-      // It is necessary to revalidate if the DMX data is ready
-      if (driver->dmx.head >= driver->dmx.size) {
-        driver->dmx.progress = DMX_PROGRESS_COMPLETE;
-      } else {
-        driver->dmx.progress = DMX_PROGRESS_STALE;
-      }
+    if (driver->dmx.progress != DMX_PROGRESS_STALE &&
+        driver->dmx.head >= size) {
+      driver->dmx.progress = DMX_PROGRESS_COMPLETE;
     }
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
 
   // Guard against condition where this task cannot block and data isn't ready
-  uint8_t packet_status;
-  int16_t packet_size;
+  int packet_status;
+  int packet_size;
   taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
   packet_status = driver->dmx.progress;
   packet_size = driver->dmx.head;
