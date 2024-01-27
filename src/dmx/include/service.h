@@ -59,21 +59,25 @@ typedef spinlock_t dmx_spinlock_t;
 
 extern const char *TAG;  // The log tagline for the library.
 
-enum dmx_flags_t {
-  DMX_FLAGS_DRIVER_IS_ENABLED = BIT0,   // The driver is enabled.
-  DMX_FLAGS_DRIVER_IS_IDLE = BIT1,      // The driver is not sending data.
-  DMX_FLAGS_DRIVER_IS_SENDING = BIT2,   // The driver is sending.
-  DMX_FLAGS_DRIVER_SENT_LAST = BIT3,    // The driver sent the last packet.
-  DMX_FLAGS_DRIVER_IS_IN_BREAK = BIT4,  // The driver is in a DMX break.
-  DMX_FLAGS_DRIVER_IS_IN_MAB = BIT5,    // The driver is in a DMX MAB.
-  DMX_FLAGS_DRIVER_HAS_DATA = BIT6,     // The driver has an unhandled packet.
-};
-
 enum dmx_parameter_type_t {
   DMX_PARAMETER_TYPE_NULL,
   DMX_PARAMETER_TYPE_DYNAMIC,
   DMX_PARAMETER_TYPE_STATIC,
   DMX_PARAMETER_TYPE_NON_VOLATILE,
+};
+
+enum {
+  DMX_HEAD_WAITING_FOR_BREAK = -1,  // The driver is awaiting a DMX break.
+
+  DMX_PROGRESS_STALE = 0,  // The packet has already been received.
+  DMX_PROGRESS_IN_BREAK,   // The packet is in the DMX break.
+  DMX_PROGRESS_IN_MAB,     // The packet is in the DMX mark-after-break.
+  DMX_PROGRESS_IN_DATA,    // Packet slot data is being sent or received.
+  DMX_PROGRESS_COMPLETE,   // The packet is complete.
+
+  DMX_STATUS_IDLE = 0,   // The DMX driver is idle.
+  DMX_STATUS_RECEIVING,  // The DMX driver is receiving data.
+  DMX_STATUS_SENDING,    // The DMX driver is sending data.
 };
 
 /**
@@ -111,7 +115,9 @@ typedef struct dmx_driver_t {
   rdm_uid_t uid;       // The driver's UID.
   uint32_t break_len;  // Length in microseconds of the transmitted break.
   uint32_t mab_len;  // Length in microseconds of the transmitted mark-after-break.
-  uint8_t flags;     // Flags which indicate the current state of the driver.
+
+  bool is_enabled;  // True if the DMX driver is enabled.
+  bool is_controller;  // True if the DMX driver is the controller on the DMX bus.
 
   // Synchronization state
   SemaphoreHandle_t mux;      // The handle to the driver mutex which allows multi-threaded driver function calls.
@@ -122,12 +128,31 @@ typedef struct dmx_driver_t {
 
   // Data buffer
   struct dmx_driver_dmx_t {
-    int16_t head;     // The index of the slot being transmitted or received.
+    int head;  // The index of the slot being transmitted or received.
     uint8_t data[DMX_PACKET_SIZE_MAX];  // The buffer that stores the DMX packet.
-    int16_t tx_size;  // The size of the outgoing packet.
-    int16_t rx_size;  // The expected size of the incoming packet.
-    int64_t last_slot_ts;  // The timestamp (in microseconds since boot) of the last slot of the previous data packet.
+    int size;  // The expected size of the incoming/outgoing packet.
+    int status;  // The status of the DMX port.
+    int progress;  // The progress of the current packet.
+    rdm_pid_t last_controller_pid;  // The PID of the last controller-generated packet.
+    int64_t controller_eop_timestamp;  // The timestamp (in microseconds since boot) of the end-of-packet of the last controller-generated packet.
+    rdm_pid_t last_responder_pid;  // The PID of the last responder-generated packet.
+    bool responder_sent_last;  // True if the last packet was a responder-generated packet.
+    union {
+      struct {
+        rdm_pid_t last_request_pid;  // The PID of the last packet which targeted this device. Is only used when this device is a DMX responder.
+        uint8_t last_request_pid_repeats;  // The number of times the last request targeting this device repeated its PID. Used for PIDs which can generate ACK overflow responses. Is only used when this device is a DMX responder.
+      }; 
+      bool last_request_was_broadcast;  // True if the last request was a broadcast. Is only used when this device is a DMX controller.
+    };
   } dmx;
+
+  // RDM driver information
+  struct dmx_driver_rdm_t {
+    union {
+      uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM request sent.
+      bool boot_loader;  // The RDM responder boot-loader flag. True when when the device is incapable of normal operation until receiving a firmware upload.
+    };
+  } rdm;
   
   // DMX sniffer configuration
   struct dmx_driver_sniffer_t {
@@ -136,20 +161,12 @@ typedef struct dmx_driver_t {
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
 
-  // RDM driver information
-  struct dmx_driver_rdm_t {
-    union {
-      uint8_t tn;  // The current RDM transaction number. Is incremented with every RDM request sent.
-      uint8_t boot_loader;  // The RDM responder boot-loader flag. True when when the device is incapable of normal operation until receiving a firmware upload.
-    };
-  } rdm;
-
   // DMX device information
   struct dmx_driver_device_t {
     struct dmx_driver_parameter_count_t {
-      uint32_t root;  // The number of parameters supported by the root device.
-      uint32_t sub_devices;  // The number of parameters supported by sub-devices.
-      uint32_t staged;  // The number of non-volatile parameters waiting to be committed to non-volatile storage.
+      unsigned int root;  // The number of parameters supported by the root device.
+      unsigned int sub_devices;  // The number of parameters supported by sub-devices.
+      unsigned int staged;  // The number of non-volatile parameters waiting to be committed to non-volatile storage.
     } parameter_count;  // Parameter counts for various purposes.
     dmx_device_t root;  // The root device of the RDM driver.
   } device;

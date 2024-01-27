@@ -41,7 +41,7 @@ void app_main() {
     TickType_t now = xTaskGetTickCount();
 
     // Send data and block until it's sent
-    dmx_send(dmx_num, DMX_PACKET_SIZE);
+    dmx_send_num(dmx_num, DMX_PACKET_SIZE);
     dmx_wait_sent(dmx_num, DMX_TIMEOUT_TICK);
 
     if (now - last_update >= pdMS_TO_TICKS(1000)) {

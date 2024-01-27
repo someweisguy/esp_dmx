@@ -32,6 +32,12 @@ extern "C" {
   (!((sc >= 0x92 && sc <= 0xa9) || (sc >= 0xab && sc <= 0xcb) || \
      (sc == 0xcd) || (sc >= 0xf0 && sc <= 0xf7)))
 
+/** @brief Evaluates to true if the start code is one of the three start codes
+ * used in RDM. The start codes used in RDM are one of RDM_SC, RDM_PREAMBLE, or
+ * RDM_DELIMITER.*/
+#define dmx_start_code_is_rdm(sc) \
+  (sc == RDM_SC || sc == RDM_PREAMBLE || sc == RDM_DELIMITER)
+
 /** @brief Evaluates to true if the baud rate is within DMX specification.*/
 #define dmx_baud_rate_is_valid(baud) \
   (baud >= DMX_BAUD_RATE_MIN && baud <= DMX_BAUD_RATE_MAX)
@@ -251,6 +257,8 @@ typedef enum dmx_err_t {
   DMX_ERR_UART_OVERFLOW = ESP_ERR_NOT_FINISHED,
   /** @brief The UART received an improperly framed DMX slot.*/
   DMX_ERR_IMPROPER_SLOT = ESP_ERR_INVALID_RESPONSE,
+  /** @brief The DMX packet size is smaller than expected.*/
+  DMX_ERR_NOT_ENOUGH_SLOTS = ESP_ERR_INVALID_SIZE,
   /** @brief Generic DMX error code indicating failure.*/
   DMX_FAIL = -1
 } dmx_err_t;

@@ -26,32 +26,33 @@ static bool DMX_ISR_ATTR dmx_timer_isr(
   const dmx_port_t dmx_num = driver->dmx_num;
   int task_awoken = false;
 
-  if (driver->flags & DMX_FLAGS_DRIVER_IS_SENDING) {
-    if (driver->flags & DMX_FLAGS_DRIVER_IS_IN_BREAK) {
+  if (driver->dmx.status == DMX_STATUS_SENDING) {
+    if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK) {
       dmx_uart_invert_tx(dmx_num, 0);
-      driver->flags &= ~DMX_FLAGS_DRIVER_IS_IN_BREAK;
+      driver->dmx.progress = DMX_PROGRESS_IN_MAB;
 
       // Reset the alarm for the end of the DMX mark-after-break
       dmx_timer_set_alarm(dmx_num, driver->mab_len, false);
     } else {
       // Write data to the UART
-      size_t write_size = driver->dmx.tx_size;
-      dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_size);
-      driver->dmx.head += write_size;
+      int write_len = driver->dmx.size;
+      dmx_uart_write_txfifo(dmx_num, driver->dmx.data, &write_len);
+      driver->dmx.head += write_len;
 
       // Pause MAB timer alarm
-      dmx_timer_stop(dmx_num);
+      dmx_timer_stop(dmx_num);  // TODO: is this needed?
 
       // Enable DMX write interrupts
       dmx_uart_enable_interrupt(dmx_num, DMX_INTR_TX_ALL);
     }
-  } else if (driver->task_waiting) {
-    // Notify the task
-    xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
-                       &task_awoken);  // TODO: return timeout?
-
-    // Pause the receive timer alarm
-    dmx_timer_stop(dmx_num);
+  } else {
+    taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+    if (driver->task_waiting) {
+      xTaskNotifyFromISR(driver->task_waiting, DMX_OK, eSetValueWithOverwrite,
+                         &task_awoken);
+    }
+    taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+    dmx_timer_stop(dmx_num);  // TODO: is this needed?
   }
 
   return task_awoken;
@@ -151,12 +152,14 @@ void DMX_ISR_ATTR dmx_timer_set_alarm(dmx_port_t dmx_num, uint64_t alarm,
 
 void DMX_ISR_ATTR dmx_timer_start(dmx_port_t dmx_num) {
   struct dmx_timer_t *timer = &dmx_timer_context[dmx_num];
+  if (!timer->is_running) {
 #if ESP_IDF_VERSION_MAJOR >= 5
-  gptimer_start(timer->gptimer_handle);
+    gptimer_start(timer->gptimer_handle);
 #else
-  timer_start(timer->group, timer->idx);
+    timer_start(timer->group, timer->idx);
 #endif
-  timer->is_running = true;
+    timer->is_running = true;
+  }
 }
 
 int64_t DMX_ISR_ATTR dmx_timer_get_micros_since_boot() {
