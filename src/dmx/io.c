@@ -254,9 +254,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
       return 0;
     }
   } else {
-    /* Errors can be lost if they are not caught by dmx_receive() or 
-      dmx_receive_num() but that is acceptable behavior. Errors should only be
-      reported if the device is able to handle the packet.*/
+    // TODO: store error code on the driver
     err = DMX_OK;
   }
   if (packet_size < 0) {
@@ -320,14 +318,13 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   }
 
   // TODO: Return early if RDM is disabled
-  
+
   // Return early if this packet isn't relevant to this device
-  if (!is_rdm || !rdm_uid_is_target(this_uid, &header.dest_uid)) {
-    xSemaphoreGiveRecursive(driver->mux);
-    dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
-    return packet_size;
-  }
-  if (driver->is_controller) {
+  if (driver->is_controller || !is_rdm ||
+      !rdm_uid_is_target(this_uid, &header.dest_uid)) {
+    if (!is_rdm) {
+      dmx_parameter_commit(dmx_num);  // Commit pending non-volatile parameters
+    }
     xSemaphoreGiveRecursive(driver->mux);
     return packet_size;
   }
