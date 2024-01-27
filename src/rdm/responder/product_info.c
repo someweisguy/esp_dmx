@@ -40,15 +40,14 @@ bool rdm_register_device_info(dmx_port_t dmx_num, uint16_t model_id,
   const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
 
   // Add the parameter dynamically - only the product info is stored
-  const bool nvs = false;
   struct rdm_product_info_t product_info = {
     .model_id = model_id,
     .product_category = product_category,
     .software_version_id = software_version_id
   };
-  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                            &product_info, sizeof(product_info))) {
-    DMX_ERR("RDM_PID_DEVICE_INFO malloc error");
+  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                DMX_PARAMETER_TYPE_DYNAMIC, &product_info,
+                                sizeof(product_info))) {
     return false;
   }
 
@@ -121,9 +120,13 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   }
 
   // Allocate parameter data
-  const bool nvs = true;
-  dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                            device_label, RDM_ASCII_SIZE_MAX);
+  char init_value[RDM_ASCII_SIZE_MAX];
+  strncpy(init_value, device_label, 32);
+  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                DMX_PARAMETER_TYPE_NON_VOLATILE, init_value,
+                                sizeof(init_value))) {
+    return false;
+  }
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
@@ -188,10 +191,12 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
 
   // Add the parameter as a static variable
-  const bool nvs = false;
   const size_t size = strnlen(software_version_label, RDM_ASCII_SIZE_MAX);
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                           software_version_label, size);
+  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                DMX_PARAMETER_TYPE_STATIC,
+                                software_version_label, size)) {
+    return false;
+  }
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {

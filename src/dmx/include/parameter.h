@@ -36,68 +36,6 @@ int dmx_get_sub_device_count(dmx_port_t dmx_num);
 bool dmx_sub_device_exists(dmx_port_t dmx_num, dmx_device_num_t device_num);
 
 /**
- * @brief Allocates and adds a parameter to the DMX driver. The parameter is
- * heap-allocated. This function is not thread-safe.
- *
- * Each parameter can be identified using its DMX port number, sub-device
- * number, and PID. Each DMX port and sub-device may possess many parameters but
- * sub-devices may only possess one copy of each PID.
- *
- * @param dmx_num The DMX port number.
- * @param sub_device The sub-device number.
- * @param pid The parameter ID which to add.
- * @param non_volatile True if the parameter should persist after the ESP32 is
- * power-cycled.
- * @param[in] init The value to which the parameter should be initialized or
- * NULL to memset the parameter to zero.
- * @param size The size of the parameter to allocate.
- * @return true if the parameter already existed or was added.
- * @return false if the parameter could not be added.
- */
-bool dmx_parameter_add_dynamic(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                               rdm_pid_t pid, bool non_volatile,
-                               const void *init, size_t size);
-
-/**
- * @brief Adds a parameter to the DMX driver. The parameter is statically
- * allocated. This function is not thread-safe.
- *
- * Each parameter can be identified using its DMX port number, sub-device
- * number, and PID. Each DMX port and sub-device may possess many parameters but
- * sub-devices may only possess one copy of each PID.
- *
- * @param dmx_num The DMX port number.
- * @param sub_device The sub-device number.
- * @param pid The parameter ID which to add.
- * @param non_volatile True if the parameter should persist after the ESP32 is
- * power-cycled.
- * @param[in] data A pointer to the memory which stores the parameter data.
- * @param size The size of the parameter.
- * @return true if the parameter already existed or was added.
- * @return false if the parameter could not be added.
- */
-bool dmx_parameter_add_static(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                              rdm_pid_t pid, bool non_volatile, void *data,
-                              size_t size);
-
-/**
- * @brief Adds a NULL parameter to the DMX driver. This function is not
- * thread-safe.
- *
- * Each parameter can be identified using its DMX port number, sub-device
- * number, and PID. Each DMX port and sub-device may possess many parameters but
- * sub-devices may only possess one copy of each PID.
- *
- * @param dmx_num The DMX port number.
- * @param sub_device The sub-device number.
- * @param pid The parameter ID which to add.
- * @return true if the parameter already existed or was added.
- * @return false if the parameter could not be added.
- */
-bool dmx_parameter_add_null(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                            rdm_pid_t pid);
-
-/**
  * @brief Returns true if the parameter exists on the given DMX port and
  * sub-device.
  *

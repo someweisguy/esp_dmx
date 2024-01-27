@@ -84,8 +84,10 @@ bool rdm_register_disc_unique_branch(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
 
   // Add the parameter as a NULL static variable
-  const bool nvs = false;
-  dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL, 0);
+  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                DMX_PARAMETER_TYPE_STATIC, NULL, 0)) {
+    return false;
+  }
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
@@ -114,16 +116,21 @@ bool rdm_register_disc_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DISC_MUTE;
 
   // Add the parameter as a new variable or as an alias to its counterpart
-  const bool nvs = false;
   uint8_t *un_mute =
       dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_UN_MUTE);
   if (un_mute == NULL) {
-    const uint8_t init_value = 0;
-    dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                              &init_value, sizeof(init_value));
+    uint8_t init_value = 0;
+    if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                  DMX_PARAMETER_TYPE_DYNAMIC, &init_value,
+                                  sizeof(init_value))) {
+      return false;
+    }
   } else {
-    dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, un_mute,
-                             sizeof(*un_mute));
+    if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                  DMX_PARAMETER_TYPE_STATIC, un_mute,
+                                  sizeof(*un_mute))) {
+      return false;
+    }
   }
 
   // Define the parameter
@@ -153,16 +160,21 @@ bool rdm_register_disc_un_mute(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
 
   // Add the parameter as a new variable or as an alias to its counterpart
-  const bool nvs = false;
   uint8_t *mute =
       dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DISC_MUTE);
   if (mute == NULL) {
-    const uint8_t init_value = 0;
-    dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs,
-                              &init_value, sizeof(init_value));
+    uint8_t init_value = 0;
+    if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                  DMX_PARAMETER_TYPE_DYNAMIC, &init_value,
+                                  sizeof(init_value))) {
+      return false;
+    }
   } else {
-    dmx_parameter_add_static(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, mute,
-                             sizeof(*mute));
+    if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                  DMX_PARAMETER_TYPE_STATIC, mute,
+                                  sizeof(*mute))) {
+      return false;
+    }
   }
 
   // Define the parameter

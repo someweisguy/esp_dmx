@@ -115,11 +115,10 @@ bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
   const rdm_pid_t pid = RDM_PID_SENSOR_VALUE;
 
   // Add the parameter
-  const bool nvs = false;
   size_t size =
       sizeof(rdm_sensors_t) + (sizeof(rdm_sensor_value_t) * sensor_count);
-  if (!dmx_parameter_add_dynamic(dmx_num, RDM_SUB_DEVICE_ROOT, pid, nvs, NULL,
-                                 size)) {
+  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                DMX_PARAMETER_TYPE_DYNAMIC, NULL, size)) {
     return false;
   }
   rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, RDM_SUB_DEVICE_ROOT);
@@ -157,8 +156,9 @@ bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
 
   const rdm_pid_t pid = RDM_PID_RECORD_SENSORS;
 
-  // Add the parameter
-  if (!dmx_parameter_add_null(dmx_num, RDM_SUB_DEVICE_ROOT, pid)) {
+  // Add the parameter as NULL static
+  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                DMX_PARAMETER_TYPE_STATIC, NULL, 0)) {
     return false;
   }
 
