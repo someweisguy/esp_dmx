@@ -482,7 +482,7 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
           library makes an inference to what this duration should be in order to
           reduce RDM discovery times. This inference is based on related
           information from the RDM specification.*/
-        timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_RESPONSE_TO_REQUEST_MIN;
+        timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TRANSACTION_MIN;
       } else {
         timer_alarm = RDM_TIMING_CONTROLLER_DISCOVERY_TO_REQUEST_MIN;
       }
