@@ -24,6 +24,9 @@ extern "C" {
 typedef void (*rdm_callback_t)(dmx_port_t dmx_num, rdm_header_t *request_header,
                                rdm_header_t *response_header, void *context);
 
+// TODO: docs
+bool rdm_send_response(dmx_port_t dmx_num);
+
 #ifdef __cplusplus
 }
 #endif
