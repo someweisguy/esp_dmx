@@ -431,7 +431,7 @@ bool rdm_send_response(dmx_port_t dmx_num) {
     return false;
   }
 
-  // Update last request PID flag
+  // Update PID of the last request to target this device
   driver->dmx.last_request_pid = header.pid;
 
   // Get parameter definition
