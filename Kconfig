@@ -51,5 +51,17 @@ menu "DMX/RDM Configuration"
             RDM discovery needs over 500 bytes of memory. Enabling this option 
             instructs the DMX driver to allocate the needed memory on the stack
             instead of heap allocating it.
+    
+    config RDM_DISCOVERY_TRANSACTION_SPACING
+        int "RDM discovery transaction packet spacing"
+        range 2800 999999
+        default 5800
+        help
+           The minimum amount of time to allow for an RDM discovery transaction.
+           This is the minimum time that must pass when the RDM controller sends
+           an RDM_PID_DISC_UNIQUE_BRANCH request before the controller may send
+           another request. This value isn't explicitly specified in the RDM
+           standard but its value must be between 2800 microseconds and 1 
+           second. This value is only used by RDM controllers.
 
 endmenu
