@@ -44,13 +44,16 @@ menu "DMX/RDM Configuration"
             longer. This option should remain disabled unless changes are being
             made to the RDM API.
     
-    config RDM_STACK_ALLOCATE_DISCOVERY
-        bool "Stack allocate RDM discovery address spaces"
+    config RDM_STATIC_DISCOVERY_INSTRUCTIONS
+        bool "Statically allocate RDM discovery address spaces"
         default n
         help
             RDM discovery needs over 500 bytes of memory. Enabling this option 
-            instructs the DMX driver to allocate the needed memory on the stack
-            instead of heap allocating it.
+            instructs the DMX driver to statically allocate the needed memory
+            instead of heap allocating it. It is recommended to enable this
+            feature to reduce the use of dynamic memory allocation. When
+            enabling this feature, RDM discovery must only be called on one port
+            at a time.
     
     config RDM_DISCOVERY_TRANSACTION_SPACING
         int "RDM discovery transaction packet spacing"
