@@ -66,7 +66,7 @@ extern "C" {
  * @return The number of bytes that were received in the response parameter
  * data.
  */
-size_t rdm_send_generic(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
+size_t rdm_send_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                         rdm_sub_device_t sub_device, rdm_pid_t pid, rdm_cc_t cc,
                         const char *format, const void *pd, size_t pdl,
                         rdm_ack_t *ack);

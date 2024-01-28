@@ -20,7 +20,7 @@ size_t rdm_send_get_dmx_start_address(dmx_port_t dmx_num,
 
   const rdm_cc_t cc = RDM_CC_GET_COMMAND;
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  size_t pdl = rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, NULL,
+  size_t pdl = rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, NULL,
                                 NULL, 0, ack);
   if (pdl == sizeof(*dmx_start_address)) {
     const char *format = "w$";
@@ -44,7 +44,7 @@ bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num,
   const char *format = "w$";
   const rdm_cc_t cc = RDM_CC_SET_COMMAND;
   const rdm_pid_t pid = RDM_PID_DMX_START_ADDRESS;
-  rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, format,
+  rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, format,
                    &dmx_start_address, sizeof(dmx_start_address), ack);
   if (ack != NULL) {
     return ack->type == RDM_RESPONSE_TYPE_ACK;

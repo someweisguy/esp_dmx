@@ -11,7 +11,7 @@ static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
                                  rdm_ack_t *ack) {
   const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;
   const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
-  bool success = rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, NULL,
+  bool success = rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, NULL,
                                   NULL, 0, ack);
   if (success && mute != NULL) {
     const char *format = "wv";
@@ -33,7 +33,7 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
   const char *format = "uu$";
 
-  rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, format, branch,
+  rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, format, branch,
                    sizeof(*branch), ack);
   return (ack != NULL && ack->type == RDM_RESPONSE_TYPE_ACK);
 }
