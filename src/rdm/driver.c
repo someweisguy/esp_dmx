@@ -519,7 +519,16 @@ bool rdm_send_response(dmx_port_t dmx_num) {
   }
 
   // Call the after-response callback
-  rdm_callback_handle(dmx_num, header.sub_device, header.pid, &header);
+  const dmx_parameter_t *parameter =
+      dmx_driver_get_parameter(dmx_num, header.sub_device, header.pid);
+  if (parameter != NULL && parameter->callback != NULL) {
+    rdm_header_t response_header;
+    if (!rdm_read_header(dmx_num, &response_header)) {
+      // Set the response header to NULL if an RDM header can't be read
+      memset(&response_header, 0, sizeof(response_header));
+    }
+    parameter->callback(dmx_num, &header, &response_header, parameter->context);
+  }
 
   return (packet_size > 0);
 }
