@@ -18,10 +18,11 @@ idf_component_register(
        "src/rdm/controller/utils.c"
        
        # RDM responder
-       "src/rdm/responder/discovery.c" "src/rdm/responder/product_info.c"
-       "src/rdm/responder/rdm_info.c" "src/rdm/responder/device_control.c"
-       "src/rdm/responder/queue_status.c" "src/rdm/responder/dmx_setup.c"
-       "src/rdm/responder/sensor_parameter.c" "src/rdm/responder/utils.c"
+       "src/rdm/responder.c" "src/rdm/responder/discovery.c"
+       "src/rdm/responder/product_info.c" "src/rdm/responder/rdm_info.c"
+       "src/rdm/responder/device_control.c" "src/rdm/responder/queue_status.c"
+       "src/rdm/responder/dmx_setup.c" "src/rdm/responder/sensor_parameter.c"
+       "src/rdm/responder/utils.c"
   INCLUDE_DIRS "src"
   REQUIRES driver esp_timer esp_common esp_hw_support nvs_flash
 )   

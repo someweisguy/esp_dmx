@@ -6,6 +6,9 @@
  */
 #pragma once
 
+#include <stdbool.h>
+
+#include "dmx/include/types.h"
 #include "rdm/include/types.h"
 
 #ifdef __cplusplus
