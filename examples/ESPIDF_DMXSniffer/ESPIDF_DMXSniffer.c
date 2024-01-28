@@ -32,11 +32,8 @@ static const char *TAG = "main";  // The log tagline.
 void app_main() {
   const dmx_port_t dmx_num = DMX_NUM_1;
   dmx_config_t config = DMX_CONFIG_DEFAULT;
-  dmx_personality_t personalities[] = {
-    {1, "Default Personality"}
-  };
-  const int personality_count = 1;
-  dmx_driver_install(dmx_num, &config, personalities, personality_count);
+  const int personality_count = 0;
+  dmx_driver_install(dmx_num, &config, NULL, personality_count);
   dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
   
   // Install the default GPIO ISR and enable the sniffer
