@@ -115,7 +115,8 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
       if (ack.type != RDM_RESPONSE_TYPE_NONE) {
         bool devices_remaining = true;
 
-#ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
+#if false  // FIXME: This should temporarily allow discovery to work.
+// #ifndef CONFIG_RDM_DEBUG_DEVICE_DISCOVERY
         /*
         Stop the RDM controller from branching all the way down to the
         individual address if it is not necessary. When debugging, this code
