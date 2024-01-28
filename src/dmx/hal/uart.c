@@ -232,6 +232,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
         } else {
           // Parse a standard DMX packet
+          // TODO: verify that a data collision hasn't happened
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           driver->dmx.last_controller_pid = 0;
           driver->dmx.responder_sent_last = false;
