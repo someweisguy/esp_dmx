@@ -19,7 +19,7 @@ size_t rdm_send_get_identify_device(dmx_port_t dmx_num,
 
   const rdm_cc_t cc = RDM_CC_GET_COMMAND;
   const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  size_t pdl = rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, NULL,
+  size_t pdl = rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, NULL,
                                 NULL, 0, ack);
   if (pdl == sizeof(uint8_t)) {
     const char *format = "b$";
@@ -41,7 +41,7 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   const char *format = "b$";
   const rdm_cc_t cc = RDM_CC_SET_COMMAND;
   const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, format, &identify,
+  rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, format, &identify,
                    sizeof(identify), ack);
   if (ack != NULL) {
     return ack->type == RDM_RESPONSE_TYPE_ACK;

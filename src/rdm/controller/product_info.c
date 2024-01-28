@@ -19,7 +19,7 @@ size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 
   const rdm_cc_t cc = RDM_CC_GET_COMMAND;
   const rdm_pid_t pid = RDM_PID_DEVICE_INFO;
-  size_t pdl = rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, NULL,
+  size_t pdl = rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, NULL,
                                 NULL, 0, ack);
   if (pdl == sizeof(*device_info)) {
     const char *format = "x01x00wwdwbbwwb$";
@@ -43,7 +43,7 @@ size_t rdm_send_get_software_version_label(dmx_port_t dmx_num,
 
   const rdm_cc_t cc = RDM_CC_GET_COMMAND;
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
-  size_t pdl = rdm_send_generic(dmx_num, dest_uid, sub_device, pid, cc, NULL,
+  size_t pdl = rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, NULL,
                                 NULL, 0, ack);
   if (pdl > 0) {
     const char *format = "a$";

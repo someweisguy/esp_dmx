@@ -310,7 +310,7 @@ typedef struct dmx_packet_t {
   /** @brief The size of the received DMX packet in bytes.*/
   size_t size;
   /** @brief True if the received packet is RDM.*/
-  int is_rdm;
+  bool is_rdm;
 } dmx_packet_t;
 
 /** @brief Metadata for received DMX packets. For use in the DMX sniffer.*/

@@ -175,6 +175,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             rdm_type = RDM_TYPE_IS_NOT_RDM;
             continue;  // Packet is malformed - treat it as DMX
           } else {
+            driver->dmx.last_responder_pid = RDM_PID_DISC_UNIQUE_BRANCH;
             driver->dmx.responder_sent_last = true;
             packet_is_complete = true;
             break;
@@ -199,6 +200,7 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           } else {
             bool responder_sent_last;
             const rdm_cc_t cc = driver->dmx.data[20];
+            const rdm_pid_t *pid = (rdm_pid_t *)&driver->dmx.data[21];
             const rdm_uid_t *uid_ptr = (rdm_uid_t *)&driver->dmx.data[3];
             const rdm_uid_t dest_uid = {.man_id = bswap16(uid_ptr->man_id),
                                         .dev_id = bswap32(uid_ptr->dev_id)};
@@ -215,6 +217,11 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
             if (!responder_sent_last) {
               taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
               driver->dmx.controller_eop_timestamp = now;
+              driver->dmx.last_controller_pid = bswap16(*pid);
+              taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+            } else {
+              taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+              driver->dmx.last_responder_pid = bswap16(*pid);
               taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
             }
             taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
@@ -225,7 +232,9 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
           }
         } else {
           // Parse a standard DMX packet
+          // TODO: verify that a data collision hasn't happened
           taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+          driver->dmx.last_controller_pid = 0;
           driver->dmx.responder_sent_last = false;
           taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
           packet_is_complete = (dmx_head >= driver->dmx.size);

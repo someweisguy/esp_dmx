@@ -59,6 +59,8 @@ void app_main() {
     if (dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK)) {
       if (packet.sc == DMX_SC) {
         ESP_LOGI(TAG, "Got DMX packet!");
+      } else if (packet.is_rdm) {
+        rdm_send_response(dmx_num);
       }
     }
 

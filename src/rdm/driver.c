@@ -1,12 +1,13 @@
-#include "rdm/include/driver.h"
-
 #include <ctype.h>
 #include <string.h>
 
+#include "dmx/hal/include/timer.h"
+#include "dmx/hal/include/uart.h"
 #include "dmx/include/driver.h"
 #include "dmx/include/parameter.h"
 #include "dmx/include/service.h"
 #include "endian.h"
+#include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 
 static size_t rdm_format_encode(void *restrict dest,
@@ -306,7 +307,6 @@ size_t rdm_write(dmx_port_t dmx_num, const rdm_header_t *header,
 
   return written;
 }
-
 
 bool rdm_format_is_valid(const char *format) {
   if (format == NULL) {
