@@ -55,8 +55,8 @@ extern "C" {
  * @param sub_device The sub-device number of the destination.
  * @param pid The parameter ID of the request.
  * @param cc The command class of the request.
- * @param[in] format The RDM parameter format string. More information can about
- * RDM parameter format strings by reading the documentation on the
+ * @param[in] format The RDM parameter format string. More information about
+ * RDM parameter format strings can be found in the documentation on the
  * rdm_read_pd() and rdm_write() functions.
  * @param[in] pd A pointer which stores parameter data to be included with the
  * RDM request.
