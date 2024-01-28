@@ -91,10 +91,16 @@ void loop() {
     will use a dmx_packet_t to store that packet information.  */
   dmx_packet_t packet;
 
-  /* Now we will block until data is received. If an RDM request for this device
-    is received, the dmx_receive() function will automatically respond to the
-    requesting RDM device with the appropriate callback. */
-  dmx_receive(dmxPort, &packet, DMX_TIMEOUT_TICK);
+  /* Now we will block until data is received.*/
+  if (dmx_receive(dmxPort, &packet, DMX_TIMEOUT_TICK)) {
+
+    /* A packet was received! If the packet was RDM, we should send a response.
+      We can do this with rdm_send_response(). If the RDM packet isn't meant for
+      this device, no response will be sent. */
+    if (packet.is_rdm) {
+      rdm_send_response(dmx_num);
+    }
+  }
 
   /* Typically, you would handle your packet information here. Since this is
     just an example, this section has been left blank. */
