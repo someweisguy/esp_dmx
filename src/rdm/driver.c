@@ -400,10 +400,6 @@ bool rdm_send_response(dmx_port_t dmx_num) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  // Return early if this device is an RDM controller
-  DMX_CHECK(!driver->is_controller, false,
-            "RDM controller cannot send RDM responses");
-
   if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
     return false;
   }
