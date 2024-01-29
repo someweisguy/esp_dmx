@@ -46,20 +46,23 @@ void setup() {
     messages to the Serial Monitor. Lets set the baud rate to 115200. */
   Serial.begin(115200);
 
-  /* Now we will install the DMX driver! We'll tell it which DMX port to use, 
-    what device configure to use, and which interrupt priority it should have. 
-    If you aren't sure which configuration or interrupt priority to use, you can
-    use the macros `DMX_CONFIG_DEFAULT` and `DMX_INTR_FLAGS_DEFAULT` to set the
-    configuration and interrupt to their default settings. */
+  /* Now we will install the DMX driver! We'll tell it which DMX port to use,
+    what device configuration to use, and what DMX personalities it should have.
+    If you aren't sure which configuration to use, you can use the macros
+    `DMX_CONFIG_DEFAULT` to set the configuration to its default settings.
+    Because the device is being setup as an RDM controller, this device won't
+    use any DMX personalities. */
   dmx_config_t config = DMX_CONFIG_DEFAULT;
-  dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
+  dmx_personality_t personalities[] = {};
+  int personality_count = 0;
+  dmx_driver_install(dmxPort, &config, personalities, personality_count);
 
   /* Now set the DMX hardware pins to the pins that we want to use and DMX
     driver setup will be complete! */
   dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
-  /* RDM Discovery can take several seconds to complete. With just 1 RDM capable
-    device in the RDM network, discovery should take around 30ms. */
+  /* RDM Discovery can take several seconds to complete. Don't panic if it seems
+    like your device freezes! */
 
   /* Call the default discovery implementation. This implementation searches for
     RDM devices on the network. When a device is found, its UID is added to an
@@ -72,12 +75,13 @@ void setup() {
     Serial.printf("Device %i has UID " UIDSTR "\n", i, UID2STR(uids[i]));
 
     /* Now we will send RDM requests to the devices we found. We first need to
-      address our requests to the proper device. We can do this with an RDM
-      header. We will copy the UID we found during discovery to the RDM header
-      to properly address our RDM requests. We will also declare an RDM ACK to
-      get information about RDM responses, but this isn't necessary if it is not
-      desired. */
-    rdm_header_t header = {.dest_uid = uids[i]};
+      address our requests to the proper device and sub-device. We will get a
+      pointer to one of the UIDs we got in discovery to properly address our RDM
+      requests. We will address our requests to the root RDM sub device. We will
+      also declare an RDM ACK to get information about RDM responses, but this
+      isn't necessary if it is not desired. */
+    rdm_uid_t destUID = uids[i];
+    rdm_sub_device_t subDevice = RDM_SUB_DEVICE_ROOT;
     rdm_ack_t ack;
 
     /* First, we will send a request to get the device information of our RDM
@@ -85,7 +89,8 @@ void setup() {
       and ACK to our request function. If the request is successful, we will
       print out some of the device information we received. */
     rdm_device_info_t deviceInfo;
-    if (rdm_send_get_device_info(dmxPort, &header, &deviceInfo, &ack)) {
+    if (rdm_send_get_device_info(dmxPort, &destUID, subDevice, &deviceInfo,
+                                 &ack)) {
       Serial.printf(
           "DMX Footprint: %i, Sub-device count: %i, Sensor count: %i\n",
           deviceInfo.footprint, deviceInfo.sub_device_count,
@@ -94,12 +99,13 @@ void setup() {
 
     /* Second, we will send a request to get the device's software version
       label. Strings in RDM typically have a maximum length of 32 characters. We
-      should allocate space for 32 characters and one null terminator. */
-    char softwareVersionLabel[33];
-    size_t softwareVersionLabelSize = 32;
-    if (rdm_send_get_software_version_label(dmxPort, &header,
+      should allocate space for 32 characters and one null terminator. A
+      constant, RDM_ASCII_SIZE_MAX, can be used! */
+    char softwareVersionLabel[RDM_ASCII_SIZE_MAX];
+    int softwareVersionLabelSize = RDM_ASCII_SIZE_MAX;
+    if (rdm_send_get_software_version_label(dmxPort, &destUID, subDevice,
                                             softwareVersionLabel,
-                                            &softwareVersionLabelSize, &ack)) {
+                                            softwareVersionLabelSize, &ack)) {
       Serial.printf("Software version label: %s\n", softwareVersionLabel);
     }
 
@@ -107,15 +113,17 @@ void setup() {
       previous two parameters, identify device can be both get and set. We will
       first get the identify device parameter and set it to its opposite
       state. */
-    uint8_t identify;
-    if (rdm_send_get_identify_device(dmxPort, &header, &identify, &ack)) {
-      Serial.printf(UIDSTR " is%s identifying.\n", UID2STR(uids[i]),
+    bool identify;
+    if (rdm_send_get_identify_device(dmxPort, &destUID, subDevice, &identify,
+                                     &ack)) {
+      Serial.printf(UIDSTR " is%s identifying.\n", UID2STR(destUID),
                     identify ? "" : " not");
 
       /* Set the identify device parameter to its opposite state. */
       identify = !identify;
-      if (rdm_send_set_identify_device(dmxPort, &header, identify, &ack)) {
-        Serial.printf(UIDSTR " is now%s identifying.\n", UID2STR(uids[i]),
+      if (rdm_send_set_identify_device(dmxPort, &destUID, subDevice, identify,
+                                       &ack)) {
+        Serial.printf(UIDSTR " is now%s identifying.\n", UID2STR(destUID),
                       identify ? "" : " not");
       }
     }
@@ -125,8 +133,8 @@ void setup() {
       possible (but unlikely) that your device does not support this parameter.
       After getting the DMX start address, we will increment it by one. */
     uint16_t dmxStartAddress;
-    if (rdm_send_get_dmx_start_address(dmxPort, &header, &dmxStartAddress,
-                                       &ack)) {
+    if (rdm_send_get_dmx_start_address(dmxPort, &destUID, subDevice,
+                                       &dmxStartAddress, &ack)) {
       Serial.printf("DMX start address is %i\n", dmxStartAddress);
 
       /* Increment the DMX start address and ensure it is between 1 and 512. */
@@ -136,13 +144,13 @@ void setup() {
       }
 
       /* Set the updated DMX start address! */
-      if (rdm_send_set_dmx_start_address(dmxPort, &header, dmxStartAddress,
-                                         &ack)) {
+      if (rdm_send_set_dmx_start_address(dmxPort, &destUID, subDevice,
+                                         dmxStartAddress, &ack)) {
         Serial.printf("DMX address has been set to %i\n", dmxStartAddress);
       }
     } else if (ack.type == RDM_RESPONSE_TYPE_NACK_REASON) {
       /* In the event that the DMX start address request fails, print the reason
-        for the failure. The NACK reason and other information on the response 
+        for the failure. The NACK reason and other information on the response
         can be found in the ack variable we declared earlier. */
       Serial.printf(UIDSTR " GET DMX_START_ADDRESS NACK reason: 0x%02x\n",
                     ack.src_uid, ack.nack_reason);

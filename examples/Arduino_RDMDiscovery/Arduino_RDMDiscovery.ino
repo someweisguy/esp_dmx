@@ -42,20 +42,23 @@ void setup() {
     messages to the Serial Monitor. Lets set the baud rate to 115200. */
   Serial.begin(115200);
 
-  /* Now we will install the DMX driver! We'll tell it which DMX port to use, 
-    what device configure to use, and which interrupt priority it should have. 
-    If you aren't sure which configuration or interrupt priority to use, you can
-    use the macros `DMX_CONFIG_DEFAULT` and `DMX_INTR_FLAGS_DEFAULT` to set the
-    configuration and interrupt to their default settings. */
+  /* Now we will install the DMX driver! We'll tell it which DMX port to use,
+    what device configuration to use, and what DMX personalities it should have.
+    If you aren't sure which configuration to use, you can use the macros
+    `DMX_CONFIG_DEFAULT` to set the configuration to its default settings.
+    Because the device is being setup as an RDM controller, this device won't
+    use any DMX personalities. */
   dmx_config_t config = DMX_CONFIG_DEFAULT;
-  dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
+  dmx_personality_t personalities[] = {};
+  int personality_count = 0;
+  dmx_driver_install(dmxPort, &config, personalities, personality_count);
 
   /* Now set the DMX hardware pins to the pins that we want to use and DMX
     driver setup will be complete! */
   dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
-  /* RDM Discovery can take several seconds to complete. With just 1 RDM capable
-    device in the RDM network, discovery should take around 30ms. */
+  /* RDM Discovery can take several seconds to complete. Don't panic if it seems
+    like your device freezes! */
 
   /* Call the default discovery implementation. This implementation searches for
     RDM devices on the network. When a device is found, its UID is added to an

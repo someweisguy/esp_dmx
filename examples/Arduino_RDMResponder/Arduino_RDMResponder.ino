@@ -44,12 +44,12 @@ dmx_port_t dmxPort = 1;
   LED when identify is inactive. Don't forget to also declare which pin your LED
   is using! */
 int ledPin = 13;
-void rdmIdentifyCallback(dmx_port_t dmxPort, const rdm_header_t *header,
-                         void *context) {
+void rdmIdentifyCallback(dmx_port_t dmxPort, rdm_header_t *request_header,
+                         rdm_header_t *response_header, void *context) {
   /* We should only turn the LED on and off when we send a SET response message.
     This prevents extra work from being done when a GET request is received. */
-  if (header->cc == RDM_CC_SET_COMMAND_RESPONSE) {
-    uint8_t identify;
+  if (request_header->cc == RDM_CC_SET_COMMAND) {
+    bool identify;
     rdm_get_identify_device(dmxPort, &identify);
     digitalWrite(ledPin, identify);
     Serial.printf("Identify mode is %s.\n", identify ? "on" : "off");
@@ -61,13 +61,20 @@ void setup() {
    messages to the Serial Monitor. Lets set the baud rate to 115200. */
   Serial.begin(115200);
 
-  /* Now we will install the DMX driver! We'll tell it which DMX port to use, 
-    what device configure to use, and which interrupt priority it should have. 
-    If you aren't sure which configuration or interrupt priority to use, you can
-    use the macros `DMX_CONFIG_DEFAULT` and `DMX_INTR_FLAGS_DEFAULT` to set the
-    configuration and interrupt to their default settings. */
+  /* Now we will install the DMX driver! We'll tell it which DMX port to use,
+    what device configuration to use, and what DMX personalities it should have.
+    If you aren't sure which configuration to use, you can use the macros
+    `DMX_CONFIG_DEFAULT` to set the configuration to its default settings.
+    This device is being setup as an RDM responder so it is likely that it
+    should respond to DMX commands. It will need at least one DMX personality.
+    Since this is an example, we will use a default personality which only uses
+    1 DMX slot in its footprint. */
   dmx_config_t config = DMX_CONFIG_DEFAULT;
-  dmx_driver_install(dmxPort, &config, DMX_INTR_FLAGS_DEFAULT);
+  dmx_personality_t personalities[] = {
+    {1, "Default Personality"}
+  };
+  int personality_count = 1;
+  dmx_driver_install(dmxPort, &config, personalities, personality_count);
 
   /* Now set the DMX hardware pins to the pins that we want to use. */
   dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
@@ -93,12 +100,11 @@ void loop() {
 
   /* Now we will block until data is received.*/
   if (dmx_receive(dmxPort, &packet, DMX_TIMEOUT_TICK)) {
-
     /* A packet was received! If the packet was RDM, we should send a response.
       We can do this with rdm_send_response(). If the RDM packet isn't meant for
       this device, no response will be sent. */
     if (packet.is_rdm) {
-      rdm_send_response(dmx_num);
+      rdm_send_response(dmxPort);
     }
   }
 
