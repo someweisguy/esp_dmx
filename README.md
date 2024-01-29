@@ -328,7 +328,7 @@ The function `dmx_receive()` takes three arguments. The first argument is the `d
 - `err` reports any errors that occurred while receiving the packet (see: [Error Handling](#error-handling)).
 - `sc` is the start code of the packet.
 - `size` is the size of the packet in bytes, including the DMX start code. This value will never be higher than `DMX_PACKET_SIZE`.
-- `is_rdm` evaluates to true if the packet is an RDM packet and if the RDM checksum is valid. The value of this field is set to the PID of the received RDM packet.
+- `is_rdm` evaluates to true if the packet is an RDM packet and if the RDM checksum is valid.
 
 Using the `dmx_packet_t` struct is optional. If processing DMX or RDM packet data is not desired, users can pass `NULL` in place of a pointer to a `dmx_packet_t` struct.
 
@@ -353,6 +353,16 @@ if (dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK)) {
   printf("Timed out waiting for DMX.");
 }
 ```
+
+The function `dmx_receive_num()` is provided to receive a specified number of DMX slots before returning. This function is identical to `dmx_receive()` except that it provides an additional argument which sets the number of slots to receive. This value is ignored when receiving RDM packets so that `dmx_receive()` and `dmx_receive_num()` will always receive full RDM packets.
+
+```c
+dmx_packet_t packet;
+int num_slots_to_receive = 96;
+dmx_receive_num(DMX_NUM_2, &packet, num_slots_to_receive, DMX_TIMEOUT_TICK);
+```
+
+The function `dmx_receive()` can be viewed as a wrapper for `dmx_receive_num()` where the number of slots to receive is equal to the packet size of the last DMX packet received. When the desired number of slots to receive is greater than the actual number of slots received, the function will unblock upon receiving the DMX break for the subsequent packet and the `packet.err` will be set to `DMX_ERR_NOT_ENOUGH_SLOTS`.
 
 There are two variations to the `dmx_read()` function. The function `dmx_read_offset()` is similar to `dmx_read()` but allows a small footprint of the entire DMX packet to be read.
 
