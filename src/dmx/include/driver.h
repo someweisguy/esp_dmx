@@ -264,7 +264,27 @@ size_t dmx_write(dmx_port_t dmx_num, const void *source, size_t size);
  */
 int dmx_write_slot(dmx_port_t dmx_num, size_t slot_num, uint8_t value);
 
-// TODO: docs
+/**
+ * @brief Receives a DMX packet of a specified size from the DMX bus. This is a
+ * blocking function. This function first blocks until the DMX driver is idle
+ * and then it blocks using a timeout until a new packet is received. A packet
+ * is considered complete when the number of slots received is equal to or
+ * greater than the number of bytes specified by the size argument, or when a
+ * complete RDM packet is received. This function will timeout early according
+ * to RDM specification if an RDM packet is expected.
+ *
+ * @note This function uses FreeRTOS direct-to-task notifications to block and
+ * unblock. Using task notifications on the same task that calls this function
+ * can lead to undesired behavior and program instability.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] packet An optional pointer to a dmx_packet_t which contains
+ * information about the received DMX packet.
+ * @param size The number of bytes to receive before this function returns. This
+ * value is ignored when receiving RDM packets.
+ * @param wait_ticks The number of ticks to wait before this function times out.
+ * @return The size of the received DMX packet or 0 if no packet was received.
+ */
 size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
                        TickType_t wait_ticks);
 
