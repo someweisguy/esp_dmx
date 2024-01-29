@@ -77,8 +77,14 @@ const dmx_port_t dmx_num = DMX_NUM_2;
 // First, use the default DMX configuration...
 dmx_config_t config = DMX_CONFIG_DEFAULT;
 
+// ...declare the driver's DMX personalities...
+const int personality_count = 1;
+dmx_personality_t personalities[] = {
+  {1, "Default Personality"}
+};
+
 // ...install the DMX driver...
-dmx_driver_install(dmx_num, &config, DMX_INTR_FLAGS_DEFAULT);
+dmx_driver_install(dmx_num, &config, personalities, personality_count);
 
 // ...and then set the communication pins!
 const int tx_pin = 17;
@@ -87,7 +93,7 @@ const int rts_pin = 21;
 dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
 ```
 
-To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
+To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send_num()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
 
 ```c
 uint8_t data[DMX_PACKET_SIZE] = {0};
@@ -95,7 +101,7 @@ uint8_t data[DMX_PACKET_SIZE] = {0};
 while (true) {
   // Write to the packet and send it.
   dmx_write(dmx_num, data, DMX_PACKET_SIZE);
-  dmx_send(dmx_num, DMX_PACKET_SIZE);
+  dmx_send_num(dmx_num, DMX_PACKET_SIZE);
   
   // Do work here...
 
@@ -104,12 +110,13 @@ while (true) {
 }
 ```
 
-To read from the DMX bus, two additional functions are provided. The function `dmx_receive()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
+To read from the DMX bus, two additional functions are provided. The function `dmx_receive_num()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
 
 ```c
 dmx_packet_t packet;
 while (true) {
-  const int size = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
+  int size = dmx_receive_num(dmx_num, &packet, DMX_PACKET_SIZE_MAX, 
+                             DMX_TIMEOUT_TICK);
   if (size > 0) {
     dmx_read(dmx_num, data, size);
     // Process data here...
@@ -236,13 +243,22 @@ Before any DMX functions may be called, the DMX driver must be installed. Instal
 
 - The DMX port to use.
 - The DMX configuration to use. The macro `DMX_CONFIG_DEFAULT` can be used to declare a struct with the default configuration.
-- Flags to allocate interrupts. The macro `DMX_INTR_FLAGS_DEFAULT` can be used to allocate the interrupts using the default interrupt flags.
+- The DMX personalities that the device will use. This is an array of `dmx_personality_t` which is a struct of the DMX footprint and a short description of the personality. If the device does not use any DMX slots this value can be `NULL`.
+- The personality count or 0 if the device does not use any DMX slots.
 
 ```c
 dmx_config_t config = DMX_CONFIG_DEFAULT;
-dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
+dmx_personality_t personalities[] = {
+  {1, "Single-channel Mode"},  // Single-address DMX personality
+  {3, "RGB"},                  // Three-address RGB mode
+  {4, "RGBW"},                 // Four-address RGBW personality
+  {7, "RGBW with Macros"}      // RGBW with three additional macro parameters
+};
+const int personality_count = 4;
+dmx_driver_install(DMX_NUM_2, &config, personalities, personality_count);
 ```
 
+// TODO
 The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
 
 - `pd_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `pd_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 53 will disable the RDM responder. The default value is `255`.
