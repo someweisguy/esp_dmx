@@ -31,7 +31,7 @@ bool dmx_sniffer_disable(dmx_port_t dmx_num) {
 
 bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
   return dmx_driver_is_installed(dmx_num) &&
-         true;  // FIXME
+         true;  // FIXME: implement dmx_sniffer_is_enabled()
 }
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata) {
