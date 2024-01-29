@@ -40,6 +40,15 @@
 #define RDM_UID_DEVICE_ID (0xffffffff)
 #endif
 
+#ifdef CONFIG_RDM_MANUFACTURER_LABEL
+/** @brief This is the default manufacturer label for the RDM responder. Its
+ * value may be updated using the Kconfig file.*/
+#define RDM_MANUFACTURER_LABEL CONFIG_RDM_MANUFACTURER_LABEL
+#else
+/** @brief This is the default manufacturer label for the RDM responder.*/
+#define RDM_MANUFACTURER_LABEL "esp_dmx"
+#endif
+
 const char *TAG = "dmx";  // The log tagline for the library.
 
 dmx_driver_t *dmx_driver[DMX_NUM_MAX] = {};  // The DMX drivers for each port.
@@ -187,11 +196,9 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
 
   // Register additional RDM parameters
-  const char *default_manufacturer_label = "esp_dmx";
   const char *default_device_label = "";
   rdm_register_device_label(dmx_num, default_device_label, NULL, NULL);
-  rdm_register_manufacturer_label(dmx_num, default_manufacturer_label, NULL,
-                                  NULL);
+  rdm_register_manufacturer_label(dmx_num, RDM_MANUFACTURER_LABEL, NULL, NULL);
   rdm_register_supported_parameters(dmx_num, NULL, NULL);
   rdm_register_parameter_description(dmx_num, NULL, NULL);
 

@@ -66,5 +66,13 @@ menu "DMX/RDM Configuration"
            another request. This value isn't explicitly specified in the RDM
            standard but its value must be between 2800 microseconds and 1 
            second. This value is only used by RDM controllers.
+    
+    config RDM_MANUFACTURER_LABEL
+        string "The default RDM manufacturer label"
+        default "esp_dmx"
+        help
+          This is the default value which is used in responses to requests for 
+          RDM_PID_MANUFACTURER_LABEL. This value should be no more than 32 
+          characters long.
 
 endmenu
