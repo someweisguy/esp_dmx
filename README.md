@@ -258,39 +258,31 @@ const int personality_count = 4;
 dmx_driver_install(DMX_NUM_2, &config, personalities, personality_count);
 ```
 
-// TODO
-The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are primarily used for the RDM responder, but can be useful in DMX operations. The fields in the `dmx_config_t` include:
+The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are used to configure the DMX device and for the RDM responder. The fields in the `dmx_config_t` include:
 
-- `pd_size` sets the size of the RDM parameter buffer. RDM parameter values are stored in a buffer within the DMX driver to ensure that parameters may be properly initialized and updated. The `pd_size` field sets the size of the buffer. The more parameters which are registered using `rdm_register_` functions, the more buffer size is needed. More information on the `rdm_register_` functions can be found in the [RDM Responder section](#rdm-responder). Setting this value below 53 will disable the RDM responder. The default value is `255`.
-- `model_id` identifies the device model ID. This is an arbitrary value set by the user. Users should not use the same model ID to represent more than one unique model type. The default value is `0`.
-- `product_category` is the primary function of the device. A list of product categories are enumerated in the appendix under [product categories](#product-categories). The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
-- `software_version_id` indicates the software version ID for the device. This is a 32-bit value determined by the user. The default is a value returned by a function of this library's version number.
-- `software_version_label` sets the default value for the `RDM_PID_SOFTWARE_VERSION_LABEL` parameter. The default value is a string indicating the current version number of this library.
-- `current_personality` is the current selected DMX personality of the device. These personalities shall be consecutively numbered starting from 1. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the current personality to the value found in NVS, or 1 if no value is found in NVS or if the personality count found in NVS does not match the personality count passed to the DMX driver.
-- `personalities` is a table defining the footprints of the device and a description of each personality. An example showing how to use this field is below. Unless the `Kconfig` is adjusted, the maximum number of footprints supported is 16.
-- `personality_count` is the number of personalities described in the `personalities` field.
-- `dmx_start_address` is the DMX start address of this device. If the footprint, current personality, or personality count of this device is 0 then this field shall be set to 0xffff. Setting this value to 0 will attempt to read a value from NVS (if enabled in the `Kconfig`) and set the DMX start address to the value found in NVS, or 1 if no value is found in NVS.
+- `interrupt_flags` The interrupt allocation flags to use. The default value is `DMX_INTR_FLAGS_DEFAULT`.
+- `root_device_parameter_count` The number of parameters that the root device supports. This is the number of parameters that may be registered on the root device. The default value is `32`.
+- `sub_device_parameter_count` The number of parameters that the sub-devices support. This is the number of parameters that may be registered per sub-device. The default value is `0`.
+- `model_id` This field identifies the device model ID of the root device. The manufacturer shall not use the same ID to represent more than one unique model type. The default value is `0`.
+- `product_category` Devices shall report a product category based on the product's primary function. The product categories are enumerated in `product_category_t`. The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
+- `software_version_id` This field indicates the software version ID for the device. The software version ID is a 32-bit value determined by the manufacturer. The default value is based on the current version of *esp_dmx*.
+- `software_version_label` This RDM parameter is used to get a descriptive ASCII text label for the device's operating software version. The descriptive text returned by this parameter is intended for display to the user. The default value is a string based on the current version of *esp_dmx*.
+- `queue_size_max` The maximum size of the RDM queue. Setting this value to 0 disables the RDM queue. The default value is `32`.
+
+// TODO: write a blurb about dmx_personality_t
 
 ```c
 dmx_config_t config = {
-  .pd_size = 255,
-  .model_id = 0xabcd,
+  .interrupt_flags = DMX_INTR_FLAGS_DEFAULT,
+  .root_device_parameter_count = 32,
+  .sub_device_parameter_count = 0,
+  .model_id = 0,
   .product_category = RDM_PRODUCT_CATEGORY_FIXTURE,
-  .software_version_id = 0x100,
-  .current_personality = 0,  // Load value from NVS
-  .personalities = {
-    /* Personalities are defined by an integer defining the personality's
-      footprint, and a string description of the personality. The description is
-      optional and may be left empty.*/
-    {1, "Intensity Only"},
-    {3, "RGB"},
-    {4, "RGBW"},
-    {7, "RGBW with Macros"},
-  },
-  .personality_count = 4,
-  .dmx_start_address = 0,  // Load value from NVS
+  .software_version_id = ESP_DMX_VERSION_ID,
+  .software_version_label = ESP_DMX_VERSION_LABEL,
+  .queue_size_max = 32
 };
-dmx_driver_install(DMX_NUM_2, &config, DMX_DEFAULT_INTR_FLAGS);
+dmx_driver_install(DMX_NUM_2, &config, personalities, personality_count);
 ```
 
 ### Setting Communication Pins
