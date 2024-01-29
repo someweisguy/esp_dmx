@@ -243,7 +243,7 @@ Before any DMX functions may be called, the DMX driver must be installed. Instal
 
 - The DMX port to use.
 - The DMX configuration to use. The macro `DMX_CONFIG_DEFAULT` can be used to declare a struct with the default configuration.
-- The DMX personalities that the device will use. This is an array of `dmx_personality_t` which is a struct of the DMX footprint and a short description of the personality. If the device does not use any DMX slots this value can be `NULL`.
+- The DMX personalities that the device will use. This is an array of `dmx_personality_t`. If the device does not use any DMX slots this value can be `NULL`.
 - The personality count or 0 if the device does not use any DMX slots.
 
 ```c
@@ -269,7 +269,7 @@ The `dmx_config_t` sets permanent configuration values within the DMX driver. Th
 - `software_version_label` This RDM parameter is used to get a descriptive ASCII text label for the device's operating software version. The descriptive text returned by this parameter is intended for display to the user. The default value is a string based on the current version of *esp_dmx*.
 - `queue_size_max` The maximum size of the RDM queue. Setting this value to 0 disables the RDM queue. The default value is `32`.
 
-// TODO: write a blurb about dmx_personality_t
+The `dmx_personality_t` type is a struct which contains two fields: `footprint` and `description`. The `footprint` field is the DMX footprint of the personality. This is the number of DMX slots which this footprint uses. The `description` field is a string which describes the purpose of the DMX personality. This field is used for RDM responses and may be up to 33 characters long including a null-terminator.
 
 ```c
 dmx_config_t config = {
@@ -296,7 +296,7 @@ dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 
 ### Timing Configuration
 
-In most situations it is not necessary to adjust the default timing of the DMX driver. Nevertheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break for the DMX controller. These functions have no effect when using the ESP32 as a DMX responder. After the DMX driver has been installed, the following functions may be called.
+In most situations it is not necessary to adjust the default timing of the DMX driver. Nevertheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break for the DMX controller. These functions have no effect when receiving DMX; they only effect the baud rate, break, and mark-after-break when sending DMX or RDM. After the DMX driver has been installed, the following functions may be called.
 
 ```c
 dmx_set_baud_rate(DMX_NUM_2, DMX_BAUD_RATE);     // Set DMX baud rate.
