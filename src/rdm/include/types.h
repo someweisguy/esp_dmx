@@ -78,7 +78,7 @@ typedef uint16_t rdm_nr_t;
 typedef uint8_t rdm_status_t;
 
 /** @brief RDM sub-device number type.*/
-enum rdm_sub_device_t {
+enum {
   /** @brief Sub-device which respresents the root of a RDM device.*/
   RDM_SUB_DEVICE_ROOT = 0,
   /** @brief The sub-device maximum. All sub-devices numbers must be less than
@@ -94,7 +94,7 @@ enum rdm_sub_device_t {
  * GET_COMMAND and SET_COMMAND messages except when the destination UID of the
  * message is a broadcast address. Responders shall not respond to commands sent
  * using broadcast addressing, in order to prevent collisions.*/
-enum rdm_cc_t {
+enum {
   /** @brief The packet is an RDM discovery command.*/
   RDM_CC_DISC_COMMAND = 0x10,
   /** @brief The packet is a response to an RDM discovery command.*/
@@ -115,7 +115,7 @@ enum rdm_cc_t {
  * manufacturer-specific parameter whose details are either published by the
  * manufacturer for third-party support or proprietary for the manufacturer's
  * own use.*/
-enum rdm_pid_t {
+enum {
   // Category: Network Management
 
   /** @brief Discovery Unique Branch. This parameter is used for the device
@@ -271,7 +271,7 @@ enum rdm_pid_t {
 
 /** @brief The response type field is used in messages from responders to
  * indicate the acknowledgement type of the response.*/
-enum rdm_response_type_t {
+enum {
   /** @brief Indicates that a response was received, but it was invalid.*/
   RDM_RESPONSE_TYPE_INVALID = 0xfe,
   /** @brief Indicates that a response was not received.*/
@@ -294,7 +294,7 @@ enum rdm_response_type_t {
 
 /** @brief The NACK reason defines the reason that the responder is unable to
  * comply with the request.*/
-enum rdm_nr_t {
+enum {
   /** @brief The responder cannot comply with the request because the message is
      not implemented in the responder.*/
   RDM_NR_UNKNOWN_PID = 0x0000,
@@ -330,7 +330,7 @@ enum rdm_nr_t {
  * regarding the RDM parameters supported by the device. Status collection
  * messages are normally addressed to root devices. The status type is used to
  * identify the severity of the condition.*/
-enum rdm_status_t {
+enum {
   /** @brief The status type of RDM_STATUS_NONE shall be used when a controller
      wants to establish whether a device is present on the network without
      retrieving any status message data from the device. Not allowed for use
