@@ -187,8 +187,11 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   }
 
   // Register additional RDM parameters
+  const char *default_manufacturer_label = "esp_dmx";
   const char *default_device_label = "";
   rdm_register_device_label(dmx_num, default_device_label, NULL, NULL);
+  rdm_register_manufacturer_label(dmx_num, default_manufacturer_label, NULL,
+                                  NULL);
   rdm_register_supported_parameters(dmx_num, NULL, NULL);
   rdm_register_parameter_description(dmx_num, NULL, NULL);
 
