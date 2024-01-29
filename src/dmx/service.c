@@ -27,7 +27,6 @@ bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
   assert(dmx_num < DMX_NUM_MAX);
   assert(device_num < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
-  // TODO: assert type
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
