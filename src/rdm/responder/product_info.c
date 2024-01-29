@@ -230,3 +230,57 @@ size_t rdm_get_software_version_label(dmx_port_t dmx_num,
                             RDM_PID_SOFTWARE_VERSION_LABEL,
                             software_version_label, size);
 }
+
+bool rdm_register_manufacturer_label(dmx_port_t dmx_num,
+                                     char *manufacturer_label,
+                                     rdm_callback_t cb, void *context) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  if (dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+                        RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
+    DMX_CHECK(manufacturer_label != NULL, false, "manufacturer_label is null");
+    DMX_CHECK(
+        strnlen(manufacturer_label, RDM_ASCII_SIZE_MAX) < RDM_ASCII_SIZE_MAX,
+        false, "manufacturer_label error");
+  }
+
+  const rdm_pid_t pid = RDM_PID_MANUFACTURER_LABEL;
+
+  // Add the parameter as a static variable
+  const size_t size = strnlen(manufacturer_label, RDM_ASCII_SIZE_MAX);
+  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                                DMX_PARAMETER_TYPE_STATIC, manufacturer_label,
+                                size)) {
+    return false;
+  }
+
+  // Define the parameter
+  static const rdm_parameter_definition_t definition = {
+      .pid_cc = RDM_CC_GET,
+      .ds = RDM_DS_ASCII,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = NULL,
+              .response.format = "a$"},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
+      .pdl_size = RDM_ASCII_SIZE_MAX,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_definition_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+
+  return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+}
+
+size_t rdm_get_manufacturer_label(dmx_port_t dmx_num, char *manufacturer_label,
+                                  size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(manufacturer_label != NULL, 0, "manufacturer_label is null");
+  DMX_CHECK(size > 0, 0, "size error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
+                            RDM_PID_MANUFACTURER_LABEL, manufacturer_label,
+                            size);
+}
