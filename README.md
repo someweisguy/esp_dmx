@@ -93,7 +93,7 @@ const int rts_pin = 21;
 dmx_set_pin(dmx_num, tx_pin, rx_pin, rts_pin);
 ```
 
-To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send_num()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
+To write data to the DMX bus, two functions are provided. The function `dmx_write()` writes data to the DMX buffer and `dmx_send()` sends the data out onto the bus. The function `dmx_wait_sent()` is used to block the task until the DMX bus is idle.
 
 ```c
 uint8_t data[DMX_PACKET_SIZE] = {0};
@@ -101,7 +101,7 @@ uint8_t data[DMX_PACKET_SIZE] = {0};
 while (true) {
   // Write to the packet and send it.
   dmx_write(dmx_num, data, DMX_PACKET_SIZE);
-  dmx_send_num(dmx_num, DMX_PACKET_SIZE);
+  dmx_send(dmx_num);
   
   // Do work here...
 
@@ -110,13 +110,12 @@ while (true) {
 }
 ```
 
-To read from the DMX bus, two additional functions are provided. The function `dmx_receive_num()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
+To read from the DMX bus, two additional functions are provided. The function `dmx_receive()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
 
 ```c
 dmx_packet_t packet;
 while (true) {
-  int size = dmx_receive_num(dmx_num, &packet, DMX_PACKET_SIZE_MAX, 
-                             DMX_TIMEOUT_TICK);
+  int size = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
   if (size > 0) {
     dmx_read(dmx_num, data, size);
     // Process data here...
