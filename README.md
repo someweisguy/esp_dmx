@@ -716,13 +716,15 @@ On rare occasions, DMX packets can become corrupted. Errors are typically detect
 - `DMX_ERR_TIMEOUT` indicates that the driver timed out waiting for a packet.
 - `DMX_ERR_IMPROPER_SLOT` occurs when the DMX driver detects missing stop bits. If this condition occurs, the driver shall discard the improperly framed slot data and all following slots in the packet. When this error is reported the `dmx_packet_t` size can be read to determine at which slot the error occurred.
 - `DMX_ERR_UART_OVERFLOW` occurs when the ESP32 hardware overflows resulting in loss of data.
+- `DMX_ERR_NOT_ENOUGH_SLOTS` occurs when the number of slots received is less than the number desired in the call to `dmx_receive_num()`.
 
 ```c
 uint8_t data[DMX_PACKET_SIZE];
 
+int num_slots = DMX_PACKET_SIZE;
 dmx_packet_t packet;
 while (true) {
-  if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
+  if (dmx_receive_num(DMX_NUM_1, &packet, num_slots, DMX_TIMEOUT_TICK)) {
     switch (packet.err) {
       case DMX_OK:
         printf("Received packet with start code: %02X and size: %i.\n",
@@ -748,6 +750,14 @@ while (true) {
         printf("The DMX port overflowed.\n");
         /* The ESP32 UART overflowed. This could occur if the DMX ISR is being
           constantly preempted. */
+        break;
+      
+      case DMX_ERR_NOT_ENOUGH_SLOTS:
+        printf("DMX packet size is too small. %i expected, %i received.\n",
+               num_slots, packet.size);
+        /* The packet was smaller than expected. This only occurs when receiving
+          DMX data. This error will not occur when receiving RDM packets.*/
+        num_slots = packet.size;  // Update expected packet size
         break;
     }
   } else {
