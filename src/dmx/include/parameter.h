@@ -23,7 +23,7 @@ extern "C" {
  * @param dmx_num The DMX port number.
  * @return The number of supported sub-devices.
  */
-int dmx_get_sub_device_count(dmx_port_t dmx_num);
+int dmx_sub_device_get_count(dmx_port_t dmx_num);
 
 /**
  * @brief Returns true if the sub-device exists.

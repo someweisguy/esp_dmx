@@ -51,7 +51,7 @@ dmx_send	KEYWORD2
 dmx_wait_sent	KEYWORD2
 
 # dmx/include/parameter.h
-dmx_get_sub_device_count	KEYWORD2
+dmx_sub_device_get_count	KEYWORD2
 dmx_sub_device_exists	KEYWORD2
 dmx_parameter_exists	KEYWORD2
 dmx_parameter_at	KEYWORD2

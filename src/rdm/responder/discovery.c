@@ -67,7 +67,7 @@ static size_t rdm_rhd_discovery(dmx_port_t dmx_num,
 
     // Get the mute control field of this port
     mute.managed_proxy = 0;  // TODO: managed proxy flag
-    mute.sub_device = dmx_get_sub_device_count(dmx_num) > 0 ? 1 : 0;
+    mute.sub_device = dmx_sub_device_get_count(dmx_num) > 0 ? 1 : 0;
     mute.boot_loader = rdm_get_boot_loader(dmx_num);
     mute.proxied_device = 0;  // TODO: proxied device flag
 
