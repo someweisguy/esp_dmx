@@ -36,15 +36,10 @@ extern "C" {
       ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH)
 
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
-/** @brief The default interrupt flags for the DMX sniffer. Places the
- * interrupts in IRAM.*/
-#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM)
 /** @brief The default interrupt flags for the DMX driver. Places the
  * interrupts in IRAM.*/
 #define DMX_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_IRAM)
 #else
-/** @brief The default interrupt flags for the DMX sniffer.*/
-#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE)
 /** @brief The default interrupt flags for the DMX driver.*/
 #define DMX_INTR_FLAGS_DEFAULT (0)
 #endif

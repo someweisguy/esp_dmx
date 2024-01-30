@@ -12,6 +12,15 @@
 extern "C" {
 #endif
 
+#if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
+/** @brief The default interrupt flags for the DMX sniffer. Places the
+ * interrupts in IRAM.*/
+#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM)
+#else
+/** @brief The default interrupt flags for the DMX sniffer.*/
+#define DMX_SNIFFER_INTR_FLAGS_DEFAULT (ESP_INTR_FLAG_EDGE)
+#endif
+
 /**
  * @brief Enables the DMX sniffer to determine the DMX break and
  * mark-after-break length.
