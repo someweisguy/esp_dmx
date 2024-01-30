@@ -1,4 +1,4 @@
-#include "dmx/include/sniffer.h"
+#include "dmx/sniffer.h"
 
 #include "dmx/hal/include/gpio.h"
 #include "dmx/include/driver.h"

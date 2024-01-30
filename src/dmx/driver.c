@@ -7,7 +7,7 @@
 #include "dmx/hal/include/timer.h"
 #include "dmx/hal/include/uart.h"
 #include "dmx/include/service.h"
-#include "dmx/include/sniffer.h"
+#include "dmx/sniffer.h"
 #include "endian.h"
 #include "rdm/include/types.h"
 #include "rdm/responder/include/utils.h"
