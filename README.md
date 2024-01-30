@@ -362,7 +362,7 @@ int num_slots_to_receive = 96;
 dmx_receive_num(DMX_NUM_2, &packet, num_slots_to_receive, DMX_TIMEOUT_TICK);
 ```
 
-The function `dmx_receive()` can be viewed as a wrapper for `dmx_receive_num()` where the number of slots to receive is equal to the packet size of the last DMX packet received. When the desired number of slots to receive is greater than the actual number of slots received, the function will unblock upon receiving the DMX break for the subsequent packet and the `packet.err` will be set to `DMX_ERR_NOT_ENOUGH_SLOTS`.
+The function `dmx_receive()` can be viewed as a wrapper for `dmx_receive_num()` where the number of slots to receive is equal to the packet size of the last DMX packet received. When the desired number of slots to receive is greater than the actual number of slots received (e.g. when waiting to receive 513 slots, but only 128 are received) the function will unblock upon receiving the DMX break for the subsequent packet and the `packet.err` will be set to `DMX_ERR_NOT_ENOUGH_SLOTS`.
 
 There are two variations to the `dmx_read()` function. The function `dmx_read_offset()` is similar to `dmx_read()` but allows a small footprint of the entire DMX packet to be read.
 
