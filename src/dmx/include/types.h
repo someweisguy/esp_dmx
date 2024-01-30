@@ -252,13 +252,13 @@ typedef enum dmx_err_t {
   /** @brief DMX error value indicating no error.*/
   DMX_OK = 0,
   /** @brief The DMX operation timed out.*/
-  DMX_ERR_TIMEOUT = ESP_ERR_TIMEOUT,
+  DMX_ERR_TIMEOUT,
   /** @brief The UART overflowed while reading DMX data.*/
-  DMX_ERR_UART_OVERFLOW = ESP_ERR_NOT_FINISHED,
+  DMX_ERR_UART_OVERFLOW,
   /** @brief The UART received an improperly framed DMX slot.*/
-  DMX_ERR_IMPROPER_SLOT = ESP_ERR_INVALID_RESPONSE,
+  DMX_ERR_IMPROPER_SLOT,
   /** @brief The DMX packet size is smaller than expected.*/
-  DMX_ERR_NOT_ENOUGH_SLOTS = ESP_ERR_INVALID_SIZE,
+  DMX_ERR_NOT_ENOUGH_SLOTS,
   /** @brief Generic DMX error code indicating failure.*/
   DMX_FAIL = -1
 } dmx_err_t;
