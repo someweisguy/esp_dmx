@@ -21,6 +21,7 @@
 #include "esp_system.h"
 #include "freertos/task.h"
 #include "dmx/sniffer.h"
+#include "driver/gpio.h"
 
 #define TX_PIN 17  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.
@@ -37,16 +38,16 @@ void app_main() {
   dmx_set_pin(dmx_num, TX_PIN, RX_PIN, EN_PIN);
   
   // Install the default GPIO ISR and enable the sniffer
-  ESP_ERROR_CHECK(gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS));
+  gpio_install_isr_service(DMX_SNIFFER_INTR_FLAGS_DEFAULT);
   dmx_sniffer_enable(dmx_num, SN_PIN);
 
-  dmx_metadata_t metadata;
   bool is_connected = false;
-
   TickType_t last_update = xTaskGetTickCount();
+
+  dmx_packet_t packet;
   while (true) {
     // Block until a packet is received
-    if (dmx_sniffer_get_data(dmx_num, &metadata, DMX_TIMEOUT_TICK)) {
+    if (dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK)) {
       const TickType_t now = xTaskGetTickCount();
 
       if (!is_connected) {
@@ -57,8 +58,10 @@ void app_main() {
 
       if (now - last_update >= pdMS_TO_TICKS(1000)) {
         // Only log data every 1000ms
-        ESP_LOGI(TAG, "Break: %li, MAB: %li", metadata.break_len,
-                 metadata.mab_len);
+        dmx_metadata_t metadata;
+        dmx_sniffer_get_data(dmx_num, &metadata);
+        ESP_LOGI(TAG, "Break: %li, MAB: %li, Start code: %02x, Packet size: %i",
+                 metadata.break_len, metadata.mab_len, packet.sc, packet.size);
         last_update = now;
       }
 
