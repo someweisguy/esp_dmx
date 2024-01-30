@@ -67,8 +67,8 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
   }
 }
 
-bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
-                        dmx_personality_t *personalities,
+bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
+                        const dmx_personality_t *personalities,
                         int personality_count) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(config != NULL, false, "config is null");
@@ -82,10 +82,11 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
               false, "footprint error");
   }
 
+  int interrupt_flags = config->interrupt_flags;
 #ifdef DMX_ISR_IN_IRAM
   // Driver ISR is in IRAM so interrupt flags must include IRAM flag
-  if (!(config->interrupt_flags & ESP_INTR_FLAG_IRAM)) {
-    config->interrupt_flags |= ESP_INTR_FLAG_IRAM;
+  if (!(interrupt_flags & ESP_INTR_FLAG_IRAM)) {
+    interrupt_flags |= ESP_INTR_FLAG_IRAM;
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
   }
 #endif
@@ -205,13 +206,13 @@ bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
   rdm_register_parameter_description(dmx_num, NULL, NULL);
 
   // Initialize the UART peripheral
-  if (!dmx_uart_init(dmx_num, driver, config->interrupt_flags)) {
+  if (!dmx_uart_init(dmx_num, driver, interrupt_flags)) {
     dmx_driver_delete(dmx_num);
     DMX_CHECK(false, false, "UART init error");
   }
 
   // Initialize the timer peripheral
-  if (!dmx_timer_init(dmx_num, driver, config->interrupt_flags)) {
+  if (!dmx_timer_init(dmx_num, driver, interrupt_flags)) {
     dmx_driver_delete(dmx_num);
     DMX_CHECK(false, false, "timer init error");
   }

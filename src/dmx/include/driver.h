@@ -36,8 +36,8 @@ extern "C" {
  * @return true on success.
  * @return false on failure.
  */
-bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
-                        dmx_personality_t *personalities,
+bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
+                        const dmx_personality_t *personalities,
                         int personality_count);
 
 /**
