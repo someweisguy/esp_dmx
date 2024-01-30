@@ -700,7 +700,7 @@ The RDM standard defines several parameter responses that are required by all RD
 - `RDM_PID_IDENTIFY_DEVICE`
 - `RDM_PID_DMX_START_ADDRESS` if the device uses a DMX slot.
 - `RDM_PID_SUPPORTED_PARAMETERS` if supporting parameters beyond the minimum required set.
-- `RDM_PID_PARAMETER_DESCRIPTION` if supporing manufacturer-specific parameters.
+- `RDM_PID_PARAMETER_DESCRIPTION` if supporting manufacturer-specific parameters.
 
 The following parameters are not required by the RDM specification but are automatically registered when installing the DMX driver. Parameters are registered in the following order, if there is parameter space available on the DMX driver:
 
