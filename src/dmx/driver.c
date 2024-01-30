@@ -188,10 +188,10 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
 
   // The registration of DMX parameters is optional
   if (personality_count > 0) {
+    rdm_register_dmx_start_address(dmx_num, NULL, NULL);
     rdm_register_dmx_personality(dmx_num, personality_count, NULL, NULL);
     rdm_register_dmx_personality_description(dmx_num, personality_description,
                                              personality_count, NULL, NULL);
-    rdm_register_dmx_start_address(dmx_num, NULL, NULL);
   }
 
   if (config->queue_size_max > 0) {
