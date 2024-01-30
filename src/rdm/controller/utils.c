@@ -140,7 +140,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   }
 
   xSemaphoreGiveRecursive(driver->mux);
-  return header.pdl;
+  return header.response_type == RDM_RESPONSE_TYPE_ACK ? header.pdl : 0;
 }
 
 uint32_t rdm_get_transaction_num(dmx_port_t dmx_num) {
