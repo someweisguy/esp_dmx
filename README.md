@@ -499,7 +499,7 @@ if (current_personality < personality_count) {
   const char *desc = dmx_get_personality_description(DMX_NUM_1, 
                                                      current_personality);
   uint16_t footprint = dmx_get_footprint(DMX_NUM_1, current_personality);
-  printf("Setting the current personality to %i: \"%s\"\n", current_personality,
+  printf("Setting the current personality to %i: '%s'\n", current_personality,
          desc);
   printf("Personality %i has a footprint of %i\n", current_personality,
          footprint);
