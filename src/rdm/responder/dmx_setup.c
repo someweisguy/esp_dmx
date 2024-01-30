@@ -243,9 +243,12 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   }
 
   // Reset the DMX start address if the current footprint is too large
-  int fp = dmx_get_footprint(dmx_num, dmx_get_current_personality(dmx_num));
-  if (dmx_start_address + fp > DMX_PACKET_SIZE_MAX) {
-    dmx_start_address = 1;
+  const int current_personality = dmx_get_current_personality(dmx_num);
+  if (current_personality > 0) {
+    int fp = dmx_get_footprint(dmx_num, dmx_get_current_personality(dmx_num));
+    if (dmx_start_address + fp > DMX_PACKET_SIZE_MAX) {
+      dmx_start_address = 1;
+    }
   }
 
   // Allocate parameter data
