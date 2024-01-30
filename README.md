@@ -690,7 +690,25 @@ if (rdm_register_software_version_label(DMX_NUM_1, new_software_label,
 
 If a request for a PID that is not registered is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a parameters which is already defined will overwrite the previously registered callback, but not the initial parameter value. Parameters which are registered cannot be unregistered.
 
-The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification.
+The RDM standard defines several parameter responses that are required by all RDM compliant responders. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that RDM responders created with this library are compliant with the RDM specification. The following parameters are required per the RDM specification and are therefore automatically registered when installing the DMX driver:
+
+- `RDM_PID_DISC_UNIQUE_BRANCH`
+- `RDM_PID_DISC_MUTE`
+- `RDM_PID_DISC_UN_MUTE`
+- `RDM_PID_DEVICE_INFO`
+- `RDM_PID_SOFTWARE_VERSION_LABEL`
+- `RDM_PID_IDENTIFY_DEVICE`
+- `RDM_PID_DMX_START_ADDRESS` if the device uses a DMX slot.
+- `RDM_PID_SUPPORTED_PARAMETERS` if supporting parameters beyond the minimum required set.
+- `RDM_PID_PARAMETER_DESCRIPTION` if supporing manufacturer-specific parameters.
+
+The following parameters are not required by the RDM specification but are automatically registered when installing the DMX driver. Parameters are registered in the following order, if there is parameter space available on the DMX driver:
+
+- `RDM_PID_QUEUED_MESSAGE` if specified in the `dmx_config_t`.
+- `RDM_PID_MANUFACTURER_LABEL`
+- `RDM_PID_DMX_PERSONALITY` if the device uses a DMX slot.
+- `RDM_PID_DMX_PERSONALITY_DESCRIPTION` if the device uses a DMX slot.
+- `RDM_PID_DEVICE_LABEL`
 
 Parameters which are registered may be get or set using getter and setter functions. Parameters which support the `RDM_CC_GET_COMMAND` command class have a getter function prefixed prefixed with `rdm_get_` and parameters which support `RDM_CC_SET_COMMAND` have a setter function prefixed with `rdm_set_`. Setter functions return `true` if the value was successfully set. Getter functions return the size of the parameter data in bytes or zero on failure.
 
