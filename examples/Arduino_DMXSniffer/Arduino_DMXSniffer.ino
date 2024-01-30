@@ -14,7 +14,7 @@
 */
 #include <Arduino.h>
 #include <esp_dmx.h>
-#include "dmx/include/sniffer.h"
+#include "dmx/sniffer.h"
 
 /* First, lets define the hardware pins that we are using with our ESP32. We
   need to define which pin is transmitting data and which pin is receiving data.
@@ -71,7 +71,7 @@ void setup() {
   /* In this example, we are using the DMX sniffer. The sniffer uses an
     interrupt service routine (ISR) to create metadata about the DMX we
     receive. We'll install the ESP32 GPIO ISR using the macro
-    `DMX_DEFAULT_SNIFFER_INTR_FLAGS`. Then we can enable the sniffer on the 
+    `DMX_DEFAULT_SNIFFER_INTR_FLAGS`. Then we can enable the sniffer on the
     hardware pin that we specified. */
   gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS);
   dmx_sniffer_enable(dmxPort, snifferPin);
@@ -79,15 +79,17 @@ void setup() {
 
 void loop() {
   /* We need a place to store metadata about the DMX packet we receive. We
-    will use a dmx_metadata_t to store that packet metadata. */
+    will use a dmx_metadata_t to store that packet metadata. We will also track
+    standard packet data using a dmx_packet_t. */
   dmx_metadata_t metadata;
+  dmx_packet_t packet;
 
   /* And now we wait! The DMX standard defines the amount of time until DMX
     officially times out. That amount of time is converted into ESP32 clock
     ticks using the constant `DMX_TIMEOUT_TICK`. If it takes longer than that
     amount of time to receive data, this if statement will evaluate to false. */
-  if (dmx_sniffer_get_data(dmxPort, &metadata, DMX_TIMEOUT_TICK)) {
-    /* If this code gets called, it means we've received DMX metadata! */
+  if (dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK)) {
+    /* If this code gets called, it means we've received DMX! */
 
     /* Get the current time since boot in milliseconds so that we can find out
       how long it has been since we last updated data and printed to the Serial
@@ -101,9 +103,17 @@ void loop() {
     }
 
     if (now - lastUpdate >= 1000) {
-      /* Print the received DMX break length and mark-after-break length. */
-      Serial.printf("Break: %ius, MAB: %ius\n", metadata.break_len,
-                    metadata.mab_len);
+      /* Now that we've received DMX, we should get the metadata from the
+        sniffer! We can do this by calling `dmx_sniffer_get_data()` and
+        providing a pointer to our metadata variable. */
+      dmx_sniffer_get_data(dmxPort, &metadata);
+
+      /* Print the received DMX break length, mark-after-break length, start
+        code, and packet size. */
+      Serial.printf(
+          "Break: %ius, MAB: %ius, Start code: %02x, Packet size: %i\n",
+          metadata.break_len, metadata.mab_len, packet.sc, packet.size);
+
       lastUpdate = now;
     }
   } else if (dmxIsConnected) {
