@@ -189,19 +189,20 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   // The registration of DMX parameters is optional
   if (personality_count > 0) {
     rdm_register_dmx_start_address(dmx_num, NULL, NULL);
+  }
+
+  // Register additional RDM parameters
+  if (config->queue_size_max > 0) {
+    rdm_register_queued_message(dmx_num, config->queue_size_max, NULL, NULL);
+  }
+  rdm_register_manufacturer_label(dmx_num, RDM_MANUFACTURER_LABEL, NULL, NULL);
+  if (personality_count > 0) {
     rdm_register_dmx_personality(dmx_num, personality_count, NULL, NULL);
     rdm_register_dmx_personality_description(dmx_num, personality_description,
                                              personality_count, NULL, NULL);
   }
-
-  if (config->queue_size_max > 0) {
-    rdm_register_queued_message(dmx_num, config->queue_size_max, NULL, NULL);
-  }
-
-  // Register additional RDM parameters
   const char *default_device_label = "";
   rdm_register_device_label(dmx_num, default_device_label, NULL, NULL);
-  rdm_register_manufacturer_label(dmx_num, RDM_MANUFACTURER_LABEL, NULL, NULL);
   rdm_register_supported_parameters(dmx_num, NULL, NULL);
   rdm_register_parameter_description(dmx_num, NULL, NULL);
 
