@@ -464,7 +464,7 @@ size_t dmx_send(dmx_port_t dmx_num) {
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
   DMX_CHECK(dmx_driver_is_enabled(dmx_num), 0, "driver is not enabled");
 
-  return dmx_send_num(dmx_num, 0);
+  return dmx_send_num(dmx_num, DMX_PACKET_SIZE);
 }
 
 bool dmx_wait_sent(dmx_port_t dmx_num, TickType_t wait_ticks) {
