@@ -651,24 +651,33 @@ if (ack.size > 0) {
 
 An RDM responder must respond to every non-discovery, non-broadcast packet addressed to it. When a responder receives a `RDM_PID_DISC_UNIQUE_BRANCH` packet, it must respond to the packet if the responder's UID falls within the request's address space and if the responder is un-muted.
 
-The DMX driver will parse RDM requests and send responses within the `dmx_receive()` function. It is therefore required for RDM requests to be received with `dmx_receive()` to ensure that a response is sent. If `dmx_receive()` is not called, an RDM response will not be sent.
+The DMX driver will parse RDM requests and send responses within the `rdm_send_response()` function. It is therefore required for all RDM responders to receive RDM requests with `dmx_receive()` or `dmx_receive_num()` and for responses to be sent with `rdm_send_response()`. If `rdm_send_response()` is not called, an RDM response will not be sent. If it is not desired for devices to respond to RDM requests the `rdm_send_response()` function may be omitted. To ensure responder devices are RDM compliant, users should call `rdm_send_response()` after receiving every RDM request.
 
-RDM parameters can be registered with the DMX driver using functions prefixed with `rdm_register_`. The parameter `RDM_PID_DMX_START_ADDRESS` may therefore be registered with `rdm_register_dmx_start_address()`. Parameter data is owned and initialized by the DMX driver, but users may set the default value for some parameters using the arguments to the `rdm_register_` functions.
+```c
+dmx_packet_t packet;
+if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
+  if (packet.is_rdm) {
+    rdm_send_response(DMX_NUM_1);  // Only sends responses to relevant requests
+  }
+}
+```
 
-RDM parameters which support GET but do not support SET allow users to set the parameter's default value as the second argument of the `rdm_register_` function. The default value is set the first time the `rdm_register_` function is called and then the default value argument is subsequently ignored and may be left `NULL`. RDM parameters which support GET and SET will be set to a predefined default value upon registration and must be manually changed using their corresponding `rdm_set_` function. RDM parameters which support NVS will be set to the value found in NVS.
+RDM parameters can be registered with the DMX driver using functions prefixed with `rdm_register_`. The parameter `RDM_PID_DMX_START_ADDRESS` may therefore be registered with `rdm_register_dmx_start_address()`. Parameter data is owned and initialized by the DMX driver, but users may set the initial value for some parameters using the arguments to the `rdm_register_` functions.
+
+RDM parameters which support GET but do not support SET generally allow users to set the parameter's initial value as the second argument of the `rdm_register_` function. The initial value is set the first time the `rdm_register_` function is called and then the initial value argument is subsequently ignored and may be left `NULL`. RDM parameters which support GET and SET will generally be set to a predefined initial value upon registration and must be manually changed using their corresponding `rdm_set_` function.
 
 The `rdm_register_` functions allow allow users to attach callback functions to PIDs. When a valid request for a parameter is received, the DMX driver will call the callback function after a request is processed. When a callback is called it does not necessarily mean that a response packet has been sent.
 
 ```c
-void custom_callback(dmx_port_t dmx_num, const rdm_header_t *header, 
-                     void *context) {
-  if (header->pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
+void custom_callback(dmx_port_t dmx_num, rdm_header_t *request,
+                     rdm_header_t *response, void *context) {
+  if (request->pid == RDM_PID_SOFTWARE_VERSION_LABEL) {
     printf("A RDM_PID_SOFTWARE_VERSION_LABEL request was received!\n");
   }
 }
 ```
 
-Fields in the `rdm_header_t` pointer will reflect the values sent in the response to the RDM request. For example, if a `RDM_CC_GET_COMMAND` is received, the `header->cc` field will evaluate to `RDM_CC_GET_COMMAND_RESPONSE` in the callback function. This can be used to determine if a response packet was sent as the `header->response_type` field will evaluate to `RDM_RESPONSE_TYPE_NONE`.
+The arguments in the callback function reflect the RDM header received in the RDM request and the RDM header sent in the response. The DMX port number and a user context is also provided.
 
 ```c
 void *context = NULL;  // Context not needed for the above callback 
@@ -679,17 +688,17 @@ if (rdm_register_software_version_label(DMX_NUM_1, new_software_label,
 }
 ```
 
-If a request for a PID that does not have a registered callback is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a callback which is already defined will overwrite the previously registered callback. Callbacks which are registered cannot be unregistered.
+If a request for a PID that is not registered is received, the DMX driver will automatically respond with an `RDM_RESPONSE_NACK_REASON` response citing `RDM_NR_UNKNOWN_PID`. Registering a parameters which is already defined will overwrite the previously registered callback, but not the initial parameter value. Parameters which are registered cannot be unregistered.
 
-The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification. The list of the RDM-required parameters can be found in the [appendix](#parameter-ids).
+The RDM standard defines several parameter responses that are required by all RDM compliant devices. These functions are automatically registered when the DMX driver is installed. This is needed to ensure that all RDM responders created with this library are compliant with the RDM specification.
 
-Parameters which are registered may be get or set using getter and setter functions. Parameters which support the `RDM_CC_GET_COMMAND` command class have a getter function prefixed prefixed with `rdm_get_` and parameters which support `RDM_CC_SET_COMMAND` have a setter function prefixed with `rdm_set_`. These getters and setters return true if the value was successfully gotten or set.
+Parameters which are registered may be get or set using getter and setter functions. Parameters which support the `RDM_CC_GET_COMMAND` command class have a getter function prefixed prefixed with `rdm_get_` and parameters which support `RDM_CC_SET_COMMAND` have a setter function prefixed with `rdm_set_`. Setter functions return `true` if the value was successfully set. Getter functions return the size of the parameter data in bytes or zero on failure.
 
-Some parameters, such as `RDM_PID_DMX_START_ADDRESS` are copied to non-volatile storage to ensure the values are saved after the ESP32 is power-cycled. The values are copied to NVS when set using the parameter's `rdm_set_` function or when receiving a valid SET request.
+Some parameters, such as `RDM_PID_DMX_START_ADDRESS` are copied to non-volatile storage to ensure the values are saved after the ESP32 is power-cycled. The values are copied to non-volatile storage when set using the parameter's `rdm_set_` function or after receiving a valid SET request.
 
 ```c
 uint16_t dmx_start_address;
-if (!rdm_get_dmx_start_address(DMX_NUM_1, &dmx_start_address)) {
+if (rdm_get_dmx_start_address(DMX_NUM_1, &dmx_start_address) == 0) {
   printf("An error occurred getting the DMX start address.\n");
 }
 
