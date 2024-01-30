@@ -72,7 +72,7 @@ This library includes a `Kconfig` file for configuring build options on the ESP3
 To get started, call the following code in your `setup()` function if using Arduino, or `app_main()` in your `main.c` file if using ESP-IDF.
 
 ```c
-const dmx_port_t dmx_num = DMX_NUM_2;
+const dmx_port_t dmx_num = DMX_NUM_1;
 
 // First, use the default DMX configuration...
 dmx_config_t config = DMX_CONFIG_DEFAULT;
@@ -254,7 +254,7 @@ dmx_personality_t personalities[] = {
   {7, "RGBW with Macros"}      // RGBW with three additional macro parameters
 };
 const int personality_count = 4;
-dmx_driver_install(DMX_NUM_2, &config, personalities, personality_count);
+dmx_driver_install(DMX_NUM_1, &config, personalities, personality_count);
 ```
 
 The `dmx_config_t` sets permanent configuration values within the DMX driver. These values are used to configure the DMX device and for the RDM responder. The fields in the `dmx_config_t` include:
@@ -281,7 +281,7 @@ dmx_config_t config = {
   .software_version_label = ESP_DMX_VERSION_LABEL,
   .queue_size_max = 32
 };
-dmx_driver_install(DMX_NUM_2, &config, personalities, personality_count);
+dmx_driver_install(DMX_NUM_1, &config, personalities, personality_count);
 ```
 
 ### Setting Communication Pins
@@ -290,7 +290,7 @@ After the DMX driver is installed, users can configure the physical GPIO pins to
 
 ```c
 // Set TX: GPIO16 (port 2 default), RX: GPIO17 (port 2 default), RTS: GPIO21.
-dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
+dmx_set_pin(DMX_NUM_1, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 ```
 
 ### Timing Configuration
@@ -298,9 +298,9 @@ dmx_set_pin(DMX_NUM_2, DMX_PIN_NO_CHANGE, DMX_PIN_NO_CHANGE, 21);
 In most situations it is not necessary to adjust the default timing of the DMX driver. Nevertheless, this library allows for individual configuration of the DMX baud rate, break, and mark-after-break for the DMX controller. These functions have no effect when receiving DMX; they only effect the baud rate, break, and mark-after-break when sending DMX or RDM. After the DMX driver has been installed, the following functions may be called.
 
 ```c
-dmx_set_baud_rate(DMX_NUM_2, DMX_BAUD_RATE);     // Set DMX baud rate.
-dmx_set_break_len(DMX_NUM_2, DMX_BREAK_LEN_US);  // Set DMX break length.
-dmx_set_mab_len(DMX_NUM_2, DMX_MAB_LEN_US);      // Set DMX MAB length.
+dmx_set_baud_rate(DMX_NUM_1, DMX_BAUD_RATE);     // Set DMX baud rate.
+dmx_set_break_len(DMX_NUM_1, DMX_BREAK_LEN_US);  // Set DMX break length.
+dmx_set_mab_len(DMX_NUM_1, DMX_MAB_LEN_US);      // Set DMX MAB length.
 ```
 
 If timing values that are not within the DMX specification are passed to these functions, the values will be clamped so that they are within DMX specification. Note that it is possible to set driver timing to be within DMX specification but not within RDM specification. Care must be used when using these functions to ensure that RDM capabilities are maintained.
@@ -320,7 +320,7 @@ To read synchronously from the DMX bus the DMX driver must wait for a new packet
 ```c
 dmx_packet_t packet;
 // Wait for a packet. Returns the size of the received packet or 0 on timeout.
-int packet_size = dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK);
+int packet_size = dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK);
 ```
 
 The function `dmx_receive()` takes three arguments. The first argument is the `dmx_port_t` which identifies which DMX port to use. The second argument is a pointer to a `dmx_packet_t` struct. Data about the received packet is copied into the `dmx_packet_t` struct when a packet is received. This data includes:
@@ -340,11 +340,11 @@ After a packet is received, `dmx_read()` can be called to read the packet into a
 uint8_t data[DMX_PACKET_SIZE];
 
 dmx_packet_t packet;
-if (dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK)) {
+if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
 
   // Check that no errors occurred.
   if (packet.err == DMX_OK) {
-    dmx_read(DMX_NUM_2, data, packet.size);
+    dmx_read(DMX_NUM_1, data, packet.size);
   } else {
     printf("An error occurred receiving DMX!");
   }
@@ -359,7 +359,7 @@ The function `dmx_receive_num()` is provided to receive a specified number of DM
 ```c
 dmx_packet_t packet;
 int num_slots_to_receive = 96;
-dmx_receive_num(DMX_NUM_2, &packet, num_slots_to_receive, DMX_TIMEOUT_TICK);
+dmx_receive_num(DMX_NUM_1, &packet, num_slots_to_receive, DMX_TIMEOUT_TICK);
 ```
 
 The function `dmx_receive()` can be viewed as a wrapper for `dmx_receive_num()` where the number of slots to receive is equal to the packet size of the last DMX packet received. When the desired number of slots to receive is greater than the actual number of slots received (e.g. when waiting to receive 513 slots, but only 128 are received) the function will unblock upon receiving the DMX break for the subsequent packet and the `packet.err` will be set to `DMX_ERR_NOT_ENOUGH_SLOTS`.
@@ -372,7 +372,7 @@ const int offset = 5;  // The start address of this device.
 uint8_t data[size];
 
 // Read slots 5 through 17. Returns the number of slots that were read.
-int num_slots_read = dmx_read_offset(DMX_NUM_2, offset, data, size);
+int num_slots_read = dmx_read_offset(DMX_NUM_1, offset, data, size);
 ```
 
 Lastly, `dmx_read_slot()` can be used to read a single slot of DMX data.
@@ -381,7 +381,7 @@ Lastly, `dmx_read_slot()` can be used to read a single slot of DMX data.
 const int slot_num = 0;  // The slot to read. Slot 0 is the DMX start code!
 
 // Read slot 0. Returns the value of the desired slot or -1 on error.
-int value = dmx_read_slot(DMX_NUM_2, slot_num);
+int value = dmx_read_slot(DMX_NUM_1, slot_num);
 ```
 
 ### DMX Sniffer
@@ -400,14 +400,14 @@ Before enabling the sniffer tool, `gpio_install_isr_service()` must be called wi
 gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS);
 
 const int sniffer_pin = 4; // Lowest exposed pin on the Feather breakout board.
-dmx_sniffer_enable(DMX_NUM_2, sniffer_pin);
+dmx_sniffer_enable(DMX_NUM_1, sniffer_pin);
 ```
 
 Break and mark-after-break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()`. This will block until the sniffer receives a packet and copy the sniffer data so that it may be processed by the user. If data is copied, this function will return `true`.
 
 ```c
 dmx_metadata_t metadata;
-if (dmx_sniffer_get_data(DMX_NUM_2, &metadata, DMX_TIMEOUT_TICK)) {
+if (dmx_sniffer_get_data(DMX_NUM_1, &metadata, DMX_TIMEOUT_TICK)) {
   printf("The DMX break length was: %i\n", metadata.break_len);
   printf("The DMX mark-after-break length was: %i\n", metadata.mab_len);
 }
@@ -422,8 +422,8 @@ uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
 // Write the packet and send it out on the DMX bus.
 const int num_bytes_to_send = DMX_PACKET_SIZE;
-dmx_write(DMX_NUM_2, data, num_bytes_to_send);
-dmx_send(DMX_NUM_2, num_bytes_to_send);
+dmx_write(DMX_NUM_1, data, num_bytes_to_send);
+dmx_send(DMX_NUM_1, num_bytes_to_send);
 ```
 
 The size of the packet that is sent when calling `dmx_send()` can be specified in the second argument of the function. If the size is set to 0 then the size will be equal to either the size of the last call to `dmx_write()` or the slot number used in the last call to `dmx_write_slot()`, whichever is higher.
@@ -435,7 +435,7 @@ uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
 while (true) {
   // Send the DMX packet.
-  dmx_send(DMX_NUM_2, DMX_PACKET_SIZE);
+  dmx_send(DMX_NUM_1, DMX_PACKET_SIZE);
 
   // Process the next DMX packet (while the previous is being sent) here.
   for (int i = 1; i < DMX_PACKET_SIZE; i++) {
@@ -443,10 +443,10 @@ while (true) {
   }
 
   // Wait until the packet is finished being sent before proceeding.
-  dmx_wait_sent(DMX_NUM_2, DMX_TIMEOUT_TICK);
+  dmx_wait_sent(DMX_NUM_1, DMX_TIMEOUT_TICK);
 
   // Now write the packet synchronously!
-  dmx_write(DMX_NUM_2, data, DMX_PACKET_SIZE);
+  dmx_write(DMX_NUM_1, data, DMX_PACKET_SIZE);
 }
 ```
 
@@ -458,12 +458,12 @@ uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 // Write slots 10 through 17 (inclusive)
 const int offset = 10;
 const size_t size = 7;
-dmx_write_offset(DMX_NUM_2, offset, data, size);
+dmx_write_offset(DMX_NUM_1, offset, data, size);
 
 // Set slot number 5 to value 127.
 const int slot_num = 5;
 const uint8_t value = 127;
-dmx_write_slot(DMX_NUM_2, slot_num, value);
+dmx_write_slot(DMX_NUM_1, slot_num, value);
 
 // Don't forget to call dmx_send()!
 ```
@@ -476,19 +476,19 @@ Getting or setting the DMX start address can be done using `dmx_get_start_addres
 
 ```c
 // Get the DMX start address and increment it by one
-uint16_t dmx_start_address = dmx_get_start_address(DMX_NUM_2);
+uint16_t dmx_start_address = dmx_get_start_address(DMX_NUM_1);
 dmx_start_address++;
 if (dmx_start_address >= DMX_PACKET_SIZE_MAX) {
   dmx_start_address = 1;  // Ensure DMX start address is within bounds
 }
-dmx_set_start_address(DMX_NUM_2, dmx_start_address);
+dmx_set_start_address(DMX_NUM_1, dmx_start_address);
 ```
 
 Personalities, the personality count, personality descriptions, and footprint sizes may be accessed with `dmx_get_current_personality()`, `dmx_set_current_personality()`, `dmx_get_personality_count()`, `dmx_get_personality_description()`, and `dmx_get_footprint()`. Personalities are indexed starting at one. There is no personality zero.
 
 ```c
-const uint8_t personality_count = dmx_get_personality_count(DMX_NUM_2);
-uint8_t current_personality = dmx_get_current_personality(DMX_NUM_2);
+const uint8_t personality_count = dmx_get_personality_count(DMX_NUM_1);
+uint8_t current_personality = dmx_get_current_personality(DMX_NUM_1);
 if (current_personality < personality_count) {
   // Increment the personality.
   current_personality++;
@@ -496,15 +496,15 @@ if (current_personality < personality_count) {
     start at 1, not 0! */
 
   // Get and print the new personality description and footprint.
-  const char *desc = dmx_get_personality_description(DMX_NUM_2, 
+  const char *desc = dmx_get_personality_description(DMX_NUM_1, 
                                                      current_personality)
-  uint16_t footprint = dmx_get_footprint(DMX_NUM_2, current_personality);
+  uint16_t footprint = dmx_get_footprint(DMX_NUM_1, current_personality);
   printf("Setting the current personality to %i: \"%s\"\n", current_personality,
          desc);
   printf("Personality %i has a footprint of %i\n", current_personality,
          footprint);
   
-  dmx_set_current_personality_count(DMX_NUM_2, current_personality);
+  dmx_set_current_personality_count(DMX_NUM_1, current_personality);
 }
 ```
 
@@ -518,10 +518,10 @@ const uint8_t discovery_response[] = {
   0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xaa, 0xaf, 0x55, 0xea, 0xf5, 0xba, 
   0x57, 0xbb, 0xdd, 0xbf, 0x55, 0xba, 0xdf, 0xaa, 0x5d, 0xbb, 0x7d 
 };
-dmx_write(DMX_NUM_2, discovery_response, sizeof(discovery_response));
+dmx_write(DMX_NUM_1, discovery_response, sizeof(discovery_response));
 
 // This function will not send a DMX break or mark-after-break 
-dmx_send(DMX_NUM_2, sizeof(discovery_response));
+dmx_send(DMX_NUM_1, sizeof(discovery_response));
 ```
 
 Likewise, the function `dmx_receive()` behaves contextually when receiving DMX or RDM packets. When receiving DMX, calls to `dmx_receive()` will timeout according to the timeout value provided, such as `DMX_TIMEOUT_TICK`. When receiving RDM packets, the DMX driver may timeout much more quickly than the provided timeout value as the RDM bus turnaround times are much shorter than DMX.
@@ -532,13 +532,13 @@ const uint8_t get_device_info[] = {
   0xcc, 0x01, 0x18, 0x3b, 0x10, 0x44, 0xc0, 0x6f, 0xbf, 0x05, 0xe0, 0x12, 0x99,
   0x15, 0x9a, 0x14, 0x03, 0x00, 0x00, 0x00, 0x20, 0x00, 0x60, 0x00, 0x06, 0x38
 };
-dmx_write(DMX_NUM_2, get_device_info, sizeof(get_device_info));
-dmx_send(DMX_NUM_2, sizeof(get_device_info));
+dmx_write(DMX_NUM_1, get_device_info, sizeof(get_device_info));
+dmx_send(DMX_NUM_1, sizeof(get_device_info));
 
 dmx_packet_t packet;
 
 // This function will unblock early because it is expecting a reply!
-dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK);  // Unblocks in 3ms
+dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK);  // Unblocks in 3ms
 ```
 
 ### RDM Requests
@@ -568,13 +568,13 @@ rdm_header_t header = {
 rdm_ack_t ack;  // Stores response information.
 
 rdm_device_info_t device_info;  // Stores the response parameter data.
-if (rdm_send_get_device_info(DMX_NUM_2, &header, &device_info, &ack)) {
+if (rdm_send_get_device_info(DMX_NUM_1, &header, &device_info, &ack)) {
   printf("Successfully received device info from " UIDSTR "!\n", 
          UID2STR(header.src_uid));
 }
 
 const uint16_t new_address = 123;  // The new RDM_PID_DMX_START_ADDRESS to send.
-if (rdm_set_dmx_start_address(DMX_NUM_2, &header, new_address, &ack)) {
+if (rdm_set_dmx_start_address(DMX_NUM_1, &header, new_address, &ack)) {
   printf("Device " UIDSTR " has been set to DMX address %i.\n", UID2STR(uid), 
          new_address);
 }
@@ -603,7 +603,7 @@ const int array_size = 10;
 rdm_uid_t uids[array_size];
 
 // This function blocks and may take some time to complete!
-int num_uids = rdm_discover_devices_simple(DMX_NUM_2, uids, array_size);
+int num_uids = rdm_discover_devices_simple(DMX_NUM_1, uids, array_size);
 
 printf("Discovery found %i UIDs!\n", num_uids);
 ```
@@ -622,7 +622,7 @@ const rdm_disc_unique_branch_t branch = {
   .lower_bound = 0  // Set to 0000:00000000
 };
 
-rdm_send_disc_unique_branch(DMX_NUM_2, &header, &branch, &ack);
+rdm_send_disc_unique_branch(DMX_NUM_1, &header, &branch, &ack);
 if (ack.size > 0) {
   // Got a response!
   if (ack.type == RDM_RESPONSE_TYPE_ACK) {
@@ -651,7 +651,7 @@ rdm_ack_t ack;
 
 rdm_disc_mute_t mute;  // Stores the response parameter data.
 
-rdm_send_disc_un_mute(DMX_NUM_2, &header, &mute, &ack);
+rdm_send_disc_un_mute(DMX_NUM_1, &header, &mute, &ack);
 if (ack.size > 0) {
   /* This code will never run because the RDM controller does not receive a 
     response from RDM responders when the destination UID is a broadcast UID. 
@@ -686,7 +686,7 @@ Fields in the `rdm_header_t` pointer will reflect the values sent in the respons
 ```c
 void *context = NULL;  // Context not needed for the above callback 
 const char *new_software_label = "My Custom Software";
-if (rdm_register_software_version_label(DMX_NUM_2, new_software_label, 
+if (rdm_register_software_version_label(DMX_NUM_1, new_software_label, 
                                         custom_callback, context)) {
   printf("A new software version label has been registered!\n");
 }
@@ -702,12 +702,12 @@ Some parameters, such as `RDM_PID_DMX_START_ADDRESS` are copied to non-volatile 
 
 ```c
 uint16_t dmx_start_address;
-if (!rdm_get_dmx_start_address(DMX_NUM_2, &dmx_start_address)) {
+if (!rdm_get_dmx_start_address(DMX_NUM_1, &dmx_start_address)) {
   printf("An error occurred getting the DMX start address.\n");
 }
 
 dmx_start_address = 123;
-if (!rdm_set_dmx_start_address(DMX_NUM_2, dmx_start_address)) {
+if (!rdm_set_dmx_start_address(DMX_NUM_1, dmx_start_address)) {
   printf("An error occurred setting the DMX start address.\n");
 }
 ```
@@ -726,13 +726,13 @@ uint8_t data[DMX_PACKET_SIZE];
 
 dmx_packet_t packet;
 while (true) {
-  if (dmx_receive(DMX_NUM_2, &packet, DMX_TIMEOUT_TICK)) {
+  if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
     switch (packet.err) {
       case DMX_OK:
         printf("Received packet with start code: %02X and size: %i.\n",
           packet.sc, packet.size);
         // Data is OK. Now read the packet into the buffer.
-        dmx_read(DMX_NUM_2, data, packet.size);
+        dmx_read(DMX_NUM_1, data, packet.size);
         break;
       
       case DMX_ERR_TIMEOUT:
@@ -812,13 +812,13 @@ When this driver is not placed in IRAM, functions which disable the cache will a
 
 ```c
 // Disable the DMX driver if it isn't already
-if (dmx_driver_is_enabled(DMX_NUM_2)) {
-  dmx_driver_disable(DMX_NUM_2);
+if (dmx_driver_is_enabled(DMX_NUM_1)) {
+  dmx_driver_disable(DMX_NUM_1);
 }
 
 // Read from or write to flash memory (or otherwise disable the cache) here...
 
-dmx_driver_enable(DMX_NUM_2);
+dmx_driver_enable(DMX_NUM_1);
 ```
 
 Disabling and reenabling the DMX driver before disabling the cache is not required if the DMX driver is placed in IRAM.
