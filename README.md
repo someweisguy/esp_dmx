@@ -600,10 +600,9 @@ printf("Discovery found %i UIDs!\n", num_uids);
 
 Discovery can take several seconds to complete. Users may want to perform an action, such as update a progress bar, whenever a new UID is found. When this is desired, the function `rdm_discover_with_callback()` may be used to specify a callback function which is called when a new UID is discovered.
 
-`RDM_PID_DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `RDM_PID_DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, the values in the `rdm_header_t` type need not be initialized before passing it to `rdm_send_disc_unique_branch()`.
+`RDM_PID_DISC_UNIQUE_BRANCH` requests support neither GET nor SET. This PID request can be accessed with the function `rdm_send_disc_unique_branch()`. `RDM_PID_DISC_UNIQUE_BRANCH` requests may only be sent to the root device, and may only be addressed to all devices on the RDM network. Therefore, the `dest_uid` and `sub_device` arguments are not provided for this function.
 
 ```c
-rdm_header_t header;  // Do not initialize.
 rdm_ack_t ack;
 
 // Define the address space within which devices will be discovered.
@@ -612,7 +611,7 @@ const rdm_disc_unique_branch_t branch = {
   .lower_bound = 0  // Set to 0000:00000000
 };
 
-rdm_send_disc_unique_branch(DMX_NUM_1, &header, &branch, &ack);
+rdm_send_disc_unique_branch(DMX_NUM_1, &branch, &ack);
 if (ack.size > 0) {
   // Got a response!
   if (ack.type == RDM_RESPONSE_TYPE_ACK) {
@@ -631,21 +630,19 @@ if (ack.size > 0) {
 }
 ```
 
-`RDM_PID_DISC_MUTE` and `RDM_PID_DISC_UN_MUTE` similarly do not support GET nor SET. Devices may be muted and un-muted by using the functions `rdm_send_disc_mute()` and `rdm_send_disc_un_mute()`. These requests may only be sent to the root device. `RDM_PID_DISC_MUTE` and `RDM_PID_DISC_UN_MUTE` requests receive the same response data from responders. Therefore `rdm_disc_mute_t` can be used to store parameter data from responder devices for both requests.
+`RDM_PID_DISC_MUTE` and `RDM_PID_DISC_UN_MUTE` similarly do not support GET nor SET. Devices may be muted and un-muted by using the functions `rdm_send_disc_mute()` and `rdm_send_disc_un_mute()`. These requests may be sent to any destination UID but may only be sent to the root device. The `dest_uid` argument is provided, but `sub_device` is not. `RDM_PID_DISC_MUTE` and `RDM_PID_DISC_UN_MUTE` requests receive the same response data from responders. Therefore `rdm_disc_mute_t` can be used to store parameter data from responder devices for both requests.
 
 ```c
-rdm_header_t header = {
-  .dest_uid = RDM_UID_BROADCAST_ALL;  // Broadcast to all devices.
-};
+rdm_uid_t dest_uid = RDM_UID_BROADCAST_ALL;
 rdm_ack_t ack;
 
 rdm_disc_mute_t mute;  // Stores the response parameter data.
 
-rdm_send_disc_un_mute(DMX_NUM_1, &header, &mute, &ack);
+rdm_send_disc_un_mute(DMX_NUM_1, &dest_uid, &mute, &ack);
 if (ack.size > 0) {
-  /* This code will never run because the RDM controller does not receive a 
-    response from RDM responders when the destination UID is a broadcast UID. 
-    Therefore its return value can be ignored and the function can be passed 
+  /* This code will never run because the RDM controller does not receive a
+    response from RDM responders when the destination UID is a broadcast UID.
+    Therefore its return value can be ignored and the function can be passed
     NULL instead of an rdm_ack_t pointer or an rdm_disc_mute_t pointer. */
 }
 ```
