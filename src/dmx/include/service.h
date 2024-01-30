@@ -183,12 +183,11 @@ extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
  * @param device_num The sub-device number.
  * @return A pointer to the device, or NULL on failure.
  */
-dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
-                                    dmx_device_num_t device_num);
+dmx_device_t *dmx_get_device(dmx_port_t dmx_num, dmx_device_num_t device_num);
 
 // TODO: implement dmx_driver_add_parameter()?
-bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
-                              rdm_pid_t pid, int type, void *data, size_t size);
+bool dmx_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
+                       rdm_pid_t pid, int type, void *data, size_t size);
 
 /**
  * @brief Gets a pointer to the desired parameter, if it exists.
@@ -198,9 +197,8 @@ bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
  * @param pid The parameter ID.
  * @return A pointer to the parameter, or NULL on failure.
  */
-dmx_parameter_t *dmx_driver_get_parameter(dmx_port_t dmx_num,
-                                          dmx_device_num_t device_num,
-                                          rdm_pid_t pid);
+dmx_parameter_t *dmx_get_parameter(dmx_port_t dmx_num,
+                                   dmx_device_num_t device_num, rdm_pid_t pid);
 
 #ifdef __cplusplus
 }

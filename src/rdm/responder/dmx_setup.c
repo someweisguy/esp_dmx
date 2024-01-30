@@ -119,9 +119,9 @@ bool rdm_register_dmx_personality(dmx_port_t dmx_num, uint8_t personality_count,
   }
 
   // Allocate parameter data
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_NON_VOLATILE, &personality,
-                                sizeof(personality))) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_NON_VOLATILE, &personality,
+                         sizeof(personality))) {
     return false;
   }
 
@@ -204,9 +204,8 @@ bool rdm_register_dmx_personality_description(
 
   // Allocate parameter data
   const size_t size = count * sizeof(*personalities);
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_DYNAMIC, personalities,
-                                size)) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_DYNAMIC, personalities, size)) {
     return false;
   }
 
@@ -250,9 +249,9 @@ bool rdm_register_dmx_start_address(dmx_port_t dmx_num, rdm_callback_t cb,
   }
 
   // Allocate parameter data
-  if (!dmx_driver_add_parameter(
-          dmx_num, RDM_SUB_DEVICE_ROOT, pid, DMX_PARAMETER_TYPE_NON_VOLATILE,
-          &dmx_start_address, sizeof(dmx_start_address))) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_NON_VOLATILE, &dmx_start_address,
+                         sizeof(dmx_start_address))) {
     return false;
   }
 

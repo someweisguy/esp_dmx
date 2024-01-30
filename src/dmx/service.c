@@ -4,8 +4,7 @@
 
 #include "dmx/include/driver.h"
 
-dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
-                                    dmx_device_num_t device_num) {
+dmx_device_t *dmx_get_device(dmx_port_t dmx_num, dmx_device_num_t device_num) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(device_num < RDM_SUB_DEVICE_MAX);
   assert(dmx_driver_is_installed(dmx_num));
@@ -21,9 +20,8 @@ dmx_device_t *dmx_driver_get_device(dmx_port_t dmx_num,
   return device;
 }
 
-bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
-                              rdm_pid_t pid, int type, void *data,
-                              size_t size) {
+bool dmx_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
+                       rdm_pid_t pid, int type, void *data, size_t size) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(device_num < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
@@ -32,7 +30,7 @@ bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
   // Find the sub-device
-  dmx_device_t *device = dmx_driver_get_device(dmx_num, device_num);
+  dmx_device_t *device = dmx_get_device(dmx_num, device_num);
   if (device == NULL) {
     return false;  // Device does not exist
   }
@@ -83,15 +81,14 @@ bool dmx_driver_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
   return false;  // No more parameters available on this sub-device
 }
 
-dmx_parameter_t *dmx_driver_get_parameter(dmx_port_t dmx_num,
-                                          dmx_device_num_t device_num,
-                                          rdm_pid_t pid) {
+dmx_parameter_t *dmx_get_parameter(dmx_port_t dmx_num,
+                                   dmx_device_num_t device_num, rdm_pid_t pid) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(device_num < RDM_SUB_DEVICE_MAX);
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_device_t *const device = dmx_driver_get_device(dmx_num, device_num);
+  dmx_device_t *const device = dmx_get_device(dmx_num, device_num);
   if (device == NULL) {
     return NULL;  // Sub-device does not exist
   }

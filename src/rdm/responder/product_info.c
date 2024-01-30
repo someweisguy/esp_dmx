@@ -9,11 +9,11 @@
 #include "rdm/responder/include/utils.h"
 
 /** @brief Product information used in the RDM_PID_DEVICE_INFO parameter. All
- * other fields in RDM_PID_DEVICE_INFO can be computed at call-time. 
-*/
+ * other fields in RDM_PID_DEVICE_INFO can be computed at call-time.
+ */
 struct rdm_product_info_t {
   uint16_t model_id;  // The model ID of the device. Unique per manufacturer.
-  uint16_t product_category;  // Enumerated in rdm_product_category_t.
+  uint16_t product_category;     // Enumerated in rdm_product_category_t.
   uint32_t software_version_id;  // The unique software verion id of the device.
 };
 
@@ -41,13 +41,12 @@ bool rdm_register_device_info(dmx_port_t dmx_num, uint16_t model_id,
 
   // Add the parameter dynamically - only the product info is stored
   struct rdm_product_info_t product_info = {
-    .model_id = model_id,
-    .product_category = product_category,
-    .software_version_id = software_version_id
-  };
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_DYNAMIC, &product_info,
-                                sizeof(product_info))) {
+      .model_id = model_id,
+      .product_category = product_category,
+      .software_version_id = software_version_id};
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_DYNAMIC, &product_info,
+                         sizeof(product_info))) {
     return false;
   }
 
@@ -122,9 +121,9 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   // Allocate parameter data
   char init_value[RDM_ASCII_SIZE_MAX];
   strncpy(init_value, device_label, 32);
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_NON_VOLATILE, init_value,
-                                sizeof(init_value))) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_NON_VOLATILE, init_value,
+                         sizeof(init_value))) {
     return false;
   }
 
@@ -192,9 +191,9 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   // Add the parameter as a static variable
   const size_t size = strnlen(software_version_label, RDM_ASCII_SIZE_MAX);
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_STATIC,
-                                software_version_label, size)) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_STATIC, software_version_label,
+                         size)) {
     return false;
   }
 
@@ -248,9 +247,8 @@ bool rdm_register_manufacturer_label(dmx_port_t dmx_num,
 
   // Add the parameter as a static variable
   const size_t size = strnlen(manufacturer_label, RDM_ASCII_SIZE_MAX);
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_STATIC, manufacturer_label,
-                                size)) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_STATIC, manufacturer_label, size)) {
     return false;
   }
 

@@ -96,8 +96,8 @@ bool rdm_register_supported_parameters(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_SUPPORTED_PARAMETERS;
 
   // Add the parameter as NULL static
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_STATIC, NULL, 0)) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_STATIC, NULL, 0)) {
     return false;
   }
 
@@ -171,8 +171,8 @@ bool rdm_register_parameter_description(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_PARAMETER_DESCRIPTION;
 
   // Add the parameter as NULL static
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_STATIC, NULL, 0)) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_STATIC, NULL, 0)) {
     return false;
   }
 

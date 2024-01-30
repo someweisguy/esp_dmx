@@ -28,7 +28,7 @@ bool dmx_sub_device_exists(dmx_port_t dmx_num, dmx_device_num_t device_num) {
   assert(device_num < RDM_SUB_DEVICE_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_device_t *device = dmx_driver_get_device(dmx_num, device_num);
+  dmx_device_t *device = dmx_get_device(dmx_num, device_num);
 
   return device != NULL;
 }
@@ -40,7 +40,7 @@ bool dmx_parameter_exists(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  return (dmx_driver_get_parameter(dmx_num, sub_device, pid) != NULL);
+  return (dmx_get_parameter(dmx_num, sub_device, pid) != NULL);
 }
 
 rdm_pid_t dmx_parameter_at(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
@@ -78,7 +78,7 @@ size_t dmx_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(pid > 0);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_get_parameter(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return 0;
   }
@@ -94,7 +94,7 @@ void *dmx_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Find the parameter and return it
-  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_get_parameter(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return NULL;
   }
@@ -110,7 +110,7 @@ size_t dmx_parameter_copy(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   assert(dmx_driver_is_installed(dmx_num));
 
   // Find the parameter
-  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_get_parameter(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return 0;
   }
@@ -140,7 +140,7 @@ size_t dmx_parameter_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     return 0;
   }
 
-  dmx_parameter_t *entry = dmx_driver_get_parameter(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_get_parameter(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return 0;
   }

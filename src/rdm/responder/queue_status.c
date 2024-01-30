@@ -75,8 +75,8 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, uint32_t max_count,
 
   // Add the parameter
   const size_t size = sizeof(rdm_queue_t) + (sizeof(rdm_pid_t) * max_count);
-  if (!dmx_driver_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                                DMX_PARAMETER_TYPE_DYNAMIC, NULL, size)) {
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_DYNAMIC, NULL, size)) {
     return false;
   }
   rdm_queue_t *queue = rdm_get_queue(dmx_num);
