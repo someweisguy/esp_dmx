@@ -262,7 +262,7 @@ The `dmx_config_t` sets permanent configuration values within the DMX driver. Th
 - `interrupt_flags` The interrupt allocation flags to use. The default value is `DMX_INTR_FLAGS_DEFAULT`.
 - `root_device_parameter_count` The number of parameters that the root device supports. This is the number of parameters that may be registered on the root device. The default value is `32`.
 - `sub_device_parameter_count` The number of parameters that the sub-devices support. This is the number of parameters that may be registered per sub-device. The default value is `0`.
-- `model_id` This field identifies the device model ID of the root device. The manufacturer shall not use the same ID to represent more than one unique model type. The default value is `0`.
+- `model_id` This field identifies the device model ID of the root device. This is an arbitrary value set by the user to uniquely identify different models of RDM devices made by a single manufacturer from one another. The default value is `0`.
 - `product_category` Devices shall report a product category based on the product's primary function. The product categories are enumerated in `product_category_t`. The default value is `RDM_PRODUCT_CATEGORY_FIXTURE`.
 - `software_version_id` This field indicates the software version ID for the device. The software version ID is a 32-bit value determined by the manufacturer. The default value is based on the current version of *esp_dmx*.
 - `software_version_label` This RDM parameter is used to get a descriptive ASCII text label for the device's operating software version. The descriptive text returned by this parameter is intended for display to the user. The default value is a string based on the current version of *esp_dmx*.
