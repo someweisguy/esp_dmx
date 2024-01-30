@@ -15,6 +15,8 @@ bool dmx_sniffer_enable(dmx_port_t dmx_num, int intr_pin) {
   // Set sniffer default values
   driver->sniffer.last_neg_edge_ts = -1;  // Negative edge hasn't been seen yet
 
+  dmx_driver[dmx_num]->sniffer.is_enabled = true;
+
   // Add the GPIO interrupt handler
   return dmx_gpio_init(dmx_num, driver, intr_pin);
 }
@@ -26,12 +28,14 @@ bool dmx_sniffer_disable(dmx_port_t dmx_num) {
   // Disable the interrupt and remove the interrupt handler
   dmx_gpio_deinit(dmx_num);
 
+  dmx_driver[dmx_num]->sniffer.is_enabled = false;
+
   return true;
 }
 
 bool dmx_sniffer_is_enabled(dmx_port_t dmx_num) {
   return dmx_driver_is_installed(dmx_num) &&
-         true;  // FIXME: implement dmx_sniffer_is_enabled()
+         dmx_driver[dmx_num]->sniffer.is_enabled;
 }
 
 bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata) {
@@ -41,7 +45,9 @@ bool dmx_sniffer_get_data(dmx_port_t dmx_num, dmx_metadata_t *metadata) {
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
 
-  *metadata = driver->sniffer.metadata;
+  taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
+  *metadata = driver->sniffer.metadata[driver->sniffer.buffer_index];
+  taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
 
   return true;
 }

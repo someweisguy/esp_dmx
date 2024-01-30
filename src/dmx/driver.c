@@ -178,6 +178,8 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   driver->rdm.tn = 0;
 
   // DMX sniffer configuration
+  driver->sniffer.is_enabled = false;
+  driver->sniffer.buffer_index = 0;
   // The driver->metadata field is left uninitialized
   driver->sniffer.last_pos_edge_ts = -1;
   driver->sniffer.last_neg_edge_ts = -1;

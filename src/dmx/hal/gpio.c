@@ -18,9 +18,9 @@ struct dmx_gpio_t {
 static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
   const int64_t now = dmx_timer_get_micros_since_boot();
   dmx_driver_t *const driver = (dmx_driver_t *)arg;
-  int task_awoken = false;
+  const dmx_port_t dmx_num = driver->dmx_num;
 
-  if (dmx_gpio_read(driver->dmx_num)) {
+  if (dmx_gpio_read(dmx_num)) {
     /* If this ISR is called on a positive edge and the current DMX frame is in
     a break and a negative edge timestamp has been recorded then a break has
     just finished. Therefore the DMX break length is able to be recorded. It can
@@ -28,8 +28,11 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
 
     if (driver->dmx.progress == DMX_PROGRESS_IN_BREAK &&
         driver->sniffer.last_neg_edge_ts > -1) {
-      driver->sniffer.metadata.break_len =
+      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      driver->sniffer.buffer_index = !driver->sniffer.buffer_index;
+      driver->sniffer.metadata[driver->sniffer.buffer_index].break_len =
           now - driver->sniffer.last_neg_edge_ts;
+      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->dmx.progress = DMX_PROGRESS_IN_MAB;
     }
     driver->sniffer.last_pos_edge_ts = now;
@@ -39,13 +42,14 @@ static void DMX_ISR_ATTR dmx_gpio_isr(void *arg) {
     is now available to be read by the user. */
 
     if (driver->dmx.progress == DMX_PROGRESS_IN_MAB) {
-      driver->sniffer.metadata.mab_len = now - driver->sniffer.last_pos_edge_ts;
+      taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
+      driver->sniffer.metadata[driver->sniffer.buffer_index].mab_len =
+          now - driver->sniffer.last_pos_edge_ts;
+      taskEXIT_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
       driver->dmx.progress = DMX_PROGRESS_IN_DATA;
     }
     driver->sniffer.last_neg_edge_ts = now;
   }
-
-  if (task_awoken) portYIELD_FROM_ISR();
 }
 
 bool dmx_gpio_init(dmx_port_t dmx_num, void *isr_context, int sniffer_pin) {

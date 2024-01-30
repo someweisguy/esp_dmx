@@ -155,7 +155,9 @@ typedef struct dmx_driver_t {
   
   // DMX sniffer configuration
   struct dmx_driver_sniffer_t {
-    dmx_metadata_t metadata;  // The metadata received by the DMX sniffer.
+    bool is_enabled;
+    int buffer_index;
+    dmx_metadata_t metadata[2];  // The metadata received by the DMX sniffer.
     int64_t last_pos_edge_ts;  // Timestamp of the last positive edge on the sniffer pin.
     int64_t last_neg_edge_ts;  // Timestamp of the last negative edge on the sniffer pin.
   } sniffer;
