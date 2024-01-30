@@ -69,9 +69,11 @@ static void rdm_default_identify_cb(dmx_port_t dmx_num, rdm_header_t *request,
 
 bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
                         dmx_personality_t *personalities,
-                        uint8_t personality_count) {
+                        int personality_count) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(config != NULL, false, "config is null");
+  DMX_CHECK(personality_count >= 0 && personality_count <= 255, false,
+            "personality_count error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), false,
             "driver is already installed");
   for (int i = 0; i < personality_count; ++i) {

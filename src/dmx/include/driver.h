@@ -31,13 +31,14 @@ extern "C" {
  * @param[in] personalities A pointer to an array of DMX personalities which
  * the DMX driver will support.
  * @param personality_count The number of personalities in the previous
- * argument. May be set to 0 if this device does not support a DMX address.
+ * argument. This value must be between 0 and 255, inclusive. May be set to 0 if
+ * this device does not support a DMX address.
  * @return true on success.
  * @return false on failure.
  */
 bool dmx_driver_install(dmx_port_t dmx_num, dmx_config_t *config,
                         dmx_personality_t *personalities,
-                        uint8_t personality_count);
+                        int personality_count);
 
 /**
  * @brief Uninstalls the DMX driver.
