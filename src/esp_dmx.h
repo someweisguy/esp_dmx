@@ -57,11 +57,6 @@ extern "C" {
         32,                           /*queue_size_max*/              \
   }
 
-#define DMX_PERSONALITIES_DEFAULT \
-  {                               \
-    { 1, "Default personality" }  \
-  }
-
 #ifdef __cplusplus
 }
 #endif
