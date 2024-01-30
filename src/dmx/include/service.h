@@ -185,7 +185,19 @@ extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
  */
 dmx_device_t *dmx_get_device(dmx_port_t dmx_num, dmx_device_num_t device_num);
 
-// TODO: implement dmx_driver_add_parameter()?
+/**
+ * @brief Adds a parameter to the DMX driver, if there is space available.
+ *
+ * @param dmx_num The DMX port number.
+ * @param device_num The sub-device number.
+ * @param pid The parameter ID.
+ * @param type The type of the parameter, one of enum dmx_parameter_type_t.
+ * @param data A pointer to the initial value of the data, or the data itself,
+ * in the case of DMX_PARAMETER_TYPE_STATIC.
+ * @param size The size of the data.
+ * @return true on success.
+ * @return false on failure.
+ */
 bool dmx_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
                        rdm_pid_t pid, int type, void *data, size_t size);
 
