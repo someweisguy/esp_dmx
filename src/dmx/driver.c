@@ -76,10 +76,14 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
             "personality_count error");
   DMX_CHECK(!dmx_driver_is_installed(dmx_num), false,
             "driver is already installed");
+  bool uses_dmx = false;
   for (int i = 0; i < personality_count; ++i) {
     DMX_CHECK((personalities[i].footprint > 0 &&
                personalities[i].footprint < DMX_PACKET_SIZE_MAX),
               false, "footprint error");
+    if (personalities[i].footprint > 0) {
+      uses_dmx = true;
+    }
   }
 
   int interrupt_flags = config->interrupt_flags;
@@ -90,14 +94,24 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     ESP_LOGI(TAG, "ESP_INTR_FLAG_IRAM flag not set, flag updated");
   }
 #endif
+  
+  // Ensure the parameter count is valid
+  const int required_parameter_count = uses_dmx ? 7 : 6;
+  int root_param_count = config->root_device_parameter_count;
+  if (root_param_count > 0 && root_param_count < required_parameter_count) {
+    DMX_WARN(
+        "root_device_parameter_count must be 0 or at least %i, "
+        "root_device_parameter_count updated to %i",
+        required_parameter_count, required_parameter_count);
+    root_param_count = required_parameter_count;
+  }
 
   // Initialize NVS
   dmx_nvs_init(dmx_num);
 
   // Allocate the DMX driver
   const size_t driver_size =
-      sizeof(dmx_driver_t) +
-      (sizeof(dmx_parameter_t) * config->root_device_parameter_count);
+      sizeof(dmx_driver_t) + (sizeof(dmx_parameter_t) * root_param_count);
   dmx_driver_t *driver = heap_caps_malloc(driver_size, MALLOC_CAP_8BIT);
   DMX_CHECK(driver != NULL, false, "DMX driver malloc error");
   dmx_driver[dmx_num] = driver;
@@ -187,7 +201,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
   rdm_register_identify_device(dmx_num, rdm_default_identify_cb, NULL);
 
   // The registration of DMX parameters is optional
-  if (personality_count > 0) {
+  if (uses_dmx > 0) {
     rdm_register_dmx_start_address(dmx_num, NULL, NULL);
   }
 
@@ -196,7 +210,7 @@ bool dmx_driver_install(dmx_port_t dmx_num, const dmx_config_t *config,
     rdm_register_queued_message(dmx_num, config->queue_size_max, NULL, NULL);
   }
   rdm_register_manufacturer_label(dmx_num, RDM_MANUFACTURER_LABEL, NULL, NULL);
-  if (personality_count > 0) {
+  if (uses_dmx > 0) {
     rdm_register_dmx_personality(dmx_num, personality_count, NULL, NULL);
     rdm_register_dmx_personality_description(dmx_num, personality_description,
                                              personality_count, NULL, NULL);
