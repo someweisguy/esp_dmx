@@ -243,7 +243,7 @@ Before any DMX functions may be called, the DMX driver must be installed. Instal
 - The DMX port to use.
 - The DMX configuration to use. The macro `DMX_CONFIG_DEFAULT` can be used to declare a struct with the default configuration.
 - The DMX personalities that the device will use. This is an array of `dmx_personality_t`. If the device does not use any DMX slots this value can be `NULL`.
-- The personality count or 0 if the device does not use any DMX slots.
+- The personality count or 0 if the device does not use any DMX slots. The maximum number of personalities allowed is 255.
 
 ```c
 dmx_config_t config = DMX_CONFIG_DEFAULT;
