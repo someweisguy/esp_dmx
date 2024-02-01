@@ -29,7 +29,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   if (!xSemaphoreTakeRecursive(driver->mux, 0)) {
     return 0;
   }
-  if (!dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23))) {
+  if (!dmx_wait_sent(dmx_num, dmx_ms_to_ticks(23))) {
     xSemaphoreGiveRecursive(driver->mux);
     return 0;
   }
@@ -66,7 +66,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 
   // Return early if no response is expected
   if (rdm_uid_is_broadcast(dest_uid) && pid != RDM_PID_DISC_UNIQUE_BRANCH) {
-    dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
+    dmx_wait_sent(dmx_num, dmx_ms_to_ticks(23));
     xSemaphoreGiveRecursive(driver->mux);
     if (ack != NULL) {
       ack->err = DMX_OK;
@@ -82,7 +82,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
 
   // Attempt to receive the RDM response
   dmx_packet_t packet;
-  size_t size = dmx_receive(dmx_num, &packet, pdDMX_MS_TO_TICKS(23));
+  size_t size = dmx_receive(dmx_num, &packet, dmx_ms_to_ticks(23));
   if (ack != NULL) {
     ack->err = packet.err;
     ack->size = size;
@@ -127,7 +127,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
       if (header.response_type == RDM_RESPONSE_TYPE_ACK_TIMER) {
         uint16_t timer;
         rdm_read_pd(dmx_num, word_format, &timer, sizeof(timer));
-        ack->timer = pdDMX_MS_TO_TICKS(timer * 10);
+        ack->timer = dmx_ms_to_ticks(timer * 10);
       } else if (header.response_type == RDM_RESPONSE_TYPE_NACK_REASON) {
         uint16_t nack_reason;
         rdm_read_pd(dmx_num, word_format, &nack_reason, sizeof(nack_reason));

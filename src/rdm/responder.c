@@ -121,7 +121,7 @@ bool rdm_send_response(dmx_port_t dmx_num) {
           "us)",
           header.pid, cc_str, packet_size, micros_elapsed);
     } else {
-      dmx_wait_sent(dmx_num, pdDMX_MS_TO_TICKS(23));
+      dmx_wait_sent(dmx_num, dmx_ms_to_ticks(23));
       taskENTER_CRITICAL(DMX_SPINLOCK(dmx_num));
       driver->dmx.head = DMX_HEAD_WAITING_FOR_BREAK;
       dmx_uart_set_rts(dmx_num, 1);
