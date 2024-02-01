@@ -574,7 +574,7 @@ rdm_ack_t ack;  // Stores response information
 
 rdm_device_info_t device_info;  // Stores the response parameter data.
 if (rdm_send_get_device_info(DMX_NUM_1, &dest_uid, sub_device, &device_info,
-                              &ack)) {
+                             &ack)) {
   printf("Successfully received device info from " UIDSTR "!\n",
           UID2STR(ack.src_uid));
 }
@@ -674,6 +674,21 @@ The DMX driver will parse RDM requests and send responses within the `rdm_send_r
 ```c
 dmx_packet_t packet;
 if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
+  if (packet.is_rdm) {
+    rdm_send_response(DMX_NUM_1);  // Only sends responses to relevant requests
+  }
+}
+```
+
+RDM imposes strict timing requirements on RDM responders. Responders must typically respond to RDM requests within approximately 3 milliseconds. It is important to call `rdm_send_response()` quickly after receiving new RDM data. Users are discouraged from calling lengthy functions (such as printing to the terminal) between calls to `dmx_receive()` and `rdm_send_response()`.
+
+```c
+dmx_packet_t packet;
+if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
+
+  // Caution! Printing log messages may take too long!
+  printf("A DMX packet has been received!");
+
   if (packet.is_rdm) {
     rdm_send_response(DMX_NUM_1);  // Only sends responses to relevant requests
   }
