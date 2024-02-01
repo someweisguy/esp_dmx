@@ -62,7 +62,7 @@ dmx_parameter_set	KEYWORD2
 dmx_parameter_commit	KEYWORD2
 
 # dmx/include/types.h
-pdDMX_MS_TO_TICKS	KEYWORD2
+dmx_ms_to_ticks	KEYWORD2
 dmx_start_code_is_valid	KEYWORD2
 dmx_start_code_is_rdm	KEYWORD2
 dmx_baud_rate_is_valid	KEYWORD2
