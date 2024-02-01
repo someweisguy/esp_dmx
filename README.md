@@ -338,7 +338,9 @@ The function `dmx_receive()` takes three arguments. The first argument is the `d
 
 Using the `dmx_packet_t` struct is optional. If processing DMX or RDM packet data is not desired, users can pass `NULL` in place of a pointer to a `dmx_packet_t` struct.
 
-The final argument to `dmx_receive()` is the amount of FreeRTOS ticks to block until the function times out. This library defines a constant, `DMX_TIMEOUT_TICK`, which is the length of time that must be waited until the DMX signal is considered lost according to DMX specification. According to DMX specification this constant is equivalent to 1250 milliseconds.
+The `dmx_receive()` function only returns a non-zero value when new data is received. Data is considered "new" when a DMX break is received. DMX data may also be considered "new" when an `RDM_PID_DISC_UNIQUE_BRANCH` response is received since these RDM responses are not sent with a DMX break.
+
+The final argument to `dmx_receive()` is the amount of FreeRTOS ticks to block until the function times out. This library defines a constant, `DMX_TIMEOUT_TICK`, which is the length of time that must be waited until the DMX signal is considered lost according to DMX specification. According to DMX specification this constant is equivalent to 1250 milliseconds. If non-blocking behavior is desired, users should set this value to 0.
 
 After a packet is received, `dmx_read()` can be called to read the packet into a user buffer. It is recommended to check for DMX errors before reading data but it is not required.
 
