@@ -111,7 +111,9 @@ void loop() {
   rdm_sub_device_t deviceNum = RDM_SUB_DEVICE_ROOT;
   int sensorNum = 0;
   
-  /* Use a basic DMX loop with RDM response handling. */
+  /* Use a basic DMX loop with RDM response handling. See the other RDM examples
+    for more information on how this works! */
+  dmx_packet_t packet;
   if (dmx_receive(dmxPort, &packet, DMX_TIMEOUT_TICK)) {
     if (packet.is_rdm) {
       rdm_send_response(dmxPort);
