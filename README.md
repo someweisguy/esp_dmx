@@ -432,12 +432,10 @@ To write to the DMX bus, `dmx_write()` can be called. This writes data to the DM
 uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
 // Write the packet and send it out on the DMX bus.
-const int num_bytes_to_send = DMX_PACKET_SIZE;
-dmx_write(DMX_NUM_1, data, num_bytes_to_send);
-dmx_send(DMX_NUM_1, num_bytes_to_send);
+const int num_bytes_to_write = DMX_PACKET_SIZE;
+dmx_write(DMX_NUM_1, data, num_bytes_to_write);
+dmx_send(DMX_NUM_1,);
 ```
-
-The size of the packet that is sent when calling `dmx_send()` can be specified in the second argument of the function. If the size is set to 0 then the size will be equal to either the size of the last call to `dmx_write()` or the slot number used in the last call to `dmx_write_slot()`, whichever is higher.
 
 It takes a typical DMX packet approximately 22 milliseconds to send. During this time, it is possible to write new data to the DMX driver with `dmx_write()` if non-RDM data is being sent. To do so would result in an asynchronous write which may not be desired. To write data synchronously it is required to wait until the DMX packet is finished being sent. The function `dmx_wait_sent()` is used for this purpose.
 
@@ -446,7 +444,7 @@ uint8_t data[DMX_PACKET_SIZE] = { 0, 1, 2, 3 };
 
 while (true) {
   // Send the DMX packet.
-  dmx_send(DMX_NUM_1, DMX_PACKET_SIZE);
+  dmx_send(DMX_NUM_1);
 
   // Process the next DMX packet (while the previous is being sent) here.
   for (int i = 1; i < DMX_PACKET_SIZE; i++) {
@@ -459,6 +457,15 @@ while (true) {
   // Now write the packet synchronously!
   dmx_write(DMX_NUM_1, data, DMX_PACKET_SIZE);
 }
+```
+
+When sending DMX, the `dmx_send()` function sends the maximum number of slots allowed by the DMX standard. When an RDM packet is sent using `dmx_send()`, the DMX driver will automatically send only the slots which make up the RDM packet.
+
+To send a specific number of DMX slots, the function `dmx_send_num()` may be used. The number of slots to send is ignored when sending RDM data.
+
+```c
+const int num_bytes_to_send = 96;
+dmx_send_num(DMX_NUM_1, num_bytes_to_send);
 ```
 
 An offset of DMX slots can be written using `dmx_write_offset()` and individual DMX slots can be written using `dmx_write_slot()`. This behavior is similar to reading an offset of DMX slots or reading a single DMX slot using `dmx_read_offset()` and `dmx_read_slot()`, respectively.
