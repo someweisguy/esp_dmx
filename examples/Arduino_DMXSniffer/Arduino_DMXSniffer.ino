@@ -71,9 +71,9 @@ void setup() {
   /* In this example, we are using the DMX sniffer. The sniffer uses an
     interrupt service routine (ISR) to create metadata about the DMX we
     receive. We'll install the ESP32 GPIO ISR using the macro
-    `DMX_DEFAULT_SNIFFER_INTR_FLAGS`. Then we can enable the sniffer on the
+    `DMX_SNIFFER_INTR_FLAGS_DEFAULT`. Then we can enable the sniffer on the
     hardware pin that we specified. */
-  gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS);
+  gpio_install_isr_service(DMX_SNIFFER_INTR_FLAGS_DEFAULT);
   dmx_sniffer_enable(dmxPort, snifferPin);
 }
 
@@ -88,7 +88,7 @@ void loop() {
     officially times out. That amount of time is converted into ESP32 clock
     ticks using the constant `DMX_TIMEOUT_TICK`. If it takes longer than that
     amount of time to receive data, this if statement will evaluate to false. */
-  if (dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK)) {
+  if (dmx_receive(dmxPort, &packet, DMX_TIMEOUT_TICK)) {
     /* If this code gets called, it means we've received DMX! */
 
     /* Get the current time since boot in milliseconds so that we can find out
