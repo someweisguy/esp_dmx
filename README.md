@@ -402,22 +402,25 @@ A quirk of the default ESP-IDF GPIO ISR is that lower GPIO numbers are processed
 
 It is important to note that the sniffer requires a fast clock speed in order to maintain low latency. In order to guarantee accuracy of the sniffer, the ESP32 must be set to a CPU clock speed of at least 160MHz. This setting can be configured in `Kconfig` if the ESP-IDF is used.
 
-Before enabling the sniffer tool, `gpio_install_isr_service()` must be called with the required DMX sniffer interrupt flags. The macro `DMX_DEFAULT_SNIFFER_INTR_FLAGS` can be used to provide the proper interrupt flags.
+Before enabling the sniffer tool, `gpio_install_isr_service()` must be called with the required DMX sniffer interrupt flags. The macro `DMX_SNIFFER_INTR_FLAGS_DEFAULT` can be used to provide the proper interrupt flags.
 
 ```c
-gpio_install_isr_service(DMX_DEFAULT_SNIFFER_INTR_FLAGS);
+gpio_install_isr_service(DMX_SNIFFER_INTR_FLAGS_DEFAULT);
 
 const int sniffer_pin = 4; // Lowest exposed pin on the Feather breakout board.
 dmx_sniffer_enable(DMX_NUM_1, sniffer_pin);
 ```
 
-Break and mark-after-break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()`. This will block until the sniffer receives a packet and copy the sniffer data so that it may be processed by the user. If data is copied, this function will return `true`.
+Break and mark-after-break timings are reported to the DMX sniffer when it is enabled. To read data from the DMX sniffer call `dmx_sniffer_get_data()` after a DMX packet is received to copy data into a `dmx_metadata_t` struct. If data is copied, the function will return `true`.
 
 ```c
-dmx_metadata_t metadata;
-if (dmx_sniffer_get_data(DMX_NUM_1, &metadata, DMX_TIMEOUT_TICK)) {
-  printf("The DMX break length was: %i\n", metadata.break_len);
-  printf("The DMX mark-after-break length was: %i\n", metadata.mab_len);
+dmx_packet_t packet;
+if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
+  dmx_metadata_t metadata;
+  if (dmx_sniffer_get_data(DMX_NUM_1, &metadata, DMX_TIMEOUT_TICK)) {
+    printf("The DMX break length was: %i\n", metadata.break_len);
+    printf("The DMX mark-after-break length was: %i\n", metadata.mab_len);
+  }
 }
 ```
 
