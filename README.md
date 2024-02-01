@@ -110,7 +110,7 @@ while (true) {
 }
 ```
 
-To read from the DMX bus, two additional functions are provided. The function `dmx_receive()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed.
+To read from the DMX bus, two additional functions are provided. The function `dmx_receive()` waits until a new packet has been received. The function `dmx_read()` reads the data from the driver buffer into an array so that it can be processed. If it is desired to process RDM requests, the function `rdm_send_response()` may be used.
 
 ```c
 dmx_packet_t packet;
@@ -118,6 +118,12 @@ while (true) {
   int size = dmx_receive(dmx_num, &packet, DMX_TIMEOUT_TICK);
   if (size > 0) {
     dmx_read(dmx_num, data, size);
+
+    // Optionally handle RDM requests
+    if (packet.is_rdm) {
+      rdm_send_response(dmx_num);
+    }
+
     // Process data here...
   }
 
@@ -832,7 +838,7 @@ The included `Kconfig` file in this library instructs the ESP32's build system t
 
 The DMX driver can be placed in either IRAM or flash memory. The DMX driver and its associated functions are automatically placed in IRAM to reduce the penalty associated with loading code from flash. Placing the DMX driver in flash is acceptable although less performant. When using the Arduino framework, the DMX driver may be placed in flash.
 
-When this driver is not placed in IRAM, functions which disable the cache will also temporarily disable the DMX driver. To prevent data corruption, it is required to gracefully disable the DMX driver before cache is disabled. This can be done with `dmx_driver_disable()`. The driver can be reenabled with `dmx_driver_enable()`. The function `dmx_driver_is_enabled()` can be used to check the status of the DMX driver.
+When the driver is not placed in IRAM, functions which disable the cache will also temporarily disable the DMX driver. To prevent data corruption, it is required to gracefully disable the DMX driver before cache is disabled. This can be done with `dmx_driver_disable()`. The driver can be reenabled with `dmx_driver_enable()`. The function `dmx_driver_is_enabled()` can be used to check the status of the DMX driver.
 
 ```c
 // Disable the DMX driver if it isn't already
