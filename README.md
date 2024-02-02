@@ -559,6 +559,8 @@ dmx_packet_t packet;
 dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK);  // Unblocks in 3ms
 ```
 
+Because writing RDM requests and responses in this way can be cumbersome, this library provides functions for sending RDM requests and responses. They can be included by adding `#include "rdm/controller.h"` for requests and `#include "rdm/responder.h"` for responses.
+
 ### RDM Requests
 
 This library supports the required PIDs specified in the RDM standard. Request functions in this library are named using the prefix `rdm_send_`, whether the request is a GET or a SET, and the parameter name. To GET the `RDM_PID_DEVICE_INFO` of a responder device, users can call `rdm_send_get_device_info()`. To SET a device's `RDM_PID_DMX_START_ADDRESS`, users can call `rdm_send_set_dmx_start_address()`. All GET request functions return `true` if an `RDM_RESPONSE_TYPE_ACK` was received or `false` if an `RDM_RESPONSE_TYPE_ACK` was not received. All SET request functions return the number of bytes received in the RDM parameter data if an `RDM_RESPONSE_TYPE_ACK` was received or 0 otherwise. For example `rdm_send_get_software_version_label()` will return the number of characters in the software version label that was received in the RDM response packet.
