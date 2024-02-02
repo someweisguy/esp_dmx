@@ -935,7 +935,7 @@ The NACK reason defines the reason that the responder is unable to comply with t
 
 ### Parameter IDs
 
-The table below lists the Parameter IDs specified by the RDM standard. Parameters which support GET or SET are indicated accordingly. PRequired parameters are automatically registered by the DMX driver. PIDs which are currently supported by this library are indicated in the "supported" column by the earliest version of this library which supports the PID.
+The table below lists the Parameter IDs specified by the RDM standard. Parameters which support GET or SET are indicated accordingly. Required parameters are automatically registered by the DMX driver if there is enough parameter space on the DMX driver. PIDs which are currently supported by this library are indicated in the "supported" column by the earliest version of this library which supports the PID.
 
 Parameter                                   | GET | SET |Supported|Notes|
 :-------------------------------------------|:---:|:---:|:-------:|:----|
