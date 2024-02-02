@@ -837,7 +837,7 @@ DMX and RDM specify different timing requirements for receivers and transmitters
 
 ### DMX Start Codes
 
-This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in [dmx/types.h](src/dmx/types.h).
+This library offers the following macro constants for use as DMX start codes. More information about each start code can be found in the DMX standards document or in [dmx/include/types.h](src/dmx/include/types.h).
 
 - `DMX_SC` is the standard DMX null start code.
 - `RDM_SC` is the standard Remote Device Management start code.
