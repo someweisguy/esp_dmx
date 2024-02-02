@@ -210,11 +210,11 @@ Most PIDs can be either GET or SET if the responding device supports the request
 
 RDM specifies that every device (but not its sub-devices necessarily) must support a specific set of PIDs to ensure proper communication between devices. The list of the supported and the required PIDs can be found in the [appendix](#parameter-ids).
 
-GET requests may not be sent to all sub-devices of a root devices. It is therefore not permitted to send a GET request to `RDM_SUB_DEVICE_ALL`.
+GET requests may not be sent to all sub-devices of a root device. It is therefore not permitted to send a GET request to `RDM_SUB_DEVICE_ALL`.
 
 ### Discovery
 
-When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins by the controller device broadcasting an `RDM_PID_DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `RDM_PID_DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal to the lower bound and less-than-or-equal to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. An `RDM_PID_DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
+When making RDM requests it is typically needed (but not required) to discover the UIDs of the devices on the RDM network. The discovery process begins with the controller device broadcasting an `RDM_PID_DISC_UNIQUE_BRANCH` command to all devices. The data included in this request consist of an address space defined by a UID lower bound and UID upper bound. Responding devices respond to `RDM_PID_DISC_UNIQUE_BRANCH` requests if their UID is greater-than-or-equal to the lower bound and less-than-or-equal to the upper bound. When multiple devices respond at the same time, data collisions can occur. When a data collision occurs, the controller divides the address space in two. An `RDM_PID_DISC_UNIQUE_BRANCH` request is sent to each new address space. This is repeated until a single device is found within an address space.
 
 When a single device is found within an address space, that device is sent an `RDM_PID_DISC_MUTE` request to mute its response to future `RDM_PID_DISC_UNIQUE_BRANCH` requests. When responding to `RDM_PID_DISC_MUTE` requests, devices that have multiple RDM ports return a binding UID which represents its primary UID.
 
