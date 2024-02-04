@@ -17,15 +17,16 @@ size_t rdm_send_get_identify_device(dmx_port_t dmx_num,
   DMX_CHECK(identify != NULL, 0, "identify is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_cc_t cc = RDM_CC_GET_COMMAND;
-  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  size_t pdl = rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, NULL,
-                                NULL, 0, ack);
-  if (pdl == sizeof(uint8_t)) {
-    const char *format = "b$";
-    rdm_read_pd(dmx_num, format, identify, sizeof(uint8_t));
-  }
-  return pdl;
+  const rdm_request_t request = {
+    .dest_uid = dest_uid,
+    .sub_device = sub_device,
+    .cc = RDM_CC_GET_COMMAND,
+    .pid = RDM_PID_IDENTIFY_DEVICE
+  };
+
+  const char *format = "b$";
+  return rdm_send_request(dmx_num, &request, format, identify,
+                          sizeof(*identify), ack);
 }
 
 bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
@@ -38,16 +39,15 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   DMX_CHECK(identify == 0 || identify == 1, 0, "identify is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const char *format = "b$";
-  const rdm_cc_t cc = RDM_CC_SET_COMMAND;
-  const rdm_pid_t pid = RDM_PID_IDENTIFY_DEVICE;
-  rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, format, &identify,
-                   sizeof(identify), ack);
-  if (ack != NULL) {
-    return ack->type == RDM_RESPONSE_TYPE_ACK;
-  } else {
-    rdm_header_t header;
-    return rdm_read_header(dmx_num, &header) &&
-           header.response_type == RDM_RESPONSE_TYPE_ACK;
-  }
+  const rdm_request_t request = {
+    .dest_uid = dest_uid,
+    .sub_device = sub_device,
+    .cc = RDM_CC_SET_COMMAND, 
+    .pid = RDM_PID_IDENTIFY_DEVICE,
+    .pd = &identify, 
+    .pdl = sizeof(identify),
+    .format = "b$"
+  };
+
+  return rdm_send_request(dmx_num, &request, NULL, NULL, 0, ack);
 }
