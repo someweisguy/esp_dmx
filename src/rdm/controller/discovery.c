@@ -6,20 +6,6 @@
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 
-static bool rdm_send_mute_static(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
-                                 rdm_pid_t pid, rdm_disc_mute_t *mute,
-                                 rdm_ack_t *ack) {
-  const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;
-  const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
-  bool success = rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, NULL,
-                                  NULL, 0, ack);
-  if (success && mute != NULL) {
-    const char *format = "wv";
-    rdm_read_pd(dmx_num, format, mute, sizeof(*mute));
-  }
-  return (ack != NULL && ack->type == RDM_RESPONSE_TYPE_ACK);
-}
-
 bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                  const rdm_disc_unique_branch_t *branch,
                                  rdm_ack_t *ack) {
@@ -27,15 +13,15 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   DMX_CHECK(branch != NULL, 0, "branch is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_uid_t *dest_uid = &RDM_UID_BROADCAST_ALL;
-  const rdm_sub_device_t sub_device = RDM_SUB_DEVICE_ROOT;
-  const rdm_pid_t pid = RDM_PID_DISC_UNIQUE_BRANCH;
-  const rdm_cc_t cc = RDM_CC_DISC_COMMAND;
-  const char *format = "uu$";
+  const rdm_request_t request = {.dest_uid = &RDM_UID_BROADCAST_ALL,
+                                 .sub_device = RDM_SUB_DEVICE_ROOT,
+                                 .cc = RDM_CC_DISC_COMMAND,
+                                 .pid = RDM_PID_DISC_UNIQUE_BRANCH,
+                                 .format = "uu$",
+                                 .pd = branch,
+                                 .pdl = sizeof(*branch)};
 
-  rdm_send_request(dmx_num, dest_uid, sub_device, pid, cc, format, branch,
-                   sizeof(*branch), ack);
-  return (ack != NULL && ack->type == RDM_RESPONSE_TYPE_ACK);
+  return rdm_send_request(dmx_num, &request, NULL, NULL, 0, ack);
 }
 
 bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
@@ -44,8 +30,13 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   DMX_CHECK(dest_uid != NULL, 0, "dest_uid is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  rdm_pid_t pid = RDM_PID_DISC_MUTE;
-  return rdm_send_mute_static(dmx_num, dest_uid, pid, mute, ack);
+  const rdm_request_t request = {.dest_uid = dest_uid,
+                                 .sub_device = RDM_SUB_DEVICE_ROOT,
+                                 .cc = RDM_CC_DISC_COMMAND,
+                                 .pid = RDM_PID_DISC_MUTE};
+
+  const char *format = "wv";
+  return rdm_send_request(dmx_num, &request, format, &mute, sizeof(*mute), ack);
 }
 
 bool rdm_send_disc_un_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
@@ -54,8 +45,13 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   DMX_CHECK(dest_uid != NULL, 0, "dest_uid is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  rdm_pid_t pid = RDM_PID_DISC_UN_MUTE;
-  return rdm_send_mute_static(dmx_num, dest_uid, pid, mute, ack);
+  const rdm_request_t request = {.dest_uid = dest_uid,
+                                 .sub_device = RDM_SUB_DEVICE_ROOT,
+                                 .cc = RDM_CC_DISC_COMMAND,
+                                 .pid = RDM_PID_DISC_UN_MUTE};
+
+  const char *format = "wv";
+  return rdm_send_request(dmx_num, &request, format, &mute, sizeof(*mute), ack);
 }
 
 int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
@@ -104,7 +100,9 @@ int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,
 
       // Call the callback function and report a device has been found
       if (ack.type == RDM_RESPONSE_TYPE_ACK) {
+        xSemaphoreGiveRecursive(driver->mux);
         cb(dmx_num, ack.src_uid, num_found, &mute, context);
+        xSemaphoreTakeRecursive(driver->mux, portMAX_DELAY);
         ++num_found;
       }
     } else {

@@ -17,6 +17,20 @@ extern "C" {
 #endif
 
 /**
+ * @brief Type for constructing an RDM request. Contains all the necessary
+ * information needed to address a request on the RDM bus.
+ */
+typedef struct rdm_request_t {
+  const rdm_uid_t *dest_uid;    // The destination UID of the request.
+  rdm_sub_device_t sub_device;  // The target sub-device of the request.
+  rdm_cc_t cc;                  // The command class of the request.
+  rdm_pid_t pid;                // The parameter ID.
+  const char *format;           // The format string for the parameter data.
+  const void *pd;  // A pointer to the parameter data of the request.
+  size_t pdl;      // The parameter data length of the request.
+} rdm_request_t;
+
+/**
  * @brief Sends an RDM controller request and processes the response. This
  * function writes, sends, receives, and reads a request and response RDM
  * packet. It performs error checking on the written packet to ensure that it
@@ -51,24 +65,20 @@ extern "C" {
  * reason.
  *
  * @param dmx_num The DMX port number.
- * @param[in] dest_uid A pointer to the UID of the destination.
- * @param sub_device The sub-device number of the destination.
- * @param pid The parameter ID of the request.
- * @param cc The command class of the request.
- * @param[in] format The RDM parameter format string. More information about
- * RDM parameter format strings can be found in the documentation on the
- * rdm_read_pd() and rdm_write() functions.
- * @param[in] pd A pointer which stores parameter data to be included with the
- * RDM request.
- * @param pdl The size of the parameter data.
+ * @param[in] request A pointer to a request constructor.
+ * @param[in] format The RDM parameter format string for the response data. More
+ * information about RDM parameter format strings can be found in the
+ * documentation on the rdm_read_pd() and rdm_write() functions.
+ * @param[out] pd A pointer to an array which will store the parameter data
+ * received in the response. This value may be NULL if no data is expected.
+ * @param size The size of the pd array.
  * @param[out] ack A pointer to an rdm_ack_t which stores information about the
  * RDM response.
- * @return The number of bytes that were received in the response parameter
- * data.
+ * @return When an RDM_RESPONSE_TYPE_ACK response is received, the response PDL
+ * is returned or true if there is no parameter data received. 0 on failure.
  */
-size_t rdm_send_request(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
-                        rdm_sub_device_t sub_device, rdm_pid_t pid, rdm_cc_t cc,
-                        const char *format, const void *pd, size_t pdl,
+size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
+                        const char *format, void *pd, size_t size,
                         rdm_ack_t *ack);
 
 /**
