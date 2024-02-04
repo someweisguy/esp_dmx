@@ -94,7 +94,7 @@ bool dmx_timer_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   if (err) {
     return NULL;
   }
-  timer_isr_callback_add(timer->group, timer->idx, isr_handle, isr_context,
+  timer_isr_callback_add(timer->group, timer->idx, dmx_timer_isr, isr_context,
                          isr_flags);
 #endif
   timer->is_running = false;
