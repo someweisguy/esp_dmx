@@ -23,7 +23,7 @@ extern "C" {
 #define ESP_DMX_VERSION_MINOR 0
 
 /** @brief The patch version number of this library. (x.x.X)*/
-#define ESP_DMX_VERSION_PATCH 0
+#define ESP_DMX_VERSION_PATCH 1
 
 /** @brief The version of this library expressed as a 32-bit integer value.*/
 #define ESP_DMX_VERSION_ID                                        \
