@@ -14,12 +14,12 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   const rdm_transaction_t transaction = {.dest_uid = &RDM_UID_BROADCAST_ALL,
-                                 .sub_device = RDM_SUB_DEVICE_ROOT,
-                                 .cc = RDM_CC_DISC_COMMAND,
-                                 .pid = RDM_PID_DISC_UNIQUE_BRANCH,
-                                 .pd = branch,
-                                 .pdl = sizeof(*branch),
-                                 .format = {.transaction = "uu$"}};
+                                         .sub_device = RDM_SUB_DEVICE_ROOT,
+                                         .cc = RDM_CC_DISC_COMMAND,
+                                         .pid = RDM_PID_DISC_UNIQUE_BRANCH,
+                                         .pd = branch,
+                                         .pdl = sizeof(*branch),
+                                         .format = {.request = "uu$"}};
 
   return rdm_send_request(dmx_num, &transaction, NULL, 0, ack);
 }

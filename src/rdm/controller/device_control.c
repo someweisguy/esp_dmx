@@ -40,17 +40,13 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   DMX_CHECK(identify == 0 || identify == 1, 0, "identify is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_transaction_t transaction = {
-    .dest_uid = dest_uid,
-    .sub_device = sub_device,
-    .cc = RDM_CC_SET_COMMAND, 
-    .pid = RDM_PID_IDENTIFY_DEVICE,
-    .pd = &identify, 
-    .pdl = sizeof(identify),
-    .format = {
-      .transaction = "b$"
-    }
-  };
+  const rdm_transaction_t transaction = {.dest_uid = dest_uid,
+                                         .sub_device = sub_device,
+                                         .cc = RDM_CC_SET_COMMAND,
+                                         .pid = RDM_PID_IDENTIFY_DEVICE,
+                                         .pd = &identify,
+                                         .pdl = sizeof(identify),
+                                         .format = {.request = "b$"}};
 
   return rdm_send_request(dmx_num, &transaction, NULL, 0, ack);
 }

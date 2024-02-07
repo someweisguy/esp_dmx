@@ -28,7 +28,7 @@ typedef struct rdm_transaction_t {
   const void *pd;  // A pointer to the parameter data of the request.
   size_t pdl;      // The parameter data length of the request.
   struct {
-    const char *transaction;   // The format string for the request data.
+    const char *request;   // The format string for the request data.
     const char *response;  // The format string for the response data.
   } format;                // The format strings for the transaction.
 } rdm_transaction_t;

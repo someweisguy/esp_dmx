@@ -20,11 +20,11 @@ size_t rdm_send_request(dmx_port_t dmx_num,
          rdm_cc_is_request(transaction->cc));
   assert(transaction->sub_device != RDM_SUB_DEVICE_ALL ||
          transaction->cc == RDM_CC_SET_COMMAND);
-  assert(rdm_format_is_valid(transaction->format.transaction));
-  assert(transaction->format.transaction != NULL || transaction->pd == NULL);
+  assert(rdm_format_is_valid(transaction->format.request));
+  assert(transaction->format.request != NULL || transaction->pd == NULL);
   assert(transaction->pd != NULL || transaction->pdl == 0);
   assert(transaction->pdl < RDM_PD_SIZE_MAX);
-  assert(rdm_format_is_valid(transaction->format.transaction));
+  assert(rdm_format_is_valid(transaction->format.request));
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -58,7 +58,7 @@ size_t rdm_send_request(dmx_port_t dmx_num,
   dmx_read(dmx_num, old_data, packet_size);
 
   // Write and send the RDM request
-  rdm_write(dmx_num, &header, transaction->format.transaction, transaction->pd);
+  rdm_write(dmx_num, &header, transaction->format.request, transaction->pd);
   if (!dmx_send(dmx_num)) {
     dmx_write(dmx_num, old_data, packet_size);  // Write old data back
     xSemaphoreGiveRecursive(driver->mux);

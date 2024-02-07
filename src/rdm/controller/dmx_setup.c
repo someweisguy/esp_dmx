@@ -41,12 +41,12 @@ bool rdm_send_set_dmx_start_address(dmx_port_t dmx_num,
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
   const rdm_transaction_t transaction = {.dest_uid = dest_uid,
-                                 .sub_device = sub_device,
-                                 .cc = RDM_CC_SET_COMMAND,
-                                 .pid = RDM_PID_DMX_START_ADDRESS,
-                                 .pd = &dmx_start_address,
-                                 .pdl = sizeof(dmx_start_address),
-                                 .format = {.transaction = "w$"}};
+                                         .sub_device = sub_device,
+                                         .cc = RDM_CC_SET_COMMAND,
+                                         .pid = RDM_PID_DMX_START_ADDRESS,
+                                         .pd = &dmx_start_address,
+                                         .pdl = sizeof(dmx_start_address),
+                                         .format = {.request = "w$"}};
 
   return rdm_send_request(dmx_num, &transaction, NULL, 0, ack);
 }
