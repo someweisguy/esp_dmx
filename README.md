@@ -34,6 +34,8 @@ This library allows for transmitting and receiving ANSI-ESTA E1.11 DMX-512A and 
   - [RDM Requests](#rdm-requests)
   - [Discovering Devices](#discovering-devices)
   - [RDM Responder](#rdm-responder)
+- [Advanced RDM Features](#advanced-rdm-features)
+  - [Sending Generic Requests](#sending-generic-requests)
 - [Error Handling](#error-handling)
   - [Timing Macros](#timing-macros)
   - [DMX Start Codes](#dmx-start-codes)
@@ -760,6 +762,12 @@ if (!rdm_set_dmx_start_address(DMX_NUM_1, dmx_start_address)) {
   printf("An error occurred setting the DMX start address.\n");
 }
 ```
+
+## Advanced RDM Features
+
+### Sending Generic Requests
+
+This library includes a function to send generic RDM requests. The function is `rdm_send_request()` and can be included by using `#include "rdm/controller/include/utils.h"`.
 
 ## Error Handling
 
