@@ -17,7 +17,7 @@ size_t rdm_send_get_identify_device(dmx_port_t dmx_num,
   DMX_CHECK(identify != NULL, 0, "identify is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_request_t request = {
+  const rdm_transaction_t transaction = {
     .dest_uid = dest_uid,
     .sub_device = sub_device,
     .cc = RDM_CC_GET_COMMAND,
@@ -27,7 +27,7 @@ size_t rdm_send_get_identify_device(dmx_port_t dmx_num,
     }
   };
 
-  return rdm_send_request(dmx_num, &request, identify, sizeof(*identify), ack);
+  return rdm_send_request(dmx_num, &transaction, identify, sizeof(*identify), ack);
 }
 
 bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
@@ -40,7 +40,7 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   DMX_CHECK(identify == 0 || identify == 1, 0, "identify is invalid");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_request_t request = {
+  const rdm_transaction_t transaction = {
     .dest_uid = dest_uid,
     .sub_device = sub_device,
     .cc = RDM_CC_SET_COMMAND, 
@@ -48,9 +48,9 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
     .pd = &identify, 
     .pdl = sizeof(identify),
     .format = {
-      .request = "b$"
+      .transaction = "b$"
     }
   };
 
-  return rdm_send_request(dmx_num, &request, NULL, 0, ack);
+  return rdm_send_request(dmx_num, &transaction, NULL, 0, ack);
 }

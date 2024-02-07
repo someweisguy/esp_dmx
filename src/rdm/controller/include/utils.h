@@ -20,7 +20,7 @@ extern "C" {
  * @brief Type for constructing an RDM request. Contains all the necessary
  * information needed to address a request on the RDM bus.
  */
-typedef struct rdm_request_t {
+typedef struct rdm_transaction_t {
   const rdm_uid_t *dest_uid;    // The destination UID of the request.
   rdm_sub_device_t sub_device;  // The target sub-device of the request.
   rdm_cc_t cc;                  // The command class of the request.
@@ -28,10 +28,10 @@ typedef struct rdm_request_t {
   const void *pd;  // A pointer to the parameter data of the request.
   size_t pdl;      // The parameter data length of the request.
   struct {
-    const char *request;   // The format string for the request data.
+    const char *transaction;   // The format string for the request data.
     const char *response;  // The format string for the response data.
   } format;                // The format strings for the transaction.
-} rdm_request_t;
+} rdm_transaction_t;
 
 /**
  * @brief Sends an RDM controller request and processes the response. This
@@ -68,7 +68,7 @@ typedef struct rdm_request_t {
  * reason.
  *
  * @param dmx_num The DMX port number.
- * @param[in] request A pointer to a request constructor.
+ * @param[in] transaction A pointer to an RDM transaction constructor.
  * @param[out] pd A pointer to an array which will store the parameter data
  * received in the response. This value may be NULL if no data is expected.
  * @param size The size of the pd array.
@@ -77,8 +77,9 @@ typedef struct rdm_request_t {
  * @return When an RDM_RESPONSE_TYPE_ACK response is received, the response PDL
  * is returned or true if there is no parameter data received. 0 on failure.
  */
-size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
-                        void *pd, size_t size, rdm_ack_t *ack);
+size_t rdm_send_request(dmx_port_t dmx_num,
+                        const rdm_transaction_t *transaction, void *pd,
+                        size_t size, rdm_ack_t *ack);
 
 /**
  * @brief Get the transaction number of the RDM controller. This number is
