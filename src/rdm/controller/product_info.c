@@ -17,16 +17,14 @@ size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   DMX_CHECK(device_info != NULL, 0, "device_info is null");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
 
-  const rdm_request_t request = {
-    .dest_uid = dest_uid,
-    .sub_device = sub_device,
-    .cc = RDM_CC_GET_COMMAND,
-    .pid = RDM_PID_DEVICE_INFO
-  };
+  const rdm_request_t request = {.dest_uid = dest_uid,
+                                 .sub_device = sub_device,
+                                 .cc = RDM_CC_GET_COMMAND,
+                                 .pid = RDM_PID_DEVICE_INFO,
+                                 .format = {.response = "x01x00wwdwbbwwb$"}};
 
-  const char *format = "x01x00wwdwbbwwb$";
-  return rdm_send_request(dmx_num, &request, format, &device_info,
-                          sizeof(*device_info), ack);
+  return rdm_send_request(dmx_num, &request, &device_info, sizeof(*device_info),
+                          ack);
 }
 
 size_t rdm_send_get_software_version_label(dmx_port_t dmx_num,
@@ -45,9 +43,8 @@ size_t rdm_send_get_software_version_label(dmx_port_t dmx_num,
   const rdm_request_t request = {.dest_uid = dest_uid,
                                  .sub_device = sub_device,
                                  .cc = RDM_CC_GET_COMMAND,
-                                 .pid = RDM_PID_SOFTWARE_VERSION_LABEL};
+                                 .pid = RDM_PID_SOFTWARE_VERSION_LABEL,
+                                 .format = {.response = "a$"}};
 
-  const char *format = "a$";
-  return rdm_send_request(dmx_num, &request, format, software_version_label,
-                          size, ack);
+  return rdm_send_request(dmx_num, &request, software_version_label, size, ack);
 }

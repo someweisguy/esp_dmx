@@ -17,11 +17,11 @@ bool rdm_send_disc_unique_branch(dmx_port_t dmx_num,
                                  .sub_device = RDM_SUB_DEVICE_ROOT,
                                  .cc = RDM_CC_DISC_COMMAND,
                                  .pid = RDM_PID_DISC_UNIQUE_BRANCH,
-                                 .format = "uu$",
                                  .pd = branch,
-                                 .pdl = sizeof(*branch)};
+                                 .pdl = sizeof(*branch),
+                                 .format = {.request = "uu$"}};
 
-  return rdm_send_request(dmx_num, &request, NULL, NULL, 0, ack);
+  return rdm_send_request(dmx_num, &request, NULL, 0, ack);
 }
 
 bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
@@ -33,10 +33,10 @@ bool rdm_send_disc_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   const rdm_request_t request = {.dest_uid = dest_uid,
                                  .sub_device = RDM_SUB_DEVICE_ROOT,
                                  .cc = RDM_CC_DISC_COMMAND,
-                                 .pid = RDM_PID_DISC_MUTE};
+                                 .pid = RDM_PID_DISC_MUTE,
+                                 .format = {.response = "wv"}};
 
-  const char *format = "wv";
-  return rdm_send_request(dmx_num, &request, format, &mute, sizeof(*mute), ack);
+  return rdm_send_request(dmx_num, &request, &mute, sizeof(*mute), ack);
 }
 
 bool rdm_send_disc_un_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
@@ -48,10 +48,10 @@ bool rdm_send_disc_un_mute(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   const rdm_request_t request = {.dest_uid = dest_uid,
                                  .sub_device = RDM_SUB_DEVICE_ROOT,
                                  .cc = RDM_CC_DISC_COMMAND,
-                                 .pid = RDM_PID_DISC_UN_MUTE};
+                                 .pid = RDM_PID_DISC_UN_MUTE,
+                                 .format = {.response = "wv"}};
 
-  const char *format = "wv";
-  return rdm_send_request(dmx_num, &request, format, &mute, sizeof(*mute), ack);
+  return rdm_send_request(dmx_num, &request, &mute, sizeof(*mute), ack);
 }
 
 int rdm_discover_with_callback(dmx_port_t dmx_num, rdm_disc_cb_t cb,

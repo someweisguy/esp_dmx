@@ -21,12 +21,13 @@ size_t rdm_send_get_identify_device(dmx_port_t dmx_num,
     .dest_uid = dest_uid,
     .sub_device = sub_device,
     .cc = RDM_CC_GET_COMMAND,
-    .pid = RDM_PID_IDENTIFY_DEVICE
+    .pid = RDM_PID_IDENTIFY_DEVICE,
+    .format = {
+      .response = "b$"
+    }
   };
 
-  const char *format = "b$";
-  return rdm_send_request(dmx_num, &request, format, identify,
-                          sizeof(*identify), ack);
+  return rdm_send_request(dmx_num, &request, identify, sizeof(*identify), ack);
 }
 
 bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
@@ -46,8 +47,10 @@ bool rdm_send_set_identify_device(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
     .pid = RDM_PID_IDENTIFY_DEVICE,
     .pd = &identify, 
     .pdl = sizeof(identify),
-    .format = "b$"
+    .format = {
+      .request = "b$"
+    }
   };
 
-  return rdm_send_request(dmx_num, &request, NULL, NULL, 0, ack);
+  return rdm_send_request(dmx_num, &request, NULL, 0, ack);
 }

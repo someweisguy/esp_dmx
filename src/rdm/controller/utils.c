@@ -8,8 +8,7 @@
 #include "rdm/include/uid.h"
 
 size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
-                        const char *format, void *pd, size_t size,
-                        rdm_ack_t *ack) {
+                        void *pd, size_t size, rdm_ack_t *ack) {
   assert(dmx_num < DMX_NUM_MAX);
   assert(request != NULL);
   assert(request->dest_uid != NULL);
@@ -19,11 +18,11 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
   assert(rdm_cc_is_valid(request->cc) && rdm_cc_is_request(request->cc));
   assert(request->sub_device != RDM_SUB_DEVICE_ALL ||
          request->cc == RDM_CC_SET_COMMAND);
-  assert(rdm_format_is_valid(request->format));
-  assert(request->format != NULL || request->pd == NULL);
+  assert(rdm_format_is_valid(request->format.request));
+  assert(request->format.request != NULL || request->pd == NULL);
   assert(request->pd != NULL || request->pdl == 0);
   assert(request->pdl < RDM_PD_SIZE_MAX);
-  assert(rdm_format_is_valid(format));
+  assert(rdm_format_is_valid(request->format.request));
   assert(dmx_driver_is_installed(dmx_num));
 
   dmx_driver_t *const driver = dmx_driver[dmx_num];
@@ -57,7 +56,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
   dmx_read(dmx_num, old_data, packet_size);
 
   // Write and send the RDM request
-  rdm_write(dmx_num, &header, request->format, request->pd);
+  rdm_write(dmx_num, &header, request->format.request, request->pd);
   if (!dmx_send(dmx_num)) {
     dmx_write(dmx_num, old_data, packet_size);  // Write old data back
     xSemaphoreGiveRecursive(driver->mux);
@@ -131,7 +130,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
   if (header.response_type == RDM_RESPONSE_TYPE_ACK &&
       header.pid != RDM_PID_DISC_UNIQUE_BRANCH) {
     if (pd == NULL) {
-      rdm_read_pd(dmx_num, format, pd, size);
+      rdm_read_pd(dmx_num, request->format.response, pd, size);
     }
   }
 

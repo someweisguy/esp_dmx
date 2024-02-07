@@ -25,9 +25,12 @@ typedef struct rdm_request_t {
   rdm_sub_device_t sub_device;  // The target sub-device of the request.
   rdm_cc_t cc;                  // The command class of the request.
   rdm_pid_t pid;                // The parameter ID.
-  const char *format;           // The format string for the parameter data.
   const void *pd;  // A pointer to the parameter data of the request.
   size_t pdl;      // The parameter data length of the request.
+  struct {
+    const char *request;   // The format string for the request data.
+    const char *response;  // The format string for the response data.
+  } format;                // The format strings for the transaction.
 } rdm_request_t;
 
 /**
@@ -66,9 +69,6 @@ typedef struct rdm_request_t {
  *
  * @param dmx_num The DMX port number.
  * @param[in] request A pointer to a request constructor.
- * @param[in] format The RDM parameter format string for the response data. More
- * information about RDM parameter format strings can be found in the
- * documentation on the rdm_read_pd() and rdm_write() functions.
  * @param[out] pd A pointer to an array which will store the parameter data
  * received in the response. This value may be NULL if no data is expected.
  * @param size The size of the pd array.
@@ -78,8 +78,7 @@ typedef struct rdm_request_t {
  * is returned or true if there is no parameter data received. 0 on failure.
  */
 size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
-                        const char *format, void *pd, size_t size,
-                        rdm_ack_t *ack);
+                        void *pd, size_t size, rdm_ack_t *ack);
 
 /**
  * @brief Get the transaction number of the RDM controller. This number is
