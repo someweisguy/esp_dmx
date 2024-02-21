@@ -17,12 +17,9 @@
 extern "C" {
 #endif
 
-/*
-// TODO: implement rdm_register_sensor_definition()
-bool rdm_register_sensor_definition(dmx_port_t dmx_num,
-                                    uint8_t definition_count, rdm_callback_t cb,
+// TODO: docs
+bool rdm_register_sensor_definition(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context);
-*/
 
 /**
  * @brief Registers the RDM_PID_SENSOR_VALUE parameter which is used to retreive
@@ -124,6 +121,10 @@ bool rdm_sensor_record(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  */
 bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                       uint8_t sensor_num);
+
+// TODO: docs
+bool rdm_sensor_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                       const rdm_sensor_definition_t *definition);
 
 #ifdef __cplusplus
 }

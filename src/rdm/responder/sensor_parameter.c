@@ -1,5 +1,7 @@
 #include "rdm/responder/include/sensor_parameter.h"
 
+#include <string.h>
+
 #include "dmx/include/driver.h"
 #include "dmx/include/parameter.h"
 #include "dmx/include/service.h"
@@ -101,10 +103,55 @@ static size_t rdm_rhd_set_record_sensors(
   return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
 }
 
-bool rdm_register_sensor_definition(dmx_port_t dmx_num,
-                                    uint8_t definition_count, rdm_callback_t cb,
+bool rdm_register_sensor_definition(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context) {
-  return false;  // TODO: implement register_sensor_definition()
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  const rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, RDM_SUB_DEVICE_ROOT);
+  DMX_CHECK(sensors != NULL, false,
+            "RDM_PID_SENSOR_VALUE must be registered first");
+
+  const rdm_pid_t pid = RDM_PID_SENSOR_DEFINITION;
+
+  // Check if this is the first time this function has been called
+  const bool first_time_func_called =
+      dmx_parameter_exists(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+
+  // Add the parameter as an array of RDM sensor definitions
+  const uint8_t sensor_count = sensors->sensor_count;
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_DYNAMIC, NULL,
+                         sizeof(rdm_sensor_definition_t) * sensor_count)) {
+    return false;
+  }
+
+  // Set sensor definition numbers to 0xff to flag they haven't been defined
+  if (first_time_func_called) {
+    rdm_sensor_definition_t *sensor_defs =
+        dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+    assert(sensor_defs != NULL);
+    for (int i = 0; i < sensor_count; ++i) {
+      sensor_defs[i].num = 0xff;
+    }
+  }
+
+  // Define the parameter
+  static const rdm_parameter_definition_t definition = {
+      .pid_cc = RDM_CC_GET,
+      .ds = RDM_DS_NOT_DEFINED,
+      .get = {.handler = NULL, // FIXME: define handler
+              .request.format = "b$",
+              .response.format = "bbbbwwwwba"},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
+      .pdl_size = sizeof(uint8_t),
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_definition_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+
+  return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
 bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
@@ -309,6 +356,38 @@ bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
     sensor->recorded_value = 0;
     taskEXIT_CRITICAL(DMX_SPINLOCK(dmx_num));
   }
+
+  return true;
+}
+
+bool rdm_sensor_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                       const rdm_sensor_definition_t *definition) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
+            false, "sub_device error");
+  DMX_CHECK(definition != NULL, false, "definition is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  // Validate the definition sensor number
+  rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
+  if (sensors == NULL || definition->num > sensors->sensor_count) {
+    return false;
+  }
+  
+  // Validate that sensor definitions have been registered
+  rdm_sensor_definition_t *sensor_defs = dmx_parameter_get(
+      dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_SENSOR_DEFINITION);
+  if (sensor_defs == NULL) {
+    return false;
+  }
+
+  // Validate that the sensor hasn't already been defined
+  if (sensor_defs[definition->num].num != 0xff) {
+    return false;
+  }
+
+  // Copy the definition to the parameter data
+  memcpy(&sensor_defs[definition->num], definition, sizeof(*definition));
 
   return true;
 }
