@@ -89,6 +89,36 @@ void setup() {
     Serial.println("Unable to register RDM_PID_RECORD_SENSORS!");
   }
 
+  /* The last parameter we should register is RDM_PID_SENSOR_DEFINITION. This
+    parameter includes definitions of our RDM sensors. If an RDM controller
+    requests more information about our sensor, this paramter is able to provide
+    that information. We should register the parameter and then add the
+    definition. */
+  if (!rdm_register_sensor_definition(dmxPort, callback, context)) {
+    Serial.println("Unable to register RDM_PID_SENSOR_DEFINITION!");
+  } else {
+    /* Here we can define the sensor. Be sure to explicitly declare the sensor 
+      number as well as the other related information about our sensor! */
+    rdm_sensor_definition_t definition = {
+      .num = 1,
+      .type = RDM_SENSOR_TYPE_TIME,
+      .unit = RDM_UNITS_SECOND,
+      .prefix = RDM_PREFIX_NONE,
+      .range = {
+        .minimum = RDM_SENSOR_MINIMUM_UNDEFINED,
+        .maximum = RDM_SENSOR_MAXIMUM_UNDEFINED,
+      },
+      .normal = {
+        .minimum = 0,
+        .maximum = 32766,
+      },
+      .recorded_value_support = true,
+      .lowest_highest_detected_value_support = true,
+      .description = "Uptime"
+    };
+    rdm_sensor_definition_add(dmxPort, RDM_SUB_DEVICE_ROOT, &definition);
+  }
+
   /* Care should be taken to ensure that the parameters registered for callbacks
     never go out of scope. The variables passed as parameter data for responses
     must be valid throughout the lifetime of the DMX driver. Allowing parameter
