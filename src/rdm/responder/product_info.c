@@ -174,7 +174,7 @@ bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,
 }
 
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         char *software_version_label,
+                                         const char *software_version_label,
                                          rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
@@ -189,11 +189,12 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
 
   const rdm_pid_t pid = RDM_PID_SOFTWARE_VERSION_LABEL;
 
-  // Add the parameter as a static variable
+  // Add the parameter as a non-const, dynamic variable
+  char pd[RDM_ASCII_SIZE_MAX];
+  strncpy(pd, software_version_label, RDM_ASCII_SIZE_MAX);
   const size_t size = strnlen(software_version_label, RDM_ASCII_SIZE_MAX);
   if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
-                         DMX_PARAMETER_TYPE_STATIC, software_version_label,
-                         size)) {
+                         DMX_PARAMETER_TYPE_DYNAMIC, pd, size)) {
     return false;
   }
 

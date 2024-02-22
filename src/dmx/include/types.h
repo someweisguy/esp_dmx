@@ -284,7 +284,7 @@ typedef struct dmx_config_t {
   /** @brief This RDM parameter is used to get a descriptive ASCII text label
    for the device's operating software version. The descriptive text returned
    by this parameter is intended for display to the user.*/
-  char *software_version_label;
+  const char *software_version_label;
   /** @brief The maximum size of the RDM queue. Setting this value to 0 disables
    * the RDM queue.*/
   uint32_t queue_size_max;
