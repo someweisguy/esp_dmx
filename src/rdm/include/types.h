@@ -470,9 +470,37 @@ typedef enum rdm_ds_t {
 typedef enum rdm_units_t {
   /** @brief An SI unit is not used.*/
   RDM_UNITS_NONE = 0x00,
+  // TODO: docs and values for the below
+  RDM_UNITS_CENTIGRADE,
+  RDM_UNITS_VOLTS_DC,
+  RDM_UNITS_VOLTS_AC_PEAK,
+  RDM_UNITS_VOLTS_AC_RMS,
+  RDM_UNITS_AMPERE_DC,
+  RDM_UNITS_AMPERE_AC_PEAK,
+  RDM_UNITS_AMPERE_AC_RMS,
+  RDM_UNITS_HERTZ,
+  RDM_UNITS_OHM,
+  RDM_UNITS_WATT,
+  RDM_UNITS_KILOGRAM,
+  RDM_UNITS_METERS,
+  RDM_UNITS_METERS_SQUARED,
+  RDM_UNITS_METERS_CUBED,
+  RDM_UNITS_KILOGRAMMES_PER_METER_CUBED,
+  RDM_UNITS_METERS_PER_SECOND,
+  RDM_UNITS_METERS_PER_SECOND_SQUARED,
+  RDM_UNITS_NEWTON,
+  RDM_UNITS_JOULE,
+  RDM_UNITS_PASCAL,
+  RDM_UNITS_SECOND,
+  RDM_UNITS_DEGREE,
+  RDM_UNITS_STERADIAN,
+  RDM_UNITS_CANDELA,
+  RDM_UNITS_LUMEN,
+  RDM_UNITS_LUX,
+  RDM_UNITS_IRE,
   /** @brief The unit is bytes. When a prefix is used with this unit, the
      multiplier refers to binary multiple. e.g. KILO means multiply by 1024.*/
-  RDM_UNITS_BYTES = 0x1c
+  RDM_UNITS_BYTE = 0x1c
 } rdm_units_t;
 
 /** @brief The prefix defines the SI prefix and multiplication factor of the
