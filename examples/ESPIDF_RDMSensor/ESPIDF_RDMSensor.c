@@ -4,7 +4,8 @@
 
   This sketch creates an RDM sensor which keeps track of the amount of time in
   seconds that the ESP32 has been on. The sensor value will be accurate for
-  approximately 9 hours (32766 seconds) before the value overflows.
+  approximately 9 hours (32766 seconds) before the value becomes invalid and
+  overflows.
 
   Note: this example is for use with the ESP-IDF. It will not work on Arduino!
 
