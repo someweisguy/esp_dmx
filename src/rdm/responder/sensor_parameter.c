@@ -386,7 +386,7 @@ bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
 }
 
 bool rdm_sensor_definition_add(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                       const rdm_sensor_definition_t *definition) {
+                               const rdm_sensor_definition_t *definition) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
             false, "sub_device error");
@@ -398,7 +398,7 @@ bool rdm_sensor_definition_add(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   if (sensors == NULL || definition->num > sensors->sensor_count) {
     return false;
   }
-  
+
   // Validate that sensor definitions have been registered
   rdm_sensor_definition_t *sensor_defs = dmx_parameter_get(
       dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_SENSOR_DEFINITION);
