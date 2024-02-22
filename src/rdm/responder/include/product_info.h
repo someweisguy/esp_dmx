@@ -116,7 +116,7 @@ bool rdm_set_device_label(dmx_port_t dmx_num, const char *device_label,
  * responses.
  */
 bool rdm_register_software_version_label(dmx_port_t dmx_num,
-                                         char *software_version_label,
+                                         const char *software_version_label,
                                          rdm_callback_t cb, void *context);
 
 /**
