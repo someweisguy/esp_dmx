@@ -103,6 +103,31 @@ static size_t rdm_rhd_set_record_sensors(
   return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
 }
 
+static size_t rdm_rhd_get_sensor_definition(
+    dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
+    const rdm_header_t *header) {
+  // Verify the requested sensor num is valid
+  uint8_t sensor_num;
+  if (!rdm_read_pd(dmx_num, definition->set.request.format, &sensor_num,
+                   sizeof(sensor_num))) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
+  }
+  if (sensor_num > rdm_sensor_get_count(dmx_num, header->sub_device) &&
+      sensor_num != RDM_SENSOR_NUM_MAX) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
+  }
+
+  // Verify the sensor has a definition
+  const rdm_sensor_definition_t *sensor_def =
+      rdm_sensor_definition_get(dmx_num, header->sub_device, sensor_num);
+  if (sensor_def == NULL) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
+  }
+
+  return rdm_write_ack(dmx_num, header, definition->get.response.format,
+                       sensor_def, sizeof(*sensor_def));
+}
+
 bool rdm_register_sensor_definition(dmx_port_t dmx_num, rdm_callback_t cb,
                                     void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
@@ -139,7 +164,7 @@ bool rdm_register_sensor_definition(dmx_port_t dmx_num, rdm_callback_t cb,
   static const rdm_parameter_definition_t definition = {
       .pid_cc = RDM_CC_GET,
       .ds = RDM_DS_NOT_DEFINED,
-      .get = {.handler = NULL, // FIXME: define handler
+      .get = {.handler = rdm_rhd_get_sensor_definition,
               .request.format = "b$",
               .response.format = "bbbbwwwwba"},
       .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
@@ -360,7 +385,7 @@ bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   return true;
 }
 
-bool rdm_sensor_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+bool rdm_sensor_definition_add(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                        const rdm_sensor_definition_t *definition) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
@@ -390,4 +415,32 @@ bool rdm_sensor_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   memcpy(&sensor_defs[definition->num], definition, sizeof(*definition));
 
   return true;
+}
+
+const rdm_sensor_definition_t *rdm_sensor_definition_get(
+    dmx_port_t dmx_num, rdm_sub_device_t sub_device, uint8_t sensor_num) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(sub_device < RDM_SUB_DEVICE_MAX || sub_device == RDM_SUB_DEVICE_ALL,
+            false, "sub_device error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+
+  // Validate the definition sensor number
+  rdm_sensors_t *sensors = rdm_get_sensors(dmx_num, sub_device);
+  if (sensors == NULL || sensor_num > sensors->sensor_count) {
+    return NULL;
+  }
+
+  // Validate that sensor definitions have been registered
+  rdm_sensor_definition_t *sensor_defs = dmx_parameter_get(
+      dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_SENSOR_DEFINITION);
+  if (sensor_defs == NULL) {
+    return NULL;
+  }
+
+  // Validate the sensor has a definition
+  if (sensor_defs[sensor_num].num == 0xff) {
+    return NULL;
+  }
+
+  return &sensor_defs[sensor_num];
 }

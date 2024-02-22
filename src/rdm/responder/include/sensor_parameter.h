@@ -21,7 +21,7 @@ extern "C" {
  * @brief Registers the RDM_PID_SENSOR_DEFINITION parameter which is used to
  * define RDM sensors and the values that they return. RDM_PID_SENSOR_VALUE must
  * be registered before this function is called. Sensors may be defined using 
- * rdm_sensor_define().
+ * rdm_sensor_definition_add().
  *
  * @param dmx_num The DMX port number.
  * @param cb A callback which is called upon receiving a request for this PID.
@@ -146,8 +146,20 @@ bool rdm_sensor_reset(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @return true on success.
  * @return false on failure.
  */
-bool rdm_sensor_define(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                       const rdm_sensor_definition_t *definition);
+bool rdm_sensor_definition_add(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                               const rdm_sensor_definition_t *definition);
+
+/**
+ * @brief Gets the definition of an RDM sensor. The RDM_PID_SENSOR_DEFINITION 
+ * parameter must be registered before this function may be called.
+ * 
+ * @param dmx_num The DMX port number.
+ * @param sub_device The sub-device number.
+ * @param sensor_num The sensor number.
+ * @return A pointer to the RDM sensor definition or NULL on failure. 
+ */
+const rdm_sensor_definition_t *rdm_sensor_definition_get(
+    dmx_port_t dmx_num, rdm_sub_device_t sub_device, uint8_t sensor_num);
 
 #ifdef __cplusplus
 }
