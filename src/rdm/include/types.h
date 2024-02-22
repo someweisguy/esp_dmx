@@ -598,7 +598,7 @@ enum {
   /** @brief Constant for RDM sensor definition when the maximum value of a
      sensor is undefined.*/
   RDM_SENSOR_MAXIMUM_UNDEFINED = 32767,
-}
+};
 
 /** @brief Responders and controllers identify themselves with a 48-bit Unique
  * ID (UID). The UID consists of a 16-bit ESTA assigned manufacturer ID with a
