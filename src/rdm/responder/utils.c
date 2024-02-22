@@ -164,7 +164,7 @@ bool rdm_definition_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
       (definition->get.handler != NULL && definition->set.handler != NULL &&
        definition->pid_cc == RDM_CC_GET_SET));
   assert(definition->pdl_size < RDM_PD_SIZE_MAX);
-  assert(definition->units <= RDM_UNITS_BYTES ||
+  assert(definition->units <= RDM_UNITS_BYTE ||
          (definition->units >= 0x80 && definition->units <= 0xff));
   assert(definition->prefix <= RDM_PREFIX_YOCTO ||
          (definition->prefix >= RDM_PREFIX_DECA &&
