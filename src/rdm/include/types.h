@@ -254,6 +254,11 @@ enum {
   // Not yet defined by ANSI/ESTA e1.20
 
   // Category: Power/Lamp Settings (0x04xx)
+  /** @brief This parameter is used to retrieve or set the number of hours of
+     operation the device has been in use. Some devices may only support GET for
+     this parameter and not allow the device's hours to be set. The value for
+     the device hours field shall be unsigned and not roll over when the maximum
+     value is reached. @note Supports GET and SET.*/
   RDM_PID_DEVICE_HOURS = 0x0400,
   RDM_PID_LAMP_HOURS = 0x0401,
   RDM_PID_LAMP_STRIKES = 0x0402,
