@@ -33,6 +33,26 @@ extern "C" {
 bool rdm_register_device_hours(dmx_port_t dmx_num, rdm_callback_t cb,
                                void *context);
 
+/**
+ * @brief Gets a copy of the device hours for this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] device_hours A pointer to a buffer which will store the device
+ * hours.
+ * @return the number of bytes written to device_hours.
+ */
+size_t rdm_get_device_hours(dmx_port_t dmx_num, uint32_t *device_hours);
+
+/**
+ * @brief Sets the device hours for this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param device_hours The device hours to which to set this device.
+ * @return true on success.
+ * @return false on failure.
+ */
+bool rdm_set_device_hours(dmx_port_t dmx_num, uint32_t device_hours);
+
 #ifdef __cplusplus
 }
 #endif

@@ -49,3 +49,25 @@ bool rdm_register_device_hours(dmx_port_t dmx_num, rdm_callback_t cb,
   return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
+size_t rdm_get_device_hours(dmx_port_t dmx_num, uint32_t *device_hours) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(device_hours != NULL, 0, "device_hours is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_HOURS,
+                            device_hours, sizeof(*device_hours));
+}
+
+bool rdm_set_device_hours(dmx_port_t dmx_num, uint32_t device_hours) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  const rdm_pid_t pid = RDM_PID_DEVICE_HOURS;
+  if (!dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &device_hours,
+                         sizeof(device_hours))) {
+    return false;
+  }
+  rdm_queue_push(dmx_num, pid);
+
+  return true;
+}
