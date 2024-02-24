@@ -33,22 +33,28 @@ static size_t rdm_rhd_get_device_info(dmx_port_t dmx_num,
 static size_t rdm_rhd_get_set_language(
     dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
     const rdm_header_t *header) {
-  // Verify the language code is two characters long
-  if (header->pdl != 2) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
+  if (header->cc == RDM_CC_GET_COMMAND) {
+    // Get the parameter and write it to the RDM bus
+    size_t pdl = dmx_parameter_size(dmx_num, header->sub_device, header->pid);
+    const void *pd =
+        dmx_parameter_get(dmx_num, header->sub_device, header->pid);
+    return rdm_write_ack(dmx_num, header, definition->get.response.format, pd,
+                         pdl);
+  } else {
+    // Verify the language code is two characters long
+    if (header->pdl != 2) {
+      return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
+    }
+    // Get the parameter from the request and write it to the RDM driver
+    char language[3];
+    if (!rdm_read_pd(dmx_num, definition->set.request.format, language,
+                     sizeof(language))) {
+      return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
+    }
+    dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, header->pid, language,
+                      sizeof(language));
+    return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
   }
-
-  char language[3];
-  if (!rdm_read_pd(dmx_num, definition->set.request.format, language,
-              sizeof(language))) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
-  }
-  dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, header->pid, language,
-                    sizeof(language));
-
-  // FIXME: implement GET
-
-  return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
 }
 
 bool rdm_register_device_info(dmx_port_t dmx_num, uint16_t model_id,
