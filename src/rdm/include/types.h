@@ -271,6 +271,11 @@ enum {
      device represented by the UID. @note Supports GET and SET. This parameter
      is required.*/
   RDM_PID_IDENTIFY_DEVICE = 0x1000,
+  /** @brief This parameter is used to instruct the responder to reset itself.
+     This parameter shall also clear the discovery mute flag. A cold reset is
+     theequivalent of removing and reapplying power to the device. @note
+     Supports SET.
+  */
   RDM_PID_RESET_DEVICE = 0x1001,
   RDM_PID_POWER_STATE = 0x1010,        // TODO: See rdm_power_state_t
   RDM_PID_PERFORM_SELF_TEST = 0x1020,  // TODO: See rdm_self_test_t
@@ -627,6 +632,16 @@ enum {
   /** @brief Constant for RDM sensor definition when the maximum value of a
      sensor is undefined.*/
   RDM_SENSOR_MAXIMUM_UNDEFINED = 32767,
+};
+
+enum {
+   /** @brief The reset type constant for use with RDM_PID_RESET_DEVICE. This
+      indicates a soft reset of the device is requested.*/
+   RDM_RESET_TYPE_WARM = 0x01,
+   /** @brief The reset type constant for use with RDM_PID_RESET_DEVICE. This
+      indicates a hard reset of the device is requested. This is the equivalent
+      of removing and reapplying power to the device.*/
+   RDM_RESET_TYPE_COLD = 0xff,
 };
 
 /** @brief Responders and controllers identify themselves with a 48-bit Unique
