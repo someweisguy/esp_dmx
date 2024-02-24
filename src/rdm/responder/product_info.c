@@ -287,7 +287,45 @@ size_t rdm_get_manufacturer_label(dmx_port_t dmx_num, char *manufacturer_label,
 bool rdm_register_device_model_description(dmx_port_t dmx_num,
                                            const char *device_model_description,
                                            rdm_callback_t cb, void *context) {
-  return false;
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
+  if (dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+                        RDM_PID_DEVICE_MODEL_DESCRIPTION) == NULL) {
+    DMX_CHECK(device_model_description != NULL, false,
+              "device_model_description is null");
+    DMX_CHECK(strnlen(device_model_description, RDM_ASCII_SIZE_MAX) <
+                  RDM_ASCII_SIZE_MAX,
+              false, "device_model_description error");
+  }
+
+  const rdm_pid_t pid = RDM_PID_DEVICE_MODEL_DESCRIPTION;
+
+  // Add the parameter as a non-const, dynamic variable
+  char pd[RDM_ASCII_SIZE_MAX];
+  strncpy(pd, device_model_description, RDM_ASCII_SIZE_MAX);
+  const size_t size = strnlen(device_model_description, RDM_ASCII_SIZE_MAX);
+  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+                         DMX_PARAMETER_TYPE_DYNAMIC, pd, size)) {
+    return false;
+  }
+
+  // Define the parameter
+  static const rdm_parameter_definition_t definition = {
+      .pid_cc = RDM_CC_GET,
+      .ds = RDM_DS_ASCII,
+      .get = {.handler = rdm_simple_response_handler,
+              .request.format = NULL,
+              .response.format = "a$"},
+      .set = {.handler = NULL, .request.format = NULL, .response.format = NULL},
+      .pdl_size = RDM_ASCII_SIZE_MAX,
+      .max_value = 0,
+      .min_value = 0,
+      .units = RDM_UNITS_NONE,
+      .prefix = RDM_PREFIX_NONE,
+      .description = NULL};
+  rdm_definition_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
+
+  return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
 }
 
 size_t rdm_get_device_model_description(dmx_port_t dmx_num,
