@@ -424,6 +424,9 @@ rdm_register_manufacturer_label	KEYWORD2
 rdm_get_manufacturer_label	KEYWORD2
 rdm_register_device_model_description	KEYWORD2
 rdm_get_device_model_description	KEYWORD2
+rdm_register_language	KEYWORD2
+rdm_get_language	KEYWORD2
+rdm_set_language	KEYWORD2
 
 # rdm/responder/include/queue_status.h
 rdm_register_queued_message	KEYWORD2
