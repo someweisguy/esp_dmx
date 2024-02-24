@@ -124,7 +124,7 @@ bool rdm_register_reset_device(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_RESET_DEVICE;
 
   // Allocate parameter data
-  uint8_t init_value = 0;
+  uint8_t init_value = RDM_RESET_TYPE_NONE;
   if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_NON_VOLATILE, &init_value,
                          sizeof(init_value))) {
@@ -148,4 +148,13 @@ bool rdm_register_reset_device(dmx_port_t dmx_num, rdm_callback_t cb,
   rdm_definition_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, &definition);
 
   return rdm_callback_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, cb, context);
+}
+
+size_t rdm_get_reset_device(dmx_port_t dmx_num, uint8_t *reset) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(reset != NULL, 0, "reset is null");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_RESET_DEVICE,
+                            reset, sizeof(*reset));
 }

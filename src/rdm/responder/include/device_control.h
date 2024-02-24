@@ -65,6 +65,16 @@ bool rdm_set_identify_device(dmx_port_t dmx_num, const bool identify);
 bool rdm_register_reset_device(dmx_port_t dmx_num, rdm_callback_t cb,
                                void *context);
 
+/**
+ * @brief Gets the reset type that was requested. This function is used to
+ * determine the reset type that was requested, if any.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] reset The reset type that was requested.
+ * @return The number of bytes that were copied or 0 on failure.
+ */
+size_t rdm_get_reset_device(dmx_port_t dmx_num, uint8_t *reset);
+
 #ifdef __cplusplus
 }
 #endif
