@@ -29,31 +29,6 @@ static size_t rdm_rhd_set_reset_device(
   return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
 }
 
-static size_t rdm_rhd_get_sensor_definition(
-    dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
-    const rdm_header_t *header) {
-  // Verify the requested sensor num is valid
-  uint8_t sensor_num;
-  if (!rdm_read_pd(dmx_num, definition->set.request.format, &sensor_num,
-                   sizeof(sensor_num))) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
-  }
-  if (sensor_num > rdm_sensor_get_count(dmx_num, header->sub_device) &&
-      sensor_num != RDM_SENSOR_NUM_MAX) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_DATA_OUT_OF_RANGE);
-  }
-
-  // Verify the sensor has a definition
-  const rdm_sensor_definition_t *sensor_def =
-      rdm_sensor_definition_get(dmx_num, header->sub_device, sensor_num);
-  if (sensor_def == NULL) {
-    return rdm_write_nack_reason(dmx_num, header, RDM_NR_HARDWARE_FAULT);
-  }
-
-  return rdm_write_ack(dmx_num, header, definition->get.response.format,
-                       sensor_def, sizeof(*sensor_def));
-}
-
 bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
                                   void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
