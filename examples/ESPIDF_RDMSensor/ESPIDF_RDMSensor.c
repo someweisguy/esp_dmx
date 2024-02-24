@@ -4,7 +4,8 @@
 
   This sketch creates an RDM sensor which keeps track of the amount of time in
   seconds that the ESP32 has been on. The sensor value will be accurate for
-  approximately 18 hours (65535 seconds) before the value overflows.
+  approximately 9 hours (32766 seconds) before the value becomes invalid and
+  overflows.
 
   Note: this example is for use with the ESP-IDF. It will not work on Arduino!
 
@@ -42,6 +43,27 @@ void app_main() {
     ESP_LOGE(TAG, "unable to register sensor value");
   } else if (!rdm_register_record_sensors(dmx_num, callback, context)) {
     ESP_LOGE(TAG, "unable to register record sensors");
+  } else if (!rdm_register_sensor_definition(dmx_num, callback, context)) {
+    ESP_LOGE(TAG, "unable to register sensor definition");
+  } else {
+    rdm_sensor_definition_t definition = {
+      .num = 1,
+      .type = RDM_SENSOR_TYPE_TIME,
+      .unit = RDM_UNITS_SECOND,
+      .prefix = RDM_PREFIX_NONE,
+      .range = {
+        .minimum = RDM_SENSOR_MINIMUM_UNDEFINED,
+        .maximum = RDM_SENSOR_MAXIMUM_UNDEFINED,
+      },
+      .normal = {
+        .minimum = 0,
+        .maximum = 32766,
+      },
+      .recorded_value_support = 1,
+      .lowest_highest_detected_value_support = true,
+      .description = "Uptime"
+    };
+    rdm_sensor_definition_add(dmx_num, RDM_SUB_DEVICE_ROOT, &definition);
   }
 
   // Define the sensor we want to use

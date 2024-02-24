@@ -56,7 +56,7 @@ void setup() {
     1 DMX slot in its footprint. */
   dmx_config_t config = DMX_CONFIG_DEFAULT;
   dmx_personality_t personalities[] = {
-    {1, "Default Personality"}
+    { 1, "Default Personality" }
   };
   int personality_count = 1;
   dmx_driver_install(dmxPort, &config, personalities, personality_count);
@@ -89,6 +89,32 @@ void setup() {
     Serial.println("Unable to register RDM_PID_RECORD_SENSORS!");
   }
 
+  /* The last parameter we should register is RDM_PID_SENSOR_DEFINITION. This
+    parameter includes definitions of our RDM sensors. If an RDM controller
+    requests more information about our sensor, this paramter is able to provide
+    that information. We should register the parameter and then add the
+    definition. */
+  if (!rdm_register_sensor_definition(dmxPort, callback, context)) {
+    Serial.println("Unable to register RDM_PID_SENSOR_DEFINITION!");
+  } else {
+    /* Here we can define the sensor. Be sure to explicitly declare the sensor 
+      number as well as the other related information about our sensor! */
+    rdm_sensor_definition_t definition;
+    definition.num = 1;
+    definition.type = RDM_SENSOR_TYPE_TIME;
+    definition.unit = RDM_UNITS_SECOND;
+    definition.prefix = RDM_PREFIX_NONE;
+    definition.range.minimum = RDM_SENSOR_MINIMUM_UNDEFINED;
+    definition.range.maximum = RDM_SENSOR_MAXIMUM_UNDEFINED;
+    definition.normal.minimum = 0;
+    definition.normal.maximum = 32766;
+    definition.recorded_value_support = true;
+    definition.lowest_highest_detected_value_support = true;
+    strcpy(definition.description, "Uptime");
+    
+    rdm_sensor_definition_add(dmxPort, RDM_SUB_DEVICE_ROOT, &definition);
+  }
+
   /* Care should be taken to ensure that the parameters registered for callbacks
     never go out of scope. The variables passed as parameter data for responses
     must be valid throughout the lifetime of the DMX driver. Allowing parameter
@@ -107,10 +133,11 @@ void setup() {
   lastTime = currentTime;
 }
 
+
 void loop() {
   rdm_sub_device_t deviceNum = RDM_SUB_DEVICE_ROOT;
   int sensorNum = 0;
-  
+
   /* Use a basic DMX loop with RDM response handling. See the other RDM examples
     for more information on how this works! */
   dmx_packet_t packet;
