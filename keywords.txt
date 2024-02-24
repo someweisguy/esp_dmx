@@ -363,6 +363,9 @@ RDM_SENSOR_TYPE_COUNTER_16BIT	LITERAL1
 RDM_SENSOR_TYPE_OTHER	LITERAL1
 RDM_SENSOR_MINIMUM_UNDEFINED	LITERAL1
 RDM_SENSOR_MAXIMUM_UNDEFINED	LITERAL1
+RDM_RESET_TYPE_NONE	LITERAL1
+RDM_RESET_TYPE_WARM	LITERAL1
+RDM_RESET_TYPE_COLD	LITERAL1
 rdm_uid_t	KEYWORD1
 rdm_header_t	KEYWORD3
 rdm_disc_unique_branch_t	KEYWORD3
@@ -391,6 +394,8 @@ rdm_uid_is_target	KEYWORD2
 rdm_register_identify_device	KEYWORD2
 rdm_get_identify_device	KEYWORD2
 rdm_set_identify_device	KEYWORD2
+rdm_register_reset_device	KEYWORD2
+rdm_get_reset_device	KEYWORD2
 
 # rdm/responder/include/discovery.h
 rdm_register_disc_unique_branch	KEYWORD2

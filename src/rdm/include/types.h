@@ -635,13 +635,17 @@ enum {
 };
 
 enum {
-   /** @brief The reset type constant for use with RDM_PID_RESET_DEVICE. This
-      indicates a soft reset of the device is requested.*/
-   RDM_RESET_TYPE_WARM = 0x01,
-   /** @brief The reset type constant for use with RDM_PID_RESET_DEVICE. This
-      indicates a hard reset of the device is requested. This is the equivalent
-      of removing and reapplying power to the device.*/
-   RDM_RESET_TYPE_COLD = 0xff,
+  /** @brief The reset type for use with RDM_PID_RESET_DEVICE. This indicates no
+     reset of the device is requested. This constant is provided for convenience
+     and readability. It should not be used in RDM requests.*/
+  RDM_RESET_TYPE_NONE = 0x00,
+  /** @brief The reset type for use with RDM_PID_RESET_DEVICE. This indicates a
+     soft reset of the device is requested.*/
+  RDM_RESET_TYPE_WARM = 0x01,
+  /** @brief The reset type for use with RDM_PID_RESET_DEVICE. This indicates a
+     hard reset of the device is requested. This is the equivalent of removing
+     and reapplying power to the device.*/
+  RDM_RESET_TYPE_COLD = 0xff,
 };
 
 /** @brief Responders and controllers identify themselves with a 48-bit Unique
