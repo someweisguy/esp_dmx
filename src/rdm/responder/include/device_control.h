@@ -52,6 +52,19 @@ size_t rdm_get_identify_device(dmx_port_t dmx_num, bool *identify);
  */
 bool rdm_set_identify_device(dmx_port_t dmx_num, const bool identify);
 
+/**
+ * @brief Registers the default response to RDM_PID_RESET_DEVICE requests.
+ *
+ * @param dmx_num The DMX port number.
+ * @param cb A callback which is called upon receiving a request for this PID.
+ * @param[inout] context A pointer to context which is used in the user
+ * callback.
+ * @return true if the PID response was registered.
+ * @return false if there is not enough memory to register additional responses.
+ */
+bool rdm_register_reset_device(dmx_port_t dmx_num, rdm_callback_t cb,
+                               void *context);
+
 #ifdef __cplusplus
 }
 #endif
