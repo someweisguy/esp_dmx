@@ -524,7 +524,7 @@ typedef enum rdm_units_t {
   RDM_UNITS_LUX = 0x1a,
   /** @brief RDM unit for chrominance.*/
   RDM_UNITS_IRE = 0x1b,
-  /** @brief RDM unit for bytes. When a prefix is used with this unit, the
+  /** @brief RDM unit for memory. When a prefix is used with this unit, the
      multiplier refers to binary multiple. e.g. KILO means multiply by 1024.*/
   RDM_UNITS_BYTE = 0x1c
 } rdm_units_t;
