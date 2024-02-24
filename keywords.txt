@@ -417,6 +417,8 @@ rdm_register_software_version_label	KEYWORD2
 rdm_get_software_version_label	KEYWORD2
 rdm_register_manufacturer_label	KEYWORD2
 rdm_get_manufacturer_label	KEYWORD2
+rdm_register_device_model_description	KEYWORD2
+rdm_get_device_model_description	KEYWORD2
 
 # rdm/responder/include/queue_status.h
 rdm_register_queued_message	KEYWORD2
