@@ -30,7 +30,11 @@ bool rdm_register_device_hours(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Define the parameter
   static const rdm_parameter_definition_t definition = {
+#ifdef CONFIG_RDM_PID_DEVICE_HOURS_DISABLE_SET
+      .pid_cc = RDM_CC_GET,
+#else
       .pid_cc = RDM_CC_GET_SET,
+#endif
       .ds = RDM_DS_UNSIGNED_DWORD,
       .get = {.handler = rdm_simple_response_handler,
               .request.format = NULL,
