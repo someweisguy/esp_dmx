@@ -260,6 +260,11 @@ enum {
      the device hours field shall be unsigned and not roll over when the maximum
      value is reached. @note Supports GET and SET.*/
   RDM_PID_DEVICE_HOURS = 0x0400,
+  /** @brief This parameter is used to retrieve the number of lamp hours or to
+     set the counter in the device to a specific starting value. The lamp hours
+     are the total number of hours that the lamp has been on. The value for this
+     field shall be unsigned and shall not roll over when the maximum value is
+     reached. @note Supports GET and SET.*/
   RDM_PID_LAMP_HOURS = 0x0401,
   RDM_PID_LAMP_STRIKES = 0x0402,
   RDM_PID_LAMP_STATE = 0x0403,    // TODO: See rdm_lamp_state_t
