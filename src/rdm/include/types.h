@@ -201,6 +201,12 @@ enum {
   RDM_PID_DEVICE_LABEL = 0x0082,
   RDM_PID_FACTORY_DEFAULTS = 0x0090,
   RDM_PID_LANGUAGE_CAPABILITIES = 0x00a0,
+  /** @brief This parameter is used to change the language of the messages from
+     the device. Supported languages of the device can be determined by
+     RDM_PID_LANGUAGE_CAPABILITIES. The language codes are two character alpha
+     codes as defined by ISO 639-1. International standard ISO 639-1, code for
+     the representation of names of languages - part 1: Alpha 2 code. @note
+     Supports GET and SET.*/
   RDM_PID_LANGUAGE = 0x00b0,
   /** @brief This parameter is used to get a descriptive ASCII text label for
      the device's operating software version. The descriptive text returned by
