@@ -947,7 +947,7 @@ Parameter                                   | GET | SET |Supported|Notes|
 `RDM_PID_PROXIED_DEVICES`                   |✔️| |      |Must be sent to the root sub-device.|
 `RDM_PID_PROXIED_DEVICE_COUNT`              |✔️| |      |Must be sent to the root sub-device.|
 `RDM_PID_COMMS_STATUS`                      |✔️|✔️|      |Must be sent to the root sub-device.|
-`RDM_PID_QUEUED_MESSAGE`                    |✔️| |      |Must be sent to the root sub-device.|
+`RDM_PID_QUEUED_MESSAGE`                    |✔️| |v4.0.0|Must be sent to the root sub-device.|
 `RDM_PID_STATUS_MESSAGE`                    |✔️| |      |Must be sent to the root sub-device.|
 `RDM_PID_STATUS_ID_DESCRIPTION`             |✔️| |      |Must be sent to the root sub-device.|
 `RDM_PID_CLEAR_STATUS_ID`                   | |✔️|      | |
