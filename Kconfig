@@ -74,5 +74,14 @@ menu "DMX/RDM Configuration"
           This is the default value which is used in responses to requests for 
           RDM_PID_MANUFACTURER_LABEL. This value should be no more than 32 
           characters long.
+    
+    config RDM_PID_DEVICE_HOURS_DISABLE_SET
+        bool "Disallow RDM controllers to SET RDM_PID_DEVICE_HOURS"
+        default n
+        help
+           RDM_PID_DEVICE_HOURS supports both GET and SET by default. On some
+           devices it may only support SET. By selecting this option, the 
+           default behavior of `rdm_register_device_hours()` is to only allow 
+           GET requests.
 
 endmenu
