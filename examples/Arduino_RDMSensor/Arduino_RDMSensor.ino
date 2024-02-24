@@ -56,7 +56,7 @@ void setup() {
     1 DMX slot in its footprint. */
   dmx_config_t config = DMX_CONFIG_DEFAULT;
   dmx_personality_t personalities[] = {
-    {1, "Default Personality"}
+    { 1, "Default Personality" }
   };
   int personality_count = 1;
   dmx_driver_install(dmxPort, &config, personalities, personality_count);
@@ -99,23 +99,19 @@ void setup() {
   } else {
     /* Here we can define the sensor. Be sure to explicitly declare the sensor 
       number as well as the other related information about our sensor! */
-    rdm_sensor_definition_t definition = {
-      .num = 1,
-      .type = RDM_SENSOR_TYPE_TIME,
-      .unit = RDM_UNITS_SECOND,
-      .prefix = RDM_PREFIX_NONE,
-      .range = {
-        .minimum = RDM_SENSOR_MINIMUM_UNDEFINED,
-        .maximum = RDM_SENSOR_MAXIMUM_UNDEFINED,
-      },
-      .normal = {
-        .minimum = 0,
-        .maximum = 32766,
-      },
-      .recorded_value_support = true,
-      .lowest_highest_detected_value_support = true,
-      .description = "Uptime"
-    };
+    rdm_sensor_definition_t definition;
+    definition.num = 1;
+    definition.type = RDM_SENSOR_TYPE_TIME;
+    definition.unit = RDM_UNITS_SECOND;
+    definition.prefix = RDM_PREFIX_NONE;
+    definition.range.minimum = RDM_SENSOR_MINIMUM_UNDEFINED;
+    definition.range.maximum = RDM_SENSOR_MAXIMUM_UNDEFINED;
+    definition.normal.minimum = 0;
+    definition.normal.maximum = 32766;
+    definition.recorded_value_support = true;
+    definition.lowest_highest_detected_value_support = true;
+    strcpy(definition.description, "Uptime");
+    
     rdm_sensor_definition_add(dmxPort, RDM_SUB_DEVICE_ROOT, &definition);
   }
 
@@ -137,10 +133,11 @@ void setup() {
   lastTime = currentTime;
 }
 
+
 void loop() {
   rdm_sub_device_t deviceNum = RDM_SUB_DEVICE_ROOT;
   int sensorNum = 0;
-  
+
   /* Use a basic DMX loop with RDM response handling. See the other RDM examples
     for more information on how this works! */
   dmx_packet_t packet;
