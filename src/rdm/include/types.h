@@ -159,7 +159,7 @@ enum {
      message from the responder's message queue. The message count field of all
      response messages defines the number of messages that are queued in the
      responder. Each RDM_PID_QUEUED_MESSAGE response shall be composed of a
-     single message response.*/
+     single message response. @note Supports GET.*/
   RDM_PID_QUEUED_MESSAGE = 0x0020,
   RDM_PID_STATUS_MESSAGE = 0x0030,
   RDM_PID_STATUS_ID_DESCRIPTION = 0x0031,
@@ -187,7 +187,7 @@ enum {
   RDM_PID_DEVICE_INFO = 0x0060,
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
   /** @brief This parameter provides a text description of up to 32 character
-     for the device model type.*/
+     for the device model type. @note Supports GET.*/
   RDM_PID_DEVICE_MODEL_DESCRIPTION = 0x0080,
   /** @brief This parameter provides an ASCII test response with the
     manufacturer name for the device of up to 32 characters. The manufacturer
