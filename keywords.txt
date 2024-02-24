@@ -412,6 +412,9 @@ rdm_register_dmx_start_address	KEYWORD2
 rdm_get_dmx_start_address	KEYWORD2
 rdm_set_dmx_start_address	KEYWORD2
 
+# rdm/responder/include/power_lamp.h
+
+
 # rdm/responder/include/product_info.h
 rdm_register_device_info	KEYWORD2
 rdm_get_device_info	KEYWORD2
