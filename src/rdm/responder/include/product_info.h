@@ -164,6 +164,39 @@ bool rdm_register_manufacturer_label(dmx_port_t dmx_num,
 size_t rdm_get_manufacturer_label(dmx_port_t dmx_num, char *manufacturer_label,
                                   size_t size);
 
+/**
+ * @brief Registers the default response to RDM_PID_DEVICE_MODEL_DESCRIPTION.
+ * requests.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] device_model_description A pointer to a null-terminated device
+ * model description string to use in RDM responses. This value is used to set
+ * the parameter to a default value when this function is called for the first
+ * time and is ignored (and therefore may be set to NULL) on subsequent calls.
+ * @param cb A callback which is called upon receiving a request for this PID.
+ * @param[inout] context A pointer to context which is used in the user
+ * callback.
+ * @return true if the PID response was registered.
+ * @return false if there is not enough memory to register additional
+ * responses.
+ */
+bool rdm_register_device_model_description(dmx_port_t dmx_num,
+                                           const char *device_model_description,
+                                           rdm_callback_t cb, void *context);
+
+/**
+ * @brief Gets a copy of the RDM device model description of this device.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[out] device_model_description A pointer which stores a copy of the
+ * device model description of this device.
+ * @param size The size of the device_model_description buffer.
+ * @return the number of bytes written to device_model_description.
+ */
+size_t rdm_get_device_model_description(dmx_port_t dmx_num,
+                                        char *device_model_description,
+                                        size_t size);
+
 #ifdef __cplusplus
 }
 #endif
