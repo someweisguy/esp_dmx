@@ -431,7 +431,7 @@ bool rdm_set_language(dmx_port_t dmx_num, const char *language) {
   pd[2] = '\0';
 
   const rdm_pid_t pid = RDM_PID_DEVICE_LABEL;
-  if (!dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, language, 3)) {
+  if (!dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, pid, pd, sizeof(pd))) {
     return false;
   }
   rdm_queue_push(dmx_num, pid);
