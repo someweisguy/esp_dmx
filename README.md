@@ -956,7 +956,7 @@ Parameter                                   | GET | SET |Supported|Notes|
 `RDM_PID_PARAMETER_DESCRIPTION`             |✔️| |v4.0.0|Must be sent to the root sub-device. Support required for manufacturer-specific PIDs exposed in `RDM_PID_SUPPORTED_PARAMETERS`.|
 `RDM_PID_DEVICE_INFO`                       |✔️| |v3.1.0| |
 `RDM_PID_PRODUCT_DETAIL_ID_LIST`            |✔️| |      | |
-`RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️| |      | |
+`RDM_PID_DEVICE_MODEL_DESCRIPTION`          |✔️| |v4.1.0| |
 `RDM_PID_MANUFACTURER_LABEL`                |✔️| |v4.0.0| |
 `RDM_PID_DEVICE_LABEL`                      |✔️|✔️|v3.1.0| |
 `RDM_PID_FACTORY_DEFAULTS`                  |✔️|✔️|      | |
@@ -971,7 +971,7 @@ Parameter                                   | GET | SET |Supported|Notes|
 `RDM_PID_SLOT_INFO`                         |✔️| |      | |
 `RDM_PID_SLOT_DESCRIPTION`                  |✔️| |      | |
 `RDM_PID_DEFAULT_SLOT_VALUE`                |✔️| |      | |
-`RDM_PID_SENSOR_DEFINITION`                 |✔️| |      | |
+`RDM_PID_SENSOR_DEFINITION`                 |✔️| |v4.1.0| |
 `RDM_PID_SENSOR_VALUE`                      |✔️|✔️|v4.0.0| |
 `RDM_PID_RECORD_SENSORS`                    | |✔️|v4.0.0| |
 `RDM_PID_DEVICE_HOURS`                      |✔️|✔️|      | |
