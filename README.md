@@ -987,7 +987,7 @@ Parameter                                   | GET | SET |Supported|Notes|
 `RDM_PID_PAN_TILT_SWAP`                     |✔️|✔️|      | |
 `RDM_PID_REAL_TIME_CLOCK`                   |✔️|✔️|      | |
 `RDM_PID_IDENTIFY_DEVICE`                   |✔️|✔️|v3.1.0| |
-`RDM_PID_RESET_DEVICE`                      | |✔️|      | |
+`RDM_PID_RESET_DEVICE`                      | |✔️|v4.1.0| |
 `RDM_PID_POWER_STATE`                       |✔️|✔️|      | |
 `RDM_PID_PERFORM_SELFTEST`                  |✔️|✔️|      | |
 `RDM_PID_SELF_TEST_DESCRIPTION`             |✔️| |      | |
