@@ -30,6 +30,27 @@ static size_t rdm_rhd_get_device_info(dmx_port_t dmx_num,
   return rdm_write_ack(dmx_num, header, format, &device_info, pdl);
 }
 
+static size_t rdm_rhd_get_set_language(
+    dmx_port_t dmx_num, const rdm_parameter_definition_t *definition,
+    const rdm_header_t *header) {
+  // Verify the language code is two characters long
+  if (header->pdl != 2) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
+  }
+
+  char language[3];
+  if (!rdm_read_pd(dmx_num, definition->set.request.format, language,
+              sizeof(language))) {
+    return rdm_write_nack_reason(dmx_num, header, RDM_NR_FORMAT_ERROR);
+  }
+  dmx_parameter_set(dmx_num, RDM_SUB_DEVICE_ROOT, header->pid, language,
+                    sizeof(language));
+
+  // FIXME: implement GET
+
+  return rdm_write_ack(dmx_num, header, NULL, NULL, 0);
+}
+
 bool rdm_register_device_info(dmx_port_t dmx_num, uint16_t model_id,
                               uint16_t product_category,
                               uint32_t software_version_id, rdm_callback_t cb,
@@ -367,10 +388,10 @@ bool rdm_register_language(dmx_port_t dmx_num, const char *language,
   static const rdm_parameter_definition_t definition = {
       .pid_cc = RDM_CC_GET_SET,
       .ds = RDM_DS_ASCII,
-      .get = {.handler = NULL,  // FIXME: use response handler
+      .get = {.handler = rdm_rhd_get_set_language,
               .request.format = NULL,
               .response.format = "a$"},
-      .set = {.handler = NULL,  // FIXME: use response handler
+      .set = {.handler = rdm_rhd_get_set_language,
               .request.format = "a$",
               .response.format = NULL},
       .pdl_size = 2,
