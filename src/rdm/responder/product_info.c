@@ -283,3 +283,23 @@ size_t rdm_get_manufacturer_label(dmx_port_t dmx_num, char *manufacturer_label,
                             RDM_PID_MANUFACTURER_LABEL, manufacturer_label,
                             size);
 }
+
+bool rdm_register_device_model_description(dmx_port_t dmx_num,
+                                           const char *device_model_description,
+                                           rdm_callback_t cb, void *context) {
+  return false;
+}
+
+size_t rdm_get_device_model_description(dmx_port_t dmx_num,
+                                        char *device_model_description,
+                                        size_t size) {
+  DMX_CHECK(dmx_num < DMX_NUM_MAX, 0, "dmx_num error");
+  DMX_CHECK(device_model_description != NULL, 0,
+            "device_model_description is null");
+  DMX_CHECK(size > 0, 0, "size error");
+  DMX_CHECK(dmx_driver_is_installed(dmx_num), 0, "driver is not installed");
+
+  return dmx_parameter_copy(dmx_num, RDM_SUB_DEVICE_ROOT,
+                            RDM_PID_DEVICE_MODEL_DESCRIPTION,
+                            device_model_description, size);
+}
