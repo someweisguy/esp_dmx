@@ -217,8 +217,9 @@ bool rdm_register_language(dmx_port_t dmx_num, const char *language,
 
 /**
  * @brief Gets a copy of the current language in a two-character, ISO 639-1
- * language code format.
- * 
+ * language code format. The output buffer should be at least 3 characters long
+ * to accept a null-terminated language code.
+ *
  * @param dmx_num The DMX port number.
  * @param[out] language A pointer to a two-character ISO 639-1 buffer.
  * @return the number of bytes written to language.
@@ -227,8 +228,9 @@ size_t rdm_get_language(dmx_port_t dmx_num, char *language);
 
 /**
  * @brief Sets the current language to use in device messages. The language is
- * represented as a two-character, ISO 639-1 language code. 
- * 
+ * represented as a two-character, ISO 639-1 language code. The language code
+ * may be null-terminated or not.
+ *
  * @param dmx_num The DMX port number.
  * @param[in] language  A pointer to a two-character ISO 639-1 language code.
  * @return true on success.
