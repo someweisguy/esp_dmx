@@ -186,11 +186,14 @@ enum {
      This parameter is required.*/
   RDM_PID_DEVICE_INFO = 0x0060,
   RDM_PID_PRODUCT_DETAIL_ID_LIST = 0x0070,
+  /** @brief This parameter provides a text description of up to 32 character
+     for the device model type.*/
   RDM_PID_DEVICE_MODEL_DESCRIPTION = 0x0080,
-  /** @brief This parameter provides an ASCII test response with the manufacturer
-    name for the device of up to 32 characters. The manufacturer name must be
-    consistent between all products manufactured within an ESTA manufacturer ID.
-    Therefore this value is only editable in the Kconfig. @note Supports GET.*/
+  /** @brief This parameter provides an ASCII test response with the
+    manufacturer name for the device of up to 32 characters. The manufacturer
+    name must be consistent between all products manufactured within an ESTA
+    manufacturer ID. Therefore this value is only editable in the Kconfig. @note
+    Supports GET.*/
   RDM_PID_MANUFACTURER_LABEL = 0x0081,
   /** @brief This parameter providdes a means of setting a descriptive label for
      each device. This may be used for identifying a dimmer rack number or
@@ -208,13 +211,13 @@ enum {
   RDM_PID_BOOT_SOFTWARE_VERSION_LABEL = 0x00c2,
 
   // Category: DMX512 Setup
-  /** @brief This parameter is used to set the responder's DMX personality. Many 
+  /** @brief This parameter is used to set the responder's DMX personality. Many
      devices such as moving lights have different DMX personalities. Many RDM
      parameters may be affected by changing personality. The DMX personality can
      also be retrieved as part of the RDM_PID_DEVICE info parameter message.
      @note Supports GET and SET.*/
   RDM_PID_DMX_PERSONALITY = 0x00e0,
-  /** @brief This parameter is used to get a descriptive ASCII text label for a 
+  /** @brief This parameter is used to get a descriptive ASCII text label for a
      given DMX personality. The label may be up to 32 characters. @note Supports
      GET.*/
   RDM_PID_DMX_PERSONALITY_DESCRIPTION = 0x00e1,
