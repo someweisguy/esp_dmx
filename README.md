@@ -974,7 +974,7 @@ Parameter                                   | GET | SET |Supported|Notes|
 `RDM_PID_SENSOR_DEFINITION`                 |✔️| |v4.1.0| |
 `RDM_PID_SENSOR_VALUE`                      |✔️|✔️|v4.0.0| |
 `RDM_PID_RECORD_SENSORS`                    | |✔️|v4.0.0| |
-`RDM_PID_DEVICE_HOURS`                      |✔️|✔️|      | |
+`RDM_PID_DEVICE_HOURS`                      |✔️|✔️|v4.1.0| |
 `RDM_PID_LAMP_HOURS`                        |✔️|✔️|v4.1.0| |
 `RDM_PID_LAMP_STRIKES`                      |✔️|✔️|      | |
 `RDM_PID_LAMP_STATE`                        |✔️|✔️|      | |
