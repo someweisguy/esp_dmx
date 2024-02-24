@@ -470,35 +470,61 @@ typedef enum rdm_ds_t {
 typedef enum rdm_units_t {
   /** @brief An SI unit is not used.*/
   RDM_UNITS_NONE = 0x00,
-  // TODO: docs and values for the below
+  /** @brief RDM unit for temperature.*/
   RDM_UNITS_CENTIGRADE = 0x01,
+  /** @brief RDM unit for DC voltage.*/
   RDM_UNITS_VOLTS_DC = 0x02,
+  /** @brief RDM unit for peak AC voltage.*/
   RDM_UNITS_VOLTS_AC_PEAK = 0x03,
+  /** @brief RDM unit for RMS AC voltage.*/
   RDM_UNITS_VOLTS_AC_RMS = 0x04,
+  /** @brief RDM unit for DC amperage.*/
   RDM_UNITS_AMPERE_DC = 0x05,
+  /** @brief RDM unit for peak AC amperage.*/
   RDM_UNITS_AMPERE_AC_PEAK = 0x06,
+  /** @brief RDM unit for RMS AC amperage.*/
   RDM_UNITS_AMPERE_AC_RMS = 0x07,
+  /** @brief RDM unit for frequency.*/
   RDM_UNITS_HERTZ = 0x08,
+  /** @brief RDM unit for electrical resistance.*/
   RDM_UNITS_OHM = 0x09,
+  /** @brief RDM unit for electrical power.*/
   RDM_UNITS_WATT = 0x0a,
+  /** @brief RDM unit for mass.*/
   RDM_UNITS_KILOGRAM = 0x0b,
+  /** @brief RDM unit for length or position.*/
   RDM_UNITS_METERS = 0x0c,
+  /** @brief RDM unit for area.*/
   RDM_UNITS_METERS_SQUARED = 0x0d,
+  /** @brief RDM unit for volume.*/
   RDM_UNITS_METERS_CUBED = 0x0e,
+  /** @brief RDM unit for density.*/
   RDM_UNITS_KILOGRAMMES_PER_METER_CUBED = 0x0f,
+  /** @brief RDM unit for velocity.*/
   RDM_UNITS_METERS_PER_SECOND = 0x10,
+  /** @brief RDM unit for acceleration.*/
   RDM_UNITS_METERS_PER_SECOND_SQUARED = 0x11,
+  /** @brief RDM unit for force.*/
   RDM_UNITS_NEWTON = 0x12,
+  /** @brief RDM unit for energy.*/
   RDM_UNITS_JOULE = 0x13,
+  /** @brief RDM unit for pressure.*/
   RDM_UNITS_PASCAL = 0x14,
+  /** @brief RDM unit for time.*/
   RDM_UNITS_SECOND = 0x15,
+  /** @brief RDM unit for angle.*/
   RDM_UNITS_DEGREE = 0x16,
+  /** @brief RDM unit for angle.*/
   RDM_UNITS_STERADIAN = 0x17,
+  /** @brief RDM unit for luminous intensity.*/
   RDM_UNITS_CANDELA = 0x18,
+  /** @brief RDM unit for luminous flux.*/
   RDM_UNITS_LUMEN = 0x19,
+  /** @brief RDM unit for illuminance.*/
   RDM_UNITS_LUX = 0x1a,
+  /** @brief RDM unit for chrominance.*/
   RDM_UNITS_IRE = 0x1b,
-  /** @brief The unit is bytes. When a prefix is used with this unit, the
+  /** @brief RDM unit for bytes. When a prefix is used with this unit, the
      multiplier refers to binary multiple. e.g. KILO means multiply by 1024.*/
   RDM_UNITS_BYTE = 0x1c
 } rdm_units_t;
