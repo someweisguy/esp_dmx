@@ -961,7 +961,7 @@ Parameter                                   | GET | SET |Supported|Notes|
 `RDM_PID_DEVICE_LABEL`                      |✔️|✔️|v3.1.0| |
 `RDM_PID_FACTORY_DEFAULTS`                  |✔️|✔️|      | |
 `RDM_PID_LANGUAGE_CAPABILITIES`             |✔️| |      | |
-`RDM_PID_LANGUAGE`                          |✔️|✔️|      | |
+`RDM_PID_LANGUAGE`                          |✔️|✔️|v4.1.0| |
 `RDM_PID_SOFTWARE_VERSION_LABEL`            |✔️| |v3.1.0| |
 `RDM_PID_BOOT_SOFTWARE_VERSION_ID`          |✔️| |      | |
 `RDM_PID_BOOT_SOFTWARE_VERSION_LABEL`       |✔️| |      | |
