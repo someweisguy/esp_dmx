@@ -56,7 +56,7 @@ dmx_sub_device_exists	KEYWORD2
 dmx_parameter_exists	KEYWORD2
 dmx_parameter_at	KEYWORD2
 dmx_parameter_size	KEYWORD2
-dmx_parameter_get	KEYWORD2
+dmx_parameter_get_data	KEYWORD2
 dmx_parameter_copy	KEYWORD2
 dmx_parameter_set	KEYWORD2
 dmx_parameter_commit	KEYWORD2

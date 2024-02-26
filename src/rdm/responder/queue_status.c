@@ -19,7 +19,7 @@ typedef struct rdm_queue_t {
 } rdm_queue_t;
 
 static rdm_queue_t *rdm_get_queue(dmx_port_t dmx_num) {
-  return dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+  return dmx_parameter_get_data(dmx_num, RDM_SUB_DEVICE_ROOT,
                            RDM_PID_QUEUED_MESSAGE);
 }
 
@@ -75,7 +75,7 @@ bool rdm_register_queued_message(dmx_port_t dmx_num, uint32_t max_count,
 
   // Add the parameter
   const size_t size = sizeof(rdm_queue_t) + (sizeof(rdm_pid_t) * max_count);
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_DYNAMIC, NULL, size)) {
     return false;
   }

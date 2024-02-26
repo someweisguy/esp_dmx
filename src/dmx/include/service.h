@@ -200,7 +200,7 @@ dmx_device_t *dmx_get_device(dmx_port_t dmx_num, dmx_device_num_t device_num);
  * @return true on success.
  * @return false on failure.
  */
-bool dmx_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
+bool dmx_parameter_add(dmx_port_t dmx_num, dmx_device_num_t device_num,
                        rdm_pid_t pid, int type, void *data, size_t size);
 
 /**
@@ -211,8 +211,9 @@ bool dmx_add_parameter(dmx_port_t dmx_num, dmx_device_num_t device_num,
  * @param pid The parameter ID.
  * @return A pointer to the parameter, or NULL on failure.
  */
-dmx_parameter_t *dmx_get_parameter(dmx_port_t dmx_num,
-                                   dmx_device_num_t device_num, rdm_pid_t pid);
+dmx_parameter_t *dmx_parameter_get_entry(dmx_port_t dmx_num,
+                                         dmx_device_num_t device_num,
+                                         rdm_pid_t pid);
 
 #ifdef __cplusplus
 }

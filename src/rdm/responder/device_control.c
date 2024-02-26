@@ -39,7 +39,7 @@ bool rdm_register_identify_device(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Allocate parameter data
   uint8_t init_value = 0;
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_NON_VOLATILE, &init_value,
                          sizeof(init_value))) {
     return false;
@@ -100,7 +100,7 @@ bool rdm_register_reset_device(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Allocate parameter data
   uint8_t init_value = RDM_RESET_TYPE_NONE;
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_NON_VOLATILE, &init_value,
                          sizeof(init_value))) {
     return false;

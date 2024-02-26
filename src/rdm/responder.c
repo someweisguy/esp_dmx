@@ -131,7 +131,7 @@ bool rdm_send_response(dmx_port_t dmx_num) {
 
   // Call the after-response callback
   const dmx_parameter_t *parameter =
-      dmx_get_parameter(dmx_num, header.sub_device, header.pid);
+      dmx_parameter_get_entry(dmx_num, header.sub_device, header.pid);
   if (parameter != NULL && parameter->callback != NULL) {
     rdm_header_t response_header;
     if (!rdm_read_header(dmx_num, &response_header)) {

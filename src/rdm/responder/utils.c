@@ -113,7 +113,7 @@ size_t rdm_simple_response_handler(dmx_port_t dmx_num,
       // Get the parameter and write it to the RDM bus
       size_t pdl = dmx_parameter_size(dmx_num, header->sub_device, header->pid);
       const void *pd =
-          dmx_parameter_get(dmx_num, header->sub_device, header->pid);
+          dmx_parameter_get_data(dmx_num, header->sub_device, header->pid);
       format = definition->get.response.format;
       return rdm_write_ack(dmx_num, header, format, pd, pdl);
     } else {
@@ -170,7 +170,7 @@ bool rdm_definition_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
          (definition->prefix >= RDM_PREFIX_DECA &&
           definition->prefix <= RDM_PREFIX_YOTTA));
 
-  dmx_parameter_t *entry = dmx_get_parameter(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return false;
   }
@@ -184,7 +184,7 @@ const rdm_parameter_definition_t *rdm_definition_get(
     dmx_port_t dmx_num, rdm_sub_device_t sub_device, rdm_pid_t pid) {
   assert(pid > 0);
 
-  dmx_parameter_t *entry = dmx_get_parameter(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return NULL;
   }
@@ -196,7 +196,7 @@ bool rdm_callback_set(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
                       rdm_pid_t pid, rdm_callback_t callback, void *context) {
   assert(pid > 0);
 
-  dmx_parameter_t *entry = dmx_get_parameter(dmx_num, sub_device, pid);
+  dmx_parameter_t *entry = dmx_parameter_get_entry(dmx_num, sub_device, pid);
   if (entry == NULL) {
     return false;
   }
