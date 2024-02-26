@@ -175,8 +175,8 @@ typedef struct dmx_driver_t {
 
 extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
 
-// TODO: implement dmx_driver_add_device()
-// dmx_driver_add_device(dmx_num, device_num);
+// TODO: implement dmx_device_add()
+// dmx_device_add(dmx_num, device_num);
 
 /**
  * @brief Gets a pointer to the desired device, if it exists.
@@ -185,7 +185,7 @@ extern dmx_driver_t *dmx_driver[DMX_NUM_MAX];
  * @param device_num The sub-device number.
  * @return A pointer to the device, or NULL on failure.
  */
-dmx_device_t *dmx_get_device(dmx_port_t dmx_num, dmx_device_num_t device_num);
+dmx_device_t *dmx_device_get(dmx_port_t dmx_num, dmx_device_num_t device_num);
 
 /**
  * @brief Adds a parameter to the DMX driver, if there is space available.

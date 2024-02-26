@@ -28,7 +28,7 @@ bool dmx_sub_device_exists(dmx_port_t dmx_num, dmx_device_num_t device_num) {
   assert(device_num < RDM_SUB_DEVICE_MAX);
   assert(dmx_driver_is_installed(dmx_num));
 
-  dmx_device_t *device = dmx_get_device(dmx_num, device_num);
+  dmx_device_t *device = dmx_device_get(dmx_num, device_num);
 
   return device != NULL;
 }
