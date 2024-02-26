@@ -16,7 +16,7 @@ typedef struct rdm_sensors_t {
 
 static rdm_sensors_t *rdm_get_sensors(dmx_port_t dmx_num,
                                       rdm_sub_device_t sub_device) {
-  return dmx_parameter_get(dmx_num, sub_device, RDM_PID_SENSOR_VALUE);
+  return dmx_parameter_get_data(dmx_num, sub_device, RDM_PID_SENSOR_VALUE);
 }
 
 static size_t rdm_rhd_get_set_sensor_value(
@@ -144,7 +144,7 @@ bool rdm_register_sensor_definition(dmx_port_t dmx_num, rdm_callback_t cb,
 
   // Add the parameter as an array of RDM sensor definitions
   const uint8_t sensor_count = sensors->sensor_count;
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_DYNAMIC, NULL,
                          sizeof(rdm_sensor_definition_t) * sensor_count)) {
     return false;
@@ -153,7 +153,7 @@ bool rdm_register_sensor_definition(dmx_port_t dmx_num, rdm_callback_t cb,
   // Set sensor definition numbers to 0xff to flag they haven't been defined
   if (first_time_func_called) {
     rdm_sensor_definition_t *sensor_defs =
-        dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
+        dmx_parameter_get_data(dmx_num, RDM_SUB_DEVICE_ROOT, pid);
     assert(sensor_defs != NULL);
     for (int i = 0; i < sensor_count; ++i) {
       sensor_defs[i].num = 0xff;
@@ -189,7 +189,7 @@ bool rdm_register_sensor_value(dmx_port_t dmx_num, uint8_t sensor_count,
   // Add the parameter
   size_t size =
       sizeof(rdm_sensors_t) + (sizeof(rdm_sensor_value_t) * sensor_count);
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_DYNAMIC, NULL, size)) {
     return false;
   }
@@ -229,7 +229,7 @@ bool rdm_register_record_sensors(dmx_port_t dmx_num, rdm_callback_t cb,
   const rdm_pid_t pid = RDM_PID_RECORD_SENSORS;
 
   // Add the parameter as NULL static
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_STATIC, NULL, 0)) {
     return false;
   }
@@ -400,7 +400,7 @@ bool rdm_sensor_definition_add(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
   }
 
   // Validate that sensor definitions have been registered
-  rdm_sensor_definition_t *sensor_defs = dmx_parameter_get(
+  rdm_sensor_definition_t *sensor_defs = dmx_parameter_get_data(
       dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_SENSOR_DEFINITION);
   if (sensor_defs == NULL) {
     return false;
@@ -431,7 +431,7 @@ const rdm_sensor_definition_t *rdm_sensor_definition_get(
   }
 
   // Validate that sensor definitions have been registered
-  rdm_sensor_definition_t *sensor_defs = dmx_parameter_get(
+  rdm_sensor_definition_t *sensor_defs = dmx_parameter_get_data(
       dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_SENSOR_DEFINITION);
   if (sensor_defs == NULL) {
     return NULL;

@@ -80,8 +80,8 @@ size_t dmx_parameter_size(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
  * @param pid The parameter ID of the desired parameter.
  * @return A pointer to the desired parameter or NULL on failure.
  */
-void *dmx_parameter_get(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
-                        rdm_pid_t pid);
+void *dmx_parameter_get_data(dmx_port_t dmx_num, rdm_sub_device_t sub_device,
+                             rdm_pid_t pid);
 
 /**
  * @brief Copies the desired parameter to a destination buffer. Unlike

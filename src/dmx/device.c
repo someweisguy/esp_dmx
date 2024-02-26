@@ -103,7 +103,7 @@ const char *dmx_get_personality_description(dmx_port_t dmx_num,
             false, "personality_num is invalid");
 
   // Get a pointer to the stored personality
-  const rdm_dmx_personality_description_t *personalities = dmx_parameter_get(
+  const rdm_dmx_personality_description_t *personalities = dmx_parameter_get_data(
       dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DMX_PERSONALITY_DESCRIPTION);
   if (personalities == NULL) {
     return NULL;

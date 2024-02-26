@@ -37,7 +37,7 @@ static size_t rdm_rhd_get_set_language(
     // Get the parameter and write it to the RDM bus
     size_t pdl = dmx_parameter_size(dmx_num, header->sub_device, header->pid);
     const void *pd =
-        dmx_parameter_get(dmx_num, header->sub_device, header->pid);
+        dmx_parameter_get_data(dmx_num, header->sub_device, header->pid);
     return rdm_write_ack(dmx_num, header, definition->get.response.format, pd,
                          pdl);
   } else {
@@ -71,7 +71,7 @@ bool rdm_register_device_info(dmx_port_t dmx_num, uint16_t model_id,
       .model_id = model_id,
       .product_category = product_category,
       .software_version_id = software_version_id};
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_DYNAMIC, &product_info,
                          sizeof(product_info))) {
     return false;
@@ -103,7 +103,7 @@ size_t rdm_get_device_info(dmx_port_t dmx_num, rdm_device_info_t *device_info) {
 
   // Get the product info for the device
   const struct rdm_product_info_t *product_info =
-      dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO);
+      dmx_parameter_get_data(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_DEVICE_INFO);
 
   if (product_info != NULL) {
     device_info->model_id = product_info->model_id;
@@ -148,7 +148,7 @@ bool rdm_register_device_label(dmx_port_t dmx_num, const char *device_label,
   // Allocate parameter data
   char init_value[RDM_ASCII_SIZE_MAX];
   strncpy(init_value, device_label, 32);
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_NON_VOLATILE, init_value,
                          sizeof(init_value))) {
     return false;
@@ -205,7 +205,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
                                          rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  if (dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+  if (dmx_parameter_get_data(dmx_num, RDM_SUB_DEVICE_ROOT,
                         RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
     DMX_CHECK(software_version_label != NULL, false,
               "software_version_label is null");
@@ -220,7 +220,7 @@ bool rdm_register_software_version_label(dmx_port_t dmx_num,
   char pd[RDM_ASCII_SIZE_MAX];
   strncpy(pd, software_version_label, RDM_ASCII_SIZE_MAX);
   const size_t size = strnlen(software_version_label, RDM_ASCII_SIZE_MAX);
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_DYNAMIC, pd, size)) {
     return false;
   }
@@ -263,7 +263,7 @@ bool rdm_register_manufacturer_label(dmx_port_t dmx_num,
                                      rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  if (dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+  if (dmx_parameter_get_data(dmx_num, RDM_SUB_DEVICE_ROOT,
                         RDM_PID_SOFTWARE_VERSION_LABEL) == NULL) {
     DMX_CHECK(manufacturer_label != NULL, false, "manufacturer_label is null");
     DMX_CHECK(
@@ -275,7 +275,7 @@ bool rdm_register_manufacturer_label(dmx_port_t dmx_num,
 
   // Add the parameter as a static variable
   const size_t size = strnlen(manufacturer_label, RDM_ASCII_SIZE_MAX);
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_STATIC, manufacturer_label, size)) {
     return false;
   }
@@ -316,7 +316,7 @@ bool rdm_register_device_model_description(dmx_port_t dmx_num,
                                            rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  if (dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT,
+  if (dmx_parameter_get_data(dmx_num, RDM_SUB_DEVICE_ROOT,
                         RDM_PID_DEVICE_MODEL_DESCRIPTION) == NULL) {
     DMX_CHECK(device_model_description != NULL, false,
               "device_model_description is null");
@@ -331,7 +331,7 @@ bool rdm_register_device_model_description(dmx_port_t dmx_num,
   char pd[RDM_ASCII_SIZE_MAX];
   strncpy(pd, device_model_description, RDM_ASCII_SIZE_MAX);
   const size_t size = strnlen(device_model_description, RDM_ASCII_SIZE_MAX);
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_DYNAMIC, pd, size)) {
     return false;
   }
@@ -373,7 +373,7 @@ bool rdm_register_language(dmx_port_t dmx_num, const char *language,
                            rdm_callback_t cb, void *context) {
   DMX_CHECK(dmx_num < DMX_NUM_MAX, false, "dmx_num error");
   DMX_CHECK(dmx_driver_is_installed(dmx_num), false, "driver is not installed");
-  if (dmx_parameter_get(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_LANGUAGE) ==
+  if (dmx_parameter_get_data(dmx_num, RDM_SUB_DEVICE_ROOT, RDM_PID_LANGUAGE) ==
       NULL) {
     DMX_CHECK(language != NULL, false, "language is null");
     DMX_CHECK(strnlen(language, 3) != 2, false, "language error");
@@ -385,7 +385,7 @@ bool rdm_register_language(dmx_port_t dmx_num, const char *language,
   char pd[3];
   memcpy(pd, language, 2);
   pd[2] = '\0';
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_DYNAMIC, pd, sizeof(pd))) {
     return false;
   }

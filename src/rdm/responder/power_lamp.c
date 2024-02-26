@@ -22,7 +22,7 @@ bool rdm_register_device_hours(dmx_port_t dmx_num, rdm_callback_t cb,
   }
 
   // Allocate parameter data
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_NON_VOLATILE, &device_hours,
                          sizeof(device_hours))) {
     return false;
@@ -91,7 +91,7 @@ bool rdm_register_lamp_hours(dmx_port_t dmx_num, rdm_callback_t cb,
   }
 
   // Allocate parameter data
-  if (!dmx_add_parameter(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
+  if (!dmx_parameter_add(dmx_num, RDM_SUB_DEVICE_ROOT, pid,
                          DMX_PARAMETER_TYPE_NON_VOLATILE, &lamp_hours,
                          sizeof(lamp_hours))) {
     return false;
