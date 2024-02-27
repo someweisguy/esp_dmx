@@ -154,6 +154,7 @@ size_t rdm_send_request(dmx_port_t dmx_num, const rdm_request_t *request,
         rdm_read_pd(dmx_num, word_format, &nack_reason, sizeof(nack_reason));
         ack->nack_reason = nack_reason;
       } else {
+        rdm_read_pd(dmx_num, format, pd, size);
         ack->pdl = header.pdl;
       }
     }

@@ -25,7 +25,7 @@ size_t rdm_send_get_device_info(dmx_port_t dmx_num, const rdm_uid_t *dest_uid,
   };
 
   const char *format = "x01x00wwdwbbwwb$";
-  return rdm_send_request(dmx_num, &request, format, &device_info,
+  return rdm_send_request(dmx_num, &request, format, device_info,
                           sizeof(*device_info), ack);
 }
 
