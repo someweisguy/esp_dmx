@@ -31,9 +31,10 @@ extern "C" {
    ESP_DMX_VERSION_PATCH)
 
 /** @brief The version of this library expressed as a string value.*/
-#define ESP_DMX_VERSION_LABEL                                 \
-  "esp_dmx v" __XSTRING(ESP_DMX_VERSION_MAJOR) "." __XSTRING( \
-      ESP_DMX_VERSION_MINOR) "." __XSTRING(ESP_DMX_VERSION_PATCH)
+#define ESP_DMX_VERSION_LABEL                         \
+  __XSTRING(ESP_DMX_VERSION_MAJOR)                    \
+  "." __XSTRING(ESP_DMX_VERSION_MINOR) "." __XSTRING( \
+      ESP_DMX_VERSION_PATCH) " " __DATE__
 
 #if defined(CONFIG_DMX_ISR_IN_IRAM) || ESP_IDF_VERSION_MAJOR < 5
 /** @brief The default interrupt flags for the DMX driver. Places the
