@@ -7,10 +7,13 @@
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+#include "soc/uart_periph.h"
+#endif
 #else
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
@@ -335,7 +338,7 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
     periph_module_reset(uart_periph_signal[dmx_num].module);
 #endif
   }
-#if ESP_IDF_VERSION_MAJOR >= 5
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
   uint32_t sclk_freq;
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
@@ -380,7 +383,7 @@ bool dmx_uart_set_pin(dmx_port_t dmx_num, int tx, int rx, int rts) {
 
 uint32_t dmx_uart_get_baud_rate(dmx_port_t dmx_num) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
-#if ESP_IDF_VERSION_MAJOR >= 5
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   uint32_t sclk_freq;
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
   return uart_ll_get_baudrate(uart->dev, sclk_freq);
@@ -391,7 +394,7 @@ uint32_t dmx_uart_get_baud_rate(dmx_port_t dmx_num) {
 
 void dmx_uart_set_baud_rate(dmx_port_t dmx_num, uint32_t baud_rate) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
-#if ESP_IDF_VERSION_MAJOR >= 5
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   uint32_t sclk_freq;
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
   uart_ll_set_baudrate(uart->dev, baud_rate, sclk_freq);
