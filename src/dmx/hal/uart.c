@@ -339,9 +339,19 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
 #endif
   }
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
   uint32_t sclk_freq;
+#if CONFIG_IDF_TARGET_ESP32C6
+  // UART2 on C6 is a LP UART, with fixed GPIO pins for tx, rx, and rts
+  if (dmx_num == 2) {
+    LP_CLKRST.lpperi.lp_uart_clk_sel = 0;  // Use LP_UART_SCLK_LP_FAST
+  } else {
+    uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
+  }
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+#else
+  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
+  uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+#endif
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
 #else
   uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
