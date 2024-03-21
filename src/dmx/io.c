@@ -279,6 +279,7 @@ size_t dmx_receive_num(dmx_port_t dmx_num, dmx_packet_t *packet, size_t size,
   }
 
   xSemaphoreGiveRecursive(driver->mux);
+  dmx_parameter_commit(dmx_num);
   return packet_size;
 }
 
