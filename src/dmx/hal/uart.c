@@ -381,6 +381,7 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
 void dmx_uart_deinit(dmx_port_t dmx_num) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   if (uart->num != 0) {  // Default UART port for console
+    esp_intr_free(uart->isr_handle);
     periph_module_disable(uart_periph_signal[uart->num].module);
   }
 }
