@@ -29,7 +29,7 @@ static struct dmx_uart_t {
 } dmx_uart_context[DMX_NUM_MAX] = {
     {.num = 0, .dev = UART_LL_GET_HW(0)},
     {.num = 1, .dev = UART_LL_GET_HW(1)},
-#if SOC_UART_NUM > 2
+#if DMX_NUM_MAX > 2
     {.num = 2, .dev = UART_LL_GET_HW(2)},
 #endif
 };
@@ -327,15 +327,27 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
 
-  periph_module_enable(uart_periph_signal[dmx_num].module);
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+periph_module_enable(PERIPH_UART0_MODULE+dmx_num);
+#else
+periph_module_enable(uart_periph_signal[dmx_num].module);
+#endif
   if (dmx_num != 0) {  // Default UART port for console
 #if SOC_UART_REQUIRE_CORE_RESET
     // ESP32C3 workaround to prevent UART outputting garbage data
     uart_ll_set_reset_core(uart->dev, true);
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    periph_module_reset(PERIPH_UART0_MODULE+dmx_num);
+    #else
     periph_module_reset(uart_periph_signal[dmx_num].module);
+    #endif
     uart_ll_set_reset_core(uart->dev, false);
 #else
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    periph_module_reset(PERIPH_UART0_MODULE+dmx_num);
+    #else
     periph_module_reset(uart_periph_signal[dmx_num].module);
+    #endif
 #endif
   }
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
@@ -381,7 +393,11 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
 void dmx_uart_deinit(dmx_port_t dmx_num) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   if (uart->num != 0) {  // Default UART port for console
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    periph_module_disable(PERIPH_UART1_MODULE+dmx_num);
+    #else
     periph_module_disable(uart_periph_signal[uart->num].module);
+    #endif
   }
 }
 
