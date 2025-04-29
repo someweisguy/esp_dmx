@@ -108,6 +108,33 @@ void setup() {
                                             softwareVersionLabelSize, &ack)) {
       Serial.printf("Software version label: %s\n", softwareVersionLabel);
     }
+	
+	    /* Also, we will send a request to get the device's manufacturer label.*/
+    char manufacturerLabel[RDM_ASCII_SIZE_MAX];
+    int manufacturerLabelSize = RDM_ASCII_SIZE_MAX;
+    if (rdm_send_get_manufacturer_label(dmxPort, &destUID, subDevice,
+                                            manufacturerLabel,
+                                            manufacturerLabelSize, &ack)) {
+      Serial.printf("Manufacturer label: %s\n", manufacturerLabel);
+    }
+	
+	    /* Also, we will send a request to get the device's model description */
+    char modelDescription[RDM_ASCII_SIZE_MAX];
+    int modelDescriptionSize = RDM_ASCII_SIZE_MAX;
+    if (rdm_send_get_device_model_description(dmxPort, &destUID, subDevice,
+                                            modelDescription,
+                                            modelDescriptionSize, &ack)) {
+      Serial.printf("Model description: %s\n", modelDescription);
+    }
+	
+	    /* Also, we will send a request to get the device's device label */
+    char deviceLabel[RDM_ASCII_SIZE_MAX];
+    int deviceLabelSize = RDM_ASCII_SIZE_MAX;
+    if (rdm_send_get_device_label(dmxPort, &destUID, subDevice,
+                                            deviceLabel,
+                                            deviceLabelSize, &ack)) {
+      Serial.printf("Device label: %s\n", deviceLabel);
+    }
 
     /* Now we will get and set the identify device parameter. Unlike the
       previous two parameters, identify device can be both get and set. We will

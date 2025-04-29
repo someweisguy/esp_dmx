@@ -145,6 +145,9 @@ rdm_send_set_dmx_start_address	KEYWORD2
 # rdm/controller/include/product_info.h
 rdm_send_get_device_info	KEYWORD2
 rdm_send_get_software_version_label	KEYWORD2
+rdm_send_get_manufacturer_label	KEYWORD2
+rdm_send_get_device_model_description	KEYWORD2
+rdm_send_get_device_label	KEYWORD2
 
 # rdm/controller/include/utils.h
 rdm_send_request	KEYWORD2

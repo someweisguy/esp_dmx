@@ -64,6 +64,32 @@ void app_main() {
                                               sw_label, sw_label_size, &ack)) {
         ESP_LOGI(TAG, "Software version label: %s", sw_label);
       }
+	  
+      // Get the manufacturer label
+      char man_label[33];
+      size_t man_label_size = sizeof(man_label);
+      if (rdm_send_get_manufacturer_label(dmx_num, dest_uid, sub_device,
+                                              man_label, man_label_size, &ack)) {
+        ESP_LOGI(TAG, "Manufacturer label: %s", man_label);
+      }
+	  
+      // Get the device model description
+      char model_desc[33];
+      size_t model_desc_size = sizeof(model_desc);
+      if (rdm_send_get_device_model_description(dmx_num, dest_uid, sub_device,
+                                              model_desc, model_desc_size, &ack)) {
+        ESP_LOGI(TAG, "Model Description: %s", model_desc);
+      }
+	  
+      // Get the device label
+      char dev_label[33];
+      size_t dev_label_size = sizeof(dev_label);
+      if (rdm_send_get_device_label(dmx_num, dest_uid, sub_device,
+                                              dev_label, dev_label_size, &ack)) {
+        ESP_LOGI(TAG, "Device label: %s", dev_label);
+      }
+	  
+	  
 
       // Get and set the identify state
       bool identify;

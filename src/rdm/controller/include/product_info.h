@@ -67,7 +67,85 @@ size_t rdm_send_get_software_version_label(dmx_port_t dmx_num,
                                            const rdm_uid_t *dest_uid,
                                            rdm_sub_device_t sub_device,
                                            char *software_version_label,
+/**
+ * @brief Sends an RDM GET manufacturer label request and reads the
+ * response, if any.
+ *
+ * GET manufacturer label are sent without parameter data. If a response is
+ * received, the response parameter data will include the name of the 
+ * manufacturer in the form of a string up to 32 bytes long.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] dest_uid A pointer to the UID of the destination.
+ * @param sub_device The sub-device number of the destination.
+ * @param[out] manufacturer_label A pointer to a parameter which will be
+ * received in the response.
+ * @param size The size of the manufacturer_label string. Used to prevent
+ * buffer overflows.
+ * @param[out] ack A pointer to an ACK struct which contains information about
+ * the response, including information if no response is received.
+ * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
+ * @return false if no response was received, was improperly formatted, or an
+ * RDM_RESPONSE_TYPE_ACK was not received.
+ */                                           size_t size, rdm_ack_t *ack);
+size_t rdm_send_get_manufacturer_label(dmx_port_t dmx_num,
+                                           const rdm_uid_t *dest_uid,
+                                           rdm_sub_device_t sub_device,
+                                           char *manufacturer_label,
                                            size_t size, rdm_ack_t *ack);
+/**
+ * @brief Sends an RDM GET model description request and reads the
+ * response, if any.
+ *
+ * GET manufacturer label are sent without parameter data. If a response is
+ * received, the response parameter data will include the manufacturer's model
+ * name of the device in the form of a string up to 32 bytes long.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] dest_uid A pointer to the UID of the destination.
+ * @param sub_device The sub-device number of the destination.
+ * @param[out] device_model_description A pointer to a parameter which will be
+ * received in the response.
+ * @param size The size of the device_model_description string. Used to prevent
+ * buffer overflows.
+ * @param[out] ack A pointer to an ACK struct which contains information about
+ * the response, including information if no response is received.
+ * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
+ * @return false if no response was received, was improperly formatted, or an
+ * RDM_RESPONSE_TYPE_ACK was not received.
+ */ 
+size_t rdm_send_get_device_model_description(dmx_port_t dmx_num,
+                                           const rdm_uid_t *dest_uid,
+                                           rdm_sub_device_t sub_device,
+                                           char *device_model_description,
+                                           size_t size, rdm_ack_t *ack);
+/**
+ * @brief Sends an RDM GET device label request and reads the
+ * response, if any.
+ *
+ * GET manufacturer label are sent without parameter data. If a response is
+ * received, the response parameter data will include the user-defined device
+ * label in the form of a string up to 32 bytes long.
+ *
+ * @param dmx_num The DMX port number.
+ * @param[in] dest_uid A pointer to the UID of the destination.
+ * @param sub_device The sub-device number of the destination.
+ * @param[out] device_label A pointer to a parameter which will be
+ * received in the response.
+ * @param size The size of the device_label string. Used to prevent
+ * buffer overflows.
+ * @param[out] ack A pointer to an ACK struct which contains information about
+ * the response, including information if no response is received.
+ * @return true if a properly formatted RDM_RESPONSE_TYPE_ACK was received.
+ * @return false if no response was received, was improperly formatted, or an
+ * RDM_RESPONSE_TYPE_ACK was not received.
+ */ 
+size_t rdm_send_get_device_label(dmx_port_t dmx_num,
+                                           const rdm_uid_t *dest_uid,
+                                           rdm_sub_device_t sub_device,
+                                           char *device_label,
+                                           size_t size, rdm_ack_t *ack);
+
 
 #ifdef __cplusplus
 }
