@@ -11,12 +11,14 @@
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
+#include "soc/periph_defs.h"
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 #include "soc/uart_periph.h"
 #endif
 #else
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
+#include "soc/periph_defs.h"
 #endif
 
 #define DMX_UART_FULL_DEFAULT 1
@@ -327,15 +329,33 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
 
-  periph_module_enable(uart_periph_signal[dmx_num].module);
+  // Определяем константу модуля UART на основе dmx_num
+  periph_module_t uart_module;
+  switch (dmx_num) {
+    case 0:
+      uart_module = PERIPH_UART0_MODULE;
+      break;
+    case 1:
+      uart_module = PERIPH_UART1_MODULE;
+      break;
+#if SOC_UART_NUM > 2
+    case 2:
+      uart_module = PERIPH_UART2_MODULE;
+      break;
+#endif
+    default:
+      return false;  // Неверный номер UART
+  }
+
+  periph_module_enable(uart_module);  // Заменяем строку 330
   if (dmx_num != 0) {  // Default UART port for console
 #if SOC_UART_REQUIRE_CORE_RESET
     // ESP32C3 workaround to prevent UART outputting garbage data
     uart_ll_set_reset_core(uart->dev, true);
-    periph_module_reset(uart_periph_signal[dmx_num].module);
+    periph_module_reset(uart_module);  // Заменяем строку 338
     uart_ll_set_reset_core(uart->dev, false);
 #else
-    periph_module_reset(uart_periph_signal[dmx_num].module);
+    periph_module_reset(uart_module);  // Заменяем строку 338
 #endif
   }
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
@@ -375,13 +395,30 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, isr_flags, dmx_uart_isr,
                  isr_context, &uart->isr_handle);
 
-  return uart;
+  return true;  // Возвращаем true вместо указателя на uart
 }
 
 void dmx_uart_deinit(dmx_port_t dmx_num) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
   if (uart->num != 0) {  // Default UART port for console
-    periph_module_disable(uart_periph_signal[uart->num].module);
+    // Определяем константу модуля UART на основе uart->num
+    periph_module_t uart_module;
+    switch (uart->num) {
+      case 0:
+        uart_module = PERIPH_UART0_MODULE;
+        break;
+      case 1:
+        uart_module = PERIPH_UART1_MODULE;
+        break;
+#if SOC_UART_NUM > 2
+      case 2:
+        uart_module = PERIPH_UART2_MODULE;
+        break;
+#endif
+      default:
+        return;  // Неверный номер UART
+    }
+    periph_module_disable(uart_module);  // Заменяем строку 384
   }
 }
 
