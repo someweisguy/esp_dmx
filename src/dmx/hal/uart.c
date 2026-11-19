@@ -11,7 +11,10 @@
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#include "hal/uart_periph.h"
+#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 #include "soc/uart_periph.h"
 #endif
 #else
