@@ -1,5 +1,7 @@
 #include "include/uart.h"
 
+#include "esp_idf_version.h"
+
 #include "dmx/hal/include/timer.h"
 #include "dmx/include/service.h"
 #include "driver/uart.h"
@@ -7,19 +9,25 @@
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#include "hal/uart_ll.h"
+#include "hal/uart_periph.h"
+#include "soc/uart_periph.h"
+#include "esp_private/esp_clk.h"
+#include "esp_timer.h"
+#else
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-#include "hal/uart_periph.h"
-#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 #include "soc/uart_periph.h"
 #endif
-#else
+
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
+#endif
 #endif
 
 #define DMX_UART_FULL_DEFAULT 1
@@ -32,8 +40,14 @@ static struct dmx_uart_t {
 } dmx_uart_context[DMX_NUM_MAX] = {
     {.num = 0, .dev = UART_LL_GET_HW(0)},
     {.num = 1, .dev = UART_LL_GET_HW(1)},
-#if SOC_UART_NUM > 2
+#if defined(SOC_UART_HP_NUM)
+#if SOC_UART_HP_NUM > 2
     {.num = 2, .dev = UART_LL_GET_HW(2)},
+#endif
+#else
+#if SOC_UART_NUM > 2 && !CONFIG_IDF_TARGET_ESP32C6
+    {.num = 2, .dev = UART_LL_GET_HW(2)},
+#endif
 #endif
 };
 
@@ -330,10 +344,21 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+  // Enable and reset HP UART.
+  uart_ll_enable_bus_clock((uart_port_t)uart->num, true);
+  uart_ll_reset_register((uart_port_t)uart->num);
+
+  // Configure UART clock.
+  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
+  uart_ll_sclk_enable(uart->dev);
+#else
+  // Enable UART peripheral.
   periph_module_enable((periph_module_t)(dmx_num + 1));
-  if (dmx_num != 0) {  // Default UART port for console
+
+  if (dmx_num != 0) {
 #if SOC_UART_REQUIRE_CORE_RESET
-    // ESP32C3 workaround to prevent UART outputting garbage data
+    // ESP32C3 workaround.
     uart_ll_set_reset_core(uart->dev, true);
     periph_module_enable((periph_module_t)(dmx_num + 1));
     uart_ll_set_reset_core(uart->dev, false);
@@ -341,25 +366,17 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
     periph_module_enable((periph_module_t)(dmx_num + 1));
 #endif
   }
+#endif
+
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   uint32_t sclk_freq;
-#if CONFIG_IDF_TARGET_ESP32C6
-  // UART2 on C6 is a LP UART, with fixed GPIO pins for tx, rx, and rts
-  if (dmx_num == 2) {
-    LP_CLKRST.lpperi.lp_uart_clk_sel = 0;  // Use LP_UART_SCLK_LP_FAST
-  } else {
-    uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
-  }
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
-#else
-  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
-  uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
-#endif
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
 #else
   uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE);
 #endif
+
   uart_ll_set_mode(uart->dev, UART_MODE_UART);
   uart_ll_set_parity(uart->dev, UART_PARITY_DISABLE);
   uart_ll_set_data_bit_num(uart->dev, UART_DATA_8_BITS);
@@ -378,13 +395,19 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   esp_intr_alloc(uart_periph_signal[dmx_num].irq, isr_flags, dmx_uart_isr,
                  isr_context, &uart->isr_handle);
 
-  return uart;
+  return true;
 }
 
 void dmx_uart_deinit(dmx_port_t dmx_num) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
-  if (uart->num != 0) {  // Default UART port for console
+
+  if (uart->num != 0) {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    uart_ll_sclk_disable(uart->dev);
+    uart_ll_enable_bus_clock((uart_port_t)uart->num, false);
+#else
     periph_module_disable((periph_module_t)(uart->num + 1));
+#endif
   }
 }
 
