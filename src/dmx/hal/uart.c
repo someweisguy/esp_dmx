@@ -382,7 +382,7 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
     printf("DMX UART baud: %lu\n", (unsigned long)DMX_BAUD_RATE);
 
     uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
-    uint32_t actual_baud = uart_ll_get_baudrate(uart->dev);
+    uint32_t actual_baud = uart_ll_get_baudrate(uart->dev, sclk_freq);
     printf("DMX UART actual baudrate: %lu\n", (unsigned long)actual_baud);
   #else
     uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
