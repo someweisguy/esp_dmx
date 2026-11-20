@@ -81,13 +81,6 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
       if (dmx_head >= 0 && dmx_head < DMX_PACKET_SIZE_MAX) {
         int read_len = DMX_PACKET_SIZE_MAX - dmx_head;
         dmx_uart_read_rxfifo(dmx_num, &driver->dmx.data[dmx_head], &read_len);
-        if (dmx_head == 0 && read_len > 0) {
-          printf("DMX RAW (%d bytes): ", read_len);
-          for (int i = 0; i < read_len && i < 16; i++) {
-            printf("%02X ", driver->dmx.data[i]);
-          }
-          printf("\n");
-        }
         dmx_head += read_len;
         taskENTER_CRITICAL_ISR(DMX_SPINLOCK(dmx_num));
         driver->dmx.head = dmx_head;
