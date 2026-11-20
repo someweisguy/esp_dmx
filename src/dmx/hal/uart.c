@@ -346,8 +346,7 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   int __DECLARE_RCC_ATOMIC_ENV __attribute__((unused));
 
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
-  ESP_LOGI("DMX_UART", "dmx_uart_init called: port=%d, baudrate=%lu",
-           (int)dmx_num, (unsigned long)DMX_BAUD_RATE);
+  printf("DMX_UART INIT: port=%d, baudrate=%lu\n", (int)dmx_num, (unsigned long)DMX_BAUD_RATE);
     
   #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
     // Enable and reset HP UART.
