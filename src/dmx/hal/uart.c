@@ -427,7 +427,14 @@ void dmx_uart_deinit(dmx_port_t dmx_num) {
 
 bool dmx_uart_set_pin(dmx_port_t dmx_num, int tx, int rx, int rts) {
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
+
+  printf("DMX SET PIN: UART=%d TX=%d RX=%d RTS=%d\n",
+         uart->num, tx, rx, rts);
+
   esp_err_t err = uart_set_pin(uart->num, tx, rx, rts, -1);
+
+  printf("DMX SET PIN RESULT: %d\n", (int)err);
+
   return (err == ESP_OK);
 }
 
