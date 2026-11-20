@@ -10,6 +10,9 @@
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 
+#include "esp_idf_version.h"
+#include <stdlib.h>
+
 static size_t rdm_format_encode(void *restrict dest,
                                 const char *restrict format,
                                 const void *restrict src, size_t src_size,
@@ -94,7 +97,11 @@ static size_t rdm_format_encode(void *restrict dest,
         // Don't need to swap endianness on single byte
         f += 2;  // Skip to the next token
       } else {
-        __unreachable();  // Unknown symbol
+        #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+                abort(); // Unknown symbol
+        #else
+                __unreachable(); // Unknown symbol
+        #endif
       }
 
       // Update cursor
