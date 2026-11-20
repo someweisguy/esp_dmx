@@ -346,44 +346,46 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   int __DECLARE_RCC_ATOMIC_ENV __attribute__((unused));
 
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
-
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-  // Enable and reset HP UART.
-  uart_ll_enable_bus_clock((uart_port_t)uart->num, true);
-  uart_ll_reset_register((uart_port_t)uart->num);
-
-  // Configure UART clock.
-  uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
-  uart_ll_sclk_enable(uart->dev);
-#else
-  // Enable UART peripheral.
-  periph_module_enable((periph_module_t)(dmx_num + 1));
-
-  if (dmx_num != 0) {
-#if SOC_UART_REQUIRE_CORE_RESET
-    // ESP32C3 workaround.
-    uart_ll_set_reset_core(uart->dev, true);
+  ESP_LOGI("DMX_UART", "dmx_uart_init called: port=%d, baudrate=%lu",
+           (int)dmx_num, (unsigned long)DMX_BAUD_RATE);
+    
+  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    // Enable and reset HP UART.
+    uart_ll_enable_bus_clock((uart_port_t)uart->num, true);
+    uart_ll_reset_register((uart_port_t)uart->num);
+  
+    // Configure UART clock.
+    uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
+    uart_ll_sclk_enable(uart->dev);
+  #else
+    // Enable UART peripheral.
     periph_module_enable((periph_module_t)(dmx_num + 1));
-    uart_ll_set_reset_core(uart->dev, false);
-#else
-    periph_module_enable((periph_module_t)(dmx_num + 1));
-#endif
-  }
-#endif
+  
+    if (dmx_num != 0) {
+  #if SOC_UART_REQUIRE_CORE_RESET
+      // ESP32C3 workaround.
+      uart_ll_set_reset_core(uart->dev, true);
+      periph_module_enable((periph_module_t)(dmx_num + 1));
+      uart_ll_set_reset_core(uart->dev, false);
+  #else
+      periph_module_enable((periph_module_t)(dmx_num + 1));
+  #endif
+    }
+  #endif
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-  uint32_t sclk_freq;
-  uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
-
-  ESP_LOGI("DMX_UART", "UART clock: %lu Hz, baudrate: %lu",
-           (unsigned long)sclk_freq,
-           (unsigned long)DMX_BAUD_RATE);
-
-  uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
-#else
-  uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
-  uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE);
-#endif
+  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    uint32_t sclk_freq;
+    uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+  
+    ESP_LOGI("DMX_UART", "UART clock: %lu Hz, baudrate: %lu",
+             (unsigned long)sclk_freq,
+             (unsigned long)DMX_BAUD_RATE);
+  
+    uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
+  #else
+    uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
+    uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE);
+  #endif
 
   uart_ll_set_mode(uart->dev, UART_MODE_UART);
   uart_ll_set_parity(uart->dev, UART_PARITY_DISABLE);
