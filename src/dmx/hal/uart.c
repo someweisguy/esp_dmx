@@ -373,8 +373,8 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   #endif
 
   #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-    uint32_t sclk_freq;
-    uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+    uint32_t sclk_freq = 0;
+    esp_err_t clock_result = uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
   
     printf("DMX_UART INIT: port=%d, baudrate=%lu\n", (int)dmx_num, (unsigned long)DMX_BAUD_RATE);
     printf("DMX UART clock result: %d\n", clock_result);
