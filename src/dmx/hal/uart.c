@@ -15,6 +15,8 @@
 #include "hal/uart_periph.h"
 #include "esp_private/esp_clk.h"
 #include "esp_timer.h"
+#include "esp_rom_gpio.h"
+#include "soc/gpio_sig_map.h"
 #else
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
@@ -349,14 +351,23 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   printf("DMX_UART INIT: port=%d, baudrate=%lu\n", (int)dmx_num, (unsigned long)DMX_BAUD_RATE);
     
   #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-    // Enable and reset HP UART.
-    uart_ll_enable_bus_clock((uart_port_t)uart->num, true);
-    uart_ll_reset_register((uart_port_t)uart->num);
+      // Enable UART clock.
+      uart_ll_enable_bus_clock((uart_port_t)uart->num, true);
   
-    // Configure UART clock.
-    uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
-    uart_ll_sclk_enable(uart->dev);
-  #else
+      // Workaround: hold RX high before resetting UART.
+      esp_rom_gpio_connect_in_signal(
+          GPIO_MATRIX_CONST_ONE_INPUT,
+          UART_PERIPH_SIGNAL(uart->num, SOC_UART_PERIPH_SIGNAL_RX),
+          false
+      );
+  
+      // Reset UART.
+      uart_ll_reset_register((uart_port_t)uart->num);
+  
+      // Configure UART clock.
+      uart_ll_set_sclk(uart->dev, UART_SCLK_DEFAULT);
+      uart_ll_sclk_enable(uart->dev);
+  #else      
     // Enable UART peripheral.
     periph_module_enable((periph_module_t)(dmx_num + 1));
   
