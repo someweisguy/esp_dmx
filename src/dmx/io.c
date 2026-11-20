@@ -10,6 +10,8 @@
 #include "rdm/include/driver.h"
 #include "rdm/include/uid.h"
 #include "rdm/responder/include/utils.h"
+#include "esp_idf_version.h"
+#include <stdlib.h>
 
 size_t dmx_read_offset(dmx_port_t dmx_num, size_t offset, void *destination,
                        size_t size) {
@@ -371,7 +373,11 @@ size_t dmx_send_num(dmx_port_t dmx_num, size_t size) {
   // Block if an alarm was set
   if (timer_elapsed < timer_alarm) {
     if (!xTaskNotifyWait(0, ULONG_MAX, NULL, dmx_ms_to_ticks(20))) {
-      __unreachable();  // The hardware timer should always notify the task
+      #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+            abort();
+      #else
+            __unreachable();
+      #endif
     }
     driver->task_waiting = NULL;
   }
