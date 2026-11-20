@@ -18,6 +18,7 @@
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
+#include "esp_log.h"
 
 #if __has_include("soc/uart_periph.h")
 #include "soc/uart_periph.h"
