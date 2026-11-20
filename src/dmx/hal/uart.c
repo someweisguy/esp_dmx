@@ -375,6 +375,16 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     uint32_t sclk_freq = 0;
     esp_err_t clock_result = uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+    
+    if (clock_result != ESP_OK) {
+      printf("ERROR: Could not get UART clock\n");
+      return false;
+    }
+    
+    bool baud_set = uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
+    
+    printf("UART clock: %lu Hz\n", (unsigned long)sclk_freq);
+    printf("UART baud set: %s\n", baud_set ? "OK" : "FAILED");
   #else
     uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
     uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE);
