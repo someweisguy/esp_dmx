@@ -343,6 +343,8 @@ static void DMX_ISR_ATTR dmx_uart_isr(void *arg) {
 }
 
 bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
+  abort();
+  
   int __DECLARE_RCC_ATOMIC_ENV __attribute__((unused));
 
   struct dmx_uart_t *uart = &dmx_uart_context[dmx_num];
