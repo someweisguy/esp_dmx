@@ -393,6 +393,13 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
   uart_ll_set_parity(uart->dev, UART_PARITY_DISABLE);
   uart_ll_set_data_bit_num(uart->dev, UART_DATA_8_BITS);
   uart_ll_set_stop_bits(uart->dev, UART_STOP_BITS_2);
+  
+  printf("UART CONFIG CHECK:\n");
+  printf("  baud divider = %u\n", uart_ll_get_baudrate(uart->dev));
+  printf("  data bits    = %d\n", uart_ll_get_data_bit_num(uart->dev));
+  printf("  stop bits    = %d\n", uart_ll_get_stop_bits(uart->dev));
+  printf("  parity       = %d\n", uart_ll_get_parity(uart->dev));
+  
   uart_ll_tx_break(uart->dev, 0);
   uart_ll_set_tx_idle_num(uart->dev, 0);
   uart_ll_set_hw_flow_ctrl(uart->dev, UART_HW_FLOWCTRL_DISABLE, 0);
