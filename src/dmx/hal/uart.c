@@ -354,13 +354,6 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
       // Enable UART clock.
       uart_ll_enable_bus_clock((uart_port_t)uart->num, true);
   
-      // Workaround: hold RX high before resetting UART.
-      esp_rom_gpio_connect_in_signal(
-          GPIO_MATRIX_CONST_ONE_INPUT,
-          UART_PERIPH_SIGNAL(uart->num, SOC_UART_PERIPH_SIGNAL_RX),
-          false
-      );
-  
       // Reset UART.
       uart_ll_reset_register((uart_port_t)uart->num);
   
