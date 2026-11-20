@@ -31,6 +31,8 @@
 #endif
 #endif
 
+#error "CUSTOM DMX UART.C IS BEING COMPILED"
+
 #define DMX_UART_FULL_DEFAULT 1
 #define DMX_UART_EMPTY_DEFAULT 8
 
