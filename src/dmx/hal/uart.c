@@ -376,9 +376,7 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
     uint32_t sclk_freq;
     uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
   
-    ESP_LOGI("DMX_UART", "UART clock: %lu Hz, baudrate: %lu",
-             (unsigned long)sclk_freq,
-             (unsigned long)DMX_BAUD_RATE);
+    printf("DMX_UART INIT: port=%d, baudrate=%lu\n", (int)dmx_num, (unsigned long)DMX_BAUD_RATE);
   
     uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
   #else
