@@ -12,7 +12,6 @@
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
 #include "hal/uart_ll.h"
 #include "hal/uart_periph.h"
-#include "soc/uart_periph.h"
 #include "esp_private/esp_clk.h"
 #include "esp_timer.h"
 #else
@@ -20,9 +19,7 @@
 #include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-#include "hal/uart_periph.h"
-#elif __has_include("soc/uart_periph.h")
+#if __has_include("soc/uart_periph.h")
 #include "soc/uart_periph.h"
 #endif
 
