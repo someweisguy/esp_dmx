@@ -1,6 +1,7 @@
 #include "include/uart.h"
 
 #include "esp_idf_version.h"
+#include "esp_log.h"
 
 #include "dmx/hal/include/timer.h"
 #include "dmx/include/service.h"
@@ -18,7 +19,7 @@
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_timer.h"
-#include "esp_log.h"
+
 
 #if __has_include("soc/uart_periph.h")
 #include "soc/uart_periph.h"
@@ -373,6 +374,11 @@ bool dmx_uart_init(dmx_port_t dmx_num, void *isr_context, int isr_flags) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   uint32_t sclk_freq;
   uart_get_sclk_freq(UART_SCLK_DEFAULT, &sclk_freq);
+
+  ESP_LOGI("DMX_UART", "UART clock: %lu Hz, baudrate: %lu",
+           (unsigned long)sclk_freq,
+           (unsigned long)DMX_BAUD_RATE);
+
   uart_ll_set_baudrate(uart->dev, DMX_BAUD_RATE, sclk_freq);
 #else
   uart_ll_set_sclk(uart->dev, UART_SCLK_APB);
